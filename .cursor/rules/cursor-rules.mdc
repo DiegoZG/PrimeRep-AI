@@ -1,0 +1,199 @@
+---
+alwaysApply: true
+---
+
+# APP CURSOR RULES
+
+You are an expert in TypeScript, React Native, Expo, and Mobile UI development.
+
+---
+
+## Code Style and Structure
+
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`).
+- Structure files in this order: exported component → subcomponents → helpers → static content → types.
+- Follow Expo documentation for setup and configuration: https://docs.expo.dev/
+
+---
+
+## Naming Conventions
+
+- Use lowercase with dashes for directories (`components/auth-wizard`).
+- Favor named exports for components.
+- Use PascalCase for component files (`LoginScreen.tsx`).
+- Use camelCase for utilities and hooks (`authContext.tsx`, `use-theme-color.ts`).
+
+---
+
+## TypeScript Usage
+
+- Use TypeScript everywhere; prefer **interfaces** over **types**.
+- Avoid enums; use maps instead.
+- Use functional components with TypeScript interfaces.
+- Keep strict mode enabled.
+- Define context types explicitly (e.g., `AuthState` in `authContext.tsx`).
+
+---
+
+## Syntax and Formatting
+
+- Use the `function` keyword for pure functions.
+- Avoid unnecessary curly braces in simple conditionals.
+- Write declarative JSX.
+- Use Prettier for formatting.
+
+---
+
+## UI and Styling
+
+- **Always** use `ThemedView` and `ThemedText` from `@/components` for all UI elements.
+- `ThemedText` types: `default`, `title`, `defaultSemiBold`, `subtitle`, `link`.
+- Use `ThemedView` instead of `View` for theme-aware backgrounds.
+- For buttons, regular `Text` is acceptable on colored backgrounds.
+- Use `Colors` from `@/constants/theme` (e.g., `Colors[colorScheme ?? 'light'].tint`).
+- Use Flexbox and `useWindowDimensions` for responsiveness.
+- Use `StyleSheet.create` for reusable or complex styles.
+- Inline styles OK for simple cases.
+- Ensure accessibility using ARIA roles and native accessibility props.
+- Use `react-native-reanimated` and `react-native-gesture-handler` for animations/gestures.
+
+---
+
+## Safe Area Management
+
+- Use `SafeAreaProvider` globally.
+- Wrap top-level components with `SafeAreaView`.
+- Use `SafeAreaScrollView` for scrollable content.
+- Avoid hardcoded safe-area padding; rely on context hooks.
+
+---
+
+## Performance Optimization
+
+- Minimize `useState`/`useEffect`; prefer context + reducers.
+- Use Expo’s `AppLoading` and `SplashScreen` for startup optimization.
+- Optimize images (WebP, size data, lazy loading via `expo-image`).
+- Implement code splitting using `Suspense` and dynamic imports.
+- Profile with React Native devtools and Expo debugger.
+- Use `useMemo` and `useCallback` to prevent unnecessary re-renders.
+
+---
+
+## Navigation (Expo Router – File-Based Routing)
+
+- Use Expo Router v6+ (already configured).
+- `app/` directory defines routes.
+- Use `Stack` for main navigation, `Tabs` for bottom navigation.
+- Use `Stack.Protected` for guarded routes:
+  - Protected: `<Stack.Protected guard={isLoggedIn}>`
+  - Conditional: `<Stack.Protected guard={!isLoggedIn && hasCompletedOnboarding}>`
+- Use `useRouter()` for navigation (`router.replace("/")`, `router.push("/path")`).
+- Use `Link` for declarative navigation.
+- Group routes using parentheses (`(tabs)`, `(auth)`).
+- Use `_layout.tsx` to define group layouts.
+- Modal screens auto-handled (`app/modal.tsx`).
+- Use `unstable_settings` with `anchor` to set default routes.
+- Place navigation guards in `RootLayoutNav` inside `AuthProvider`.
+- Always use `router.replace()` in auth flows.
+
+---
+
+## State Management
+
+- Use React Context + `useReducer` for global state.
+- Create context providers in `utils/` (e.g., `authContext.tsx`).
+- Providers wrap children and expose state/actions.
+- Use `useContext` to access state.
+- Use hooks to complement Context Providers.
+- AuthContext should manage:
+  - `isLoggedIn`
+  - `hasCompletedOnboarding`
+  - `shouldCreateAccount`
+- Root-level providers go in `RootLayout`.
+- Avoid prop drilling.
+- Use `expo-linking` for URL search parameters.
+
+---
+
+## Authentication Flow
+
+1. If `!hasCompletedOnboarding` → onboarding flow.
+2. If `!isLoggedIn && hasCompletedOnboarding` → login/signup flow.
+3. If `isLoggedIn` → tabs.
+
+Auth functions:
+
+- `logIn()` → sets `isLoggedIn` and navigates with `router.replace("/")`
+- `logOut()` → sets `isLoggedIn = false`
+- `completeOnboarding()` → sets flag to true
+- `resetOnboarding()` → sets flag to false
+
+---
+
+## Error Handling and Validation
+
+- Use **Zod** for runtime validation.
+- Log errors using Sentry or similar.
+- Use early returns for error cases.
+- Avoid unnecessary `else` blocks.
+- Implement global error boundaries.
+- Use `expo-error-reporter` in production.
+
+---
+
+## Testing
+
+- Use Jest + React Native Testing Library for unit tests.
+- Use Detox for integration tests.
+- Use Expo’s testing tools for environment coverage.
+- Snapshot test components when useful.
+
+---
+
+## Security
+
+- Sanitize user input.
+- Use `react-native-encrypted-storage` for sensitive data.
+- Always communicate over HTTPS with proper auth.
+- Follow Expo security guidelines: https://docs.expo.dev/guides/security/
+- Store auth tokens securely.
+
+---
+
+## Internationalization (i18n)
+
+- Use `expo-localization` or `react-native-i18n`.
+- Support multiple languages and RTL layouts.
+- Ensure text scaling and accessibility.
+
+---
+
+## Key Conventions
+
+1. Rely on Expo’s managed workflow.
+2. Prioritize Mobile Web Vitals.
+3. Use `expo-constants` for env variables.
+4. Use `expo-permissions` for device permissions.
+5. Use `expo-updates` for OTA updates.
+6. Follow Expo publishing best practices.
+7. Test on both iOS and Android.
+8. Use import aliases (`@/*`).
+9. Route components must be wrapped by providers when needed.
+10. Use `ThemeProvider` from `@react-navigation/native`.
+
+---
+
+## Project-Specific Patterns
+
+### Theme System
+
+- Always use `ThemedView` and `ThemedText`.
+- Use `useColorScheme()` and `useThemeColor()`.
+- Theme colors in `constants/theme.ts`.
+- Tab icons use `color` prop from navigation.
+- Set `tabBarActiveTintColor` + `tabBarInactiveTintColor`.
+
+### File Structure
