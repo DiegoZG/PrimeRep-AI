@@ -1,11 +1,15 @@
 import React from "react";
-import { Text, View } from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 const FeedScreen = () => {
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>feed</Text>
-    </View>
+    <ThemedView
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+    >
+      <ThemedText type="title">feed</ThemedText>
+    </ThemedView>
   );
 };
 

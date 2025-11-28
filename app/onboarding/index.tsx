@@ -1,11 +1,16 @@
 import { Link } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Text } from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 const OnboardingFirstScreen = () => {
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Onboarding Screen 1</Text>
+    <ThemedView
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+    >
+      <ThemedText type="title">Onboarding Screen 1</ThemedText>
       <Link
         asChild
         href="/onboarding/final"
@@ -21,7 +26,7 @@ const OnboardingFirstScreen = () => {
           Continue
         </Text>
       </Link>
-    </View>
+    </ThemedView>
   );
 };
 

@@ -1,11 +1,15 @@
 import React from "react";
-import { Text, View } from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 const SignUpScreen = () => {
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>signup</Text>
-    </View>
+    <ThemedView
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+    >
+      <ThemedText type="title">signup</ThemedText>
+    </ThemedView>
   );
 };
 

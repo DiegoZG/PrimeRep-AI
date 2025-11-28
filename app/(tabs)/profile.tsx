@@ -1,12 +1,17 @@
 import { AuthContext } from "@/utils/authContext";
 import React, { useContext } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 const ProfileScreen = () => {
   const { logOut } = useContext(AuthContext);
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>profile</Text>
+    <ThemedView
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+    >
+      <ThemedText type="title">profile</ThemedText>
       <TouchableOpacity
         onPress={logOut}
         style={{
@@ -22,7 +27,7 @@ const ProfileScreen = () => {
           Sign out
         </Text>
       </TouchableOpacity>
-    </View>
+    </ThemedView>
   );
 };
 
