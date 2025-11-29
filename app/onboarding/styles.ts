@@ -17,12 +17,11 @@ export function useOnboardingStyles() {
     },
     scrollContent: {
       flexGrow: 1,
+      justifyContent: "center",
     },
     content: {
-      flex: 1,
       paddingHorizontal: 24,
-      paddingTop: 40,
-      justifyContent: "center",
+      alignItems: "center",
     },
     question: {
       fontSize: 32,
@@ -30,17 +29,17 @@ export function useOnboardingStyles() {
       color: colors.text,
       marginBottom: 32,
       fontFamily: Fonts.sans,
+      textAlign: "center",
     },
     input: {
       backgroundColor: colors.inputBackground,
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
       borderRadius: 12,
       paddingHorizontal: 20,
       paddingVertical: 16,
       fontSize: 16,
       color: "#11181C", // Dark text color for visibility on white background
       fontFamily: Fonts.sans,
+      width: "100%",
     },
     buttonContainer: {
       paddingHorizontal: 24,

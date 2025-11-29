@@ -20,6 +20,7 @@ export const Colors = {
     inputBackground: "#fff",
     inputBorder: "#E5E5E5",
     placeholder: "#9BA1A6",
+    electricBlue: "#00D4FF", // Electric blue for input focus glow
   },
   dark: {
     text: "#ECEDEE",
@@ -32,6 +33,7 @@ export const Colors = {
     inputBackground: "#fff",
     inputBorder: "#E5E5E5",
     placeholder: "#9BA1A6",
+    electricBlue: "#00D4FF", // Electric blue for input focus glow
   },
 };
 
@@ -60,3 +62,10 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// Animation timing constants
+export const AnimationTiming = {
+  fast: 150,
+  normal: 250,
+  slow: 400,
+};

@@ -23,6 +23,8 @@ export default function OnboardingLayout() {
           backgroundColor: colors.background,
         },
         headerTintColor: colors.text,
+        animation: "slide_from_right",
+        animationDuration: 250,
         headerRight: () => (
           <TouchableOpacity
             onPress={() => router.push("/onboarding/final")}
