@@ -59,6 +59,7 @@ You are an expert in TypeScript, React Native, Expo, and Mobile UI development.
 - Inline styles OK for simple cases.
 - Ensure accessibility using ARIA roles and native accessibility props.
 - Use `react-native-reanimated` and `react-native-gesture-handler` for animations/gestures.
+- Use this documentation for better use of `react-native-reanimated`: https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/
 
 ---
 

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -18,10 +18,12 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import { OnboardingContext } from "@/utils/onboardingContext";
 import { useOnboardingStyles } from "./styles";
 
 const OnboardingFirstScreen = () => {
-  const [firstName, setFirstName] = useState("");
+  const { data, updateField } = useContext(OnboardingContext);
+  const [firstName, setFirstName] = useState(data.firstName || "");
   const router = useRouter();
   const styles = useOnboardingStyles();
   const colorScheme = useColorScheme();
@@ -30,7 +32,8 @@ const OnboardingFirstScreen = () => {
 
   const handleNext = () => {
     if (firstName.trim()) {
-      router.push("/onboarding/final");
+      updateField("firstName", firstName.trim());
+      router.push("/onboarding/welcome");
     }
   };
 
