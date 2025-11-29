@@ -30,7 +30,7 @@ export default function OnboardingLayout() {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => router.push("/onboarding/final")}
-              style={{ marginRight: 16 }}
+              style={{ marginHorizontal: 16 }}
             >
               <Text style={{ color: colors.electricBlue, fontSize: 16 }}>
                 Skip
