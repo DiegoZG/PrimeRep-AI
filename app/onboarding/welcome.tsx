@@ -81,7 +81,7 @@ export default function WelcomeScreen() {
   });
 
   const handleNext = () => {
-    router.push("/onboarding/reason");
+    router.push("/onboarding/first-reason");
   };
 
   return (

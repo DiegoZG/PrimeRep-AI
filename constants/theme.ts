@@ -30,8 +30,8 @@ export const Colors = {
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
     primaryButton: "#6a4ff5",
-    inputBackground: "#fff",
-    inputBorder: "#E5E5E5",
+    inputBackground: "#1F1F1F", // Dark gray for dark mode cards/inputs
+    inputBorder: "#3A3A3A", // Darker border for dark mode
     placeholder: "#9BA1A6",
     electricBlue: "#00D4FF", // Electric blue for input focus glow
   },

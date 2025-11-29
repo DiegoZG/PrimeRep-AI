@@ -24,7 +24,7 @@ import { REASON_SCREEN } from "./constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
-export default function ReasonScreen() {
+export default function FirstReasonScreen() {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
@@ -270,11 +270,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 100, // Space for button
+    paddingBottom: 120, // Extra space for button to ensure last card border is visible
   },
   content: {
     paddingHorizontal: 24,
     paddingTop: 24,
+    paddingBottom: 24, // Extra padding at bottom of content
   },
   question: {
     fontSize: 32,

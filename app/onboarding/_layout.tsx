@@ -52,7 +52,7 @@ export default function OnboardingLayout() {
           }}
         />
         <Stack.Screen
-          name="reason"
+          name="first-reason"
           options={{
             headerTitle: "Reason (1/9)",
           }}
