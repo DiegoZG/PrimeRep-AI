@@ -6,6 +6,7 @@ interface OnboardingData {
   email?: string;
   age?: number;
   gender?: string;
+  reason?: string; // Reason for using the fitness app
   fitnessGoals?: string[];
   experienceLevel?: string;
   workoutFrequency?: string;
@@ -27,6 +28,7 @@ const initialData: OnboardingData = {
   email: "",
   age: undefined,
   gender: "",
+  reason: "",
   fitnessGoals: [],
   experienceLevel: "",
   workoutFrequency: "",

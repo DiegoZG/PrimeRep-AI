@@ -51,6 +51,12 @@ export default function OnboardingLayout() {
             headerTitle: "Welcome",
           }}
         />
+        <Stack.Screen
+          name="reason"
+          options={{
+            headerTitle: "Reason (1/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );
