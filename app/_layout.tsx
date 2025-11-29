@@ -22,7 +22,13 @@ function RootLayoutNav() {
 
   return (
     <>
-      <Stack>
+      <Stack
+        screenOptions={{
+          animation: "slide_from_right",
+          animationDuration: 250,
+          headerShown: false,
+        }}
+      >
         <Stack.Protected guard={isLoggedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack.Protected>
