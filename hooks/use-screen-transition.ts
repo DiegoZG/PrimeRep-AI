@@ -14,6 +14,7 @@ export function useScreenTransition() {
     translateX.value = withTiming(0, {
       duration: AnimationTiming.normal,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { opacity, translateX };
