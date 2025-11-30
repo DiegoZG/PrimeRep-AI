@@ -55,7 +55,10 @@ export function AnimatedInput({
       {...props}
       style={[
         styles.input,
-        { backgroundColor: colors.inputBackground },
+        {
+          backgroundColor: colors.inputBackground,
+          color: colors.text,
+        },
         style,
         animatedStyle,
       ]}
@@ -72,6 +75,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     fontSize: 16,
-    color: "#11181C",
   },
 });

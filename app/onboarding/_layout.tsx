@@ -57,6 +57,12 @@ export default function OnboardingLayout() {
             headerTitle: "Reason (1/9)",
           }}
         />
+        <Stack.Screen
+          name="body-stats"
+          options={{
+            headerTitle: "Body Stats (2/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );

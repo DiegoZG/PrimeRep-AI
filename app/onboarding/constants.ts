@@ -38,3 +38,36 @@ export const REASON_SCREEN = {
     },
   ] as ReasonOption[],
 };
+
+export const BODY_STATS_SCREEN = {
+  title: "Body Stats",
+  step: 2,
+  totalSteps: 9,
+  syncSection: {
+    heading: "Sync Gravl with Apple Health for the best experience.",
+    description:
+      "To personalize workouts and calculate calories burned, sync your Apple health profile. Your data is never shared with third parties.",
+    buttonText: "Sync with Apple Health",
+  },
+  manualSection: {
+    heading: "Enter your health profile",
+    description:
+      "We use gender, weight and age to provide you with the most accurate personalised workouts.",
+  },
+  formFields: {
+    gender: {
+      label: "Gender",
+      placeholder: "Select gender",
+    },
+    weight: {
+      label: "Weight",
+      placeholder: "",
+      unit: "LB",
+    },
+    age: {
+      label: "Age",
+      placeholder: "",
+    },
+  },
+  genderOptions: ["Male", "Female", "Other", "Prefer not to say"],
+};

@@ -6,6 +6,8 @@ interface OnboardingData {
   email?: string;
   age?: number;
   gender?: string;
+  weight?: number; // Weight value
+  weightUnit?: "LB" | "KG"; // Weight unit (pounds or kilograms)
   reason?: string; // Reason for using the fitness app
   fitnessGoals?: string[];
   experienceLevel?: string;
@@ -28,6 +30,8 @@ const initialData: OnboardingData = {
   email: "",
   age: undefined,
   gender: "",
+  weight: undefined,
+  weightUnit: "LB",
   reason: "",
   fitnessGoals: [],
   experienceLevel: "",
