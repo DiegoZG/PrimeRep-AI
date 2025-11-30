@@ -167,8 +167,7 @@ export default function FirstReasonScreen() {
 
   const handleNext = () => {
     if (selectedReason) {
-      // Navigate to next screen (update this route when you add more screens)
-      router.push("/onboarding/final");
+      router.push("/onboarding/body-stats");
     }
   };
 
