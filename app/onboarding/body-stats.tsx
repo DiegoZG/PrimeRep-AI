@@ -143,7 +143,7 @@ export default function BodyStatsScreen() {
 
   const handleNext = () => {
     if (gender && weight && age) {
-      router.push("/onboarding/final");
+      router.push("/onboarding/fitness-experience");
     }
   };
 

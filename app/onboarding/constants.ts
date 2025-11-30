@@ -4,6 +4,12 @@ export interface ReasonOption {
   description: string;
 }
 
+export interface ExperienceOption {
+  id: string;
+  title: string;
+  description: string;
+}
+
 export const REASON_SCREEN = {
   title: "Reason",
   step: 1,
@@ -70,4 +76,39 @@ export const BODY_STATS_SCREEN = {
     },
   },
   genderOptions: ["Male", "Female", "Other", "Prefer not to say"],
+};
+
+export const FITNESS_EXPERIENCE_SCREEN = {
+  title: "Fitness Experience",
+  step: 3,
+  totalSteps: 9,
+  question: "How experienced are you lifting weights?",
+  description:
+    "This will help us to recommend the right exercises and weights for you.",
+  options: [
+    {
+      id: "no-experience",
+      title: "No Experience",
+      description:
+        "New to the gym. Not familiar with exercises and equipment. Focus on building training foundation.",
+    },
+    {
+      id: "beginner",
+      title: "Beginner",
+      description:
+        "Some gym experience (<1 year). Familiar with basic exercises but still learning proper form.",
+    },
+    {
+      id: "intermediate",
+      title: "Intermediate",
+      description:
+        "1-2 years of weightlifting experience. Good understanding of exercises and form. Ready for advanced methods.",
+    },
+    {
+      id: "advanced",
+      title: "Advanced",
+      description:
+        ">3 years of consistent experience. Achieved significant strength/muscle development. Comfortable with complex exercises.",
+    },
+  ] as ExperienceOption[],
 };
