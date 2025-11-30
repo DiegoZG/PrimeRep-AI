@@ -37,7 +37,7 @@ export function useOnboardingStyles() {
       paddingHorizontal: 20,
       paddingVertical: 16,
       fontSize: 16,
-      color: "#11181C", // Dark text color for visibility on white background
+      color: colors.text, // Dynamic text color that adapts to light/dark mode
       fontFamily: Fonts.sans,
       width: "100%",
     },
