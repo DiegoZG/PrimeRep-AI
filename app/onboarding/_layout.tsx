@@ -69,6 +69,12 @@ export default function OnboardingLayout() {
             headerTitle: "Fitness Experience (3/9)",
           }}
         />
+        <Stack.Screen
+          name="fitness-goal"
+          options={{
+            headerTitle: "Fitness Goal (4/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );

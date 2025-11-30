@@ -21,19 +21,19 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { FITNESS_EXPERIENCE_SCREEN } from "./constants";
+import { FITNESS_GOAL_SCREEN } from "./constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
-export default function FitnessExperienceScreen() {
+export default function FitnessGoalScreen() {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
 
-  const [selectedExperience, setSelectedExperience] = useState<string>(
-    data.experienceLevel || ""
+  const [selectedGoal, setSelectedGoal] = useState<string>(
+    data.fitnessGoal || ""
   );
 
   // Question animation
@@ -152,14 +152,14 @@ export default function FitnessExperienceScreen() {
     };
   });
 
-  const handleSelectExperience = (experienceId: string) => {
-    setSelectedExperience(experienceId);
-    updateField("experienceLevel", experienceId);
+  const handleSelectGoal = (goalId: string) => {
+    setSelectedGoal(goalId);
+    updateField("fitnessGoal", goalId);
   };
 
   const handleNext = () => {
-    if (selectedExperience) {
-      router.push("/onboarding/fitness-goal");
+    if (selectedGoal) {
+      router.push("/onboarding/final");
     }
   };
 
@@ -174,27 +174,27 @@ export default function FitnessExperienceScreen() {
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
               <AnimatedText style={[styles.question, { color: colors.text }]}>
-                {FITNESS_EXPERIENCE_SCREEN.question}
+                {FITNESS_GOAL_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
               <Text style={[styles.description, { color: colors.placeholder }]}>
-                {FITNESS_EXPERIENCE_SCREEN.description}
+                {FITNESS_GOAL_SCREEN.description}
               </Text>
             </Animated.View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
-              {FITNESS_EXPERIENCE_SCREEN.options.map((option, index) => {
-                const isSelected = selectedExperience === option.id;
+              {FITNESS_GOAL_SCREEN.options.map((option, index) => {
+                const isSelected = selectedGoal === option.id;
                 const optionAnimatedStyle = optionAnimatedStyles[index];
 
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
                     <TouchableOpacity
-                      onPress={() => handleSelectExperience(option.id)}
+                      onPress={() => handleSelectGoal(option.id)}
                       activeOpacity={0.8}
                     >
                       <View
@@ -202,7 +202,7 @@ export default function FitnessExperienceScreen() {
                           styles.optionCard,
                           {
                             backgroundColor: isSelected
-                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton (#6a4ff5)
+                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
                               : colors.inputBackground,
                             borderColor: isSelected
                               ? colors.primaryButton
@@ -211,8 +211,47 @@ export default function FitnessExperienceScreen() {
                           },
                         ]}
                       >
-                        <View style={styles.optionContent}>
-                          <View style={styles.optionTextContainer}>
+                        {/* Tag */}
+                        {option.tag && (
+                          <View
+                            style={[
+                              styles.tag,
+                              {
+                                backgroundColor:
+                                  option.tag.type === "popular"
+                                    ? colors.primaryButton
+                                    : "rgba(155, 161, 166, 0.2)", // Light grey for powerlifting tag
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tagText,
+                                {
+                                  color:
+                                    option.tag.type === "popular"
+                                      ? "#FFFFFF"
+                                      : colors.text,
+                                },
+                              ]}
+                            >
+                              {option.tag.text}
+                            </Text>
+                          </View>
+                        )}
+
+                        <View
+                          style={[
+                            styles.optionContent,
+                            option.tag && { marginTop: 20 },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.optionTextContainer,
+                              option.tag && { paddingTop: 0 },
+                            ]}
+                          >
                             <Text
                               style={[
                                 styles.optionTitle,
@@ -264,12 +303,12 @@ export default function FitnessExperienceScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedExperience}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedGoal}>
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
-                !selectedExperience && { opacity: 0.5 },
+                !selectedGoal && { opacity: 0.5 },
               ]}
             >
               <Text style={styles.primaryButtonText}>NEXT</Text>
@@ -319,6 +358,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
+    position: "relative",
+  },
+  tag: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+    zIndex: 1,
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+    textTransform: "uppercase",
   },
   optionContent: {
     flexDirection: "row",

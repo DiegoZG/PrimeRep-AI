@@ -10,6 +10,16 @@ export interface ExperienceOption {
   description: string;
 }
 
+export interface FitnessGoalOption {
+  id: string;
+  title: string;
+  description: string;
+  tag?: {
+    text: string;
+    type: "popular" | "powerlifting";
+  };
+}
+
 export const REASON_SCREEN = {
   title: "Reason",
   step: 1,
@@ -111,4 +121,47 @@ export const FITNESS_EXPERIENCE_SCREEN = {
         ">3 years of consistent experience. Achieved significant strength/muscle development. Comfortable with complex exercises.",
     },
   ] as ExperienceOption[],
+};
+
+export const FITNESS_GOAL_SCREEN = {
+  title: "Fitness Goal",
+  step: 4,
+  totalSteps: 9,
+  question: "What are your top fitness goals?",
+  description:
+    "This will help us to recommend the right exercises and sets for you.",
+  options: [
+    {
+      id: "build-muscle",
+      title: "Build muscle and get toned",
+      description:
+        "Focus on muscle development and tone your body. Perform pyramid sets to improve your weights in every workout.",
+      tag: {
+        text: "Popular",
+        type: "popular",
+      },
+    },
+    {
+      id: "general-fitness",
+      title: "Enhance general fitness",
+      description:
+        "Improve your overall fitness by lifting consistent weights and learning new exercises.",
+    },
+    {
+      id: "conditioning",
+      title: "Improve conditioning",
+      description:
+        "Focus on higher reps and lower weights through fast-paced supersets to boost your overall conditioning.",
+    },
+    {
+      id: "get-stronger",
+      title: "Get stronger",
+      description:
+        "Focus on compound exercises. Train fewer muscles per workout and lift heavier weights in lower rep ranges.",
+      tag: {
+        text: "Powerlifting",
+        type: "powerlifting",
+      },
+    },
+  ] as FitnessGoalOption[],
 };

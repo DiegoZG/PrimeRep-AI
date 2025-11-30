@@ -9,7 +9,7 @@ interface OnboardingData {
   weight?: number; // Weight value
   weightUnit?: "LB" | "KG"; // Weight unit (pounds or kilograms)
   reason?: string; // Reason for using the fitness app
-  fitnessGoals?: string[];
+  fitnessGoal?: string; // Single fitness goal (changed from array to single value)
   experienceLevel?: string;
   workoutFrequency?: string;
   preferredWorkoutTime?: string;
@@ -33,7 +33,7 @@ const initialData: OnboardingData = {
   weight: undefined,
   weightUnit: "LB",
   reason: "",
-  fitnessGoals: [],
+  fitnessGoal: "",
   experienceLevel: "",
   workoutFrequency: "",
   preferredWorkoutTime: "",
