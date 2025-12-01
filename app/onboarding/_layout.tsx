@@ -66,7 +66,7 @@ export default function OnboardingLayout() {
         <Stack.Screen
           name="fitness-experience"
           options={{
-            headerTitle: "Fitness Experience (3/9)",
+            headerShown: false, // Header is handled by nested layout
           }}
         />
         <Stack.Screen

@@ -13,6 +13,10 @@ interface OnboardingData {
   experienceLevel?: string;
   workoutFrequency?: string;
   preferredWorkoutTime?: string;
+  // One-rep max values (for Intermediate/Advanced users)
+  benchPress1RM?: number; // Bench press one-rep max in pounds
+  backSquat1RM?: number; // Back squat one-rep max in pounds
+  deadlift1RM?: number; // Deadlift one-rep max in pounds
   [key: string]: any; // Allow for additional fields
 }
 
@@ -37,6 +41,9 @@ const initialData: OnboardingData = {
   experienceLevel: "",
   workoutFrequency: "",
   preferredWorkoutTime: "",
+  benchPress1RM: undefined,
+  backSquat1RM: undefined,
+  deadlift1RM: undefined,
 };
 
 export const OnboardingContext = createContext<OnboardingState>({

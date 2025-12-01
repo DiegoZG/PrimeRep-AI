@@ -21,7 +21,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { FITNESS_EXPERIENCE_SCREEN } from "./constants";
+import { FITNESS_EXPERIENCE_SCREEN } from "../constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -159,7 +159,16 @@ export default function FitnessExperienceScreen() {
 
   const handleNext = () => {
     if (selectedExperience) {
-      router.push("/onboarding/fitness-goal");
+      // Navigate to one-rep-max screen for Intermediate or Advanced
+      if (
+        selectedExperience === "intermediate" ||
+        selectedExperience === "advanced"
+      ) {
+        router.push("/onboarding/fitness-experience/one-rep-max");
+      } else {
+        // Navigate directly to fitness-goal for No Experience or Beginner
+        router.push("/onboarding/fitness-goal");
+      }
     }
   };
 
@@ -202,7 +211,7 @@ export default function FitnessExperienceScreen() {
                           styles.optionCard,
                           {
                             backgroundColor: isSelected
-                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton (#6a4ff5)
+                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
                               : colors.inputBackground,
                             borderColor: isSelected
                               ? colors.primaryButton
@@ -374,3 +383,4 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
+
