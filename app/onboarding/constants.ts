@@ -20,6 +20,15 @@ export interface FitnessGoalOption {
   };
 }
 
+export interface TrainingFrequencyOption {
+  id: string;
+  title: string;
+  tag?: {
+    text: string;
+    type: "recommended";
+  };
+}
+
 export const REASON_SCREEN = {
   title: "Reason",
   step: 1,
@@ -252,3 +261,49 @@ export function calculateOneRepMax(weight: number, reps: number): number {
   return Math.round(weight / percentage);
 }
 
+export const TRAINING_FREQUENCY_SCREEN = {
+  title: "Training Frequency",
+  step: 5,
+  totalSteps: 9,
+  question: "How often do you train?",
+  description:
+    "Setting a realistic goal will help you to stay motivated and track your progress.",
+  options: [
+    {
+      id: "1-day",
+      title: "1 day per week",
+    },
+    {
+      id: "2-days",
+      title: "2 days per week",
+    },
+    {
+      id: "3-days",
+      title: "3 days per week",
+      tag: {
+        text: "Recommended for you",
+        type: "recommended",
+      },
+    },
+    {
+      id: "4-days",
+      title: "4 days per week",
+      tag: {
+        text: "Recommended for you",
+        type: "recommended",
+      },
+    },
+    {
+      id: "5-days",
+      title: "5 days per week",
+    },
+    {
+      id: "6-days",
+      title: "6 days per week",
+    },
+    {
+      id: "every-day",
+      title: "Every day",
+    },
+  ] as TrainingFrequencyOption[],
+};

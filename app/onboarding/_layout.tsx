@@ -75,6 +75,12 @@ export default function OnboardingLayout() {
             headerTitle: "Fitness Goal (4/9)",
           }}
         />
+        <Stack.Screen
+          name="training-frequency"
+          options={{
+            headerTitle: "Training Frequency (5/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );
