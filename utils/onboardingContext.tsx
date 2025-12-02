@@ -9,10 +9,14 @@ interface OnboardingData {
   weight?: number; // Weight value
   weightUnit?: "LB" | "KG"; // Weight unit (pounds or kilograms)
   reason?: string; // Reason for using the fitness app
-  fitnessGoals?: string[];
+  fitnessGoal?: string; // Single fitness goal (changed from array to single value)
   experienceLevel?: string;
   workoutFrequency?: string;
   preferredWorkoutTime?: string;
+  // One-rep max values (for Intermediate/Advanced users)
+  benchPress1RM?: number; // Bench press one-rep max in pounds
+  backSquat1RM?: number; // Back squat one-rep max in pounds
+  deadlift1RM?: number; // Deadlift one-rep max in pounds
   [key: string]: any; // Allow for additional fields
 }
 
@@ -33,10 +37,13 @@ const initialData: OnboardingData = {
   weight: undefined,
   weightUnit: "LB",
   reason: "",
-  fitnessGoals: [],
+  fitnessGoal: "",
   experienceLevel: "",
   workoutFrequency: "",
   preferredWorkoutTime: "",
+  benchPress1RM: undefined,
+  backSquat1RM: undefined,
+  deadlift1RM: undefined,
 };
 
 export const OnboardingContext = createContext<OnboardingState>({

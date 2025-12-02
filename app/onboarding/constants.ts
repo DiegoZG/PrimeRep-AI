@@ -4,6 +4,22 @@ export interface ReasonOption {
   description: string;
 }
 
+export interface ExperienceOption {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface FitnessGoalOption {
+  id: string;
+  title: string;
+  description: string;
+  tag?: {
+    text: string;
+    type: "popular" | "powerlifting";
+  };
+}
+
 export const REASON_SCREEN = {
   title: "Reason",
   step: 1,
@@ -71,3 +87,168 @@ export const BODY_STATS_SCREEN = {
   },
   genderOptions: ["Male", "Female", "Other", "Prefer not to say"],
 };
+
+export const FITNESS_EXPERIENCE_SCREEN = {
+  title: "Fitness Experience",
+  step: 3,
+  totalSteps: 9,
+  question: "How experienced are you lifting weights?",
+  description:
+    "This will help us to recommend the right exercises and weights for you.",
+  options: [
+    {
+      id: "no-experience",
+      title: "No Experience",
+      description:
+        "New to the gym. Not familiar with exercises and equipment. Focus on building training foundation.",
+    },
+    {
+      id: "beginner",
+      title: "Beginner",
+      description:
+        "Some gym experience (<1 year). Familiar with basic exercises but still learning proper form.",
+    },
+    {
+      id: "intermediate",
+      title: "Intermediate",
+      description:
+        "1-2 years of weightlifting experience. Good understanding of exercises and form. Ready for advanced methods.",
+    },
+    {
+      id: "advanced",
+      title: "Advanced",
+      description:
+        ">3 years of consistent experience. Achieved significant strength/muscle development. Comfortable with complex exercises.",
+    },
+  ] as ExperienceOption[],
+};
+
+export const FITNESS_GOAL_SCREEN = {
+  title: "Fitness Goal",
+  step: 4,
+  totalSteps: 9,
+  question: "What are your top fitness goals?",
+  description:
+    "This will help us to recommend the right exercises and sets for you.",
+  options: [
+    {
+      id: "build-muscle",
+      title: "Build muscle and get toned",
+      description:
+        "Focus on muscle development and tone your body. Perform pyramid sets to improve your weights in every workout.",
+      tag: {
+        text: "Popular",
+        type: "popular",
+      },
+    },
+    {
+      id: "general-fitness",
+      title: "Enhance general fitness",
+      description:
+        "Improve your overall fitness by lifting consistent weights and learning new exercises.",
+    },
+    {
+      id: "conditioning",
+      title: "Improve conditioning",
+      description:
+        "Focus on higher reps and lower weights through fast-paced supersets to boost your overall conditioning.",
+    },
+    {
+      id: "get-stronger",
+      title: "Get stronger",
+      description:
+        "Focus on compound exercises. Train fewer muscles per workout and lift heavier weights in lower rep ranges.",
+      tag: {
+        text: "Powerlifting",
+        type: "powerlifting",
+      },
+    },
+  ] as FitnessGoalOption[],
+};
+
+export const ONE_REP_MAX_SCREEN = {
+  title: "Fitness Experience",
+  step: 3,
+  totalSteps: 9,
+  question: "Do you know your one-rep max?",
+  description:
+    "Add your one-rep max to get even more personalized weight recommendations. You can use our calculator to estimate it.",
+  calculatorSection: {
+    heading: "Calculator",
+  },
+  exercises: [
+    {
+      id: "bench-press",
+      name: "Bench Press",
+    },
+    {
+      id: "back-squat",
+      name: "Back Squat",
+    },
+    {
+      id: "deadlift",
+      name: "Deadlift",
+    },
+  ],
+};
+
+export const ONE_REP_MAX_CALCULATOR_MODAL = {
+  title: "One rep max",
+  description:
+    "Enter the max weight and reps you've done in a set to calculate your one-rep max.",
+  inputs: {
+    reps: {
+      label: "Reps",
+      placeholder: "-",
+    },
+    weight: {
+      label: "Weight",
+      placeholder: "-",
+      unit: "lb",
+    },
+  },
+  calculateButton: "CALCULATE",
+};
+
+// 1RM calculation percentages based on rep count
+export const ONE_RM_PERCENTAGES: Record<number, number> = {
+  1: 1.0,
+  2: 0.97,
+  3: 0.94,
+  4: 0.92,
+  5: 0.89,
+  6: 0.86,
+  7: 0.83,
+  8: 0.81,
+  9: 0.78,
+  10: 0.75,
+  11: 0.73,
+  12: 0.71,
+  13: 0.7,
+  14: 0.68,
+  15: 0.67,
+  16: 0.65,
+  17: 0.64,
+  18: 0.63,
+  19: 0.61,
+  20: 0.6,
+  21: 0.59,
+  22: 0.58,
+  23: 0.57,
+  24: 0.56,
+  25: 0.55,
+  26: 0.54,
+  27: 0.53,
+  28: 0.52,
+  29: 0.51,
+  30: 0.5,
+};
+
+export function calculateOneRepMax(weight: number, reps: number): number {
+  if (reps < 1 || reps > 30 || weight <= 0) {
+    return 0;
+  }
+  const percentage = ONE_RM_PERCENTAGES[reps] || 0.5; // Default to 50% for reps > 30
+  return Math.round(weight / percentage);
+}
+

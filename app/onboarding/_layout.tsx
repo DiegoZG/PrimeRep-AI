@@ -63,6 +63,18 @@ export default function OnboardingLayout() {
             headerTitle: "Body Stats (2/9)",
           }}
         />
+        <Stack.Screen
+          name="fitness-experience"
+          options={{
+            headerShown: false, // Header is handled by nested layout
+          }}
+        />
+        <Stack.Screen
+          name="fitness-goal"
+          options={{
+            headerTitle: "Fitness Goal (4/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );
