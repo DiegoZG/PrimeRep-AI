@@ -314,36 +314,44 @@ export default function BodyStatsScreen() {
                               ]}
                             >
                               {BODY_STATS_SCREEN.genderOptions.map(
-                                (option, index) => (
-                                  <TouchableOpacity
-                                    key={option}
-                                    onPress={() => handleSelectGender(option)}
-                                    style={[
-                                      styles.pickerOption,
-                                      index <
-                                        BODY_STATS_SCREEN.genderOptions.length -
-                                          1 && {
-                                        borderBottomColor: colors.inputBorder,
-                                      },
-                                    ]}
-                                  >
-                                    <Text
+                                (option, index) => {
+                                  const isLastOption =
+                                    index ===
+                                    BODY_STATS_SCREEN.genderOptions.length - 1;
+                                  return (
+                                    <TouchableOpacity
+                                      key={option}
+                                      onPress={() => handleSelectGender(option)}
                                       style={[
-                                        styles.pickerOptionText,
+                                        styles.pickerOption,
                                         {
-                                          color:
-                                            gender === option
-                                              ? colors.electricBlue
-                                              : colors.text,
-                                          fontWeight:
-                                            gender === option ? "600" : "400",
+                                          borderBottomWidth: isLastOption
+                                            ? 0
+                                            : 1,
+                                          borderBottomColor: isLastOption
+                                            ? "transparent"
+                                            : colors.inputBorder,
                                         },
                                       ]}
                                     >
-                                      {option}
-                                    </Text>
-                                  </TouchableOpacity>
-                                )
+                                      <Text
+                                        style={[
+                                          styles.pickerOptionText,
+                                          {
+                                            color:
+                                              gender === option
+                                                ? colors.electricBlue
+                                                : colors.text,
+                                            fontWeight:
+                                              gender === option ? "600" : "400",
+                                          },
+                                        ]}
+                                      >
+                                        {option}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  );
+                                }
                               )}
                             </View>
                           )}
