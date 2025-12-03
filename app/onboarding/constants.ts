@@ -407,3 +407,12 @@ export const WORKOUT_SPLIT_SCREEN = {
     },
   ] as WorkoutSplitOption[],
 };
+
+export const CUSTOM_SPLIT_SCREEN = {
+  title: "Custom Split",
+  step: 6,
+  totalSteps: 9,
+  question: "Custom split",
+  description:
+    "Create your own workout cycle by rotating between existing workout splits or creating your own. You can always change this later.",
+};

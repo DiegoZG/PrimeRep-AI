@@ -84,7 +84,7 @@ export default function OnboardingLayout() {
         <Stack.Screen
           name="workout-split"
           options={{
-            headerTitle: "Workout Split (6/9)",
+            headerShown: false, // Header is handled by nested layout
           }}
         />
       </Stack>

@@ -15,7 +15,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { WORKOUT_SPLIT_SCREEN } from "./constants";
+import { WORKOUT_SPLIT_SCREEN } from "../constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -224,9 +224,9 @@ export default function WorkoutSplitScreen() {
   });
 
   const handleSelectSplit = (splitId: string) => {
-    // Don't allow selection if it's the Custom option (with chevron)
+    // Navigate to custom split screen when Custom is selected
     if (splitId === "custom") {
-      // TODO: Navigate to custom split screen when implemented
+      router.push("/onboarding/workout-split/custom");
       return;
     }
     setSelectedSplit(splitId);
