@@ -29,6 +29,19 @@ export interface TrainingFrequencyOption {
   };
 }
 
+export interface WorkoutSplitOption {
+  id: string;
+  title: string;
+  description: string;
+  tag?: {
+    text: string;
+    type: "recommended" | "advanced";
+  };
+  icon?: string; // Icon name for left side (e.g., "sparkles" or emoji)
+  showChevron?: boolean; // If true, show chevron instead of checkbox
+  specialBackground?: boolean; // If true, use special background color
+}
+
 export const REASON_SCREEN = {
   title: "Reason",
   step: 1,
@@ -306,4 +319,91 @@ export const TRAINING_FREQUENCY_SCREEN = {
       title: "Every day",
     },
   ] as TrainingFrequencyOption[],
+};
+
+export const WORKOUT_SPLIT_SCREEN = {
+  title: "Workout Split",
+  step: 6,
+  totalSteps: 9,
+  question: "What's your preferred workout split?",
+  description:
+    "Based on your training frequency, level and gender we recommend the following splits. Remember you can always change this later.",
+  options: [
+    {
+      id: "ai-optimized",
+      title: "AI-Optimized",
+      description:
+        "Our AI creates dynamic workouts prioritising the muscle groups with the best recovery state",
+      icon: "✨",
+    },
+    {
+      id: "push-pull-legs",
+      title: "Push, Pull, Legs",
+      description:
+        "This structure allows you to focus on one movement pattern per day, maximizing the stimulus. It increases the intensity and volume per session for each muscle group, making it ideal for hypertrophy.",
+      tag: {
+        text: "Recommended for you",
+        type: "recommended",
+      },
+    },
+    {
+      id: "custom",
+      title: "Custom",
+      description: "Create your own routine.",
+      tag: {
+        text: "Advanced",
+        type: "advanced",
+      },
+      showChevron: true,
+    },
+    {
+      id: "upper-lower",
+      title: "Upper, Lower",
+      description:
+        "Allows balanced training with double frequency between upper and lower body. Recommended for those seeking a higher training volume with good recovery.",
+      specialBackground: true,
+    },
+    {
+      id: "push-pull-legs-full-body",
+      title: "Push, Pull, Legs, Full body",
+      description:
+        "Blend push, pull, and leg routines with full-body sessions to maintain variety and optimize weekly volume.",
+    },
+    {
+      id: "push-pull-legs-upper-lower",
+      title: "Push, Pull, Legs, Upper, Lower",
+      description:
+        "Adaptation of Push, Pull, and Legs, with two additional days split between upper and lower body, increasing the frequency and weekly volume of work for all muscle groups.",
+    },
+    {
+      id: "upper-lower-full-body",
+      title: "Upper, Lower, Full body",
+      description:
+        "Allows balanced training with double frequency for both upper and lower body. It is important to leave at least one day of rest before the full-body day to avoid training the same muscles on consecutive days and ensure optimal recovery.",
+    },
+    {
+      id: "full-body",
+      title: "Full Body",
+      description:
+        "Ideal for beginners or people with limited time to train. Allows you to improve strength and endurance throughout the body without needing to train multiple days a week.",
+    },
+    {
+      id: "bro-split",
+      title: "Bro Split",
+      description:
+        "Classic approach for those with limited time in each session, enough to dedicate the session to a single muscle group.",
+    },
+    {
+      id: "lower-focused-upper",
+      title: "Lower Focused + Upper",
+      description:
+        "Ideal if you want to focus on your leg and glute muscles. Your lower body will be trained twice per week, so make sure to include at least one rest day between the two lower body sessions.",
+    },
+    {
+      id: "push-pull-legs-upper-body",
+      title: "Push, Pull, Legs, Upper body",
+      description:
+        "A balanced routine that emphasizes upper body development by training both push and pull muscles twice per week. Be sure to include at least one rest day between the Upper Body and Push sessions to allow for proper recovery.",
+    },
+  ] as WorkoutSplitOption[],
 };

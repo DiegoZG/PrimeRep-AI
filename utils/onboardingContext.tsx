@@ -12,6 +12,7 @@ interface OnboardingData {
   fitnessGoal?: string; // Single fitness goal (changed from array to single value)
   experienceLevel?: string;
   workoutFrequency?: string;
+  workoutSplit?: string; // Preferred workout split
   preferredWorkoutTime?: string;
   // One-rep max values (for Intermediate/Advanced users)
   benchPress1RM?: number; // Bench press one-rep max in pounds
@@ -40,6 +41,7 @@ const initialData: OnboardingData = {
   fitnessGoal: "",
   experienceLevel: "",
   workoutFrequency: "",
+  workoutSplit: "",
   preferredWorkoutTime: "",
   benchPress1RM: undefined,
   backSquat1RM: undefined,

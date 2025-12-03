@@ -81,6 +81,12 @@ export default function OnboardingLayout() {
             headerTitle: "Training Frequency (5/9)",
           }}
         />
+        <Stack.Screen
+          name="workout-split"
+          options={{
+            headerTitle: "Workout Split (6/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );

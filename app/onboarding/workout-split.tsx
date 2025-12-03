@@ -15,19 +15,19 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { TRAINING_FREQUENCY_SCREEN } from "./constants";
+import { WORKOUT_SPLIT_SCREEN } from "./constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
-export default function TrainingFrequencyScreen() {
+export default function WorkoutSplitScreen() {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
 
-  const [selectedFrequency, setSelectedFrequency] = useState<string>(
-    data.workoutFrequency || ""
+  const [selectedSplit, setSelectedSplit] = useState<string>(
+    data.workoutSplit || ""
   );
 
   // Question animation
@@ -36,7 +36,7 @@ export default function TrainingFrequencyScreen() {
   const descriptionOpacity = useSharedValue(0);
   const descriptionTranslateY = useSharedValue(20);
 
-  // Options animations - create shared values for each option (7 options total)
+  // Options animations - create shared values for each option (11 options total)
   const option0Opacity = useSharedValue(0);
   const option0TranslateY = useSharedValue(20);
   const option1Opacity = useSharedValue(0);
@@ -51,6 +51,14 @@ export default function TrainingFrequencyScreen() {
   const option5TranslateY = useSharedValue(20);
   const option6Opacity = useSharedValue(0);
   const option6TranslateY = useSharedValue(20);
+  const option7Opacity = useSharedValue(0);
+  const option7TranslateY = useSharedValue(20);
+  const option8Opacity = useSharedValue(0);
+  const option8TranslateY = useSharedValue(20);
+  const option9Opacity = useSharedValue(0);
+  const option9TranslateY = useSharedValue(20);
+  const option10Opacity = useSharedValue(0);
+  const option10TranslateY = useSharedValue(20);
 
   // Create arrays for easier access
   const optionOpacities = [
@@ -61,6 +69,10 @@ export default function TrainingFrequencyScreen() {
     option4Opacity,
     option5Opacity,
     option6Opacity,
+    option7Opacity,
+    option8Opacity,
+    option9Opacity,
+    option10Opacity,
   ];
   const optionTranslateYs = [
     option0TranslateY,
@@ -70,6 +82,10 @@ export default function TrainingFrequencyScreen() {
     option4TranslateY,
     option5TranslateY,
     option6TranslateY,
+    option7TranslateY,
+    option8TranslateY,
+    option9TranslateY,
+    option10TranslateY,
   ];
 
   // Create animated styles for each option at the top level
@@ -115,6 +131,30 @@ export default function TrainingFrequencyScreen() {
       transform: [{ translateY: optionTranslateYs[6].value }],
     };
   });
+  const option7AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[7].value,
+      transform: [{ translateY: optionTranslateYs[7].value }],
+    };
+  });
+  const option8AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[8].value,
+      transform: [{ translateY: optionTranslateYs[8].value }],
+    };
+  });
+  const option9AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[9].value,
+      transform: [{ translateY: optionTranslateYs[9].value }],
+    };
+  });
+  const option10AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[10].value,
+      transform: [{ translateY: optionTranslateYs[10].value }],
+    };
+  });
 
   const optionAnimatedStyles = useMemo(
     () => [
@@ -125,6 +165,10 @@ export default function TrainingFrequencyScreen() {
       option4AnimatedStyle,
       option5AnimatedStyle,
       option6AnimatedStyle,
+      option7AnimatedStyle,
+      option8AnimatedStyle,
+      option9AnimatedStyle,
+      option10AnimatedStyle,
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -179,14 +223,19 @@ export default function TrainingFrequencyScreen() {
     };
   });
 
-  const handleSelectFrequency = (frequencyId: string) => {
-    setSelectedFrequency(frequencyId);
-    updateField("workoutFrequency", frequencyId);
+  const handleSelectSplit = (splitId: string) => {
+    // Don't allow selection if it's the Custom option (with chevron)
+    if (splitId === "custom") {
+      // TODO: Navigate to custom split screen when implemented
+      return;
+    }
+    setSelectedSplit(splitId);
+    updateField("workoutSplit", splitId);
   };
 
   const handleNext = () => {
-    if (selectedFrequency) {
-      router.push("/onboarding/workout-split");
+    if (selectedSplit) {
+      router.push("/onboarding/final");
     }
   };
 
@@ -201,31 +250,35 @@ export default function TrainingFrequencyScreen() {
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
               <AnimatedText style={[styles.question, { color: colors.text }]}>
-                {TRAINING_FREQUENCY_SCREEN.question}
+                {WORKOUT_SPLIT_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
               <Text style={[styles.description, { color: colors.placeholder }]}>
-                {TRAINING_FREQUENCY_SCREEN.description}
+                {WORKOUT_SPLIT_SCREEN.description}
               </Text>
             </Animated.View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
-              {TRAINING_FREQUENCY_SCREEN.options.map((option, index) => {
-                const isSelected = selectedFrequency === option.id;
+              {WORKOUT_SPLIT_SCREEN.options.map((option, index) => {
+                const isSelected = selectedSplit === option.id;
                 const optionAnimatedStyle = optionAnimatedStyles[index];
 
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
                     <SelectableOptionCard
                       title={option.title}
+                      description={option.description}
                       isSelected={isSelected}
-                      onPress={() => handleSelectFrequency(option.id)}
+                      onPress={() => handleSelectSplit(option.id)}
                       tag={option.tag}
-                      showCheckbox={true}
+                      icon={option.icon}
+                      showChevron={option.showChevron}
+                      showCheckbox={!option.showChevron}
+                      specialBackground={option.specialBackground}
                     />
                   </Animated.View>
                 );
@@ -241,12 +294,12 @@ export default function TrainingFrequencyScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedFrequency}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedSplit}>
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
-                !selectedFrequency && { opacity: 0.5 },
+                !selectedSplit && { opacity: 0.5 },
               ]}
             >
               <Text style={styles.primaryButtonText}>NEXT</Text>

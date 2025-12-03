@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -9,19 +10,27 @@ interface SelectableOptionCardProps {
   title: string;
   isSelected: boolean;
   onPress: () => void;
+  description?: string;
   tag?: {
     text: string;
-    type: "popular" | "recommended" | "powerlifting";
+    type: "popular" | "recommended" | "powerlifting" | "advanced";
   };
   showCheckbox?: boolean;
+  showChevron?: boolean;
+  icon?: string; // Emoji or icon identifier
+  specialBackground?: boolean; // Special background color for certain options
 }
 
 export function SelectableOptionCard({
   title,
   isSelected,
   onPress,
+  description,
   tag,
   showCheckbox = true,
+  showChevron = false,
+  icon,
+  specialBackground = false,
 }: SelectableOptionCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -34,6 +43,8 @@ export function SelectableOptionCard({
         return colors.primaryButton;
       case "powerlifting":
         return "rgba(155, 161, 166, 0.2)";
+      case "advanced":
+        return "rgba(155, 161, 166, 0.2)";
       default:
         return colors.primaryButton;
     }
@@ -45,10 +56,21 @@ export function SelectableOptionCard({
       case "recommended":
         return "#FFFFFF";
       case "powerlifting":
+      case "advanced":
         return colors.text;
       default:
         return "#FFFFFF";
     }
+  };
+
+  const getCardBackgroundColor = () => {
+    if (specialBackground && isSelected) {
+      return "rgba(106, 79, 245, 0.15)"; // Slightly more opaque for special background
+    }
+    if (isSelected) {
+      return "rgba(106, 79, 245, 0.12)"; // 12% opacity of primaryButton
+    }
+    return colors.inputBackground;
   };
 
   return (
@@ -57,16 +79,14 @@ export function SelectableOptionCard({
         style={[
           styles.optionCard,
           {
-            backgroundColor: isSelected
-              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
-              : colors.inputBackground,
+            backgroundColor: getCardBackgroundColor(),
             borderColor: isSelected ? colors.primaryButton : colors.inputBorder,
             borderWidth: isSelected ? 2 : 1,
           },
         ]}
       >
         <View style={styles.cardContent}>
-          {/* Left side: Tag and Title */}
+          {/* Left side: Icon, Tag, Title, and Description */}
           <View style={styles.leftContent}>
             {/* Tag */}
             {tag && (
@@ -91,31 +111,54 @@ export function SelectableOptionCard({
               </View>
             )}
 
-            {/* Title */}
-            <Text style={[styles.optionTitle, { color: colors.text }]}>
-              {title}
-            </Text>
+            {/* Title Row with Icon */}
+            <View style={styles.titleRow}>
+              {icon && <Text style={styles.iconText}>{icon}</Text>}
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                {title}
+              </Text>
+            </View>
+
+            {/* Description */}
+            {description && (
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.placeholder },
+                ]}
+              >
+                {description}
+              </Text>
+            )}
           </View>
 
-          {/* Right side: Checkbox */}
-          {showCheckbox && (
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  backgroundColor: isSelected
-                    ? colors.primaryButton
-                    : "transparent",
-                  borderColor: isSelected
-                    ? colors.primaryButton
-                    : colors.inputBorder,
-                },
-              ]}
-            >
-              <AnimatedCheckmark visible={isSelected}>
-                <Text style={styles.checkmarkText}>✓</Text>
-              </AnimatedCheckmark>
-            </View>
+          {/* Right side: Checkbox or Chevron */}
+          {showChevron ? (
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.placeholder}
+            />
+          ) : (
+            showCheckbox && (
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primaryButton
+                      : "transparent",
+                    borderColor: isSelected
+                      ? colors.primaryButton
+                      : colors.inputBorder,
+                  },
+                ]}
+              >
+                <AnimatedCheckmark visible={isSelected}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </AnimatedCheckmark>
+              </View>
+            )
           )}
         </View>
       </View>
@@ -151,10 +194,24 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     textTransform: "uppercase",
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconText: {
+    fontSize: 20,
+  },
   optionTitle: {
     fontSize: 17,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+  },
+  optionDescription: {
+    fontSize: 14,
+    fontWeight: "400",
+    fontFamily: Fonts.sans,
+    lineHeight: 20,
   },
   checkbox: {
     width: 24,
