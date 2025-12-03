@@ -32,6 +32,14 @@ export default function WorkoutSplitLayout() {
           headerTitle: "Custom Split (6/9)",
         }}
       />
+      <Stack.Screen
+        name="add-workout-modal"
+        options={{
+          presentation: "modal",
+          headerTitle: "",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

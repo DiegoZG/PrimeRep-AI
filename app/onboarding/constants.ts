@@ -416,3 +416,53 @@ export const CUSTOM_SPLIT_SCREEN = {
   description:
     "Create your own workout cycle by rotating between existing workout splits or creating your own. You can always change this later.",
 };
+
+export interface AddWorkoutOption {
+  id: string;
+  title: string;
+  description: string;
+  isToggle?: boolean; // If true, use toggle switch instead of checkbox
+}
+
+export const ADD_WORKOUT_MODAL = {
+  title: "Add a custom workout",
+  description:
+    "Select one of the predefined muscle splits or create your own custom one.",
+  tabs: [
+    { id: "workout-split", label: "Workout split" },
+    { id: "custom", label: "Custom" },
+  ],
+  workoutSplitOptions: [
+    {
+      id: "full-body",
+      title: "Full body",
+      description: "Train your entire body.",
+    },
+    {
+      id: "upper-body",
+      title: "Upper body",
+      description: "Train chest, back, shoulders and arms.",
+    },
+    {
+      id: "legs",
+      title: "Legs",
+      description: "Train hamstrings, quads, glutes and calves.",
+    },
+    {
+      id: "push",
+      title: "Push",
+      description: "Train chest, shoulders and triceps.",
+    },
+    {
+      id: "pull",
+      title: "Pull",
+      description: "Train back and biceps.",
+    },
+    {
+      id: "core",
+      title: "Core",
+      description: "Include abs and lower back.",
+      isToggle: true,
+    },
+  ] as AddWorkoutOption[],
+};

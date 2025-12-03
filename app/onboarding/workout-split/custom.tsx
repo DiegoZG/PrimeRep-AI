@@ -81,8 +81,7 @@ export default function CustomSplitScreen() {
   });
 
   const handleAddWorkout = () => {
-    // TODO: Implement add workout functionality
-    // This will likely open a modal or navigate to another screen
+    router.push("/onboarding/workout-split/add-workout-modal");
   };
 
   const handleContinue = () => {
