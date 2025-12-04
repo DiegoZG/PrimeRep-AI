@@ -105,6 +105,12 @@ export default function CustomSplitScreen() {
     }
   };
 
+  const handleRemoveWorkout = (workoutId: string) => {
+    const currentWorkouts = data.customWorkouts || [];
+    const updatedWorkouts = currentWorkouts.filter((w) => w.id !== workoutId);
+    updateField("customWorkouts", updatedWorkouts);
+  };
+
   const handleContinue = () => {
     // Save custom split selection
     updateField("workoutSplit", "custom");
@@ -137,10 +143,8 @@ export default function CustomSplitScreen() {
             {data.customWorkouts && data.customWorkouts.length > 0 && (
               <View style={styles.workoutsList}>
                 {data.customWorkouts.map((workout, index) => (
-                  <TouchableOpacity
+                  <View
                     key={workout.id}
-                    onPress={() => handleEditWorkout(workout.id)}
-                    activeOpacity={0.7}
                     style={[
                       styles.workoutCard,
                       {
@@ -157,66 +161,75 @@ export default function CustomSplitScreen() {
                           { color: colors.text },
                         ]}
                       >
-                        {workout.name}
+                        {workout.name} - Workout {index + 1}
                       </Text>
-                      <Text
-                        style={[
-                          styles.workoutNumber,
-                          { color: colors.placeholder },
-                        ]}
+                      <TouchableOpacity
+                        onPress={() => handleRemoveWorkout(workout.id)}
+                        activeOpacity={0.7}
+                        style={styles.deleteButton}
                       >
-                        Workout {index + 1}
-                      </Text>
+                        <Ionicons
+                          name="trash-outline"
+                          size={20}
+                          color={colors.placeholder}
+                        />
+                      </TouchableOpacity>
                     </View>
 
-                    {/* Muscle Icons Row */}
-                    <View style={styles.muscleIconsRow}>
-                      {workout.muscleGroups.slice(0, 6).map((muscleId) => {
-                        const muscleGroup =
-                          ADD_WORKOUT_MODAL.customMuscleGroups.find(
-                            (mg) => mg.id === muscleId
-                          );
-                        return (
-                          <View
-                            key={muscleId}
-                            style={[
-                              styles.muscleIconSmall,
-                              {
-                                backgroundColor: colors.inputBorder,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.muscleIconPlaceholderSmall,
-                                { color: colors.placeholder },
-                              ]}
-                            >
-                              {muscleGroup?.name.charAt(0) || "?"}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-
-                    {/* Muscle Groups List */}
-                    <Text
-                      style={[
-                        styles.muscleGroupsList,
-                        { color: colors.placeholder },
-                      ]}
+                    {/* Card Content - Clickable */}
+                    <TouchableOpacity
+                      onPress={() => handleEditWorkout(workout.id)}
+                      activeOpacity={0.7}
                     >
-                      {workout.muscleGroups
-                        .map((muscleId) => {
+                      {/* Muscle Icons Row */}
+                      <View style={styles.muscleIconsRow}>
+                        {workout.muscleGroups.slice(0, 6).map((muscleId) => {
                           const muscleGroup =
                             ADD_WORKOUT_MODAL.customMuscleGroups.find(
                               (mg) => mg.id === muscleId
                             );
-                          return muscleGroup?.name || muscleId;
-                        })
-                        .join(", ")}
-                    </Text>
-                  </TouchableOpacity>
+                          return (
+                            <View
+                              key={muscleId}
+                              style={[
+                                styles.muscleIconSmall,
+                                {
+                                  backgroundColor: colors.inputBorder,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.muscleIconPlaceholderSmall,
+                                  { color: colors.placeholder },
+                                ]}
+                              >
+                                {muscleGroup?.name.charAt(0) || "?"}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+
+                      {/* Muscle Groups List */}
+                      <Text
+                        style={[
+                          styles.muscleGroupsList,
+                          { color: colors.placeholder },
+                        ]}
+                      >
+                        {workout.muscleGroups
+                          .map((muscleId) => {
+                            const muscleGroup =
+                              ADD_WORKOUT_MODAL.customMuscleGroups.find(
+                                (mg) => mg.id === muscleId
+                              );
+                            return muscleGroup?.name || muscleId;
+                          })
+                          .join(", ")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             )}
@@ -297,10 +310,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
   },
-  workoutNumber: {
-    fontSize: 14,
-    fontWeight: "500",
-    fontFamily: Fonts.sans,
+  deleteButton: {
+    padding: 4,
   },
   muscleIconsRow: {
     flexDirection: "row",
