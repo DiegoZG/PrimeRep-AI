@@ -77,6 +77,13 @@ export default function AddWorkoutModal() {
     }
   }, [editingWorkout]);
 
+  // Disable Core toggle when no workout split option is selected
+  useEffect(() => {
+    if (activeTab === "workout-split" && selectedOptions.size === 0) {
+      setCoreEnabled(false);
+    }
+  }, [activeTab, selectedOptions]);
+
   // Modal animation
   const modalOpacity = useSharedValue(0);
   const modalTranslateY = useSharedValue(50);
@@ -301,6 +308,7 @@ export default function AddWorkoutModal() {
                           <Switch
                             value={coreEnabled}
                             onValueChange={setCoreEnabled}
+                            disabled={selectedOptions.size === 0}
                             trackColor={{
                               false: colors.inputBorder,
                               true: colors.primaryButton,
