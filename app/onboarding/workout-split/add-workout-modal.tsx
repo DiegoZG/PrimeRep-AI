@@ -1,5 +1,6 @@
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { OnboardingContext } from "@/utils/onboardingContext";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -25,12 +26,103 @@ import { ADD_WORKOUT_MODAL } from "../constants";
 export default function AddWorkoutModal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { data, updateField } = useContext(OnboardingContext);
+  const params = useLocalSearchParams<{
+    workoutId?: string;
+    workoutName?: string;
+    workoutType?: string;
+    muscleGroups?: string;
+  }>();
+
+  const isEditing = !!params.workoutId;
+  const editingWorkout = isEditing
+    ? data.customWorkouts?.find((w) => w.id === params.workoutId)
+    : null;
 
   const [activeTab, setActiveTab] = useState<string>("workout-split");
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(
     new Set()
   );
   const [coreEnabled, setCoreEnabled] = useState<boolean>(false);
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Pre-fill selections when editing
+  useEffect(() => {
+    if (editingWorkout) {
+      // Set the active tab based on workout type
+      setActiveTab(
+        editingWorkout.type === "custom" ? "custom" : "workout-split"
+      );
+
+      if (editingWorkout.type === "workout-split") {
+        // Map workout split option to muscle groups (base groups without Core)
+        const muscleGroupMap: Record<string, string[]> = {
+          "full-body": [
+            "chest",
+            "back",
+            "shoulders",
+            "hamstrings",
+            "quads",
+            "abs",
+          ],
+          "upper-body": ["chest", "back", "shoulders", "biceps", "triceps"],
+          legs: ["hamstrings", "quads", "calves", "glutes"],
+          push: ["chest", "shoulders", "triceps"],
+          pull: ["back", "biceps"],
+        };
+
+        // Check if Core is enabled (has both abs and lower-back)
+        const hasCore =
+          editingWorkout.muscleGroups.includes("abs") &&
+          editingWorkout.muscleGroups.includes("lower-back");
+
+        // Remove "lower-back" (only added by Core) to match base options
+        let groupsToMatch = editingWorkout.muscleGroups.filter(
+          (mg) => mg !== "lower-back"
+        );
+
+        // Find matching workout split option
+        let matchingOption = Object.entries(muscleGroupMap).find(
+          ([_, groups]) => {
+            const workoutGroupsSet = new Set(groupsToMatch);
+            // Check if all groups in the map are in the workout groups
+            // and the sizes match exactly
+            return (
+              groups.every((g) => workoutGroupsSet.has(g)) &&
+              groups.length === workoutGroupsSet.size
+            );
+          }
+        );
+
+        // If no match found and Core is enabled, try removing "abs" too
+        // (Core adds "abs" even if base option doesn't include it)
+        if (!matchingOption && hasCore) {
+          groupsToMatch = groupsToMatch.filter((mg) => mg !== "abs");
+          matchingOption = Object.entries(muscleGroupMap).find(
+            ([_, groups]) => {
+              const workoutGroupsSet = new Set(groupsToMatch);
+              return (
+                groups.every((g) => workoutGroupsSet.has(g)) &&
+                groups.length === workoutGroupsSet.size
+              );
+            }
+          );
+        }
+
+        if (matchingOption) {
+          setSelectedOptions(new Set([matchingOption[0]]));
+        }
+
+        // Set Core toggle if enabled
+        setCoreEnabled(hasCore);
+      } else {
+        // Custom workout - pre-select muscle groups
+        setSelectedMuscleGroups(new Set(editingWorkout.muscleGroups));
+      }
+    }
+  }, [editingWorkout]);
 
   // Modal animation
   const modalOpacity = useSharedValue(0);
@@ -60,10 +152,98 @@ export default function AddWorkoutModal() {
     });
   };
 
+  const handleToggleMuscleGroup = (muscleGroupId: string) => {
+    setSelectedMuscleGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(muscleGroupId)) {
+        newSet.delete(muscleGroupId);
+      } else {
+        newSet.add(muscleGroupId);
+      }
+      return newSet;
+    });
+  };
+
   const handleAdd = () => {
-    // TODO: Save selected workouts
+    const currentWorkouts = data.customWorkouts || [];
+    let updatedWorkout;
+
+    if (activeTab === "workout-split") {
+      // Get the selected workout split option
+      const selectedOption = ADD_WORKOUT_MODAL.workoutSplitOptions.find((opt) =>
+        selectedOptions.has(opt.id)
+      );
+      if (selectedOption) {
+        // Map workout split option to muscle groups
+        const muscleGroupMap: Record<string, string[]> = {
+          "full-body": [
+            "chest",
+            "back",
+            "shoulders",
+            "hamstrings",
+            "quads",
+            "abs",
+          ],
+          "upper-body": ["chest", "back", "shoulders", "biceps", "triceps"],
+          legs: ["hamstrings", "quads", "calves", "glutes"],
+          push: ["chest", "shoulders", "triceps"],
+          pull: ["back", "biceps"],
+        };
+
+        let muscleGroups = muscleGroupMap[selectedOption.id] || [];
+
+        // Add Core if enabled
+        if (coreEnabled) {
+          muscleGroups = [...muscleGroups, "abs", "lower-back"];
+          // Remove duplicates
+          muscleGroups = Array.from(new Set(muscleGroups));
+        }
+
+        updatedWorkout = {
+          id:
+            isEditing && editingWorkout
+              ? editingWorkout.id
+              : `workout-${Date.now()}`,
+          name: selectedOption.title,
+          type: "workout-split" as const,
+          muscleGroups,
+        };
+      }
+    } else {
+      // Custom tab - use selected muscle groups
+      if (selectedMuscleGroups.size > 0) {
+        updatedWorkout = {
+          id:
+            isEditing && editingWorkout
+              ? editingWorkout.id
+              : `workout-${Date.now()}`,
+          name: "Custom",
+          type: "custom" as const,
+          muscleGroups: Array.from(selectedMuscleGroups),
+        };
+      }
+    }
+
+    if (updatedWorkout) {
+      if (isEditing && editingWorkout) {
+        // Update existing workout
+        const updatedWorkouts = currentWorkouts.map((w) =>
+          w.id === editingWorkout.id ? updatedWorkout : w
+        );
+        updateField("customWorkouts", updatedWorkouts);
+      } else {
+        // Add new workout
+        updateField("customWorkouts", [...currentWorkouts, updatedWorkout]);
+      }
+    }
+
     router.back();
   };
+
+  const hasSelections =
+    (activeTab === "workout-split" &&
+      (selectedOptions.size > 0 || coreEnabled)) ||
+    (activeTab === "custom" && selectedMuscleGroups.size > 0);
 
   const canGoBack = router.canGoBack();
 
@@ -96,12 +276,11 @@ export default function AddWorkoutModal() {
                       styles.addButton,
                       {
                         color: colors.primaryButton,
-                        opacity:
-                          selectedOptions.size > 0 || coreEnabled ? 1 : 0.5,
+                        opacity: hasSelections ? 1 : 0.5,
                       },
                     ]}
                   >
-                    Add
+                    {isEditing ? "Update" : "Add"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -217,15 +396,76 @@ export default function AddWorkoutModal() {
                     );
                   })}
                 {activeTab === "custom" && (
-                  <View style={styles.customTabPlaceholder}>
-                    <Text
-                      style={[
-                        styles.placeholderText,
-                        { color: colors.placeholder },
-                      ]}
-                    >
-                      Custom workout creation coming soon
-                    </Text>
+                  <View style={styles.muscleGroupGrid}>
+                    {ADD_WORKOUT_MODAL.customMuscleGroups.map((muscleGroup) => {
+                      const isSelected = selectedMuscleGroups.has(
+                        muscleGroup.id
+                      );
+                      return (
+                        <TouchableOpacity
+                          key={muscleGroup.id}
+                          onPress={() =>
+                            handleToggleMuscleGroup(muscleGroup.id)
+                          }
+                          style={[
+                            styles.muscleGroupCard,
+                            {
+                              backgroundColor: isSelected
+                                ? "rgba(106, 79, 245, 0.12)"
+                                : colors.inputBackground,
+                              borderColor: isSelected
+                                ? colors.primaryButton
+                                : colors.inputBorder,
+                              borderWidth: isSelected ? 2 : 1,
+                            },
+                          ]}
+                          activeOpacity={0.7}
+                        >
+                          {/* Placeholder for muscle icon */}
+                          <View
+                            style={[
+                              styles.muscleIconPlaceholder,
+                              {
+                                backgroundColor: colors.inputBorder,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.placeholderText,
+                                { color: colors.placeholder },
+                              ]}
+                            >
+                              Image coming soon
+                            </Text>
+                          </View>
+                          {/* Muscle group name */}
+                          <Text
+                            style={[
+                              styles.muscleGroupName,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {muscleGroup.name}
+                          </Text>
+                          {/* Checkbox indicator */}
+                          {isSelected && (
+                            <View
+                              style={[
+                                styles.cardCheckbox,
+                                {
+                                  backgroundColor: colors.primaryButton,
+                                },
+                              ]}
+                            >
+                              <AnimatedCheckmark visible={isSelected}>
+                                <Text style={styles.checkmarkText}>✓</Text>
+                              </AnimatedCheckmark>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 )}
               </ScrollView>
@@ -344,12 +584,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  customTabPlaceholder: {
-    paddingVertical: 40,
+  muscleGroupGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingBottom: 20,
+  },
+  muscleGroupCard: {
+    width: "22%",
+    aspectRatio: 0.85,
+    borderRadius: 12,
+    padding: 8,
     alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+    borderWidth: 1,
+  },
+  muscleIconPlaceholder: {
+    width: "100%",
+    flex: 1,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    minHeight: 60,
   },
   placeholderText: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: Fonts.sans,
+    textAlign: "center",
+    paddingHorizontal: 4,
+  },
+  muscleGroupName: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+    textAlign: "center",
+  },
+  cardCheckbox: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
