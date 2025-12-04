@@ -22,6 +22,10 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ADD_WORKOUT_MODAL } from "../constants";
+import {
+  buildMuscleGroupsFromSplitSelection,
+  inferSplitSelectionFromMuscleGroups,
+} from "./helpers";
 
 export default function AddWorkoutModal() {
   const colorScheme = useColorScheme();
@@ -57,65 +61,14 @@ export default function AddWorkoutModal() {
       );
 
       if (editingWorkout.type === "workout-split") {
-        // Map workout split option to muscle groups (base groups without Core)
-        const muscleGroupMap: Record<string, string[]> = {
-          "full-body": [
-            "chest",
-            "back",
-            "shoulders",
-            "hamstrings",
-            "quads",
-            "abs",
-          ],
-          "upper-body": ["chest", "back", "shoulders", "biceps", "triceps"],
-          legs: ["hamstrings", "quads", "calves", "glutes"],
-          push: ["chest", "shoulders", "triceps"],
-          pull: ["back", "biceps"],
-        };
+        // Use helper to infer which split option and Core state from muscle groups
+        const { splitId, coreEnabled: hasCore } =
+          inferSplitSelectionFromMuscleGroups(editingWorkout.muscleGroups);
 
-        // Check if Core is enabled (has both abs and lower-back)
-        const hasCore =
-          editingWorkout.muscleGroups.includes("abs") &&
-          editingWorkout.muscleGroups.includes("lower-back");
-
-        // Remove "lower-back" (only added by Core) to match base options
-        let groupsToMatch = editingWorkout.muscleGroups.filter(
-          (mg) => mg !== "lower-back"
-        );
-
-        // Find matching workout split option
-        let matchingOption = Object.entries(muscleGroupMap).find(
-          ([_, groups]) => {
-            const workoutGroupsSet = new Set(groupsToMatch);
-            // Check if all groups in the map are in the workout groups
-            // and the sizes match exactly
-            return (
-              groups.every((g) => workoutGroupsSet.has(g)) &&
-              groups.length === workoutGroupsSet.size
-            );
-          }
-        );
-
-        // If no match found and Core is enabled, try removing "abs" too
-        // (Core adds "abs" even if base option doesn't include it)
-        if (!matchingOption && hasCore) {
-          groupsToMatch = groupsToMatch.filter((mg) => mg !== "abs");
-          matchingOption = Object.entries(muscleGroupMap).find(
-            ([_, groups]) => {
-              const workoutGroupsSet = new Set(groupsToMatch);
-              return (
-                groups.every((g) => workoutGroupsSet.has(g)) &&
-                groups.length === workoutGroupsSet.size
-              );
-            }
-          );
+        if (splitId) {
+          setSelectedOptions(new Set([splitId]));
         }
 
-        if (matchingOption) {
-          setSelectedOptions(new Set([matchingOption[0]]));
-        }
-
-        // Set Core toggle if enabled
         setCoreEnabled(hasCore);
       } else {
         // Custom workout - pre-select muscle groups
@@ -174,30 +127,11 @@ export default function AddWorkoutModal() {
         selectedOptions.has(opt.id)
       );
       if (selectedOption) {
-        // Map workout split option to muscle groups
-        const muscleGroupMap: Record<string, string[]> = {
-          "full-body": [
-            "chest",
-            "back",
-            "shoulders",
-            "hamstrings",
-            "quads",
-            "abs",
-          ],
-          "upper-body": ["chest", "back", "shoulders", "biceps", "triceps"],
-          legs: ["hamstrings", "quads", "calves", "glutes"],
-          push: ["chest", "shoulders", "triceps"],
-          pull: ["back", "biceps"],
-        };
-
-        let muscleGroups = muscleGroupMap[selectedOption.id] || [];
-
-        // Add Core if enabled
-        if (coreEnabled) {
-          muscleGroups = [...muscleGroups, "abs", "lower-back"];
-          // Remove duplicates
-          muscleGroups = Array.from(new Set(muscleGroups));
-        }
+        // Use helper to build muscle groups from split selection and Core toggle
+        const muscleGroups = buildMuscleGroupsFromSplitSelection(
+          selectedOption.id,
+          coreEnabled
+        );
 
         updatedWorkout = {
           id:
