@@ -1,12 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,25 +9,25 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AnimatedButton } from "@/components/animated-button";
-import { AnimatedCheckmark } from "@/components/animated-checkmark";
+import { SelectableOptionCard } from "@/components/selectable-option-card";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { FITNESS_GOAL_SCREEN } from "./constants";
+import { TRAINING_FREQUENCY_SCREEN } from "./constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
-export default function FitnessGoalScreen() {
+export default function TrainingFrequencyScreen() {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
 
-  const [selectedGoal, setSelectedGoal] = useState<string>(
-    data.fitnessGoal || ""
+  const [selectedFrequency, setSelectedFrequency] = useState<string>(
+    data.workoutFrequency || ""
   );
 
   // Question animation
@@ -42,7 +36,7 @@ export default function FitnessGoalScreen() {
   const descriptionOpacity = useSharedValue(0);
   const descriptionTranslateY = useSharedValue(20);
 
-  // Options animations - create shared values for each option (4 options total)
+  // Options animations - create shared values for each option (7 options total)
   const option0Opacity = useSharedValue(0);
   const option0TranslateY = useSharedValue(20);
   const option1Opacity = useSharedValue(0);
@@ -51,6 +45,12 @@ export default function FitnessGoalScreen() {
   const option2TranslateY = useSharedValue(20);
   const option3Opacity = useSharedValue(0);
   const option3TranslateY = useSharedValue(20);
+  const option4Opacity = useSharedValue(0);
+  const option4TranslateY = useSharedValue(20);
+  const option5Opacity = useSharedValue(0);
+  const option5TranslateY = useSharedValue(20);
+  const option6Opacity = useSharedValue(0);
+  const option6TranslateY = useSharedValue(20);
 
   // Create arrays for easier access
   const optionOpacities = [
@@ -58,12 +58,18 @@ export default function FitnessGoalScreen() {
     option1Opacity,
     option2Opacity,
     option3Opacity,
+    option4Opacity,
+    option5Opacity,
+    option6Opacity,
   ];
   const optionTranslateYs = [
     option0TranslateY,
     option1TranslateY,
     option2TranslateY,
     option3TranslateY,
+    option4TranslateY,
+    option5TranslateY,
+    option6TranslateY,
   ];
 
   // Create animated styles for each option at the top level
@@ -91,6 +97,24 @@ export default function FitnessGoalScreen() {
       transform: [{ translateY: optionTranslateYs[3].value }],
     };
   });
+  const option4AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[4].value,
+      transform: [{ translateY: optionTranslateYs[4].value }],
+    };
+  });
+  const option5AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[5].value,
+      transform: [{ translateY: optionTranslateYs[5].value }],
+    };
+  });
+  const option6AnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: optionOpacities[6].value,
+      transform: [{ translateY: optionTranslateYs[6].value }],
+    };
+  });
 
   const optionAnimatedStyles = useMemo(
     () => [
@@ -98,6 +122,9 @@ export default function FitnessGoalScreen() {
       option1AnimatedStyle,
       option2AnimatedStyle,
       option3AnimatedStyle,
+      option4AnimatedStyle,
+      option5AnimatedStyle,
+      option6AnimatedStyle,
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -152,14 +179,14 @@ export default function FitnessGoalScreen() {
     };
   });
 
-  const handleSelectGoal = (goalId: string) => {
-    setSelectedGoal(goalId);
-    updateField("fitnessGoal", goalId);
+  const handleSelectFrequency = (frequencyId: string) => {
+    setSelectedFrequency(frequencyId);
+    updateField("workoutFrequency", frequencyId);
   };
 
   const handleNext = () => {
-    if (selectedGoal) {
-      router.push("/onboarding/training-frequency");
+    if (selectedFrequency) {
+      router.push("/onboarding/workout-split");
     }
   };
 
@@ -174,121 +201,32 @@ export default function FitnessGoalScreen() {
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
               <AnimatedText style={[styles.question, { color: colors.text }]}>
-                {FITNESS_GOAL_SCREEN.question}
+                {TRAINING_FREQUENCY_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
               <Text style={[styles.description, { color: colors.placeholder }]}>
-                {FITNESS_GOAL_SCREEN.description}
+                {TRAINING_FREQUENCY_SCREEN.description}
               </Text>
             </Animated.View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
-              {FITNESS_GOAL_SCREEN.options.map((option, index) => {
-                const isSelected = selectedGoal === option.id;
+              {TRAINING_FREQUENCY_SCREEN.options.map((option, index) => {
+                const isSelected = selectedFrequency === option.id;
                 const optionAnimatedStyle = optionAnimatedStyles[index];
 
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
-                    <TouchableOpacity
-                      onPress={() => handleSelectGoal(option.id)}
-                      activeOpacity={0.8}
-                    >
-                      <View
-                        style={[
-                          styles.optionCard,
-                          {
-                            backgroundColor: isSelected
-                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
-                              : colors.inputBackground,
-                            borderColor: isSelected
-                              ? colors.primaryButton
-                              : colors.inputBorder,
-                            borderWidth: isSelected ? 2 : 1,
-                          },
-                        ]}
-                      >
-                        {/* Tag */}
-                        {option.tag && (
-                          <View
-                            style={[
-                              styles.tag,
-                              {
-                                backgroundColor:
-                                  option.tag.type === "popular"
-                                    ? colors.primaryButton
-                                    : "rgba(155, 161, 166, 0.2)", // Light grey for powerlifting tag
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.tagText,
-                                {
-                                  color:
-                                    option.tag.type === "popular"
-                                      ? "#FFFFFF"
-                                      : colors.text,
-                                },
-                              ]}
-                            >
-                              {option.tag.text}
-                            </Text>
-                          </View>
-                        )}
-
-                        <View
-                          style={[
-                            styles.optionContent,
-                            option.tag && { marginTop: 20 },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.optionTextContainer,
-                              option.tag && { paddingTop: 0 },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.optionTitle,
-                                { color: colors.text },
-                              ]}
-                            >
-                              {option.title}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.optionDescription,
-                                { color: colors.placeholder },
-                              ]}
-                            >
-                              {option.description}
-                            </Text>
-                          </View>
-                          <View
-                            style={[
-                              styles.checkbox,
-                              {
-                                backgroundColor: isSelected
-                                  ? colors.primaryButton
-                                  : "transparent",
-                                borderColor: isSelected
-                                  ? colors.primaryButton
-                                  : colors.inputBorder,
-                              },
-                            ]}
-                          >
-                            <AnimatedCheckmark visible={isSelected}>
-                              <Text style={styles.checkmarkText}>✓</Text>
-                            </AnimatedCheckmark>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
+                    <SelectableOptionCard
+                      title={option.title}
+                      isSelected={isSelected}
+                      onPress={() => handleSelectFrequency(option.id)}
+                      tag={option.tag}
+                      showCheckbox={true}
+                    />
                   </Animated.View>
                 );
               })}
@@ -303,12 +241,12 @@ export default function FitnessGoalScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedGoal}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedFrequency}>
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
-                !selectedGoal && { opacity: 0.5 },
+                !selectedFrequency && { opacity: 0.5 },
               ]}
             >
               <Text style={styles.primaryButtonText}>NEXT</Text>
@@ -353,62 +291,6 @@ const styles = StyleSheet.create({
   optionsContainer: {
     gap: 12,
     marginTop: 8,
-  },
-  optionCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    position: "relative",
-  },
-  tag: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
-    zIndex: 1,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-    textTransform: "uppercase",
-  },
-  optionContent: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  optionTextContainer: {
-    flex: 1,
-    gap: 4,
-  },
-  optionTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-    marginBottom: 4,
-  },
-  optionDescription: {
-    fontSize: 14,
-    fontWeight: "400",
-    fontFamily: Fonts.sans,
-    lineHeight: 20,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
   buttonContainer: {
     paddingHorizontal: 24,

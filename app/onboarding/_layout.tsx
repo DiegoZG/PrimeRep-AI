@@ -75,6 +75,18 @@ export default function OnboardingLayout() {
             headerTitle: "Fitness Goal (4/9)",
           }}
         />
+        <Stack.Screen
+          name="training-frequency"
+          options={{
+            headerTitle: "Training Frequency (5/9)",
+          }}
+        />
+        <Stack.Screen
+          name="workout-split"
+          options={{
+            headerShown: false, // Header is handled by nested layout
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );

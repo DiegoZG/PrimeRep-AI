@@ -5,7 +5,7 @@ import { TouchableOpacity } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-export default function FitnessExperienceLayout() {
+export default function WorkoutSplitLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -15,7 +15,7 @@ export default function FitnessExperienceLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerTitle: "Fitness Experience (3/9)",
+          headerTitle: "Workout Split (6/9)",
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => router.back()}
@@ -27,15 +27,15 @@ export default function FitnessExperienceLayout() {
         }}
       />
       <Stack.Screen
-        name="one-rep-max"
+        name="custom"
         options={{
-          headerTitle: "Fitness Experience (3/9)",
+          headerTitle: "Custom Split (6/9)",
         }}
       />
       <Stack.Screen
-        name="calculator-modal"
+        name="add-workout-modal"
         options={{
-          presentation: "transparentModal",
+          presentation: "modal",
           headerTitle: "",
           headerShown: false,
         }}
