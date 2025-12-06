@@ -15,19 +15,19 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { WORKOUT_SPLIT_SCREEN } from "../constants";
+import { TRAINING_PLACE_SCREEN } from "../constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
-export default function WorkoutSplitScreen() {
+export default function TrainingPlaceScreen() {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
 
-  const [selectedSplit, setSelectedSplit] = useState<string>(
-    data.workoutSplit || ""
+  const [selectedPlace, setSelectedPlace] = useState<string>(
+    data.trainingPlace || ""
   );
 
   // Question animation
@@ -36,56 +36,20 @@ export default function WorkoutSplitScreen() {
   const descriptionOpacity = useSharedValue(0);
   const descriptionTranslateY = useSharedValue(20);
 
-  // Options animations - create shared values for each option (11 options total)
+  // Options animations - create shared values for each option (3 options total)
   const option0Opacity = useSharedValue(0);
   const option0TranslateY = useSharedValue(20);
   const option1Opacity = useSharedValue(0);
   const option1TranslateY = useSharedValue(20);
   const option2Opacity = useSharedValue(0);
   const option2TranslateY = useSharedValue(20);
-  const option3Opacity = useSharedValue(0);
-  const option3TranslateY = useSharedValue(20);
-  const option4Opacity = useSharedValue(0);
-  const option4TranslateY = useSharedValue(20);
-  const option5Opacity = useSharedValue(0);
-  const option5TranslateY = useSharedValue(20);
-  const option6Opacity = useSharedValue(0);
-  const option6TranslateY = useSharedValue(20);
-  const option7Opacity = useSharedValue(0);
-  const option7TranslateY = useSharedValue(20);
-  const option8Opacity = useSharedValue(0);
-  const option8TranslateY = useSharedValue(20);
-  const option9Opacity = useSharedValue(0);
-  const option9TranslateY = useSharedValue(20);
-  const option10Opacity = useSharedValue(0);
-  const option10TranslateY = useSharedValue(20);
 
   // Create arrays for easier access
-  const optionOpacities = [
-    option0Opacity,
-    option1Opacity,
-    option2Opacity,
-    option3Opacity,
-    option4Opacity,
-    option5Opacity,
-    option6Opacity,
-    option7Opacity,
-    option8Opacity,
-    option9Opacity,
-    option10Opacity,
-  ];
+  const optionOpacities = [option0Opacity, option1Opacity, option2Opacity];
   const optionTranslateYs = [
     option0TranslateY,
     option1TranslateY,
     option2TranslateY,
-    option3TranslateY,
-    option4TranslateY,
-    option5TranslateY,
-    option6TranslateY,
-    option7TranslateY,
-    option8TranslateY,
-    option9TranslateY,
-    option10TranslateY,
   ];
 
   // Create animated styles for each option at the top level
@@ -107,69 +71,9 @@ export default function WorkoutSplitScreen() {
       transform: [{ translateY: optionTranslateYs[2].value }],
     };
   });
-  const option3AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[3].value,
-      transform: [{ translateY: optionTranslateYs[3].value }],
-    };
-  });
-  const option4AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[4].value,
-      transform: [{ translateY: optionTranslateYs[4].value }],
-    };
-  });
-  const option5AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[5].value,
-      transform: [{ translateY: optionTranslateYs[5].value }],
-    };
-  });
-  const option6AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[6].value,
-      transform: [{ translateY: optionTranslateYs[6].value }],
-    };
-  });
-  const option7AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[7].value,
-      transform: [{ translateY: optionTranslateYs[7].value }],
-    };
-  });
-  const option8AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[8].value,
-      transform: [{ translateY: optionTranslateYs[8].value }],
-    };
-  });
-  const option9AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[9].value,
-      transform: [{ translateY: optionTranslateYs[9].value }],
-    };
-  });
-  const option10AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: optionOpacities[10].value,
-      transform: [{ translateY: optionTranslateYs[10].value }],
-    };
-  });
 
   const optionAnimatedStyles = useMemo(
-    () => [
-      option0AnimatedStyle,
-      option1AnimatedStyle,
-      option2AnimatedStyle,
-      option3AnimatedStyle,
-      option4AnimatedStyle,
-      option5AnimatedStyle,
-      option6AnimatedStyle,
-      option7AnimatedStyle,
-      option8AnimatedStyle,
-      option9AnimatedStyle,
-      option10AnimatedStyle,
-    ],
+    () => [option0AnimatedStyle, option1AnimatedStyle, option2AnimatedStyle],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -223,19 +127,14 @@ export default function WorkoutSplitScreen() {
     };
   });
 
-  const handleSelectSplit = (splitId: string) => {
-    // Navigate to custom split screen when Custom is selected
-    if (splitId === "custom") {
-      router.push("/onboarding/workout-split/custom");
-      return;
-    }
-    setSelectedSplit(splitId);
-    updateField("workoutSplit", splitId);
+  const handleSelectPlace = (placeId: string) => {
+    setSelectedPlace(placeId);
+    updateField("trainingPlace", placeId);
   };
 
   const handleNext = () => {
-    if (selectedSplit) {
-      router.push("/onboarding/variety-level");
+    if (selectedPlace) {
+      router.push("/onboarding/final");
     }
   };
 
@@ -250,21 +149,21 @@ export default function WorkoutSplitScreen() {
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
               <AnimatedText style={[styles.question, { color: colors.text }]}>
-                {WORKOUT_SPLIT_SCREEN.question}
+                {TRAINING_PLACE_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
               <Text style={[styles.description, { color: colors.placeholder }]}>
-                {WORKOUT_SPLIT_SCREEN.description}
+                {TRAINING_PLACE_SCREEN.description}
               </Text>
             </Animated.View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
-              {WORKOUT_SPLIT_SCREEN.options.map((option, index) => {
-                const isSelected = selectedSplit === option.id;
+              {TRAINING_PLACE_SCREEN.options.map((option, index) => {
+                const isSelected = selectedPlace === option.id;
                 const optionAnimatedStyle = optionAnimatedStyles[index];
 
                 return (
@@ -273,12 +172,8 @@ export default function WorkoutSplitScreen() {
                       title={option.title}
                       description={option.description}
                       isSelected={isSelected}
-                      onPress={() => handleSelectSplit(option.id)}
-                      tag={option.tag}
-                      icon={option.icon}
-                      showChevron={option.showChevron}
-                      showCheckbox={!option.showChevron}
-                      specialBackground={option.specialBackground}
+                      onPress={() => handleSelectPlace(option.id)}
+                      showCheckbox={true}
                     />
                   </Animated.View>
                 );
@@ -294,12 +189,12 @@ export default function WorkoutSplitScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedSplit}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedPlace}>
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
-                !selectedSplit && { opacity: 0.5 },
+                !selectedPlace && { opacity: 0.5 },
               ]}
             >
               <Text style={styles.primaryButtonText}>NEXT</Text>

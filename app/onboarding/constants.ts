@@ -483,3 +483,71 @@ export const ADD_WORKOUT_MODAL = {
     { id: "trapezius", name: "Trapezius" },
   ],
 };
+
+export interface VarietyLevelOption {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export const VARIETY_LEVEL_SCREEN = {
+  title: "Variety Level",
+  step: 7,
+  totalSteps: 9,
+  question: "How would you like us to select your exercises?",
+  description:
+    "Choose how much variety you want in your workouts. You can always change this later.",
+  options: [
+    {
+      id: "consistent",
+      title: "Consistent",
+      description:
+        "Prioritises a few essential exercises that will be repeated throughout your workouts and allow easier progress tracking.",
+    },
+    {
+      id: "balanced",
+      title: "Balanced",
+      description:
+        "Provides a mix of repeated and new exercises for a well-rounded experience with moderate progress tracking.",
+    },
+    {
+      id: "varied",
+      title: "Varied",
+      description:
+        "Offers a lot of variety with different exercises in every workout, making progress tracking more challenging.",
+    },
+  ] as VarietyLevelOption[],
+};
+
+export interface TrainingPlaceOption {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export const TRAINING_PLACE_SCREEN = {
+  title: "Training Place",
+  step: 8,
+  totalSteps: 9,
+  question: "Where do you exercise?",
+  description:
+    "Select the equipment you have access to. You can also change this later.",
+  options: [
+    {
+      id: "large-gym",
+      title: "Large Gym",
+      description:
+        "Full fitness clubs such as Anytime, Fitness First, Golds, Planet Fitness, etc.",
+    },
+    {
+      id: "small-gym",
+      title: "Small Gym",
+      description: "Compact gym with limited equipment",
+    },
+    {
+      id: "garage-gym",
+      title: "Garage Gym",
+      description: "Barbells, squat rack, dumbbells and more.",
+    },
+  ] as TrainingPlaceOption[],
+};

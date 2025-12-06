@@ -13,6 +13,8 @@ interface OnboardingData {
   experienceLevel?: string;
   workoutFrequency?: string;
   workoutSplit?: string; // Preferred workout split
+  varietyLevel?: string; // Exercise variety preference
+  trainingPlace?: string; // Where user exercises
   customWorkouts?: {
     id: string;
     name: string;
@@ -48,6 +50,8 @@ const initialData: OnboardingData = {
   experienceLevel: "",
   workoutFrequency: "",
   workoutSplit: "",
+  varietyLevel: "",
+  trainingPlace: "",
   customWorkouts: [],
   preferredWorkoutTime: "",
   benchPress1RM: undefined,
