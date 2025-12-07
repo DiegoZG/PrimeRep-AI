@@ -134,7 +134,10 @@ export default function TrainingPlaceScreen() {
 
   const handleNext = () => {
     if (selectedPlace) {
-      router.push("/onboarding/final");
+      router.push({
+        pathname: "/onboarding/training-place/equipment",
+        params: { gymType: selectedPlace },
+      });
     }
   };
 

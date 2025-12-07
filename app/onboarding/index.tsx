@@ -68,7 +68,7 @@ const OnboardingFirstScreen = () => {
                   <View style={styles.content}>
                     <Text style={styles.question}>
                       What&apos;s your first name?
-                    </Text>
+        </Text>
                     <AnimatedInput
                       style={styles.input}
                       placeholder="Enter your first name"
@@ -98,7 +98,7 @@ const OnboardingFirstScreen = () => {
                   </View>
                 </AnimatedButton>
               </View>
-            </View>
+    </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Animated.View>

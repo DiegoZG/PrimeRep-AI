@@ -29,11 +29,11 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       >
-        <Stack.Protected guard={isLoggedIn}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack.Protected>
+          <Stack.Protected guard={isLoggedIn}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack.Protected>
         <Stack.Protected guard={!isLoggedIn && hasCompletedOnboarding}>
-          <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Protected guard={shouldCreateAccount}>
             <Stack.Screen name="signup" />
           </Stack.Protected>
@@ -41,9 +41,9 @@ function RootLayoutNav() {
 
         <Stack.Protected guard={!hasCompletedOnboarding}>
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        </Stack.Protected>
-      </Stack>
-      <StatusBar style="auto" />
+          </Stack.Protected>
+        </Stack>
+        <StatusBar style="auto" />
     </>
   );
 }
