@@ -13,6 +13,11 @@ interface OnboardingData {
   experienceLevel?: string;
   workoutFrequency?: string;
   workoutSplit?: string; // Preferred workout split
+  varietyLevel?: string; // Exercise variety preference
+  trainingPlace?: string; // Where user exercises
+  selectedEquipment?: string[]; // Selected equipment IDs
+  dumbbellWeights?: number[]; // Selected dumbbell weights
+  plateWeights?: number[]; // Selected plate weights
   customWorkouts?: {
     id: string;
     name: string;
@@ -48,6 +53,11 @@ const initialData: OnboardingData = {
   experienceLevel: "",
   workoutFrequency: "",
   workoutSplit: "",
+  varietyLevel: "",
+  trainingPlace: "",
+  selectedEquipment: [],
+  dumbbellWeights: [],
+  plateWeights: [],
   customWorkouts: [],
   preferredWorkoutTime: "",
   benchPress1RM: undefined,

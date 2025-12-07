@@ -87,6 +87,18 @@ export default function OnboardingLayout() {
             headerShown: false, // Header is handled by nested layout
           }}
         />
+        <Stack.Screen
+          name="variety-level"
+          options={{
+            headerTitle: "Variety Level (7/9)",
+          }}
+        />
+        <Stack.Screen
+          name="training-place"
+          options={{
+            headerShown: false, // Header is handled by nested layout
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );

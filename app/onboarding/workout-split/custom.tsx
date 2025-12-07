@@ -114,7 +114,7 @@ export default function CustomSplitScreen() {
   const handleContinue = () => {
     // Save custom split selection
     updateField("workoutSplit", "custom");
-    router.push("/onboarding/final");
+    router.push("/onboarding/variety-level");
   };
 
   return (
