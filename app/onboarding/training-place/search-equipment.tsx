@@ -40,7 +40,8 @@ export default function SearchEquipmentScreen() {
     prevContextSelectionsRef.current = contextKey;
     prevLocalSelectionsRef.current = contextKey;
     isInitialMountRef.current = false;
-  }, [data.selectedEquipment]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync selected equipment from context when it changes (from equipment screen)
   useEffect(() => {

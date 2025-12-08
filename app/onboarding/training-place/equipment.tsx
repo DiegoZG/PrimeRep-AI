@@ -19,7 +19,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import {
+  getDefaultDumbbellWeights,
   getDefaultEquipmentSelections,
+  getDefaultPlateWeights,
   groupEquipmentByDisplayCategory,
 } from "./equipment-helpers";
 
@@ -77,6 +79,15 @@ export default function EquipmentScreen() {
       setSelectedEquipment(defaults);
       isUpdatingFromContextRef.current = true;
       updateField("selectedEquipment", defaultSelections);
+
+      // Initialize weight arrays if plates/dumbbells are selected by default
+      if (defaults.has("plates")) {
+        updateField("plateWeights", getDefaultPlateWeights());
+      }
+      if (defaults.has("dumbbells")) {
+        updateField("dumbbellWeights", getDefaultDumbbellWeights());
+      }
+
       prevContextSelectionsRef.current = JSON.stringify(defaultSelections);
       prevGymTypeRef.current = gymType;
       gymTypeParamRef.current = params.gymType;
@@ -89,6 +100,18 @@ export default function EquipmentScreen() {
       const currentSelections = Array.from(selectedEquipment).sort();
       const currentKey = JSON.stringify(currentSelections);
       updateField("selectedEquipment", currentSelections);
+
+      // Initialize weight arrays if plates/dumbbells are selected and not already set
+      if (selectedEquipment.has("plates") && data.plateWeights === undefined) {
+        updateField("plateWeights", getDefaultPlateWeights());
+      }
+      if (
+        selectedEquipment.has("dumbbells") &&
+        data.dumbbellWeights === undefined
+      ) {
+        updateField("dumbbellWeights", getDefaultDumbbellWeights());
+      }
+
       prevContextSelectionsRef.current = currentKey;
       prevGymTypeRef.current = gymType;
       gymTypeParamRef.current = params.gymType;

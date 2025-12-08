@@ -21,9 +21,14 @@ export default function EditPlatesScreen() {
   // Plate weights from screenshot: 1.25, 2.5, 5, 10, 15, 20, 25, 35, 45, 50 lb
   const plateWeights = [1.25, 2.5, 5, 10, 15, 20, 25, 35, 45, 50];
 
-  const [selectedWeights, setSelectedWeights] = useState<Set<number>>(
-    () => new Set(plateWeights) // All selected by default
-  );
+  const [selectedWeights, setSelectedWeights] = useState<Set<number>>(() => {
+    // Use existing weights from context if explicitly set (even if empty),
+    // otherwise use defaults
+    if (data.plateWeights !== undefined) {
+      return new Set(data.plateWeights);
+    }
+    return new Set(plateWeights); // All selected by default
+  });
 
   useEffect(() => {
     // Save selected weights to context
@@ -45,9 +50,16 @@ export default function EditPlatesScreen() {
     });
   };
 
-  const handleDeselectAll = () => {
-    setSelectedWeights(new Set());
+  const handleToggleAll = () => {
+    const allSelected = selectedWeights.size === plateWeights.length;
+    if (allSelected) {
+      setSelectedWeights(new Set());
+    } else {
+      setSelectedWeights(new Set(plateWeights));
+    }
   };
+
+  const allSelected = selectedWeights.size === plateWeights.length;
 
   return (
     <ThemedView style={styles.container}>
@@ -57,11 +69,11 @@ export default function EditPlatesScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Plates</Text>
-          <TouchableOpacity onPress={handleDeselectAll}>
+          <TouchableOpacity onPress={handleToggleAll}>
             <Text
               style={[styles.deselectAllText, { color: colors.primaryButton }]}
             >
-              Deselect all
+              {allSelected ? "Deselect all" : "Select all"}
             </Text>
           </TouchableOpacity>
         </View>
