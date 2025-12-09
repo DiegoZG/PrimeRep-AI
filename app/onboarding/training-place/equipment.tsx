@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { AnimatedSearch } from "@/components/animated-search";
 import { ThemedView } from "@/components/themed-view";
+import { equipmentIcons } from "@/constants/equipment/equipmentIcons";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
@@ -248,21 +250,29 @@ export default function EquipmentScreen() {
                       ]}
                       activeOpacity={0.7}
                     >
-                      {/* Placeholder Icon */}
+                      {/* Equipment Icon */}
                       <View
                         style={[
                           styles.iconPlaceholder,
                           { backgroundColor: colors.inputBorder },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.iconPlaceholderText,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {equipment.name.charAt(0)}
-                        </Text>
+                        {equipmentIcons.abductor_machine ? (
+                          <Image
+                            source={equipmentIcons.abductor_machine}
+                            style={styles.equipmentIcon}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <Text
+                            style={[
+                              styles.iconPlaceholderText,
+                              { color: colors.placeholder },
+                            ]}
+                          >
+                            {equipment.name.charAt(0)}
+                          </Text>
+                        )}
                       </View>
 
                       {/* Equipment Name and Weights */}
@@ -429,6 +439,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  equipmentIcon: {
+    width: "150%",
+    height: "150%",
   },
   iconPlaceholderText: {
     fontSize: 20,
