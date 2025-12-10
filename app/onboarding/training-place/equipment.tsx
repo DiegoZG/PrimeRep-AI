@@ -11,15 +11,17 @@ import {
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 import { AnimatedButton } from "@/components/animated-button";
-import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { AnimatedSearch } from "@/components/animated-search";
+import { EquipmentCard } from "@/components/equipment/equipment-card";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import {
+  getDefaultDumbbellWeights,
   getDefaultEquipmentSelections,
+  getDefaultPlateWeights,
   groupEquipmentByDisplayCategory,
 } from "./equipment-helpers";
 
@@ -77,6 +79,15 @@ export default function EquipmentScreen() {
       setSelectedEquipment(defaults);
       isUpdatingFromContextRef.current = true;
       updateField("selectedEquipment", defaultSelections);
+
+      // Initialize weight arrays if plates/dumbbells are selected by default
+      if (defaults.has("plates")) {
+        updateField("plateWeights", getDefaultPlateWeights());
+      }
+      if (defaults.has("dumbbells")) {
+        updateField("dumbbellWeights", getDefaultDumbbellWeights());
+      }
+
       prevContextSelectionsRef.current = JSON.stringify(defaultSelections);
       prevGymTypeRef.current = gymType;
       gymTypeParamRef.current = params.gymType;
@@ -89,6 +100,18 @@ export default function EquipmentScreen() {
       const currentSelections = Array.from(selectedEquipment).sort();
       const currentKey = JSON.stringify(currentSelections);
       updateField("selectedEquipment", currentSelections);
+
+      // Initialize weight arrays if plates/dumbbells are selected and not already set
+      if (selectedEquipment.has("plates") && data.plateWeights === undefined) {
+        updateField("plateWeights", getDefaultPlateWeights());
+      }
+      if (
+        selectedEquipment.has("dumbbells") &&
+        data.dumbbellWeights === undefined
+      ) {
+        updateField("dumbbellWeights", getDefaultDumbbellWeights());
+      }
+
       prevContextSelectionsRef.current = currentKey;
       prevGymTypeRef.current = gymType;
       gymTypeParamRef.current = params.gymType;
@@ -209,100 +232,32 @@ export default function EquipmentScreen() {
                   const selectedWeights = hasEditButton
                     ? getSelectedWeights(equipment.id)
                     : [];
+                  const subtitle =
+                    hasEditButton && selectedWeights.length > 0
+                      ? `${selectedWeights.join(", ")}${
+                          equipment.id === "dumbbells" ? "..." : ""
+                        }`
+                      : undefined;
 
                   return (
-                    <TouchableOpacity
+                    <EquipmentCard
                       key={equipment.id}
+                      id={equipment.id}
+                      name={equipment.name}
+                      selected={isSelected}
                       onPress={() => handleToggleEquipment(equipment.id)}
-                      style={[
-                        styles.equipmentRow,
-                        {
-                          backgroundColor: colors.inputBackground,
-                          borderColor: isSelected
-                            ? colors.primaryButton
-                            : colors.inputBorder,
-                        },
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      {/* Placeholder Icon */}
-                      <View
-                        style={[
-                          styles.iconPlaceholder,
-                          { backgroundColor: colors.inputBorder },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.iconPlaceholderText,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {equipment.name.charAt(0)}
-                        </Text>
-                      </View>
-
-                      {/* Equipment Name and Weights */}
-                      <View style={styles.equipmentInfo}>
-                        <Text
-                          style={[styles.equipmentName, { color: colors.text }]}
-                        >
-                          {equipment.name}
-                        </Text>
-                        {hasEditButton && selectedWeights.length > 0 && (
-                          <View style={styles.weightsRow}>
-                            <Text
-                              style={[
-                                styles.weightsText,
-                                { color: colors.placeholder },
-                              ]}
-                            >
-                              {selectedWeights.join(", ")}
-                              {equipment.id === "dumbbells" && "..."}
-                            </Text>
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                if (equipment.id === "dumbbells") {
-                                  handleEditDumbbells();
-                                } else {
-                                  handleEditPlates();
-                                }
-                              }}
-                              style={styles.editButton}
-                            >
-                              <Text
-                                style={[
-                                  styles.editButtonText,
-                                  { color: colors.primaryButton },
-                                ]}
-                              >
-                                Edit
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Checkbox */}
-                      <View
-                        style={[
-                          styles.checkbox,
-                          {
-                            backgroundColor: isSelected
-                              ? colors.primaryButton
-                              : "transparent",
-                            borderColor: isSelected
-                              ? colors.primaryButton
-                              : colors.inputBorder,
-                          },
-                        ]}
-                      >
-                        <AnimatedCheckmark visible={isSelected}>
-                          <Text style={styles.checkmarkText}>✓</Text>
-                        </AnimatedCheckmark>
-                      </View>
-                    </TouchableOpacity>
+                      subtitle={subtitle}
+                      showEditButton={
+                        hasEditButton && selectedWeights.length > 0
+                      }
+                      onPressEdit={() => {
+                        if (equipment.id === "dumbbells") {
+                          handleEditDumbbells();
+                        } else {
+                          handleEditPlates();
+                        }
+                      }}
+                    />
                   );
                 })}
 
@@ -391,67 +346,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
     marginBottom: 4,
-  },
-  equipmentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  iconPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconPlaceholderText: {
-    fontSize: 20,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  equipmentInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  equipmentName: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  weightsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  weightsText: {
-    fontSize: 14,
-    fontWeight: "400",
-    fontFamily: Fonts.sans,
-  },
-  editButton: {
-    paddingVertical: 2,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
   seeAllLink: {
     flexDirection: "row",

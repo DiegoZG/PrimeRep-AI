@@ -18,7 +18,7 @@ export default function EditDumbbellsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  // Generate dumbbell weights: 2.5-30lb in 2.5 increments, then 30-125lb in 5 increments
+  // Generate dumbbell weights: 2.5-30lb in 2.5 increments, then 35-125lb in 5 increments
   const dumbbellWeights: number[] = [];
   for (let i = 2.5; i <= 30; i += 2.5) {
     dumbbellWeights.push(i);
@@ -27,9 +27,14 @@ export default function EditDumbbellsScreen() {
     dumbbellWeights.push(i);
   }
 
-  const [selectedWeights, setSelectedWeights] = useState<Set<number>>(
-    () => new Set(dumbbellWeights) // All selected by default
-  );
+  const [selectedWeights, setSelectedWeights] = useState<Set<number>>(() => {
+    // Use existing weights from context if explicitly set (even if empty),
+    // otherwise use defaults
+    if (data.dumbbellWeights !== undefined) {
+      return new Set(data.dumbbellWeights);
+    }
+    return new Set(dumbbellWeights); // All selected by default
+  });
 
   useEffect(() => {
     // Save selected weights to context
@@ -51,9 +56,16 @@ export default function EditDumbbellsScreen() {
     });
   };
 
-  const handleDeselectAll = () => {
-    setSelectedWeights(new Set());
+  const handleToggleAll = () => {
+    const allSelected = selectedWeights.size === dumbbellWeights.length;
+    if (allSelected) {
+      setSelectedWeights(new Set());
+    } else {
+      setSelectedWeights(new Set(dumbbellWeights));
+    }
   };
+
+  const allSelected = selectedWeights.size === dumbbellWeights.length;
 
   return (
     <ThemedView style={styles.container}>
@@ -63,11 +75,11 @@ export default function EditDumbbellsScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Dumbbells</Text>
-          <TouchableOpacity onPress={handleDeselectAll}>
+          <TouchableOpacity onPress={handleToggleAll}>
             <Text
               style={[styles.deselectAllText, { color: colors.primaryButton }]}
             >
-              Deselect all
+              {allSelected ? "Deselect all" : "Select all"}
             </Text>
           </TouchableOpacity>
         </View>

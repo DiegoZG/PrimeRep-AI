@@ -120,3 +120,45 @@ export function groupEquipmentByDisplayCategory() {
 
   return groups;
 }
+
+/**
+ * Map display category names to equipment category types
+ * Used for "See all" functionality to show all equipment in a category
+ */
+export function getEquipmentCategoryType(
+  displayCategory: string
+): string | undefined {
+  const categoryMap: Record<string, string> = {
+    "Cable machines": "cable",
+    "Small weights": "freeWeight",
+    "Benches and racks": "benchRack",
+    "Plated machines": "plateLoaded",
+    "Weight machines": "machine",
+    "Balls and accessories": "functional",
+    "Bars and plates": "freeWeight",
+  };
+
+  return categoryMap[displayCategory];
+}
+
+/**
+ * Get default plate weights (all weights selected by default)
+ */
+export function getDefaultPlateWeights(): number[] {
+  return [1.25, 2.5, 5, 10, 15, 20, 25, 35, 45, 50];
+}
+
+/**
+ * Get default dumbbell weights (all weights selected by default)
+ * 2.5-30lb in 2.5 increments, then 35-125lb in 5lb increments
+ */
+export function getDefaultDumbbellWeights(): number[] {
+  const weights: number[] = [];
+  for (let i = 2.5; i <= 30; i += 2.5) {
+    weights.push(i);
+  }
+  for (let i = 35; i <= 125; i += 5) {
+    weights.push(i);
+  }
+  return weights;
+}

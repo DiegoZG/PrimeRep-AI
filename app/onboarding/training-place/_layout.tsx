@@ -51,7 +51,7 @@ export default function TrainingPlaceLayout() {
       <Stack.Screen
         name="see-all"
         options={{
-          headerTitle: "",
+          headerTitle: "Equipment",
         }}
       />
       <Stack.Screen

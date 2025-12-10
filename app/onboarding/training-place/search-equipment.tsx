@@ -1,14 +1,8 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { AnimatedSearch } from "@/components/animated-search";
+import { EquipmentCard } from "@/components/equipment/equipment-card";
 import { ThemedView } from "@/components/themed-view";
 import { EQUIPMENT } from "@/constants/equipment/equipment";
 import { Colors, Fonts } from "@/constants/theme";
@@ -40,7 +34,8 @@ export default function SearchEquipmentScreen() {
     prevContextSelectionsRef.current = contextKey;
     prevLocalSelectionsRef.current = contextKey;
     isInitialMountRef.current = false;
-  }, [data.selectedEquipment]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync selected equipment from context when it changes (from equipment screen)
   useEffect(() => {
@@ -185,65 +180,13 @@ export default function SearchEquipmentScreen() {
                   const isSelected = selectedEquipment.has(eq.id);
 
                   return (
-                    <TouchableOpacity
+                    <EquipmentCard
                       key={eq.id}
+                      id={eq.id}
+                      name={eq.name}
+                      selected={isSelected}
                       onPress={() => handleToggleEquipment(eq.id)}
-                      style={[
-                        styles.equipmentRow,
-                        {
-                          backgroundColor: colors.inputBackground,
-                          borderColor: isSelected
-                            ? colors.primaryButton
-                            : colors.inputBorder,
-                        },
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      {/* Placeholder Icon */}
-                      <View
-                        style={[
-                          styles.iconPlaceholder,
-                          { backgroundColor: colors.inputBorder },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.iconPlaceholderText,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {eq.name.charAt(0)}
-                        </Text>
-                      </View>
-
-                      {/* Equipment Name */}
-                      <View style={styles.equipmentInfo}>
-                        <Text
-                          style={[styles.equipmentName, { color: colors.text }]}
-                        >
-                          {eq.name}
-                        </Text>
-                      </View>
-
-                      {/* Checkbox */}
-                      <View
-                        style={[
-                          styles.checkbox,
-                          {
-                            backgroundColor: isSelected
-                              ? colors.primaryButton
-                              : "transparent",
-                            borderColor: isSelected
-                              ? colors.primaryButton
-                              : colors.inputBorder,
-                          },
-                        ]}
-                      >
-                        <AnimatedCheckmark visible={isSelected}>
-                          <Text style={styles.checkmarkText}>✓</Text>
-                        </AnimatedCheckmark>
-                      </View>
-                    </TouchableOpacity>
+                    />
                   );
                 })}
               </View>
@@ -291,46 +234,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
     marginBottom: 4,
-  },
-  equipmentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  iconPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconPlaceholderText: {
-    fontSize: 20,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  equipmentInfo: {
-    flex: 1,
-  },
-  equipmentName: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
 });
