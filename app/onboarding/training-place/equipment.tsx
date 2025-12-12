@@ -184,7 +184,7 @@ export default function EquipmentScreen() {
   };
 
   const handleNext = () => {
-    router.push("/onboarding/final");
+    router.push("/onboarding/notifications");
   };
 
   // Get selected weights for display

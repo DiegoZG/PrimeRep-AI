@@ -25,6 +25,7 @@ interface OnboardingData {
     muscleGroups: string[]; // Array of muscle group IDs
   }[];
   preferredWorkoutTime?: string;
+  notificationsEnabled?: boolean; // Whether user enabled notifications
   // One-rep max values (for Intermediate/Advanced users)
   benchPress1RM?: number; // Bench press one-rep max in pounds
   backSquat1RM?: number; // Back squat one-rep max in pounds
@@ -60,6 +61,7 @@ const initialData: OnboardingData = {
   plateWeights: [],
   customWorkouts: [],
   preferredWorkoutTime: "",
+  notificationsEnabled: false,
   benchPress1RM: undefined,
   backSquat1RM: undefined,
   deadlift1RM: undefined,
