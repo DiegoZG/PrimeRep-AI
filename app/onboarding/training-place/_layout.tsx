@@ -13,7 +13,17 @@ export default function TrainingPlaceLayout() {
   return (
     <Stack
       screenOptions={{
-        headerBackVisible: true,
+        headerShown: true,
+        headerTintColor: colors.text,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: "600",
+          color: colors.text,
+        },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Screen

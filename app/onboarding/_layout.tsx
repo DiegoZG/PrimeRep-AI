@@ -25,6 +25,7 @@ export default function OnboardingLayout() {
             backgroundColor: colors.background,
           },
           headerTintColor: colors.text,
+          headerBackButtonDisplayMode: "minimal",
           animation: "slide_from_right",
           animationDuration: 250,
           headerRight: () => (
