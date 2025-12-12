@@ -551,3 +551,44 @@ export const TRAINING_PLACE_SCREEN = {
     },
   ] as TrainingPlaceOption[],
 };
+
+export const NOTIFICATIONS_SCREEN = {
+  title: "Notifications",
+  step: 9,
+  totalSteps: 9,
+  heading: "Enable notifications",
+  description:
+    "To get the full benefit of Gravl, turn on your notifications to receive:",
+  notifications: [
+    {
+      id: "workout",
+      type: "workout",
+      title: "Workout",
+      exercise: "Deadlift",
+      nextSet: "Next: Set 2/3 - 10 reps - 80kg",
+      rest: "Rest",
+      timestamp: "07:00", // This will be dynamic, starting from 07:00
+    },
+    {
+      id: "rest-over-1",
+      type: "rest",
+      title: "Rest time is over",
+      nextSet: "Next set: Back Squat - 10 reps - 80kg",
+      timestamp: "now",
+    },
+    {
+      id: "rest-over-2",
+      type: "rest",
+      title: "Rest time is over",
+      nextSet: "Next set: Deadlift - 8 reps - 80kg",
+      timestamp: "now",
+    },
+    {
+      id: "strength-score",
+      type: "strength",
+      title: "Strength Score",
+      message: "Your Strength Score has increased by 4 points",
+      timestamp: "now",
+    },
+  ],
+};

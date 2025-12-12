@@ -99,6 +99,12 @@ export default function OnboardingLayout() {
             headerShown: false, // Header is handled by nested layout
           }}
         />
+        <Stack.Screen
+          name="notifications"
+          options={{
+            headerTitle: "Notifications (9/9)",
+          }}
+        />
       </Stack>
     </OnboardingProvider>
   );
