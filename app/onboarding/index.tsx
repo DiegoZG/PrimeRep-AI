@@ -23,7 +23,7 @@ import { useOnboardingStyles } from "./styles";
 
 const OnboardingFirstScreen = () => {
   const { data, updateField } = useContext(OnboardingContext);
-  const [firstName, setFirstName] = useState(data.firstName || "");
+  const [preferredName, setPreferredName] = useState(data.preferredName || "");
   const router = useRouter();
   const styles = useOnboardingStyles();
   const colorScheme = useColorScheme();
@@ -31,8 +31,8 @@ const OnboardingFirstScreen = () => {
   const { opacity, translateX } = useScreenTransition();
 
   const handleNext = () => {
-    if (firstName.trim()) {
-      updateField("firstName", firstName.trim());
+    if (preferredName.trim()) {
+      updateField("preferredName", preferredName.trim());
       router.push("/onboarding/welcome");
     }
   };
@@ -68,12 +68,12 @@ const OnboardingFirstScreen = () => {
                   <View style={styles.content}>
                     <Text style={styles.question}>
                       What&apos;s your first name?
-        </Text>
+                    </Text>
                     <AnimatedInput
                       style={styles.input}
                       placeholder="Enter your first name"
-                      value={firstName}
-                      onChangeText={setFirstName}
+                      value={preferredName}
+                      onChangeText={setPreferredName}
                       autoFocus
                       autoCapitalize="words"
                       textContentType="givenName"
@@ -86,19 +86,19 @@ const OnboardingFirstScreen = () => {
               <View style={styles.buttonContainer}>
                 <AnimatedButton
                   onPress={handleNext}
-                  disabled={!firstName.trim()}
+                  disabled={!preferredName.trim()}
                 >
                   <View
                     style={[
                       styles.primaryButton,
-                      !firstName.trim() && { opacity: 0.5 },
+                      !preferredName.trim() && { opacity: 0.5 },
                     ]}
                   >
                     <Text style={styles.primaryButtonText}>NEXT</Text>
                   </View>
                 </AnimatedButton>
               </View>
-    </View>
+            </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Animated.View>

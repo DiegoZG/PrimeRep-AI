@@ -13,7 +13,17 @@ export default function TrainingPlaceLayout() {
   return (
     <Stack
       screenOptions={{
-        headerBackVisible: true,
+        headerShown: true,
+        headerTintColor: colors.text,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: "600",
+          color: colors.text,
+        },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Screen
@@ -23,9 +33,9 @@ export default function TrainingPlaceLayout() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => router.back()}
-              style={{ marginLeft: 5 }}
+              style={{ marginLeft: 2 }}
             >
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+              <Ionicons name="chevron-back" size={28} color={colors.text} />
             </TouchableOpacity>
           ),
         }}

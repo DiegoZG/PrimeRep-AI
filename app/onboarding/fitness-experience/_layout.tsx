@@ -11,7 +11,21 @@ export default function FitnessExperienceLayout() {
   const colors = Colors[colorScheme ?? "light"];
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerShown: true,
+        headerTintColor: colors.text,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: "600",
+          color: colors.text,
+        },
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
@@ -19,9 +33,9 @@ export default function FitnessExperienceLayout() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => router.back()}
-              style={{ marginLeft: 5 }}
+              style={{ marginLeft: 2 }}
             >
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+              <Ionicons name="chevron-back" size={28} color={colors.text} />
             </TouchableOpacity>
           ),
         }}

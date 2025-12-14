@@ -1,7 +1,7 @@
 import { createContext, PropsWithChildren, useState } from "react";
 
 interface OnboardingData {
-  firstName: string;
+  preferredName: string;
   lastName?: string;
   email?: string;
   age?: number;
@@ -42,7 +42,7 @@ interface OnboardingState {
 }
 
 const initialData: OnboardingData = {
-  firstName: "",
+  preferredName: "",
   lastName: "",
   email: "",
   age: undefined,
