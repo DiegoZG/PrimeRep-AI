@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
 
-  const firstName = data.firstName || "";
+  const preferredName = data.preferredName || "";
 
   // Text animations with delays
   const welcomeTextOpacity = useSharedValue(0);
@@ -114,7 +114,7 @@ export default function WelcomeScreen() {
             </Animated.View>
             <Animated.View style={nameTextAnimatedStyle}>
               <Text style={[styles.nameText, { color: colors.electricBlue }]}>
-                {firstName || "there"}!
+                {preferredName || "there"}!
               </Text>
             </Animated.View>
           </View>
