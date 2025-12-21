@@ -1,40 +1,85 @@
-import { AuthContext } from "@/utils/authContext";
-import React, { useContext, useEffect } from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import { StyleSheet, Text } from "react-native";
 
+import { AnimatedButton } from "@/components/animated-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { OnboardingContext } from "@/utils/onboardingContext";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 const OnboardingFinalScreen = () => {
-  const { completeOnboarding } = useContext(AuthContext);
-  const { data } = useContext(OnboardingContext);
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
-  useEffect(() => {
-    console.log(data);
-  }, [data]);
   return (
-    <ThemedView
-      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-    >
-      <ThemedText type="title">OnboardingFinalScreen</ThemedText>
-      <TouchableOpacity
-        onPress={completeOnboarding}
-        style={{
-          backgroundColor: "#007AFF",
-          paddingHorizontal: 32,
-          paddingVertical: 12,
-          borderRadius: 8,
-          minWidth: 200,
-          alignItems: "center",
-        }}
+    <ThemedView style={styles.container}>
+      <ThemedText type="title" style={styles.title}>
+        Ready to start?
+      </ThemedText>
+      <ThemedText type="subtitle" style={styles.subtitle}>
+        Create your account to begin your fitness journey
+      </ThemedText>
+
+      <AnimatedButton
+        onPress={() => router.push("/signup")}
+        style={[
+          styles.primaryButton,
+          { backgroundColor: colors.primaryButton },
+        ]}
       >
-        <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
-          Complete onboarding
-        </Text>
-      </TouchableOpacity>
+        <Text style={styles.primaryButtonText}>Create account</Text>
+      </AnimatedButton>
+
+      <AnimatedButton
+        onPress={() => router.push("/login")}
+        style={styles.secondaryButton}
+      >
+        <ThemedText type="link" style={styles.secondaryButtonText}>
+          I already have an account
+        </ThemedText>
+      </AnimatedButton>
     </ThemedView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  title: {
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  subtitle: {
+    marginBottom: 48,
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  primaryButton: {
+    width: "100%",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    width: "100%",
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+  },
+});
 
 export default OnboardingFinalScreen;
