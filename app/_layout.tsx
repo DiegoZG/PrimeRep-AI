@@ -1,5 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
+import { OnboardingProvider } from "@/utils/onboardingContext";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,17 +9,30 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useContext } from "react";
+import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
 export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-const shouldCreateAccount = false;
+function Splash() {
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <ActivityIndicator />
+    </View>
+  );
+}
 
 function RootLayoutNav() {
-  const { isLoggedIn, hasCompletedOnboarding } = useContext(AuthContext);
-  console.log({ isLoggedIn });
+  const { isBootstrapping, isLoggedIn, hasCompletedOnboarding } =
+    useContext(AuthContext);
+
+  if (isBootstrapping) {
+    return <Splash />;
+  }
+
+  const shouldShowOnboarding = !isLoggedIn || !hasCompletedOnboarding;
 
   return (
     <>
@@ -29,21 +43,17 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       >
-          <Stack.Protected guard={isLoggedIn}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack.Protected>
-        <Stack.Protected guard={!isLoggedIn && hasCompletedOnboarding}>
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Protected guard={shouldCreateAccount}>
-            <Stack.Screen name="signup" />
-          </Stack.Protected>
+        <Stack.Protected guard={!shouldShowOnboarding}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack.Protected>
 
-        <Stack.Protected guard={!hasCompletedOnboarding}>
+        <Stack.Protected guard={shouldShowOnboarding}>
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          </Stack.Protected>
-        </Stack>
-        <StatusBar style="auto" />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+      <StatusBar style="auto" />
     </>
   );
 }
@@ -54,7 +64,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <RootLayoutNav />
+        <OnboardingProvider>
+          <RootLayoutNav />
+        </OnboardingProvider>
       </AuthProvider>
     </ThemeProvider>
   );
