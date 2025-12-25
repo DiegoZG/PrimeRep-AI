@@ -4,6 +4,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TouchableWithoutFeedback,
@@ -14,6 +15,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedCard } from "@/components/animated-card";
 import { AnimatedInput } from "@/components/animated-input";
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -97,6 +99,32 @@ const OnboardingFirstScreen = () => {
                     <Text style={styles.primaryButtonText}>NEXT</Text>
                   </View>
                 </AnimatedButton>
+
+                {/* Login footer */}
+                <View
+                  style={{
+                    marginTop: 16,
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <ThemedText type="default" style={{ fontSize: 14 }}>
+                    Already have an account?{" "}
+                  </ThemedText>
+                  <Pressable onPress={() => router.push("/login")}>
+                    <ThemedText
+                      type="link"
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: colors.primaryButton,
+                      }}
+                    >
+                      Log in
+                    </ThemedText>
+                  </Pressable>
+                </View>
               </View>
             </View>
           </TouchableWithoutFeedback>

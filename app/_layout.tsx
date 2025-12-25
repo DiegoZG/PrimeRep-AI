@@ -1,3 +1,4 @@
+import { OfflineScreen } from "@/components/offline-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
 import { OnboardingProvider } from "@/utils/onboardingContext";
@@ -25,11 +26,20 @@ function Splash() {
 }
 
 function RootLayoutNav() {
-  const { isBootstrapping, isLoggedIn, hasCompletedOnboarding } =
-    useContext(AuthContext);
+  const {
+    isBootstrapping,
+    isLoggedIn,
+    hasCompletedOnboarding,
+    bootstrapError,
+  } = useContext(AuthContext);
 
   if (isBootstrapping) {
     return <Splash />;
+  }
+
+  // Show offline screen if there's a bootstrap error (tokens still valid, just can't connect)
+  if (bootstrapError) {
+    return <OfflineScreen />;
   }
 
   const shouldShowOnboarding = !isLoggedIn || !hasCompletedOnboarding;

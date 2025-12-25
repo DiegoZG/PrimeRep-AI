@@ -6,12 +6,18 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
 const ProfileScreen = () => {
-  const { logOut } = useContext(AuthContext);
+  const { logOut, user } = useContext(AuthContext);
+
   return (
     <ThemedView
       style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
     >
       <ThemedText type="title">profile</ThemedText>
+      {user?.preferred_name && (
+        <ThemedText type="default" style={{ marginTop: 16, marginBottom: 32 }}>
+          {user.preferred_name}
+        </ThemedText>
+      )}
       <TouchableOpacity
         onPress={logOut}
         style={{

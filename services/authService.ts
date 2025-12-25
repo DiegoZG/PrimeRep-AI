@@ -15,7 +15,17 @@ export type LoginPayload = {
 
 export type TokenResponse = {
   access_token: string;
+  refresh_token: string;
   token_type: "bearer";
+};
+
+export type RefreshTokenResponse = {
+  access_token: string;
+  token_type: "bearer";
+};
+
+export type RefreshPayload = {
+  refresh_token: string;
 };
 
 export function signup(payload: SignUpPayload) {
@@ -27,6 +37,13 @@ export function signup(payload: SignUpPayload) {
 
 export function login(payload: LoginPayload) {
   return requestJson<TokenResponse>("/v1/auth/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function refresh(payload: RefreshPayload) {
+  return requestJson<RefreshTokenResponse>("/v1/auth/refresh", {
     method: "POST",
     body: payload,
   });

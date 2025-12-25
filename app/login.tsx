@@ -3,9 +3,9 @@ import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -114,7 +114,7 @@ const LoginScreen = () => {
                 color={colors.placeholder}
               />
             </View>
-            <TouchableOpacity
+            <Pressable
               onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               style={styles.eyeIcon}
               disabled={isSubmitting}
@@ -124,10 +124,10 @@ const LoginScreen = () => {
                 size={20}
                 color={colors.placeholder}
               />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
-          <TouchableOpacity
+          <Pressable
             onPress={() => {
               // TODO: Implement forgot password flow
             }}
@@ -137,7 +137,7 @@ const LoginScreen = () => {
             <ThemedText type="link" style={styles.forgotPassword}>
               Forgot password?
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {errorMessage && (
@@ -166,7 +166,7 @@ const LoginScreen = () => {
           <ThemedText type="default" style={styles.footerText}>
             Don{"'"}t have an account?{" "}
           </ThemedText>
-          <TouchableOpacity
+          <Pressable
             onPress={() => router.push("/signup")}
             disabled={isSubmitting}
           >
@@ -176,8 +176,21 @@ const LoginScreen = () => {
             >
               Sign up
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
+
+        <Pressable
+          onPress={() => router.push("/onboarding")}
+          disabled={isSubmitting}
+          style={styles.backToOnboardingContainer}
+        >
+          <ThemedText
+            type="link"
+            style={[styles.backToOnboarding, { color: colors.primaryButton }]}
+          >
+            Go back to onboarding
+          </ThemedText>
+        </Pressable>
       </ThemedView>
     </SafeAreaView>
   );
@@ -271,6 +284,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signUpLink: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  backToOnboardingContainer: {
+    marginTop: 4,
+    alignItems: "center",
+  },
+  backToOnboarding: {
     fontSize: 14,
     fontWeight: "600",
   },
