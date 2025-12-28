@@ -1,6 +1,7 @@
 import { OfflineScreen } from "@/components/offline-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
+import { EquipmentProvider } from "@/utils/equipmentContext";
 import { OnboardingProvider } from "@/utils/onboardingContext";
 import {
   DarkTheme,
@@ -75,7 +76,9 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <OnboardingProvider>
-          <RootLayoutNav />
+          <EquipmentProvider>
+            <RootLayoutNav />
+          </EquipmentProvider>
         </OnboardingProvider>
       </AuthProvider>
     </ThemeProvider>

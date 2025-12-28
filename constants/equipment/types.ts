@@ -15,4 +15,5 @@ export interface Equipment {
   name: string; // display name, e.g. "Ab Crunch Machine"
   category: EquipmentCategory;
   iconKey?: string; // optional: if icon key differs from id
+  imageUrl?: string; // optional: remote image URL from backend
 }

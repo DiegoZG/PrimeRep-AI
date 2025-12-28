@@ -1,5 +1,6 @@
 import { AuthContext } from "@/utils/authContext";
-import React, { useContext } from "react";
+import { useEquipment } from "@/utils/equipmentContext";
+import React, { useContext, useEffect } from "react";
 import { Text, TouchableOpacity } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -7,6 +8,17 @@ import { ThemedView } from "@/components/themed-view";
 
 const ProfileScreen = () => {
   const { logOut, user } = useContext(AuthContext);
+  const { items, ensureEquipmentLoaded } = useEquipment();
+
+  useEffect(() => {
+    ensureEquipmentLoaded();
+  }, [ensureEquipmentLoaded]);
+
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("Equipment count:", items.length);
+    }
+  }, [items.length]);
 
   return (
     <ThemedView

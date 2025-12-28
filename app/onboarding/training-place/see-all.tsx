@@ -1,13 +1,21 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { AnimatedSearch } from "@/components/animated-search";
 import { EquipmentCard } from "@/components/equipment/equipment-card";
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { EQUIPMENT } from "@/constants/equipment/equipment";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useEquipment } from "@/utils/equipmentContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { getEquipmentCategoryType } from "./equipment-helpers";
 
@@ -15,11 +23,17 @@ export default function SeeAllScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const navigation = useNavigation();
   const { data, updateField } = useContext(OnboardingContext);
+  const { items, isLoading, error, ensureEquipmentLoaded } = useEquipment();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   const categoryTitle = params.category || "Equipment";
   const categoryType = getEquipmentCategoryType(categoryTitle);
+
+  // Load equipment on mount
+  useEffect(() => {
+    ensureEquipmentLoaded();
+  }, [ensureEquipmentLoaded]);
 
   // Update header title dynamically
   useEffect(() => {
@@ -97,7 +111,7 @@ export default function SeeAllScreen() {
     }
 
     // First filter by category type
-    let equipment = EQUIPMENT.filter((eq) => eq.category === categoryType);
+    let equipment = items.filter((eq) => eq.category === categoryType);
 
     // Then filter by search query if provided
     if (searchQuery.trim()) {
@@ -111,7 +125,7 @@ export default function SeeAllScreen() {
 
     // Sort alphabetically
     return equipment.sort((a, b) => a.name.localeCompare(b.name));
-  }, [categoryType, searchQuery]);
+  }, [categoryType, searchQuery, items]);
 
   const handleToggleEquipment = (equipmentId: string) => {
     setSelectedEquipment((prev) => {
@@ -143,7 +157,37 @@ export default function SeeAllScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {filteredEquipment.length === 0 ? (
+          {isLoading && items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={colors.primaryButton} />
+              <ThemedText
+                type="default"
+                style={[styles.emptyStateText, { marginTop: 16 }]}
+              >
+                Loading equipment...
+              </ThemedText>
+            </View>
+          ) : error && items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <ThemedText
+                type="default"
+                style={[styles.emptyStateText, { marginBottom: 16 }]}
+              >
+                {error === "network"
+                  ? "No internet connection"
+                  : "Failed to load equipment"}
+              </ThemedText>
+              <Pressable
+                onPress={() => ensureEquipmentLoaded({ force: true })}
+                style={[
+                  styles.retryButton,
+                  { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : filteredEquipment.length === 0 ? (
             <View style={styles.emptyState}>
               <Text
                 style={[styles.emptyStateText, { color: colors.placeholder }]}
@@ -163,6 +207,9 @@ export default function SeeAllScreen() {
                     name={eq.name}
                     selected={isSelected}
                     onPress={() => handleToggleEquipment(eq.id)}
+                    iconKey={eq.iconKey}
+                    imageUrl={eq.imageUrl}
+                    category={eq.category}
                   />
                 );
               })}
@@ -203,5 +250,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Fonts.sans,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

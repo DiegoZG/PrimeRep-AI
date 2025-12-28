@@ -1,18 +1,33 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { AnimatedSearch } from "@/components/animated-search";
 import { EquipmentCard } from "@/components/equipment/equipment-card";
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { EQUIPMENT } from "@/constants/equipment/equipment";
+import { Equipment } from "@/constants/equipment/types";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useEquipment } from "@/utils/equipmentContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
 
 export default function SearchEquipmentScreen() {
   const { data, updateField } = useContext(OnboardingContext);
+  const { items, isLoading, error, ensureEquipmentLoaded } = useEquipment();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  // Load equipment on mount
+  useEffect(() => {
+    ensureEquipmentLoaded();
+  }, [ensureEquipmentLoaded]);
 
   // Source of truth: always use context
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,21 +98,21 @@ export default function SearchEquipmentScreen() {
   // Filter equipment based on search query
   const filteredEquipment = useMemo(() => {
     if (!searchQuery.trim()) {
-      return EQUIPMENT;
+      return items;
     }
 
     const query = searchQuery.toLowerCase();
-    return EQUIPMENT.filter(
+    return items.filter(
       (eq) =>
         eq.name.toLowerCase().includes(query) ||
         eq.id.toLowerCase().includes(query) ||
         eq.category.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, items]);
 
   // Group filtered equipment by category
   const groupedEquipment = useMemo(() => {
-    const groups: Record<string, typeof EQUIPMENT> = {};
+    const groups: Record<string, Equipment[]> = {};
 
     filteredEquipment.forEach((eq) => {
       if (!groups[eq.category]) {
@@ -107,7 +122,7 @@ export default function SearchEquipmentScreen() {
     });
 
     // Sort categories and equipment within each category
-    const sortedGroups: Record<string, typeof EQUIPMENT> = {};
+    const sortedGroups: Record<string, Equipment[]> = {};
     Object.keys(groups)
       .sort()
       .forEach((category) => {
@@ -161,7 +176,37 @@ export default function SearchEquipmentScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {Object.keys(groupedEquipment).length === 0 ? (
+          {isLoading && items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={colors.primaryButton} />
+              <ThemedText
+                type="default"
+                style={[styles.emptyStateText, { marginTop: 16 }]}
+              >
+                Loading equipment...
+              </ThemedText>
+            </View>
+          ) : error && items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <ThemedText
+                type="default"
+                style={[styles.emptyStateText, { marginBottom: 16 }]}
+              >
+                {error === "network"
+                  ? "No internet connection"
+                  : "Failed to load equipment"}
+              </ThemedText>
+              <Pressable
+                onPress={() => ensureEquipmentLoaded({ force: true })}
+                style={[
+                  styles.retryButton,
+                  { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : Object.keys(groupedEquipment).length === 0 ? (
             <View style={styles.emptyState}>
               <Text
                 style={[styles.emptyStateText, { color: colors.placeholder }]}
@@ -186,6 +231,9 @@ export default function SearchEquipmentScreen() {
                       name={eq.name}
                       selected={isSelected}
                       onPress={() => handleToggleEquipment(eq.id)}
+                      iconKey={eq.iconKey}
+                      imageUrl={eq.imageUrl}
+                      category={eq.category}
                     />
                   );
                 })}
@@ -234,5 +282,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
     marginBottom: 4,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
