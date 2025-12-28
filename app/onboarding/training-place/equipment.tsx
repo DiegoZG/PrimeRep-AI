@@ -17,6 +17,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import { useEquipment } from "@/utils/equipmentContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import {
   getDefaultDumbbellWeights,
@@ -29,9 +30,16 @@ export default function EquipmentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ gymType?: string }>();
   const { data, updateField } = useContext(OnboardingContext);
+  const { items, ensureEquipmentLoaded } = useEquipment();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
+
+  // Load equipment on mount
+  useEffect(() => {
+    console.log("ensuring ");
+    ensureEquipmentLoaded();
+  }, [ensureEquipmentLoaded]);
 
   const gymType = (params.gymType || data.trainingPlace) as
     | "large-gym"
@@ -43,7 +51,11 @@ export default function EquipmentScreen() {
       // If gymType is provided via params, always use defaults for that gym type
       // This ensures fresh defaults when navigating from training-place selection
       if (params.gymType) {
-        return getDefaultEquipmentSelections(gymType);
+        // Pass undefined if items is empty so helper uses fallback
+        return getDefaultEquipmentSelections(
+          gymType,
+          items.length > 0 ? items : undefined
+        );
       }
 
       // Otherwise, use existing selections from context if available
@@ -53,7 +65,11 @@ export default function EquipmentScreen() {
       }
 
       // Fallback to defaults based on current gym type
-      return getDefaultEquipmentSelections(gymType);
+      // Pass undefined if items is empty so helper uses fallback
+      return getDefaultEquipmentSelections(
+        gymType,
+        items.length > 0 ? items : undefined
+      );
     }
   );
 
@@ -74,7 +90,11 @@ export default function EquipmentScreen() {
       (gymTypeChanged || hasGymTypeParam || paramChanged) &&
       !isUpdatingFromContextRef.current
     ) {
-      const defaults = getDefaultEquipmentSelections(gymType);
+      // Pass undefined if items is empty so helper uses fallback
+      const defaults = getDefaultEquipmentSelections(
+        gymType,
+        items.length > 0 ? items : undefined
+      );
       const defaultSelections = Array.from(defaults).sort();
       setSelectedEquipment(defaults);
       isUpdatingFromContextRef.current = true;
@@ -165,8 +185,11 @@ export default function EquipmentScreen() {
   };
 
   const equipmentGroups = useMemo(() => {
-    return groupEquipmentByDisplayCategory();
-  }, []);
+    // Pass undefined if items is empty so helper uses fallback
+    return groupEquipmentByDisplayCategory(
+      items.length > 0 ? items : undefined
+    );
+  }, [items]);
 
   const handleEditDumbbells = () => {
     router.push("/onboarding/training-place/edit-dumbbells");
@@ -246,6 +269,9 @@ export default function EquipmentScreen() {
                       name={equipment.name}
                       selected={isSelected}
                       onPress={() => handleToggleEquipment(equipment.id)}
+                      iconKey={equipment.iconKey}
+                      imageUrl={equipment.imageUrl}
+                      category={equipment.category}
                       subtitle={subtitle}
                       showEditButton={
                         hasEditButton && selectedWeights.length > 0

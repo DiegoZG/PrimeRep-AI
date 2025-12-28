@@ -1,12 +1,19 @@
 import { EQUIPMENT } from "@/constants/equipment/equipment";
+import { Equipment } from "@/constants/equipment/types";
 
 /**
  * Get default equipment selections based on gym type
+ * @param gymType - The type of gym
+ * @param equipmentList - Optional equipment list (defaults to static EQUIPMENT fallback)
  */
 export function getDefaultEquipmentSelections(
-  gymType: "large-gym" | "small-gym" | "garage-gym"
+  gymType: "large-gym" | "small-gym" | "garage-gym",
+  equipmentList?: Equipment[]
 ): Set<string> {
-  const allEquipmentIds = new Set(EQUIPMENT.map((eq) => eq.id));
+  // Use provided list if it exists and has items, otherwise fallback to static EQUIPMENT
+  const list =
+    equipmentList && equipmentList.length > 0 ? equipmentList : EQUIPMENT;
+  const allEquipmentIds = new Set(list.map((eq) => eq.id));
 
   if (gymType === "large-gym") {
     // Large gym: Everything except specific excluded items
@@ -82,8 +89,13 @@ export function getDefaultEquipmentSelections(
 /**
  * Group equipment by display categories for the UI
  * Only includes equipment visible in the screenshots
+ * @param equipmentList - Optional equipment list (defaults to static EQUIPMENT fallback)
  */
-export function groupEquipmentByDisplayCategory() {
+export function groupEquipmentByDisplayCategory(equipmentList?: Equipment[]) {
+  // Use provided list if it exists and has items, otherwise fallback to static EQUIPMENT
+  const list =
+    equipmentList && equipmentList.length > 0 ? equipmentList : EQUIPMENT;
+
   // Equipment IDs visible in screenshots, organized by display category
   const equipmentByCategory: Record<string, string[]> = {
     "Cable machines": ["crossover_cable", "hi_lo_pull_cable"],
@@ -109,10 +121,10 @@ export function groupEquipmentByDisplayCategory() {
     "Bars and plates": ["olympic_barbell", "plates"],
   };
 
-  const groups: { title: string; equipment: typeof EQUIPMENT }[] = [];
+  const groups: { title: string; equipment: Equipment[] }[] = [];
 
   Object.entries(equipmentByCategory).forEach(([title, equipmentIds]) => {
-    const equipment = EQUIPMENT.filter((eq) => equipmentIds.includes(eq.id));
+    const equipment = list.filter((eq) => equipmentIds.includes(eq.id));
     if (equipment.length > 0) {
       groups.push({ title, equipment });
     }

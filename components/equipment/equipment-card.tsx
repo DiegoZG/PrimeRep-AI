@@ -1,8 +1,10 @@
+import { Image } from "expo-image";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { equipmentIcons } from "@/constants/equipment/equipmentIcons";
+import { EquipmentCategory } from "@/constants/equipment/types";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -15,6 +17,9 @@ interface EquipmentCardProps {
   showEditButton?: boolean;
   onPressEdit?: () => void;
   editLabel?: string;
+  iconKey?: string;
+  imageUrl?: string;
+  category?: EquipmentCategory;
 }
 
 export function EquipmentCard({
@@ -26,9 +31,49 @@ export function EquipmentCard({
   showEditButton = false,
   onPressEdit,
   editLabel = "Edit",
+  iconKey,
+  imageUrl,
+  category,
 }: EquipmentCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  // Determine which icon/image to show
+  const iconToUse = iconKey || id;
+  const localIcon = equipmentIcons[iconToUse];
+
+  // Render icon/image with fallback chain
+  const renderIcon = () => {
+    // Priority 1: Remote image URL
+    if (imageUrl) {
+      return (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.equipmentIcon}
+          contentFit="contain"
+          transition={200}
+        />
+      );
+    }
+
+    // Priority 2: Local icon asset
+    if (localIcon) {
+      return (
+        <Image
+          source={localIcon}
+          style={styles.equipmentIcon}
+          contentFit="contain"
+        />
+      );
+    }
+
+    // Priority 3: Category-based placeholder or first letter
+    return (
+      <Text style={[styles.iconPlaceholderText, { color: colors.placeholder }]}>
+        {name.charAt(0).toUpperCase()}
+      </Text>
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -49,19 +94,7 @@ export function EquipmentCard({
           { backgroundColor: colors.inputBorder },
         ]}
       >
-        {equipmentIcons.abductor_machine ? (
-          <Image
-            source={equipmentIcons.abductor_machine}
-            style={styles.equipmentIcon}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text
-            style={[styles.iconPlaceholderText, { color: colors.placeholder }]}
-          >
-            {name.charAt(0)}
-          </Text>
-        )}
+        {renderIcon()}
       </View>
 
       {/* Equipment Name and Optional Subtitle */}
