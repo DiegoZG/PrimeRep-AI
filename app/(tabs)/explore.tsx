@@ -1,16 +1,614 @@
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AnimatedButton } from "@/components/animated-button";
+import { AnimatedCard } from "@/components/animated-card";
+import { AnimatedSearch } from "@/components/animated-search";
+import {
+  ExerciseRow,
+  FeaturedWorkoutCard,
+  MuscleProgressRing,
+  SplitCard,
+} from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { Exercise } from "@/interfaces/exercises";
+import {
+  favoriteExercise,
+  getBodyweightPreview,
+  getCardioPreview,
+  getExercises,
+  getFavoriteExercises,
+  getWeightsPreview,
+  unfavoriteExercise,
+} from "@/services/exerciseService";
+import { AuthContext } from "@/utils/authContext";
+
+// Mock data for featured and splits sections
+const FEATURED_WORKOUT = {
+  title: "Full Body Power",
+  subtitle: "Compound movements for maximum gains",
+  duration: "45 min",
+  calories: "320 kcal",
+  badgeLabel: "TRENDING",
+};
+
+const SPLIT_CARDS = [
+  {
+    id: "ppl",
+    title: "Push Pull Legs",
+    subtitle: "6 days/week • Intermediate",
+    progress: 0.3,
+    gradientColors: ["#6a4ff5", "#8b5cf6"] as [string, string],
+  },
+  {
+    id: "upper-lower",
+    title: "Upper Lower",
+    subtitle: "4 days/week • Beginner",
+    progress: 0.5,
+    gradientColors: ["#00D4FF", "#0096c7"] as [string, string],
+  },
+  {
+    id: "full-body",
+    title: "Full Body",
+    subtitle: "3 days/week • All levels",
+    progress: 0.7,
+    gradientColors: ["#FF6B6B", "#ee5a5a"] as [string, string],
+  },
+];
+
+const MUSCLE_RINGS = [
+  { label: "Chest", progress: 0.65 },
+  { label: "Back", progress: 0.35 },
+  { label: "Legs", progress: 0.7 },
+  { label: "Arms", progress: 0.15 },
+];
 
 const ExploreScreen = () => {
-  return (
-    <ThemedView
-      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
+  const { isLoggedIn, token } = useContext(AuthContext);
+
+  // Exercise data state
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(true);
+  const [exercisesError, setExercisesError] = useState<string | null>(null);
+
+  // Favorites state
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<Exercise[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load exercises on mount
+  useEffect(() => {
+    async function loadExercises() {
+      try {
+        setIsLoadingExercises(true);
+        setExercisesError(null);
+        const exercises = await getExercises({ limit: 50 });
+        setAllExercises(exercises);
+      } catch (err) {
+        console.warn("Failed to load exercises:", err);
+        setExercisesError("Failed to load exercises");
+      } finally {
+        setIsLoadingExercises(false);
+      }
+    }
+    loadExercises();
+  }, []);
+
+  // Load favorites when auth is ready (independent of exercises)
+  useEffect(() => {
+    async function loadFavorites() {
+      if (!isLoggedIn || !token) {
+        setFavoriteIds(new Set());
+        return;
+      }
+      try {
+        setIsLoadingFavorites(true);
+        const ids = await getFavoriteExercises(token);
+        setFavoriteIds(new Set(ids));
+      } catch (err) {
+        console.warn("Failed to load favorites:", err);
+      } finally {
+        setIsLoadingFavorites(false);
+      }
+    }
+    loadFavorites();
+  }, [isLoggedIn, token]);
+
+  // Search exercises when debounced term changes
+  useEffect(() => {
+    async function searchExercises() {
+      const trimmed = debouncedSearchTerm.trim();
+      if (trimmed.length < 2) {
+        setSearchResults([]);
+        setIsSearchLoading(false);
+        return;
+      }
+      try {
+        setIsSearchLoading(true);
+        const results = await getExercises({ q: trimmed, limit: 50 });
+        setSearchResults(results);
+      } catch (err) {
+        console.warn("Search failed:", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearchLoading(false);
+      }
+    }
+    searchExercises();
+  }, [debouncedSearchTerm]);
+
+  // Memoized filtered lists for default layout
+  const weightsExercises = useMemo(
+    () => getWeightsPreview(allExercises),
+    [allExercises]
+  );
+  const bodyweightExercises = useMemo(
+    () => getBodyweightPreview(allExercises),
+    [allExercises]
+  );
+  const cardioExercises = useMemo(
+    () => getCardioPreview(allExercises),
+    [allExercises]
+  );
+
+  // Navigation handlers for category screens
+  const navigateToCategory = useCallback(
+    (type: "weights" | "bodyweight" | "cardio") => {
+      router.push({ pathname: "/explore/category", params: { type } });
+    },
+    [router]
+  );
+
+  // Handle favorite toggle with optimistic updates
+  const handleToggleFavorite = useCallback(
+    async (exerciseId: string) => {
+      if (!isLoggedIn || !token) return;
+
+      // Use object to track action and snapshot to avoid stale closure issues
+      const state = {
+        action: "favorite" as "favorite" | "unfavorite",
+        snapshot: null as Set<string> | null,
+      };
+
+      setFavoriteIds((prev) => {
+        state.snapshot = new Set(prev);
+        const next = new Set(prev);
+        if (next.has(exerciseId)) {
+          next.delete(exerciseId);
+          state.action = "unfavorite";
+        } else {
+          next.add(exerciseId);
+          state.action = "favorite";
+        }
+        return next;
+      });
+
+      try {
+        if (state.action === "unfavorite") {
+          await unfavoriteExercise(exerciseId, token);
+        } else {
+          await favoriteExercise(exerciseId, token);
+        }
+      } catch (err) {
+        console.warn("Failed to toggle favorite:", err);
+        // Revert to snapshot on error
+        if (state.snapshot) {
+          setFavoriteIds(state.snapshot);
+        }
+      }
+    },
+    [isLoggedIn, token]
+  );
+
+  // Check if we're in search mode
+  const isInSearchMode = debouncedSearchTerm.trim().length >= 2;
+
+  // Render section header with optional right element
+  const renderSectionHeader = (
+    title: string,
+    rightElement?: React.ReactNode
+  ) => (
+    <View style={styles.sectionHeader}>
+      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+      {rightElement}
+    </View>
+  );
+
+  // Render exercise list section with tappable header
+  const renderExerciseSection = (
+    title: string,
+    exercises: Exercise[],
+    categoryType: "weights" | "bodyweight" | "cardio",
+    delay: number = 0
+  ) => (
+    <AnimatedCard style={styles.section} delay={delay}>
+      <Pressable
+        onPress={() => navigateToCategory(categoryType)}
+        style={styles.exerciseSectionHeader}
+      >
+        <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+        <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+      </Pressable>
+      <View style={styles.exerciseList}>
+        {exercises.map((exercise) => (
+          <ExerciseRow
+            key={exercise.id}
+            id={exercise.id}
+            name={exercise.name}
+            primaryMuscle={exercise.primaryMuscle}
+            imageUrl={exercise.imageUrl}
+            isFavorite={favoriteIds.has(exercise.id)}
+            canFavorite={isLoggedIn}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        ))}
+      </View>
+    </AnimatedCard>
+  );
+
+  // Render search results with FlatList
+  const renderSearchResults = () => (
+    <FlatList
+      data={searchResults}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <ExerciseRow
+          id={item.id}
+          name={item.name}
+          primaryMuscle={item.primaryMuscle}
+          imageUrl={item.imageUrl}
+          isFavorite={favoriteIds.has(item.id)}
+          canFavorite={isLoggedIn}
+          onToggleFavorite={handleToggleFavorite}
+        />
+      )}
+      contentContainerStyle={styles.searchResultsContent}
+      ItemSeparatorComponent={() => <View style={styles.exerciseSeparator} />}
+      ListHeaderComponent={
+        isSearchLoading ? (
+          <View style={styles.searchLoadingHeader}>
+            <ThemedText style={styles.searchLoadingText}>
+              Searching...
+            </ThemedText>
+          </View>
+        ) : null
+      }
+      ListEmptyComponent={
+        !isSearchLoading ? (
+          <View style={styles.emptyState}>
+            <ThemedText style={styles.emptyText}>No exercises found</ThemedText>
+          </View>
+        ) : null
+      }
+    />
+  );
+
+  // Render default Explore layout
+  const renderDefaultLayout = () => (
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
     >
-      <ThemedText type="title">explore</ThemedText>
-    </ThemedView>
+      {/* Featured Workouts Section */}
+      <AnimatedCard style={styles.section} delay={0}>
+        {renderSectionHeader(
+          "Featured Workouts",
+          <Pressable style={styles.viewAllButton}>
+            <ThemedText
+              style={[styles.viewAllText, { color: colors.primaryButton }]}
+            >
+              View all
+            </ThemedText>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.primaryButton}
+            />
+          </Pressable>
+        )}
+        <FeaturedWorkoutCard
+          title={FEATURED_WORKOUT.title}
+          subtitle={FEATURED_WORKOUT.subtitle}
+          duration={FEATURED_WORKOUT.duration}
+          calories={FEATURED_WORKOUT.calories}
+          badgeLabel={FEATURED_WORKOUT.badgeLabel}
+        />
+      </AnimatedCard>
+
+      {/* PrimeRep Splits Section */}
+      <AnimatedCard style={styles.section} delay={100}>
+        {renderSectionHeader(
+          "PrimeRep Splits",
+          <View
+            style={[
+              styles.dropdownPill,
+              { backgroundColor: colors.inputBackground },
+            ]}
+          >
+            <ThemedText style={styles.dropdownText}>Recommended</ThemedText>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={colors.placeholder}
+            />
+          </View>
+        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.splitsCarousel}
+        >
+          {SPLIT_CARDS.map((split) => (
+            <SplitCard
+              key={split.id}
+              title={split.title}
+              subtitle={split.subtitle}
+              progress={split.progress}
+              gradientColors={split.gradientColors}
+            />
+          ))}
+        </ScrollView>
+      </AnimatedCard>
+
+      {/* By Muscle Section */}
+      <AnimatedCard style={styles.section} delay={200}>
+        <ThemedText style={styles.sectionTitle}>By Muscle</ThemedText>
+        <View style={styles.muscleRingsRow}>
+          {MUSCLE_RINGS.map((ring) => (
+            <MuscleProgressRing
+              key={ring.label}
+              label={ring.label}
+              progress={ring.progress}
+            />
+          ))}
+        </View>
+      </AnimatedCard>
+
+      {/* Loading state */}
+      {isLoadingExercises && (
+        <View style={styles.loadingState}>
+          <ThemedText style={styles.loadingText}>
+            Loading exercises...
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Error state */}
+      {exercisesError && !isLoadingExercises && (
+        <View style={styles.errorState}>
+          <ThemedText style={styles.errorText}>{exercisesError}</ThemedText>
+        </View>
+      )}
+
+      {/* Weights Section */}
+      {weightsExercises.length > 0 &&
+        renderExerciseSection("Weights", weightsExercises, "weights", 300)}
+
+      {/* Bodyweight Section */}
+      {bodyweightExercises.length > 0 &&
+        renderExerciseSection(
+          "Bodyweight",
+          bodyweightExercises,
+          "bodyweight",
+          400
+        )}
+
+      {/* Cardio Section */}
+      {cardioExercises.length > 0 &&
+        renderExerciseSection("Cardio", cardioExercises, "cardio", 500)}
+
+      {/* Bottom spacing */}
+      <View style={styles.bottomSpacer} />
+    </ScrollView>
+  );
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Explore
+        </ThemedText>
+        <AnimatedButton
+          style={[styles.addButton, { backgroundColor: colors.primaryButton }]}
+        >
+          <Ionicons name="add" size={24} color="#FFFFFF" />
+        </AnimatedButton>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <AnimatedSearch
+          placeholder="Search exercises, workouts…"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+      </View>
+
+      {/* Content: Search results or default layout */}
+      {isInSearchMode ? renderSearchResults() : renderDefaultLayout()}
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    fontFamily: Fonts.sans,
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  exerciseSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  viewAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  dropdownPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  dropdownText: {
+    fontSize: 13,
+    fontWeight: "500",
+    fontFamily: Fonts.sans,
+  },
+  splitsCarousel: {
+    gap: 12,
+    paddingRight: 24,
+  },
+  muscleRingsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  exerciseList: {
+    gap: 10,
+  },
+  exerciseSeparator: {
+    height: 10,
+  },
+  searchResultsContent: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+  loadingState: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  errorState: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#FF4B4B",
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  searchLoadingHeader: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  searchLoadingText: {
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  bottomSpacer: {
+    height: 20,
+  },
+});
 
 export default ExploreScreen;

@@ -56,6 +56,10 @@ function RootLayoutNav() {
       >
         <Stack.Protected guard={!shouldShowOnboarding}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="explore/category"
+            options={{ headerShown: false }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={shouldShowOnboarding}>
