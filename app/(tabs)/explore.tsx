@@ -12,7 +12,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -100,7 +99,7 @@ const ExploreScreen = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Exercise[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
 
   // Debounce search term
   useEffect(() => {
@@ -154,18 +153,18 @@ const ExploreScreen = () => {
       const trimmed = debouncedSearchTerm.trim();
       if (trimmed.length < 2) {
         setSearchResults([]);
-        setIsSearching(false);
+        setIsSearchLoading(false);
         return;
       }
       try {
-        setIsSearching(true);
+        setIsSearchLoading(true);
         const results = await getExercises({ q: trimmed, limit: 50 });
         setSearchResults(results);
       } catch (err) {
         console.warn("Search failed:", err);
         setSearchResults([]);
       } finally {
-        setIsSearching(false);
+        setIsSearchLoading(false);
       }
     }
     searchExercises();
@@ -198,22 +197,27 @@ const ExploreScreen = () => {
     async (exerciseId: string) => {
       if (!isLoggedIn || !token) return;
 
-      const wasInFavorites = favoriteIds.has(exerciseId);
-      const snapshot = new Set(favoriteIds);
+      // Use object to track action and snapshot to avoid stale closure issues
+      const state = {
+        action: "favorite" as "favorite" | "unfavorite",
+        snapshot: null as Set<string> | null,
+      };
 
-      // Optimistic update
       setFavoriteIds((prev) => {
+        state.snapshot = new Set(prev);
         const next = new Set(prev);
-        if (wasInFavorites) {
+        if (next.has(exerciseId)) {
           next.delete(exerciseId);
+          state.action = "unfavorite";
         } else {
           next.add(exerciseId);
+          state.action = "favorite";
         }
         return next;
       });
 
       try {
-        if (wasInFavorites) {
+        if (state.action === "unfavorite") {
           await unfavoriteExercise(exerciseId, token);
         } else {
           await favoriteExercise(exerciseId, token);
@@ -221,10 +225,12 @@ const ExploreScreen = () => {
       } catch (err) {
         console.warn("Failed to toggle favorite:", err);
         // Revert to snapshot on error
-        setFavoriteIds(snapshot);
+        if (state.snapshot) {
+          setFavoriteIds(state.snapshot);
+        }
       }
     },
-    [isLoggedIn, token, favoriteIds]
+    [isLoggedIn, token]
   );
 
   // Check if we're in search mode
@@ -291,16 +297,21 @@ const ExploreScreen = () => {
       )}
       contentContainerStyle={styles.searchResultsContent}
       ItemSeparatorComponent={() => <View style={styles.exerciseSeparator} />}
-      ListEmptyComponent={
-        isSearching ? (
-          <View style={styles.emptyState}>
-            <ThemedText style={styles.emptyText}>Searching...</ThemedText>
+      ListHeaderComponent={
+        isSearchLoading ? (
+          <View style={styles.searchLoadingHeader}>
+            <ThemedText style={styles.searchLoadingText}>
+              Searching...
+            </ThemedText>
           </View>
-        ) : (
+        ) : null
+      }
+      ListEmptyComponent={
+        !isSearchLoading ? (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyText}>No exercises found</ThemedText>
           </View>
-        )
+        ) : null
       }
     />
   );
@@ -316,9 +327,11 @@ const ExploreScreen = () => {
         {renderSectionHeader(
           "Featured Workouts",
           <Pressable style={styles.viewAllButton}>
-            <Text style={[styles.viewAllText, { color: colors.primaryButton }]}>
+            <ThemedText
+              style={[styles.viewAllText, { color: colors.primaryButton }]}
+            >
               View all
-            </Text>
+            </ThemedText>
             <Ionicons
               name="chevron-forward"
               size={14}
@@ -345,9 +358,7 @@ const ExploreScreen = () => {
               { backgroundColor: colors.inputBackground },
             ]}
           >
-            <Text style={[styles.dropdownText, { color: colors.text }]}>
-              Recommended
-            </Text>
+            <ThemedText style={styles.dropdownText}>Recommended</ThemedText>
             <Ionicons
               name="chevron-down"
               size={14}
@@ -584,6 +595,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  searchLoadingHeader: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  searchLoadingText: {
     fontSize: 14,
     opacity: 0.6,
   },

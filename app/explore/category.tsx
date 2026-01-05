@@ -120,22 +120,27 @@ export default function CategoryScreen() {
     async (exerciseId: string) => {
       if (!isLoggedIn || !token) return;
 
-      const wasInFavorites = favoriteIds.has(exerciseId);
-      const snapshot = new Set(favoriteIds);
+      // Use object to track action and snapshot to avoid stale closure issues
+      const state = {
+        action: "favorite" as "favorite" | "unfavorite",
+        snapshot: null as Set<string> | null,
+      };
 
-      // Optimistic update
       setFavoriteIds((prev) => {
+        state.snapshot = new Set(prev);
         const next = new Set(prev);
-        if (wasInFavorites) {
+        if (next.has(exerciseId)) {
           next.delete(exerciseId);
+          state.action = "unfavorite";
         } else {
           next.add(exerciseId);
+          state.action = "favorite";
         }
         return next;
       });
 
       try {
-        if (wasInFavorites) {
+        if (state.action === "unfavorite") {
           await unfavoriteExercise(exerciseId, token);
         } else {
           await favoriteExercise(exerciseId, token);
@@ -143,10 +148,12 @@ export default function CategoryScreen() {
       } catch (err) {
         console.warn("Failed to toggle favorite:", err);
         // Revert to snapshot on error
-        setFavoriteIds(snapshot);
+        if (state.snapshot) {
+          setFavoriteIds(state.snapshot);
+        }
       }
     },
-    [isLoggedIn, token, favoriteIds]
+    [isLoggedIn, token]
   );
 
   // Handle pull to refresh
