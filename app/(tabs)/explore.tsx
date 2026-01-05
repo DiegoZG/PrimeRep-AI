@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, {
   useCallback,
   useContext,
@@ -28,10 +29,11 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { Exercise } from "@/interfaces/exercises";
 import {
-  Exercise,
   favoriteExercise,
   getBodyweightPreview,
+  getCardioPreview,
   getExercises,
   getFavoriteExercises,
   getWeightsPreview,
@@ -80,6 +82,7 @@ const MUSCLE_RINGS = [
 ];
 
 const ExploreScreen = () => {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { isLoggedIn, token } = useContext(AuthContext);
@@ -177,6 +180,18 @@ const ExploreScreen = () => {
     () => getBodyweightPreview(allExercises),
     [allExercises]
   );
+  const cardioExercises = useMemo(
+    () => getCardioPreview(allExercises),
+    [allExercises]
+  );
+
+  // Navigation handlers for category screens
+  const navigateToCategory = useCallback(
+    (type: "weights" | "bodyweight" | "cardio") => {
+      router.push({ pathname: "/explore/category", params: { type } });
+    },
+    [router]
+  );
 
   // Handle favorite toggle with optimistic updates
   const handleToggleFavorite = useCallback(
@@ -226,23 +241,20 @@ const ExploreScreen = () => {
     </View>
   );
 
-  // Render exercise list section with chevron
+  // Render exercise list section with tappable header
   const renderExerciseSection = (
     title: string,
     exercises: Exercise[],
-    delay: number = 0,
-    onViewAll?: () => void
+    categoryType: "weights" | "bodyweight" | "cardio",
+    delay: number = 0
   ) => (
     <AnimatedCard style={styles.section} delay={delay}>
-      <Pressable onPress={onViewAll} style={styles.sectionHeader}>
+      <Pressable
+        onPress={() => navigateToCategory(categoryType)}
+        style={styles.exerciseSectionHeader}
+      >
         <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
-        <View style={styles.sectionChevron}>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={colors.placeholder}
-          />
-        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
       </Pressable>
       <View style={styles.exerciseList}>
         {exercises.map((exercise) => (
@@ -392,11 +404,20 @@ const ExploreScreen = () => {
 
       {/* Weights Section */}
       {weightsExercises.length > 0 &&
-        renderExerciseSection("Weights", weightsExercises, 300)}
+        renderExerciseSection("Weights", weightsExercises, "weights", 300)}
 
       {/* Bodyweight Section */}
       {bodyweightExercises.length > 0 &&
-        renderExerciseSection("Bodyweight", bodyweightExercises, 400)}
+        renderExerciseSection(
+          "Bodyweight",
+          bodyweightExercises,
+          "bodyweight",
+          400
+        )}
+
+      {/* Cardio Section */}
+      {cardioExercises.length > 0 &&
+        renderExerciseSection("Cardio", cardioExercises, "cardio", 500)}
 
       {/* Bottom spacing */}
       <View style={styles.bottomSpacer} />
@@ -482,13 +503,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
+  exerciseSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 4,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-  },
-  sectionChevron: {
-    paddingLeft: 8,
   },
   viewAllButton: {
     flexDirection: "row",

@@ -56,9 +56,7 @@ export function ExerciseRow({
       ]}
     >
       {/* Thumbnail */}
-      <View
-        style={[styles.thumbnail, { backgroundColor: colors.inputBorder }]}
-      >
+      <View style={[styles.thumbnail, { backgroundColor: colors.inputBorder }]}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -91,23 +89,18 @@ export function ExerciseRow({
       <Pressable
         onPress={handleFavoritePress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        style={[
-          styles.favoriteButton,
-          !canFavorite && styles.favoriteButtonDisabled,
-        ]}
+        style={styles.favoriteButton}
         disabled={!canFavorite}
       >
-        {isFavorite ? (
+        {isFavorite && canFavorite ? (
           <Ionicons name="heart" size={22} color="#FF4B4B" />
         ) : (
           <View
             style={[
               styles.plusButton,
               {
-                borderColor: canFavorite
-                  ? colors.inputBorder
-                  : colors.inputBorder,
-                opacity: canFavorite ? 1 : 0.4,
+                borderColor: colors.inputBorder,
+                opacity: canFavorite ? 1 : 0.35,
               },
             ]}
           >
@@ -174,9 +167,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  favoriteButtonDisabled: {
-    opacity: 0.5,
-  },
   plusButton: {
     width: 32,
     height: 32,
@@ -186,4 +176,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-
