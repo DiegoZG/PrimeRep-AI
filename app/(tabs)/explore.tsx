@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -21,6 +22,7 @@ import { AnimatedCard } from "@/components/animated-card";
 import { AnimatedSearch } from "@/components/animated-search";
 import {
   ExerciseRow,
+  FavoritesCard,
   FeaturedWorkoutCard,
   MuscleProgressRing,
   SplitCard,
@@ -93,7 +95,6 @@ const ExploreScreen = () => {
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,25 +128,24 @@ const ExploreScreen = () => {
     loadExercises();
   }, []);
 
-  // Load favorites when auth is ready (independent of exercises)
-  useEffect(() => {
-    async function loadFavorites() {
-      if (!isLoggedIn || !token) {
-        setFavoriteIds(new Set());
-        return;
+  // Load favorites when screen gains focus (ensures sync after navigating back from Category/Favorites)
+  useFocusEffect(
+    useCallback(() => {
+      async function loadFavorites() {
+        if (!isLoggedIn || !token) {
+          setFavoriteIds(new Set());
+          return;
+        }
+        try {
+          const ids = await getFavoriteExercises(token);
+          setFavoriteIds(new Set(ids));
+        } catch (err) {
+          console.warn("Failed to load favorites:", err);
+        }
       }
-      try {
-        setIsLoadingFavorites(true);
-        const ids = await getFavoriteExercises(token);
-        setFavoriteIds(new Set(ids));
-      } catch (err) {
-        console.warn("Failed to load favorites:", err);
-      } finally {
-        setIsLoadingFavorites(false);
-      }
-    }
-    loadFavorites();
-  }, [isLoggedIn, token]);
+      loadFavorites();
+    }, [isLoggedIn, token])
+  );
 
   // Search exercises when debounced term changes
   useEffect(() => {
@@ -191,6 +191,11 @@ const ExploreScreen = () => {
     },
     [router]
   );
+
+  // Navigation handler for favorites
+  const navigateToFavorites = useCallback(() => {
+    router.push("/explore/favorites");
+  }, [router]);
 
   // Handle favorite toggle with optimistic updates
   const handleToggleFavorite = useCallback(
@@ -322,7 +327,7 @@ const ExploreScreen = () => {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* Featured Workouts Section */}
+      {/* Featured Workouts + Favorites Section */}
       <AnimatedCard style={styles.section} delay={0}>
         {renderSectionHeader(
           "Featured Workouts",
@@ -339,13 +344,20 @@ const ExploreScreen = () => {
             />
           </Pressable>
         )}
-        <FeaturedWorkoutCard
-          title={FEATURED_WORKOUT.title}
-          subtitle={FEATURED_WORKOUT.subtitle}
-          duration={FEATURED_WORKOUT.duration}
-          calories={FEATURED_WORKOUT.calories}
-          badgeLabel={FEATURED_WORKOUT.badgeLabel}
-        />
+        <View style={styles.quickAccessRow}>
+          <FeaturedWorkoutCard
+            title={FEATURED_WORKOUT.title}
+            subtitle={FEATURED_WORKOUT.subtitle}
+            duration={FEATURED_WORKOUT.duration}
+            calories={FEATURED_WORKOUT.calories}
+            badgeLabel={FEATURED_WORKOUT.badgeLabel}
+            compact={true}
+          />
+          <FavoritesCard
+            count={favoriteIds.size}
+            onPress={navigateToFavorites}
+          />
+        </View>
       </AnimatedCard>
 
       {/* PrimeRep Splits Section */}
@@ -553,6 +565,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     fontFamily: Fonts.sans,
+  },
+  quickAccessRow: {
+    flexDirection: "row",
+    gap: 12,
   },
   splitsCarousel: {
     gap: 12,

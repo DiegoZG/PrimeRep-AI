@@ -60,6 +60,10 @@ function RootLayoutNav() {
             name="explore/category"
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="explore/favorites"
+            options={{ headerShown: false }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={shouldShowOnboarding}>
