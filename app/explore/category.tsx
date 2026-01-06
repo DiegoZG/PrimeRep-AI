@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -98,22 +99,24 @@ export default function CategoryScreen() {
     fetchExercises();
   }, [fetchExercises]);
 
-  // Load favorites when auth is ready
-  useEffect(() => {
-    async function loadFavorites() {
-      if (!isLoggedIn || !token) {
-        setFavoriteIds(new Set());
-        return;
+  // Load favorites when screen gains focus (ensures sync when navigating back)
+  useFocusEffect(
+    useCallback(() => {
+      async function loadFavorites() {
+        if (!isLoggedIn || !token) {
+          setFavoriteIds(new Set());
+          return;
+        }
+        try {
+          const ids = await getFavoriteExercises(token);
+          setFavoriteIds(new Set(ids));
+        } catch (err) {
+          console.warn("Failed to load favorites:", err);
+        }
       }
-      try {
-        const ids = await getFavoriteExercises(token);
-        setFavoriteIds(new Set(ids));
-      } catch (err) {
-        console.warn("Failed to load favorites:", err);
-      }
-    }
-    loadFavorites();
-  }, [isLoggedIn, token]);
+      loadFavorites();
+    }, [isLoggedIn, token])
+  );
 
   // Handle favorite toggle with optimistic updates
   const handleToggleFavorite = useCallback(
