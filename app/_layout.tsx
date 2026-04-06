@@ -3,6 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
 import { OnboardingProvider } from "@/utils/onboardingContext";
+import { WorkoutWeekProvider } from "@/utils/workoutWeekContext";
 import {
   DarkTheme,
   DefaultTheme,
@@ -64,6 +65,15 @@ function RootLayoutNav() {
             name="explore/favorites"
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="workout/today" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="exercises/[id]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="workouts/[workoutDayId]"
+            options={{ headerShown: false }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={shouldShowOnboarding}>
@@ -85,7 +95,9 @@ export default function RootLayout() {
       <AuthProvider>
         <OnboardingProvider>
           <EquipmentProvider>
-            <RootLayoutNav />
+            <WorkoutWeekProvider>
+              <RootLayoutNav />
+            </WorkoutWeekProvider>
           </EquipmentProvider>
         </OnboardingProvider>
       </AuthProvider>

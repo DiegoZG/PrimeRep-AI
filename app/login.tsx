@@ -167,7 +167,7 @@ const LoginScreen = () => {
             Don{"'"}t have an account?{" "}
           </ThemedText>
           <Pressable
-            onPress={() => router.push("/signup")}
+            onPress={() => router.push("/onboarding")}
             disabled={isSubmitting}
           >
             <ThemedText

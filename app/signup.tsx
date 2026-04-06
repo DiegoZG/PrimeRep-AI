@@ -1,7 +1,7 @@
 import { AuthContext } from "@/utils/authContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -34,10 +34,6 @@ const SignUpScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log("data!!", data);
-  }, []);
-
   const handleSignUp = async () => {
     // Validation
     if (!email.trim() || !password.trim()) {
@@ -68,7 +64,6 @@ const SignUpScreen = () => {
     try {
       // Get onboarding snapshot from context
       const onboardingSnapshot = getOnboardingData();
-      console.log("onboardingSnapshot", onboardingSnapshot);
 
       // Extract preferred_name from onboarding or fallback to email prefix
       const preferredName =

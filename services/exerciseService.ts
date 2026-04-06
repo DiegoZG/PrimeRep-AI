@@ -2,6 +2,8 @@ import type {
   Exercise,
   ExerciseApiItem,
   ExerciseApiResponse,
+  ExerciseDetail,
+  ExerciseDetailApiResponse,
   GetExercisesParams,
 } from "@/interfaces/exercises";
 import { requestJson } from "./httpClient";
@@ -36,6 +38,25 @@ function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
     exerciseType: apiItem.exercise_type,
     primaryMuscle: apiItem.primary_muscle,
     imageUrl: apiItem.image_url || undefined,
+  };
+}
+
+/**
+ * Maps backend ExerciseDetailApiResponse to frontend ExerciseDetail model
+ * Backend returns snake_case fields
+ */
+function mapApiDetailToExerciseDetail(
+  apiDetail: ExerciseDetailApiResponse
+): ExerciseDetail {
+  return {
+    id: String(apiDetail.id),
+    name: apiDetail.name,
+    exerciseType: apiDetail.exercise_type,
+    primaryMuscle: apiDetail.primary_muscle,
+    secondaryMuscles: apiDetail.secondary_muscles || [],
+    imageUrl: apiDetail.image_url || undefined,
+    demoVideoUrl: apiDetail.demo_video_url || undefined,
+    equipmentIds: apiDetail.equipment_ids || [],
   };
 }
 
@@ -99,6 +120,22 @@ export async function unfavoriteExercise(
     method: "DELETE",
     token,
   });
+}
+
+/**
+ * Fetches a single exercise by ID
+ * GET /v1/exercises/{exerciseId}
+ */
+export async function getExerciseById(
+  exerciseId: string
+): Promise<ExerciseDetail> {
+  const data = await requestJson<ExerciseDetailApiResponse>(
+    `/v1/exercises/${exerciseId}`,
+    {
+      method: "GET",
+    }
+  );
+  return mapApiDetailToExerciseDetail(data);
 }
 
 // Helper functions for filtering exercises by type
