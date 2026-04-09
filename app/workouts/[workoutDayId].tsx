@@ -514,6 +514,24 @@ export default function WorkoutDayDetailScreen() {
           SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
         />
       ) : null}
+
+      {/* Start Workout button */}
+      {workout && (
+        <View style={styles.startButtonContainer}>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/workout/active",
+                params: { workoutDayId: workout.workoutDayId },
+              })
+            }
+            style={[styles.startButton, { backgroundColor: colors.primaryButton }]}
+          >
+            <Ionicons name="play" size={20} color="#FFFFFF" />
+            <Text style={styles.startButtonText}>Start Workout</Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -701,5 +719,29 @@ const styles = StyleSheet.create({
   },
   sectionSeparator: {
     height: 8,
+  },
+  startButtonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    paddingTop: 12,
+    backgroundColor: "transparent",
+  },
+  startButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 8,
+  },
+  startButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
   },
 });
