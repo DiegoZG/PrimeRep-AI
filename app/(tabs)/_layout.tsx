@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
+import { View } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
@@ -27,7 +28,9 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="barbell-sharp" size={size || 24} color={color} />
+            <View testID="tab-home">
+              <Ionicons name="barbell-sharp" size={size || 24} color={color} />
+            </View>
           ),
         }}
       />
@@ -36,11 +39,9 @@ export default function TabLayout() {
         options={{
           title: "Feed",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons
-              name="dynamic-feed"
-              size={size || 24}
-              color={color}
-            />
+            <View testID="tab-feed">
+              <MaterialIcons name="dynamic-feed" size={size || 24} color={color} />
+            </View>
           ),
         }}
       />
@@ -49,7 +50,9 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           tabBarIcon: ({ color, size }) => (
-            <AntDesign name="bars" size={size || 24} color={color} />
+            <View testID="tab-explore">
+              <AntDesign name="bars" size={size || 24} color={color} />
+            </View>
           ),
         }}
       />
@@ -58,7 +61,9 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size || 24} color={color} />
+            <View testID="tab-profile">
+              <Ionicons name="person" size={size || 24} color={color} />
+            </View>
           ),
         }}
       />

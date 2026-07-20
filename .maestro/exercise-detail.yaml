@@ -1,0 +1,73 @@
+# E2E Test: Exercise Detail Navigation
+#
+# Tests: Home → tap workout card → workout detail shows exercise list →
+#        tap exercise → exercise detail shows muscles and equipment.
+#
+# Prerequisites:
+#   - Simulator/emulator with app installed
+#   - Backend running (workout week exists for test account)
+#   - TEST account must have completed onboarding
+#
+# Run:
+#   maestro test .maestro/exercise-detail.yaml
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+# =============================================
+# STEP 1: LAUNCH + AUTH PRE-FLIGHT
+# =============================================
+
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+# =============================================
+# STEP 2: HOME → WORKOUT CARD
+# =============================================
+
+- assertVisible: "This Week"
+
+- extendedWaitUntil:
+    notVisible: "Loading your week..."
+    timeout: 10000
+
+- tapOn:
+    id: "workout-card"
+    index: 0
+
+# =============================================
+# STEP 3: WORKOUT DETAIL → EXERCISE ROW
+# =============================================
+
+- extendedWaitUntil:
+    visible: "Main Lifts"
+    timeout: 8000
+
+- takeScreenshot: 01-workout-detail
+
+# Tap first exercise row (navigates to exercise detail)
+- tapOn:
+    id: "exercise-row"
+    index: 0
+
+# =============================================
+# STEP 4: VERIFY EXERCISE DETAIL SCREEN
+# =============================================
+
+# "Target Muscles" section is always present
+- extendedWaitUntil:
+    visible: "Target Muscles"
+    timeout: 8000
+
+- assertVisible: "Equipment"
+
+- takeScreenshot: 02-exercise-detail
+
+# =============================================
+# STEP 5: NAVIGATE BACK TO WORKOUT DETAIL
+# =============================================
+
+- pressKey: Back
+- assertVisible: "Main Lifts"

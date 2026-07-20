@@ -1,0 +1,50 @@
+# Sub-flow: Ensure the user is logged in.
+#
+# Strategy: if the Home tab is NOT visible, we're on onboarding or the
+# login screen and need to authenticate. Tap "Log in" if it's present
+# (onboarding path), wait for the login screen, then submit credentials.
+#
+# Required env vars (inherited from parent flow):
+#   LOGIN_EMAIL    - registered test account email
+#   LOGIN_PASSWORD - test account password
+
+appId: host.exp.Exponent
+---
+# Only run the login sequence if we're not already on the main app
+- runFlow:
+    when:
+      notVisible: "This Week"
+    commands:
+      # On the first onboarding screen there's a "Log in" link — tap it
+      - tapOn:
+          id: "onboarding-login-link"
+          optional: true
+
+      # Wait for the login screen
+      - extendedWaitUntil:
+          visible: "Welcome back"
+          timeout: 8000
+
+      # Fill in credentials
+      - tapOn:
+          id: "email-input"
+      - eraseText: 50
+      - inputText: ${LOGIN_EMAIL}
+
+      - tapOn:
+          id: "password-input"
+      - eraseText: 50
+      - inputText: ${LOGIN_PASSWORD}
+
+      - tapOn:
+          id: "login-button"
+
+      # Dismiss "Save Password?" system sheet if it appears
+      - tapOn:
+          text: "Not Now"
+          optional: true
+
+      # Wait for the main app to load
+      - extendedWaitUntil:
+          visible: "This Week"
+          timeout: 15000

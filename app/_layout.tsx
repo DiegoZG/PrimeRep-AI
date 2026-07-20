@@ -48,6 +48,8 @@ function RootLayoutNav() {
 
   return (
     <>
+      {/* Maestro E2E marker: signals auth state has resolved. */}
+      <View testID="auth-loaded" accessible={true} accessibilityLabel="auth-loaded" style={{ position: "absolute", width: 1, height: 1 }} />
       <Stack
         screenOptions={{
           animation: "slide_from_right",

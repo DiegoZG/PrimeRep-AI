@@ -1,0 +1,27 @@
+# Sub-flow: Launch PrimeRep-AI inside Expo Go and wait for auth to resolve.
+#
+# Expo Go opens its own launcher screen first. This flow taps into
+# the app from "Recently opened" if needed, then waits for the
+# auth-loaded marker before returning control to the caller.
+
+appId: host.exp.Exponent
+---
+- launchApp
+
+# Prevent XCTest cold-boot crash (iOS)
+- swipe:
+    direction: DOWN
+    duration: 100
+
+# If Expo Go launcher is showing, open PrimeRep-AI from Recently opened
+- runFlow:
+    when:
+      visible: "PrimeRep-AI"
+    commands:
+      - tapOn: "PrimeRep-AI"
+
+# Wait for auth bootstrapping to complete
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 20000

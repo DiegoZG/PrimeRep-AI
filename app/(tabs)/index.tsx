@@ -292,6 +292,7 @@ const Home = () => {
     return (
       <AnimatedCard delay={100 + index * 50}>
         <Pressable
+          testID="workout-card"
           onPress={() => handleWorkoutPress(workout.workoutDayId)}
           style={({ pressed }) => [
             styles.workoutCard,

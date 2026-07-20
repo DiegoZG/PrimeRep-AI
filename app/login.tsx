@@ -72,6 +72,7 @@ const LoginScreen = () => {
         <View style={styles.inputContainer}>
           <View style={styles.inputWithIconContainer}>
             <AnimatedInput
+              testID="email-input"
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
@@ -94,6 +95,7 @@ const LoginScreen = () => {
             style={[styles.passwordContainer, styles.inputWithIconContainer]}
           >
             <AnimatedInput
+              testID="password-input"
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
@@ -147,6 +149,7 @@ const LoginScreen = () => {
         )}
 
         <AnimatedButton
+          testID="login-button"
           onPress={handleLogin}
           disabled={isSubmitting}
           style={[

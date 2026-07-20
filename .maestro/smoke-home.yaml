@@ -1,0 +1,48 @@
+# Smoke Test: Home Screen
+#
+# Tests: Auth resolves correctly and the home tab is accessible with
+#        workout cards and tab bar visible.
+#
+# Prerequisites:
+#   - iOS simulator or Android emulator with app installed
+#   - Backend running at the configured API_BASE_URL
+#   - TEST account created in the backend
+#
+# Run:
+#   maestro test .maestro/smoke-home.yaml
+
+appId: host.exp.Exponent  # Expo Go. Change to your bundle ID for dev/prod builds.
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+# =============================================
+# STEP 1: LAUNCH + AUTH PRE-FLIGHT
+# =============================================
+
+- runFlow: flows/launch-app.yaml
+
+- takeScreenshot: 01-after-launch
+
+# =============================================
+# STEP 2: LOGIN IF NEEDED (adaptive)
+# =============================================
+
+- runFlow: flows/auth-login.yaml
+
+# =============================================
+# STEP 3: VERIFY HOME SCREEN
+# =============================================
+
+# "This Week" section header is always present on home
+- assertVisible: "This Week"
+
+# Wait for workout cards to load
+- extendedWaitUntil:
+    notVisible: "Loading your week..."
+    timeout: 10000
+
+# Quick Stats section is always present on home
+- assertVisible: "Quick Stats"
+
+- takeScreenshot: 02-home-loaded

@@ -1,0 +1,64 @@
+# E2E Test: Workout Browse
+#
+# Tests: Home screen → tap today's workout card → workout detail
+#        shows exercise list with Main Lifts and Accessories sections.
+#
+# Prerequisites:
+#   - Simulator/emulator with app installed
+#   - Backend running with at least one workout in the current week
+#   - TEST account must have completed onboarding (equipment + split set)
+#
+# Run:
+#   maestro test .maestro/workout-browse.yaml
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+# =============================================
+# STEP 1: LAUNCH + AUTH PRE-FLIGHT
+# =============================================
+
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+# =============================================
+# STEP 2: WAIT FOR HOME + WORKOUT CARDS
+# =============================================
+
+- assertVisible: "This Week"
+
+- extendedWaitUntil:
+    notVisible: "Loading your week..."
+    timeout: 10000
+
+- takeScreenshot: 01-home-with-workouts
+
+# =============================================
+# STEP 3: TAP A WORKOUT CARD
+# =============================================
+
+# All workout cards share testID="workout-card"; tap the first one (index 0)
+- tapOn:
+    id: "workout-card"
+    index: 0
+
+# =============================================
+# STEP 4: VERIFY WORKOUT DETAIL SCREEN
+# =============================================
+
+# One of these block headers must be visible
+- extendedWaitUntil:
+    visible: "Main Lifts"
+    timeout: 8000
+
+- assertVisible: "Accessories"
+
+- takeScreenshot: 02-workout-detail
+
+# =============================================
+# STEP 5: NAVIGATE BACK
+# =============================================
+
+- pressKey: Back

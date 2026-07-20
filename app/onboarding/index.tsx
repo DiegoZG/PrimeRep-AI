@@ -112,7 +112,7 @@ const OnboardingFirstScreen = () => {
                   <ThemedText type="default" style={{ fontSize: 14 }}>
                     Already have an account?{" "}
                   </ThemedText>
-                  <Pressable onPress={() => router.push("/login")}>
+                  <Pressable testID="onboarding-login-link" onPress={() => router.push("/login")}>
                     <ThemedText
                       type="link"
                       style={{

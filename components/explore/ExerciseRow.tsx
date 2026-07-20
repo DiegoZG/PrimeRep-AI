@@ -46,6 +46,7 @@ export function ExerciseRow({
 
   return (
     <Pressable
+      testID="exercise-row"
       onPress={onPress}
       style={({ pressed }) => [
         styles.container,

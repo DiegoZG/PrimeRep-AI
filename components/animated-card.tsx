@@ -12,12 +12,14 @@ interface AnimatedCardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   delay?: number;
+  testID?: string;
 }
 
 export function AnimatedCard({
   children,
   style,
   delay = 0,
+  testID,
 }: AnimatedCardProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
@@ -41,6 +43,6 @@ export function AnimatedCard({
   });
 
   return (
-    <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>
+    <Animated.View testID={testID} style={[style, animatedStyle]}>{children}</Animated.View>
   );
 }

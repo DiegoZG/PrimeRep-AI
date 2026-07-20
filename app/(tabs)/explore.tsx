@@ -259,7 +259,7 @@ const ExploreScreen = () => {
     categoryType: "weights" | "bodyweight" | "cardio",
     delay: number = 0
   ) => (
-    <AnimatedCard style={styles.section} delay={delay}>
+    <AnimatedCard style={styles.section} delay={delay} testID={`exercise-section-${categoryType}`}>
       <Pressable
         onPress={() => navigateToCategory(categoryType)}
         style={styles.exerciseSectionHeader}

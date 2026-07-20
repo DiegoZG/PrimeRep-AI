@@ -1,0 +1,86 @@
+# E2E Test: Exercise Search (Explore Tab)
+#
+# Tests: Navigate to Explore tab, search for an exercise by keyword,
+#        verify results appear.
+#
+# Prerequisites:
+#   - Simulator/emulator with app installed
+#   - Backend running (exercise catalog seeded)
+#   - TEST account must be authenticated
+#
+# Run:
+#   maestro test .maestro/exercise-search.yaml
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+# =============================================
+# STEP 1: LAUNCH + AUTH PRE-FLIGHT
+# =============================================
+
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+# =============================================
+# STEP 2: NAVIGATE TO EXPLORE TAB
+# =============================================
+
+- tapOn:
+    id: "tab-explore"
+
+# Visible sections above the fold
+- assertVisible: "Featured Workouts"
+- assertVisible: "PrimeRep Splits"
+
+# Scroll down until exercise sections are visible
+- scrollUntilVisible:
+    element:
+      id: "exercise-section-weights"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 40
+
+- assertVisible:
+    id: "exercise-section-bodyweight"
+
+- takeScreenshot: 01-explore-loaded
+
+# =============================================
+# STEP 3: SEARCH FOR AN EXERCISE
+# =============================================
+
+# Scroll back to top so search bar is visible
+- swipe:
+    direction: UP
+    duration: 500
+
+- tapOn: "Search exercises, workouts…"
+- inputText: "bench"
+
+# Wait for search results
+- extendedWaitUntil:
+    notVisible: "Searching..."
+    timeout: 8000
+
+- takeScreenshot: 02-search-results
+
+# Bench Press is seeded in the exercise catalog
+- assertVisible: "Bench Press"
+
+# =============================================
+# STEP 4: CLEAR SEARCH + VERIFY DEFAULT VIEW RETURNS
+# =============================================
+
+- eraseText: 50
+
+# Default layout returns — scroll down to verify exercise sections
+- scrollUntilVisible:
+    element:
+      id: "exercise-section-weights"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 40
+
+- takeScreenshot: 03-search-cleared
