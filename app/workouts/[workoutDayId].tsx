@@ -519,6 +519,7 @@ export default function WorkoutDayDetailScreen() {
       {workout && (
         <View style={styles.startButtonContainer}>
           <Pressable
+            testID="start-workout-button"
             onPress={() =>
               router.push({
                 pathname: "/workout/active",
