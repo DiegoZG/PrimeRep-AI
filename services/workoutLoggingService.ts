@@ -41,6 +41,19 @@ export interface StatsResponse {
   prsThisWeek: number;
 }
 
+export interface LastSet {
+  id: string;
+  exerciseId: string;
+  setNumber: number;
+  reps: number;
+  weightKg: number | null;
+  loggedAt: string;
+}
+
+export interface LastSetsResponse {
+  items: LastSet[];
+}
+
 // ── API Functions ────────────────────────────────────────────────────────────
 
 /**
@@ -120,4 +133,53 @@ export async function getStats(token: string): Promise<StatsResponse> {
     method: "GET",
     token,
   });
+}
+
+/**
+ * Get the most recent logged sets for a single exercise (used to pre-fill
+ * weight/reps and detect PRs).
+ * GET /v1/exercises/{exerciseId}/last-sets?limit=3
+ */
+export async function getLastSets(
+  token: string,
+  exerciseId: string,
+  limit = 3
+): Promise<LastSet[]> {
+  const data = await requestJson<LastSetsResponse>(
+    `/v1/exercises/${exerciseId}/last-sets?limit=${limit}`,
+    { method: "GET", token }
+  );
+  return data.items || [];
+}
+
+/**
+ * Fetches last-sets for many exercises in parallel, at the start of a
+ * session, so the player can pre-fill inputs and detect PRs without
+ * refetching per-exercise while the user navigates the player.
+ * Failures for an individual exercise are swallowed (fall back to []) so one
+ * bad lookup doesn't block the whole workout from starting.
+ */
+export async function fetchLastSetsForExercises(
+  token: string,
+  exerciseIds: string[]
+): Promise<Record<string, LastSet[]>> {
+  const uniqueIds = Array.from(new Set(exerciseIds));
+
+  const results = await Promise.all(
+    uniqueIds.map(async (exerciseId) => {
+      try {
+        const items = await getLastSets(token, exerciseId);
+        return [exerciseId, items] as const;
+      } catch (err) {
+        console.warn(`Failed to fetch last sets for ${exerciseId}:`, err);
+        return [exerciseId, [] as LastSet[]] as const;
+      }
+    })
+  );
+
+  const map: Record<string, LastSet[]> = {};
+  for (const [exerciseId, items] of results) {
+    map[exerciseId] = items;
+  }
+  return map;
 }

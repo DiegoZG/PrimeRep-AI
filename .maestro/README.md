@@ -70,6 +70,7 @@ maestro studio
 | Workout Browse | `workout-browse.yaml` | Tap workout card → workout detail with exercise list |
 | Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles + equipment |
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
+| Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
 
 ---
 
@@ -85,6 +86,17 @@ Elements with `testID` props added for Maestro targeting:
 | `login-button` | `AnimatedButton` | `app/login.tsx` — submit button |
 | `workout-card` | `Pressable` | `app/(tabs)/index.tsx` — each workout week card |
 | `exercise-row` | `Pressable` | `components/explore/ExerciseRow.tsx` — each exercise list item |
+| `start-workout-button` | `Pressable` | `app/workouts/[workoutDayId].tsx` — "Start Workout" button |
+| `player-finish` | `Pressable` | `app/workout/active.tsx` — footer "Finish Workout" button |
+| `player-confirm-set` | `Pressable` | `components/workout/SetInputRow.tsx` — per-set confirm (checkmark) button |
+| `player-weight-input` | `TextInput` | `components/workout/SetInputRow.tsx` — weight field for the current exercise's sets |
+| `player-reps-input` | `TextInput` | `components/workout/SetInputRow.tsx` — reps field for the current exercise's sets |
+| `player-rest-skip` | `Pressable` | `components/workout/RestTimer.tsx` — "Skip Rest" button |
+| `player-next-exercise` | `Pressable` | `app/workout/active.tsx` — "Continue" button on the "Next up" transition (only rendered between exercises) |
+| `player-exercise-list-button` | `Pressable` | `app/workout/active.tsx` — header button opening the exercise list sheet |
+| `player-sheet-exercise-row` | `Pressable` | `components/workout/ExerciseListSheet.tsx` — each exercise row in the jump-to sheet |
+| `player-sheet-close` | `Pressable` | `components/workout/ExerciseListSheet.tsx` — sheet close button |
+| `summary-done` | `Pressable` | `app/workout/summary.tsx` — "Done" button, returns to tabs |
 
 ---
 
