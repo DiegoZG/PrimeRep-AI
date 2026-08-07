@@ -197,6 +197,13 @@ const ExploreScreen = () => {
     router.push("/explore/favorites");
   }, [router]);
 
+  const navigateToExercise = useCallback(
+    (exerciseId: string) => {
+      router.push({ pathname: "/exercises/[id]", params: { id: exerciseId } });
+    },
+    [router]
+  );
+
   // Handle favorite toggle with optimistic updates
   const handleToggleFavorite = useCallback(
     async (exerciseId: string) => {
@@ -278,6 +285,7 @@ const ExploreScreen = () => {
             isFavorite={favoriteIds.has(exercise.id)}
             canFavorite={isLoggedIn}
             onToggleFavorite={handleToggleFavorite}
+            onPress={() => navigateToExercise(exercise.id)}
           />
         ))}
       </View>
@@ -298,6 +306,7 @@ const ExploreScreen = () => {
           isFavorite={favoriteIds.has(item.id)}
           canFavorite={isLoggedIn}
           onToggleFavorite={handleToggleFavorite}
+          onPress={() => navigateToExercise(item.id)}
         />
       )}
       contentContainerStyle={styles.searchResultsContent}

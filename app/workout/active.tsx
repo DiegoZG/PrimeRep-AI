@@ -6,6 +6,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
 import { ExerciseListSheet } from "@/components/workout/ExerciseListSheet";
 import { RestTimer } from "@/components/workout/RestTimer";
 import { SetInputRow } from "@/components/workout/SetInputRow";
@@ -74,7 +75,7 @@ export default function ActiveWorkoutScreen() {
   const { workoutDayId } = useLocalSearchParams<{ workoutDayId: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { token } = useContext(AuthContext);
+  const { token, isLoggedIn } = useContext(AuthContext);
   const { getWorkoutById } = useWorkoutWeek();
 
   const workout = workoutDayId ? getWorkoutById(workoutDayId) : null;
@@ -277,6 +278,7 @@ export default function ActiveWorkoutScreen() {
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
 
   const currentSets = useMemo(() => {
@@ -680,9 +682,22 @@ export default function ActiveWorkoutScreen() {
                 </ThemedText>
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText type="title" style={{ fontSize: 22 }}>
-                  {currentItem.exercise.name}
-                </ThemedText>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <ThemedText type="title" style={{ fontSize: 22, flexShrink: 1 }}>
+                    {currentItem.exercise.name}
+                  </ThemedText>
+                  <Pressable
+                    testID="player-exercise-info"
+                    onPress={() => setInfoSheetVisible(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={22}
+                      color={colors.placeholder}
+                    />
+                  </Pressable>
+                </View>
                 <ThemedText style={{ fontSize: 14, color: colors.placeholder, marginTop: 2 }}>
                   {currentItem.prescription.sets} × {currentItem.prescription.reps} •{" "}
                   {currentItem.prescription.restSeconds}s rest
@@ -854,6 +869,16 @@ export default function ActiveWorkoutScreen() {
           setSheetVisible(false);
         }}
         onClose={() => setSheetVisible(false)}
+      />
+
+      <ExerciseInfoSheet
+        visible={infoSheetVisible}
+        exerciseId={currentItem?.exercise.id ?? null}
+        exerciseName={currentItem?.exercise.name ?? ""}
+        colors={colors}
+        token={token}
+        isLoggedIn={isLoggedIn}
+        onClose={() => setInfoSheetVisible(false)}
       />
     </SafeAreaView>
   );

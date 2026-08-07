@@ -140,6 +140,13 @@ export default function FavoritesScreen() {
     fetchFavorites(true);
   }, [fetchFavorites]);
 
+  const navigateToExercise = useCallback(
+    (exerciseId: string) => {
+      router.push({ pathname: "/exercises/[id]", params: { id: exerciseId } });
+    },
+    [router]
+  );
+
   // Render exercise row
   const renderExerciseRow = ({ item }: { item: Exercise }) => (
     <ExerciseRow
@@ -150,6 +157,7 @@ export default function FavoritesScreen() {
       isFavorite={favoriteIds.has(item.id)}
       canFavorite={isLoggedIn}
       onToggleFavorite={handleToggleFavorite}
+      onPress={() => navigateToExercise(item.id)}
     />
   );
 

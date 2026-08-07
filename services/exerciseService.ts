@@ -56,7 +56,12 @@ function mapApiDetailToExerciseDetail(
     secondaryMuscles: apiDetail.secondary_muscles || [],
     imageUrl: apiDetail.image_url || undefined,
     demoVideoUrl: apiDetail.demo_video_url || undefined,
-    equipmentIds: apiDetail.equipment_ids || [],
+    equipmentIds:
+      apiDetail.required_equipment_ids || apiDetail.equipment_ids || [],
+    howTo: apiDetail.how_to || undefined,
+    whyItWorks: apiDetail.why_it_works || undefined,
+    commonMistakes: apiDetail.common_mistakes || undefined,
+    beginnerNotes: apiDetail.beginner_notes || undefined,
   };
 }
 
