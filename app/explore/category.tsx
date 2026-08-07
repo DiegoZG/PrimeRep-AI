@@ -164,6 +164,13 @@ export default function CategoryScreen() {
     fetchExercises(true);
   }, [fetchExercises]);
 
+  const navigateToExercise = useCallback(
+    (exerciseId: string) => {
+      router.push({ pathname: "/exercises/[id]", params: { id: exerciseId } });
+    },
+    [router]
+  );
+
   // Render exercise row
   const renderExerciseRow = ({ item }: { item: Exercise }) => (
     <ExerciseRow
@@ -174,6 +181,7 @@ export default function CategoryScreen() {
       isFavorite={favoriteIds.has(item.id)}
       canFavorite={isLoggedIn}
       onToggleFavorite={handleToggleFavorite}
+      onPress={() => navigateToExercise(item.id)}
     />
   );
 

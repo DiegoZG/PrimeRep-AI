@@ -13,9 +13,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ContentSection } from "@/components/exercises/ContentSection";
+import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useIsBeginner } from "@/hooks/use-is-beginner";
 import type { ExerciseDetail } from "@/interfaces/exercises";
 import {
   favoriteExercise,
@@ -40,6 +43,9 @@ export default function ExerciseDetailScreen() {
   // Favorite state
   const [isFavorite, setIsFavorite] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+
+  // Experience level (used to decide whether beginner notes are shown prominently)
+  const isBeginner = useIsBeginner();
 
   // Fetch exercise
   const fetchExercise = useCallback(async () => {
@@ -354,6 +360,54 @@ export default function ExerciseDetailScreen() {
               </Pressable>
             </View>
           )}
+
+          {/* Beginner Notes — prominent for beginners */}
+          {isBeginner && exercise.beginnerNotes && (
+            <ContentSection
+              title="New to this?"
+              content={exercise.beginnerNotes}
+              colors={colors}
+              highlight
+              icon="sparkles"
+            />
+          )}
+
+          {/* Collapsible content sections */}
+          {(exercise.howTo || exercise.whyItWorks || exercise.commonMistakes) && (
+            <View style={styles.section}>
+              <ContentSection
+                title="How to perform"
+                content={exercise.howTo}
+                colors={colors}
+                icon="list-outline"
+              />
+              <ContentSection
+                title="Why this exercise"
+                content={exercise.whyItWorks}
+                colors={colors}
+                icon="bulb-outline"
+              />
+              <ContentSection
+                title="Common mistakes"
+                content={exercise.commonMistakes}
+                colors={colors}
+                icon="warning-outline"
+              />
+            </View>
+          )}
+
+          {/* Ask about this exercise */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Ask about this exercise
+            </ThemedText>
+            <ExerciseAskThread
+              exerciseId={exercise.id}
+              token={token}
+              isLoggedIn={isLoggedIn}
+              colors={colors}
+            />
+          </View>
         </ScrollView>
       ) : null}
     </SafeAreaView>

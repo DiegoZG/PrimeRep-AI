@@ -23,10 +23,18 @@ export interface ExerciseDetailApiResponse {
   image_url?: string | null;
   demo_video_url?: string | null;
   is_active?: boolean;
+  is_favorited?: boolean;
   source?: string;
   owner_user_id?: string | null;
   sort_order?: number;
+  // `required_equipment_ids` is the current field name; `equipment_ids` is kept
+  // as a fallback for backwards compatibility with older backend responses.
+  required_equipment_ids?: number[];
   equipment_ids?: number[];
+  how_to?: string | null;
+  why_it_works?: string | null;
+  common_mistakes?: string | null;
+  beginner_notes?: string | null;
 }
 
 // UI model (basic, used in lists)
@@ -48,6 +56,10 @@ export interface ExerciseDetail {
   imageUrl?: string;
   demoVideoUrl?: string;
   equipmentIds: number[];
+  howTo?: string;
+  whyItWorks?: string;
+  commonMistakes?: string;
+  beginnerNotes?: string;
 }
 
 // Query parameters for getExercises
