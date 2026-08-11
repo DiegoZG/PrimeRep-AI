@@ -1,4 +1,11 @@
 // constants/equipment/equipmentIcons.ts
+//
+// GENERATED FILE — do not edit entries by hand. Regenerate with:
+//   python scripts/generate_equipment_icons.py manifest
+//
+// Slugs come from the backend equipment seed; a slug is only active if
+// assets/equipment/<slug>.png exists. Missing icons stay commented out so
+// the remaining gaps are visible at a glance.
 import type { ImageSourcePropType } from "react-native";
 
 export const equipmentIcons: Record<string, ImageSourcePropType> = {
@@ -114,4 +121,5 @@ export const equipmentIcons: Record<string, ImageSourcePropType> = {
   // treadmill: require("@/assets/equipment/treadmill.png"),
   // vertical_climber: require("@/assets/equipment/vertical_climber.png"),
   // ski_erg: require("@/assets/equipment/ski_erg.png"),
+
 };

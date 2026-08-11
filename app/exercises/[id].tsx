@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ContentSection } from "@/components/exercises/ContentSection";
+import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
 import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
@@ -120,15 +120,6 @@ export default function ExerciseDetailScreen() {
     }
   };
 
-  // Get initials for fallback
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((word) => word[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -201,30 +192,12 @@ export default function ExerciseDetailScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Exercise Image */}
-          <View
-            style={[
-              styles.imageContainer,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            {exercise.imageUrl ? (
-              <Image
-                source={{ uri: exercise.imageUrl }}
-                style={styles.image}
-                contentFit="cover"
-                transition={200}
-              />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Text
-                  style={[styles.imageInitials, { color: colors.placeholder }]}
-                >
-                  {getInitials(exercise.name)}
-                </Text>
-              </View>
-            )}
-          </View>
+          {/* Exercise media — real footage, else labelled placeholder */}
+          <ExerciseMedia
+            imageUrl={exercise.imageUrl}
+            exerciseName={exercise.name}
+            colors={colors}
+          />
 
           {/* Exercise Name & Type */}
           <View style={styles.titleSection}>
@@ -490,27 +463,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 100,
-  },
-  imageContainer: {
-    height: 220,
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 20,
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imageInitials: {
-    fontSize: 48,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
   },
   titleSection: {
     marginBottom: 24,

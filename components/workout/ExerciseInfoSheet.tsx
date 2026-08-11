@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
+import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useIsBeginner } from "@/hooks/use-is-beginner";
@@ -130,6 +131,13 @@ export function ExerciseInfoSheet({
                 </ThemedText>
               ) : detail ? (
                 <>
+                  <ExerciseMedia
+                    imageUrl={detail.imageUrl}
+                    exerciseName={detail.name}
+                    colors={colors}
+                    height={180}
+                  />
+
                   {isBeginner && detail.beginnerNotes && (
                     <ContentSection
                       title="New to this?"
