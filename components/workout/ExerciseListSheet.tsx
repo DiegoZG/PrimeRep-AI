@@ -37,14 +37,17 @@ export function ExerciseListSheet({
         style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
         onPress={onClose}
       >
-        <Pressable onPress={(e) => e.stopPropagation()}>
+        {/* The height cap belongs here rather than on the sheet itself: a
+            percentage resolves only against a parent with a definite height,
+            which the full-screen overlay has and a content-sized view does not. */}
+        <Pressable style={{ maxHeight: "75%" }} onPress={(e) => e.stopPropagation()}>
           <SafeAreaView
             edges={["bottom"]}
             style={{
               backgroundColor: colors.background,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
-              maxHeight: "75%",
+              flexShrink: 1,
             }}
           >
             {/* Drag handle */}
@@ -78,7 +81,7 @@ export function ExerciseListSheet({
             </View>
 
             <ScrollView
-              style={{ paddingHorizontal: 12 }}
+              style={{ paddingHorizontal: 12, flexShrink: 1 }}
               contentContainerStyle={{ paddingBottom: 24 }}
             >
               {exercises.map((item, index) => {
