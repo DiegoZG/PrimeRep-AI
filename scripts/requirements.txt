@@ -1,0 +1,11 @@
+# Dependencies for the offline asset tooling in this directory.
+# These are NOT app dependencies — the React Native bundle never imports them.
+#
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r scripts/requirements.txt
+
+# Image compositing / downscaling for icon pipelines.
+Pillow>=10.0.0
+
+# Only needed by `generate_equipment_icons.py generate`.
+openai>=1.40.0

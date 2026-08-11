@@ -44,5 +44,15 @@ app-example
 
 .env
 .agents/
+.claude/
 CLAUDE.md
 skills-lock.json
+
+# root-level debug/audit screenshots only — deliberately root-scoped (/*.png,
+# not *.png) so it never matches real shipped assets under assets/**/*.png
+/*.png
+.maestro/audit/
+
+# python asset tooling (scripts/)
+.venv/
+__pycache__/
