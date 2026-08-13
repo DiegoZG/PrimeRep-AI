@@ -4,6 +4,9 @@ import { requestJson } from "./httpClient";
 // backend, so we only type the parts the frontend currently reads from it.
 export interface OnboardingData {
   experienceLevel?: "no-experience" | "beginner" | "intermediate" | "advanced";
+  /** Body weight as the user entered it, in `weightUnit` — not normalised to kg. */
+  weight?: number;
+  weightUnit?: "LB" | "KG";
   [key: string]: unknown;
 }
 

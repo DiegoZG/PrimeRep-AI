@@ -39,6 +39,8 @@ export interface StatsResponse {
   streak: number;
   totalCompleted: number;
   prsThisWeek: number;
+  /** All-time weight x reps across completed sessions. Excludes unweighted sets. */
+  totalVolumeKg: number;
 }
 
 export interface LastSet {

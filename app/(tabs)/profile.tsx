@@ -1,5 +1,5 @@
 import { AuthContext } from "@/utils/authContext";
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -7,12 +7,75 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useCompletedSessionDates } from "@/hooks/use-completed-session-dates";
+import { useStats } from "@/hooks/use-stats";
+import { getOnboardingMe } from "@/services/onboardingService";
+import {
+  fromKg,
+  loadWeightUnit,
+  toKg,
+  type WeightUnit,
+} from "@/utils/weightUnits";
 import { Ionicons } from "@expo/vector-icons";
+
+/** Columns in the activity heatmap. Rows are the seven weekdays. */
+const ACTIVITY_WEEKS = 7;
+const ACTIVITY_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/**
+ * Local calendar date as YYYY-MM-DD. `toISOString()` is deliberately avoided:
+ * it converts to UTC first, which lands on the wrong day for anyone west of
+ * Greenwich for part of every day.
+ */
+function toLocalIsoDate(value: Date): string {
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${value.getFullYear()}-${month}-${day}`;
+}
 
 const ProfileScreen = () => {
   const { logOut, user } = useContext(AuthContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { stats } = useStats();
+  const completedDates = useCompletedSessionDates();
+
+  // One display unit for the whole screen, shared with the workout player, so
+  // body weight and total volume can't disagree about units.
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>("LB");
+  const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPreferences() {
+      const unit = await loadWeightUnit();
+      if (!cancelled) setWeightUnit(unit);
+    }
+    loadPreferences();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { token, isLoggedIn } = useContext(AuthContext);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBodyWeight() {
+      if (!isLoggedIn || !token) return;
+      try {
+        const data = await getOnboardingMe(token);
+        if (!cancelled && typeof data.weight === "number") {
+          setBodyWeightKg(toKg(data.weight, data.weightUnit ?? "LB"));
+        }
+      } catch (err) {
+        console.warn("Failed to load body weight from onboarding:", err);
+      }
+    }
+    loadBodyWeight();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, token]);
 
   // Format join date
   const joinYear = useMemo(() => {
@@ -34,14 +97,44 @@ const ProfileScreen = () => {
     return "U";
   }, [user?.preferred_name]);
 
-  // Placeholder stats (will be replaced with real data later)
-  const stats = {
-    streak: 0,
-    weight: "220 lbs",
-    workouts: 1,
-    friends: 0,
-    totalVolume: "15,000 lbs",
-  };
+  const unitLabel = weightUnit === "KG" ? "kg" : "lbs";
+  const streakLabel = stats ? String(stats.streak) : "—";
+  const workoutCount = stats?.totalCompleted ?? 0;
+
+  const bodyWeightLabel =
+    bodyWeightKg === null
+      ? "—"
+      : `${Math.round(fromKg(bodyWeightKg, weightUnit))} ${unitLabel}`;
+
+  const totalVolumeLabel = stats
+    ? `${Math.round(
+        fromKg(stats.totalVolumeKg, weightUnit)
+      ).toLocaleString()} ${unitLabel}`
+    : "—";
+
+  // Columns run oldest to newest, ending with the current week; rows are Mon-Sun.
+  const activityRows = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const mondayOffset = (today.getDay() + 6) % 7;
+    const firstMonday = new Date(today);
+    firstMonday.setDate(today.getDate() - mondayOffset - (ACTIVITY_WEEKS - 1) * 7);
+
+    return ACTIVITY_DAY_LABELS.map((label, dayIndex) => ({
+      label,
+      cells: Array.from({ length: ACTIVITY_WEEKS }, (_, weekIndex) => {
+        const cellDate = new Date(firstMonday);
+        cellDate.setDate(firstMonday.getDate() + weekIndex * 7 + dayIndex);
+        const iso = toLocalIsoDate(cellDate);
+        return {
+          iso,
+          isActive: completedDates.has(iso),
+          isFuture: cellDate > today,
+        };
+      }),
+    }));
+  }, [completedDates]);
 
   return (
     <SafeAreaView
@@ -115,8 +208,8 @@ const ProfileScreen = () => {
                 </View>
               </View>
               <ThemedText type="default" style={styles.profileSubtext}>
-                Joined {joinYear} • {stats.workouts} Workout
-                {stats.workouts !== 1 ? "s" : ""}
+                Joined {joinYear} • {workoutCount} Workout
+                {workoutCount !== 1 ? "s" : ""}
               </ThemedText>
             </View>
           </View>
@@ -134,7 +227,7 @@ const ProfileScreen = () => {
           >
             <View style={styles.streakCircle}>
               <Text style={[styles.streakNumber, { color: colors.text }]}>
-                {stats.streak}
+                {streakLabel}
               </Text>
               <View
                 style={[
@@ -160,7 +253,7 @@ const ProfileScreen = () => {
             </ThemedText>
             <View style={styles.weightRow}>
               <Text style={[styles.weightValue, { color: colors.text }]}>
-                {stats.weight}
+                {bodyWeightLabel}
               </Text>
               <Ionicons
                 name="bar-chart-outline"
@@ -171,42 +264,9 @@ const ProfileScreen = () => {
           </ThemedView>
         </View>
 
-        {/* Friends and Support Row */}
+        {/* Support Row — a Friends card lived here until there was a social
+            feature to back it; re-add it alongside this one when there is. */}
         <View style={styles.bottomStatsRow}>
-          {/* Friends Card */}
-          <ThemedView
-            style={[
-              styles.friendsCard,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            <ThemedText type="default" style={styles.statLabel}>
-              FRIENDS
-            </ThemedText>
-            <View style={styles.friendsRow}>
-              <Pressable
-                style={[
-                  styles.friendsAddButton,
-                  { backgroundColor: colors.primaryButton },
-                ]}
-              >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.friendsArrowButton,
-                  { backgroundColor: colors.inputBorder },
-                ]}
-              >
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.text}
-                />
-              </Pressable>
-            </View>
-          </ThemedView>
-
           {/* Support Card */}
           <Pressable
             style={[
@@ -229,21 +289,16 @@ const ProfileScreen = () => {
             <ThemedText type="title" style={styles.sectionTitle}>
               Activity
             </ThemedText>
-            <Pressable
+            <View
               style={[
                 styles.yearSelector,
                 { backgroundColor: colors.inputBackground },
               ]}
             >
               <Text style={[styles.yearText, { color: colors.text }]}>
-                2025
+                Last {ACTIVITY_WEEKS} weeks
               </Text>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={colors.placeholder}
-              />
-            </Pressable>
+            </View>
           </View>
 
           {/* Activity Grid */}
@@ -258,42 +313,33 @@ const ProfileScreen = () => {
               },
             ]}
           >
-            {/* Grid rows with labels - 7 rows × 7 cells */}
-            {[
-              { label: "Mon", activeIndex: 4 },
-              { label: "Tue", activeIndex: -1 },
-              { label: "Wed", activeIndex: -1 },
-              { label: "Thu", activeIndex: -1 },
-              { label: "Fri", activeIndex: -1 },
-              { label: "Sat", activeIndex: -1 },
-              { label: "Sun", activeIndex: -1 },
-            ].map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.gridRow}>
-                {row.label && (
-                  <Text
-                    style={[styles.gridLabel, { color: colors.placeholder }]}
-                  >
-                    {row.label}
-                  </Text>
-                )}
-                {!row.label && <View style={styles.gridLabel} />}
+            {activityRows.map((row) => (
+              <View key={row.label} style={styles.gridRow}>
+                <Text style={[styles.gridLabel, { color: colors.placeholder }]}>
+                  {row.label}
+                </Text>
                 <View style={styles.gridRowCells}>
-                  {Array.from({ length: 7 }).map((_, cellIndex) => {
-                    const isActive = cellIndex === row.activeIndex;
-                    return (
-                      <View
-                        key={cellIndex}
-                        style={[
-                          styles.gridCell,
-                          {
-                            backgroundColor: isActive
-                              ? colors.electricBlue
-                              : colors.inputBorder,
-                          },
-                        ]}
-                      />
-                    );
-                  })}
+                  {row.cells.map((cell) => (
+                    <View
+                      key={cell.iso}
+                      accessibilityLabel={
+                        cell.isActive
+                          ? `Workout completed on ${cell.iso}`
+                          : `No workout on ${cell.iso}`
+                      }
+                      style={[
+                        styles.gridCell,
+                        {
+                          backgroundColor: cell.isActive
+                            ? colors.electricBlue
+                            : colors.inputBorder,
+                          // Days that haven't happened yet read as absence of
+                          // data, not as a missed session.
+                          opacity: cell.isFuture ? 0.35 : 1,
+                        },
+                      ]}
+                    />
+                  ))}
                 </View>
               </View>
             ))}
@@ -306,7 +352,7 @@ const ProfileScreen = () => {
             </ThemedText>
             <View style={styles.volumeRow}>
               <Text style={[styles.volumeValue, { color: colors.text }]}>
-                {stats.totalVolume}
+                {totalVolumeLabel}
               </Text>
               <View style={styles.volumeDots}>
                 {Array.from({ length: 4 }).map((_, index) => (
@@ -564,36 +610,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginBottom: 32,
-  },
-  friendsCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  friendsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 8,
-  },
-  friendsAddButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendsArrowButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
   },
   supportCard: {
     flex: 1,
