@@ -24,6 +24,7 @@ export interface WorkoutDayApiItem {
     repsMax?: number;
     restSeconds: number;
     suggestedWeightKg?: number | null;
+    suggestedWeightReason?: "increase" | "hold" | "deload" | null;
   };
 }
 
