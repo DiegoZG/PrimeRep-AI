@@ -30,6 +30,7 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useStats } from "@/hooks/use-stats";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
 import type { WorkoutDay } from "@/interfaces/workouts";
 import { AuthContext } from "@/utils/authContext";
@@ -38,6 +39,11 @@ import { CARD_GAP, CARD_WIDTH, styles } from "./index.styles";
 
 // Day name abbreviations
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Placeholder until stats arrive, so a real 0 is never confused with "unknown". */
+function statValue(value: number | undefined): string {
+  return value === undefined ? "—" : String(value);
+}
 
 // Gradient colors for workout cards (cycle through)
 const CARD_GRADIENTS: [string, string][] = [
@@ -53,6 +59,7 @@ const Home = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
+  const { stats } = useStats();
   const flatListRef = useRef<FlatList>(null);
 
   // Store refs for overflow buttons to measure their positions
@@ -570,7 +577,9 @@ const Home = () => {
                     color={colors.primaryButton}
                   />
                 </View>
-                <ThemedText style={styles.statValue}>0</ThemedText>
+                <ThemedText style={styles.statValue}>
+                  {statValue(stats?.streak)}
+                </ThemedText>
                 <ThemedText style={styles.statLabel}>Day Streak</ThemedText>
               </View>
 
@@ -592,7 +601,9 @@ const Home = () => {
                     color={colors.electricBlue}
                   />
                 </View>
-                <ThemedText style={styles.statValue}>0</ThemedText>
+                <ThemedText style={styles.statValue}>
+                  {statValue(stats?.totalCompleted)}
+                </ThemedText>
                 <ThemedText style={styles.statLabel}>Workouts</ThemedText>
               </View>
 
@@ -610,7 +621,9 @@ const Home = () => {
                 >
                   <Ionicons name="fitness" size={24} color="#34C759" />
                 </View>
-                <ThemedText style={styles.statValue}>0</ThemedText>
+                <ThemedText style={styles.statValue}>
+                  {statValue(stats?.prsThisWeek)}
+                </ThemedText>
                 <ThemedText style={styles.statLabel}>PRs This Week</ThemedText>
               </View>
             </View>

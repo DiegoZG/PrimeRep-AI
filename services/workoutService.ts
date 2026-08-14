@@ -53,6 +53,7 @@ function mapApiItem(apiItem: WorkoutApiItem): WorkoutItem {
       sets: prescription.sets,
       reps,
       restSeconds: prescription.restSeconds,
+      suggestedWeightKg: prescription.suggestedWeightKg ?? undefined,
     },
   };
 }

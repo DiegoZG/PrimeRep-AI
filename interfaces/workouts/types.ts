@@ -8,6 +8,7 @@ export interface WorkoutApiPrescription {
   repsMin?: number;
   repsMax?: number;
   restSeconds: number;
+  suggestedWeightKg?: number | null;
 }
 
 export interface WorkoutApiExercise {
@@ -48,6 +49,7 @@ export interface Prescription {
   sets: number;
   reps: string;
   restSeconds: number;
+  suggestedWeightKg?: number;
 }
 
 export interface WorkoutExercise {

@@ -23,6 +23,7 @@ export interface WorkoutDayApiItem {
     repsMin?: number;
     repsMax?: number;
     restSeconds: number;
+    suggestedWeightKg?: number | null;
   };
 }
 
