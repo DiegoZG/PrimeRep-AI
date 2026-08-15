@@ -23,7 +23,6 @@ import type { ExerciseDetail } from "@/interfaces/exercises";
 import {
   favoriteExercise,
   getExerciseById,
-  getFavoriteExercises,
   unfavoriteExercise,
 } from "@/services/exerciseService";
 import { AuthContext } from "@/utils/authContext";
@@ -58,35 +57,20 @@ export default function ExerciseDetailScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await getExerciseById(id);
+      const data = await getExerciseById(id, token);
       setExercise(data);
+      setIsFavorite(data.isFavorited);
     } catch (err: any) {
       console.warn("Failed to load exercise:", err);
       setError(err?.message || "Failed to load exercise");
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
-
-  // Check if exercise is favorited
-  const checkFavorite = useCallback(async () => {
-    if (!isLoggedIn || !token || !id) return;
-
-    try {
-      const favoriteIds = await getFavoriteExercises(token);
-      setIsFavorite(favoriteIds.includes(id));
-    } catch (err) {
-      console.warn("Failed to check favorite status:", err);
-    }
-  }, [isLoggedIn, token, id]);
+  }, [id, token]);
 
   useEffect(() => {
     fetchExercise();
   }, [fetchExercise]);
-
-  useEffect(() => {
-    checkFavorite();
-  }, [checkFavorite]);
 
   // Handle favorite toggle
   const handleToggleFavorite = async () => {
@@ -557,4 +541,3 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
 });
-

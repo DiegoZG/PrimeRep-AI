@@ -7,6 +7,7 @@ export interface ExerciseApiItem {
   image_url?: string | null;
   demo_video_url?: string | null;
   is_active?: boolean;
+  is_favorited: boolean;
 }
 
 export interface ExerciseApiResponse {
@@ -23,7 +24,7 @@ export interface ExerciseDetailApiResponse {
   image_url?: string | null;
   demo_video_url?: string | null;
   is_active?: boolean;
-  is_favorited?: boolean;
+  is_favorited: boolean;
   source?: string;
   owner_user_id?: string | null;
   sort_order?: number;
@@ -44,6 +45,7 @@ export interface Exercise {
   exerciseType: string;
   primaryMuscle: string;
   imageUrl?: string;
+  isFavorited: boolean;
 }
 
 // UI model (detailed, used in exercise detail screen)
@@ -60,6 +62,7 @@ export interface ExerciseDetail {
   whyItWorks?: string;
   commonMistakes?: string;
   beginnerNotes?: string;
+  isFavorited: boolean;
 }
 
 // Query parameters for getExercises
