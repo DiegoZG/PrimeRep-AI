@@ -13,8 +13,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseRow } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
+import { CoachCard } from "@/components/workout/CoachCard";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
@@ -339,12 +341,20 @@ export default function WorkoutDayDetailScreen() {
           </Text>
         </View>
       </View>
+      {/* Per-exercise coach rationale — renders nothing when absent */}
+      <ContentSection
+        title="Why this exercise"
+        content={item.exerciseRationale}
+        colors={colors}
+      />
     </View>
   );
 
   // Render header with actions (Skip Day only - Regenerate moved to Home)
   const renderListHeader = () => (
     <View style={styles.listHeader}>
+      {/* Coach intent — renders nothing when absent */}
+      <CoachCard intent={workout?.workoutIntent} colors={colors} />
       {/* Duration selector */}
       <View style={styles.durationSection}>
         <ThemedText type="default" style={styles.durationLabel}>

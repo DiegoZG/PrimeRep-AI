@@ -13,6 +13,8 @@ interface SetInputRowProps {
   weightUnit: WeightUnit;
   /** e.g. "last time: 135lb × 8" — omitted when there's no history for this set. */
   lastTimeHint?: string;
+  /** "▲" | "—" | "▼" — driven by suggestedWeightReason; omit when no suggestion. */
+  progressionTag?: string;
   onUpdate: (setNumber: number, field: "reps" | "weight", value: string) => void;
   onConfirm: (setNumber: number) => void;
 }
@@ -22,6 +24,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   colors,
   weightUnit,
   lastTimeHint,
+  progressionTag,
   onUpdate,
   onConfirm,
 }: SetInputRowProps) {
@@ -65,6 +68,23 @@ export const SetInputRow = React.memo(function SetInputRow({
             {setNumber}
           </ThemedText>
         </View>
+
+        {/* Progression tag — ▲ increase, — hold, ▼ deload */}
+        {progressionTag != null ? (
+          <ThemedText
+            style={{
+              fontSize: 13,
+              fontFamily: Fonts.sans,
+              fontWeight: "700",
+              color: progressionTag === "—" ? colors.placeholder : colors.primaryButton,
+              marginRight: 8,
+              minWidth: 14,
+              textAlign: "center",
+            }}
+          >
+            {progressionTag}
+          </ThemedText>
+        ) : null}
 
         {/* Weight input */}
         <View style={{ flex: 1, paddingRight: 8 }}>
