@@ -43,6 +43,7 @@ type AuthContextValue = {
 
   refreshUser: () => Promise<void>;
   retryBootstrap: () => Promise<void>;
+  updateCoachPreference: (enabled: boolean) => Promise<void>;
 };
 
 const initialState: AuthState = {
@@ -116,6 +117,7 @@ export const AuthContext = createContext<AuthContextValue>({
   logOut: async () => {},
   refreshUser: async () => {},
   retryBootstrap: async () => {},
+  updateCoachPreference: async () => {},
 });
 
 async function fetchMe(accessToken: string): Promise<AuthUser> {
@@ -304,6 +306,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dispatch({ type: "LOGOUT" });
   }, []);
 
+  const updateCoachPreference = useCallback(
+    async (enabled: boolean) => {
+      if (!state.token) return;
+      const updated = await userService.updateCoachPreference(state.token, enabled);
+      dispatch({ type: "SET_USER", user: updated });
+    },
+    [state.token]
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isBootstrapping: state.isBootstrapping,
@@ -317,6 +328,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       logOut,
       refreshUser,
       retryBootstrap: bootstrap,
+      updateCoachPreference,
     }),
     [
       state.isBootstrapping,
@@ -330,6 +342,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       logOut,
       refreshUser,
       bootstrap,
+      updateCoachPreference,
     ]
   );
 

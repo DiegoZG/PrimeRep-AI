@@ -1,4 +1,5 @@
 import { AuthContext } from "@/utils/authContext";
+import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,6 +36,7 @@ function toLocalIsoDate(value: Date): string {
 
 const ProfileScreen = () => {
   const { logOut, user } = useContext(AuthContext);
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { stats } = useStats();
@@ -151,9 +153,7 @@ const ProfileScreen = () => {
             Profile
           </ThemedText>
           <Pressable
-            onPress={() => {
-              // TODO: Navigate to settings screen
-            }}
+            onPress={() => router.push("/settings")}
             style={styles.settingsButton}
           >
             <Ionicons name="settings-outline" size={24} color={colors.text} />
