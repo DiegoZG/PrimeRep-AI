@@ -26,6 +26,7 @@ export interface WorkoutDayApiItem {
     suggestedWeightKg?: number | null;
     suggestedWeightReason?: "increase" | "hold" | "deload" | null;
   };
+  exerciseRationale?: string | null;
 }
 
 export interface WorkoutDayApiBlock {
@@ -41,6 +42,7 @@ export interface WorkoutDayApiResponse {
   title: string;
   dayType: string;
   splitKey: string;
+  workoutIntent?: string | null;
   exerciseBlocks: WorkoutDayApiBlock[];
 }
 
@@ -62,6 +64,7 @@ export interface WorkoutDay {
   title: string;
   dayType: string;
   splitKey: string;
+  workoutIntent?: string;
   blocks: WorkoutBlock[];
 }
 

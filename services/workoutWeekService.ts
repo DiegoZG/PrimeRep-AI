@@ -57,6 +57,7 @@ function mapApiItem(apiItem: WorkoutDayApiItem): WorkoutItem {
       suggestedWeightKg: prescription.suggestedWeightKg ?? undefined,
       suggestedWeightReason: prescription.suggestedWeightReason ?? undefined,
     },
+    exerciseRationale: apiItem.exerciseRationale ?? undefined,
   };
 }
 
@@ -82,6 +83,7 @@ function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
     title: apiDay.title,
     dayType: apiDay.dayType,
     splitKey: apiDay.splitKey,
+    workoutIntent: apiDay.workoutIntent ?? undefined,
     blocks: (apiDay.exerciseBlocks || []).map(mapApiBlock),
   };
 }

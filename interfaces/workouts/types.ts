@@ -26,6 +26,7 @@ export interface WorkoutApiExercise {
 export interface WorkoutApiItem {
   exercise: WorkoutApiExercise;
   prescription: WorkoutApiPrescription;
+  exerciseRationale?: string | null;
 }
 
 export interface WorkoutApiBlock {
@@ -39,6 +40,7 @@ export interface WorkoutApiResponse {
   dayType: string;
   title: string;
   estimatedMinutes: number;
+  workoutIntent?: string | null;
   exerciseBlocks: WorkoutApiBlock[];
 }
 
@@ -68,6 +70,7 @@ export interface WorkoutExercise {
 export interface WorkoutItem {
   exercise: WorkoutExercise;
   prescription: Prescription;
+  exerciseRationale?: string;
 }
 
 export interface WorkoutBlock {
@@ -81,6 +84,7 @@ export interface Workout {
   dayType: string;
   title: string;
   estimatedMinutes: number;
+  workoutIntent?: string;
   blocks: WorkoutBlock[];
 }
 

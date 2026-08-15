@@ -14,8 +14,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseRow } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
+import { CoachCard } from "@/components/workout/CoachCard";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Workout, WorkoutBlock, WorkoutItem } from "@/interfaces/workouts";
@@ -240,6 +242,12 @@ export default function TodayWorkoutScreen() {
           </Text>
         </View>
       </View>
+      {/* Per-exercise coach rationale — renders nothing when absent */}
+      <ContentSection
+        title="Why this exercise"
+        content={item.exerciseRationale}
+        colors={colors}
+      />
     </View>
   );
 
@@ -324,6 +332,7 @@ export default function TodayWorkoutScreen() {
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
           SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+          ListHeaderComponent={<CoachCard intent={workout.workoutIntent} colors={colors} />}
           ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl

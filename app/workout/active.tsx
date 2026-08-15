@@ -163,28 +163,31 @@ export default function ActiveWorkoutScreen() {
     loadLastSets();
   }, [token, exercises, lastSetsLoaded]);
 
-  // Pre-fill blank, unconfirmed set inputs from history exactly once, so we
-  // never clobber values the user has already started typing. Wait for the
-  // weight-unit preference so prefilled values match the display unit.
+  // Pre-fill blank, unconfirmed set inputs exactly once. Weight precedence:
+  //   1. suggestedWeightKg from prescription (progression engine)
+  //   2. Last logged weight from history
+  // Reps always come from history. Wait for unit preference so values match display unit.
   useEffect(() => {
     if (!unitReady || !lastSetsLoaded || sets.length === 0 || hasPrefilledRef.current) return;
     hasPrefilledRef.current = true;
     setSets((prev) =>
       prev.map((s) => {
         if (s.confirmed || s.weight || s.reps) return s;
+        const item = exercises.find((e) => e.exercise.id === s.exerciseId);
         const match = findHistoryForSet(lastSetsByExercise[s.exerciseId], s.setNumber);
-        if (!match) return s;
-        return {
-          ...s,
-          weight:
-            match.weightKg != null
-              ? formatWeightInput(fromKg(match.weightKg, weightUnit))
-              : s.weight,
-          reps: match.reps != null ? String(match.reps) : s.reps,
-        };
+        const suggestedKg = item?.prescription.suggestedWeightKg;
+        const prefillWeight =
+          suggestedKg != null
+            ? formatWeightInput(fromKg(suggestedKg, weightUnit))
+            : match?.weightKg != null
+            ? formatWeightInput(fromKg(match.weightKg, weightUnit))
+            : s.weight;
+        const prefillReps = match?.reps != null ? String(match.reps) : s.reps;
+        if (!prefillWeight && !prefillReps) return s;
+        return { ...s, weight: prefillWeight, reps: prefillReps };
       })
     );
-  }, [unitReady, lastSetsLoaded, sets.length, lastSetsByExercise, weightUnit]);
+  }, [unitReady, lastSetsLoaded, sets.length, lastSetsByExercise, weightUnit, exercises]);
 
   // Confirmed set count (overall, across all exercises)
   const confirmedCount = useMemo(() => sets.filter((s) => s.confirmed).length, [sets]);
@@ -795,20 +798,29 @@ export default function ActiveWorkoutScreen() {
                   <View style={{ width: 40 }} />
                 </View>
 
-                {currentSets.map((setRow) => (
-                  <SetInputRow
-                    key={`${setRow.exerciseId}-${setRow.setNumber}`}
-                    setRow={setRow}
-                    colors={colors}
-                    weightUnit={weightUnit}
-                    lastTimeHint={formatLastTimeHint(
-                      findHistoryForSet(lastSetsByExercise[setRow.exerciseId], setRow.setNumber),
-                      weightUnit
-                    )}
-                    onUpdate={updateSet}
-                    onConfirm={confirmSet}
-                  />
-                ))}
+                {currentSets.map((setRow) => {
+                  const reason = currentItem?.prescription.suggestedWeightReason;
+                  const progressionTag =
+                    reason === "increase" ? "▲"
+                    : reason === "hold" ? "—"
+                    : reason === "deload" ? "▼"
+                    : undefined;
+                  return (
+                    <SetInputRow
+                      key={`${setRow.exerciseId}-${setRow.setNumber}`}
+                      setRow={setRow}
+                      colors={colors}
+                      weightUnit={weightUnit}
+                      lastTimeHint={formatLastTimeHint(
+                        findHistoryForSet(lastSetsByExercise[setRow.exerciseId], setRow.setNumber),
+                        weightUnit
+                      )}
+                      progressionTag={progressionTag}
+                      onUpdate={updateSet}
+                      onConfirm={confirmSet}
+                    />
+                  );
+                })}
               </>
             )}
           </>
