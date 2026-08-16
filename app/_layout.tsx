@@ -2,6 +2,7 @@ import { OfflineScreen } from "@/components/offline-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
+import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
 import { OnboardingProvider } from "@/utils/onboardingContext";
 import { WorkoutWeekProvider } from "@/utils/workoutWeekContext";
 import {
@@ -78,6 +79,15 @@ function RootLayoutNav() {
             name="workouts/[workoutDayId]"
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="settings/dumbbells"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="settings/plates"
+            options={{ headerShown: false }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={shouldShowOnboarding}>
@@ -98,11 +108,13 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <OnboardingProvider>
-          <EquipmentProvider>
-            <WorkoutWeekProvider>
-              <RootLayoutNav />
-            </WorkoutWeekProvider>
-          </EquipmentProvider>
+          <EquipmentWeightsProvider>
+            <EquipmentProvider>
+              <WorkoutWeekProvider>
+                <RootLayoutNav />
+              </WorkoutWeekProvider>
+            </EquipmentProvider>
+          </EquipmentWeightsProvider>
         </OnboardingProvider>
       </AuthProvider>
     </ThemeProvider>

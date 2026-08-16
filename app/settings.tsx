@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import React, { useCallback, useContext, useState } from "react";
 import {
   Alert,
@@ -80,6 +80,50 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <ThemedText
+          style={[styles.sectionLabel, { color: colors.placeholder }]}
+        >
+          Equipment Weights
+        </ThemedText>
+
+        <View
+          style={[
+            styles.card,
+            styles.equipmentCard,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          <Pressable
+            style={styles.navigationRow}
+            onPress={() => router.push("/settings/dumbbells" as Href)}
+          >
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Dumbbells</ThemedText>
+              <ThemedText
+                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+              >
+                Choose the dumbbell weights you own
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+          <Pressable
+            style={styles.navigationRow}
+            onPress={() => router.push("/settings/plates" as Href)}
+          >
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Plates</ThemedText>
+              <ThemedText
+                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+              >
+                Choose the plate weights you own
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+        </View>
+
         {/* AI Features section */}
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>
           AI Features
@@ -163,6 +207,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
+  },
+  equipmentCard: {
+    marginBottom: 28,
+  },
+  navigationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
   },
   row: {
     flexDirection: "row",
