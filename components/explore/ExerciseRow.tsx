@@ -13,6 +13,7 @@ interface ExerciseRowProps {
   imageUrl?: string;
   isFavorite: boolean;
   canFavorite: boolean;
+  isFavoriteDisabled?: boolean;
   onToggleFavorite: (id: string) => void;
   onPress?: () => void;
 }
@@ -24,6 +25,7 @@ export function ExerciseRow({
   imageUrl,
   isFavorite,
   canFavorite,
+  isFavoriteDisabled = false,
   onToggleFavorite,
   onPress,
 }: ExerciseRowProps) {
@@ -39,7 +41,7 @@ export function ExerciseRow({
     .toUpperCase();
 
   const handleFavoritePress = () => {
-    if (canFavorite) {
+    if (canFavorite && !isFavoriteDisabled) {
       onToggleFavorite(id);
     }
   };
@@ -91,7 +93,7 @@ export function ExerciseRow({
         onPress={handleFavoritePress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={styles.favoriteButton}
-        disabled={!canFavorite}
+        disabled={!canFavorite || isFavoriteDisabled}
       >
         {isFavorite && canFavorite ? (
           <Ionicons name="heart" size={22} color="#FF4B4B" />

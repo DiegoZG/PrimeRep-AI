@@ -38,6 +38,7 @@ function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
     exerciseType: apiItem.exercise_type,
     primaryMuscle: apiItem.primary_muscle,
     imageUrl: apiItem.image_url || undefined,
+    isFavorited: apiItem.is_favorited,
   };
 }
 
@@ -62,6 +63,7 @@ function mapApiDetailToExerciseDetail(
     whyItWorks: apiDetail.why_it_works || undefined,
     commonMistakes: apiDetail.common_mistakes || undefined,
     beginnerNotes: apiDetail.beginner_notes || undefined,
+    isFavorited: apiDetail.is_favorited,
   };
 }
 
@@ -70,13 +72,15 @@ function mapApiDetailToExerciseDetail(
  * GET /v1/exercises
  */
 export async function getExercises(
-  params?: GetExercisesParams
+  params?: GetExercisesParams,
+  token?: string | null
 ): Promise<Exercise[]> {
   const queryString = buildExerciseQueryString(params);
   const data = await requestJson<ExerciseApiResponse>(
     `/v1/exercises${queryString}`,
     {
       method: "GET",
+      token,
     }
   );
   return (data.items || [])
@@ -132,12 +136,14 @@ export async function unfavoriteExercise(
  * GET /v1/exercises/{exerciseId}
  */
 export async function getExerciseById(
-  exerciseId: string
+  exerciseId: string,
+  token?: string | null
 ): Promise<ExerciseDetail> {
   const data = await requestJson<ExerciseDetailApiResponse>(
     `/v1/exercises/${exerciseId}`,
     {
       method: "GET",
+      token,
     }
   );
   return mapApiDetailToExerciseDetail(data);

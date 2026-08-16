@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -36,7 +37,6 @@ import {
   getBodyweightPreview,
   getCardioPreview,
   getExercises,
-  getFavoriteExercises,
   getWeightsPreview,
   unfavoriteExercise,
 } from "@/services/exerciseService";
@@ -95,6 +95,49 @@ const ExploreScreen = () => {
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [favoriteMutationIds, setFavoriteMutationIds] = useState<Set<string>>(
+    new Set()
+  );
+  const favoriteIdsRef = useRef<Set<string>>(new Set());
+  const favoriteMutationIdsRef = useRef<Set<string>>(new Set());
+  const favoriteMutationSequenceRef = useRef(0);
+  const favoriteMutationVersionsRef = useRef<Map<string, number>>(new Map());
+
+  const updateFavorite = useCallback(
+    (exerciseId: string, isFavorite: boolean) => {
+      const next = new Set(favoriteIdsRef.current);
+      if (isFavorite) {
+        next.add(exerciseId);
+      } else {
+        next.delete(exerciseId);
+      }
+      favoriteIdsRef.current = next;
+      setFavoriteIds(next);
+    },
+    []
+  );
+
+  const mergeResponseFavorites = useCallback(
+    (exercises: Exercise[], requestMutationVersion: number) => {
+      const next = new Set(favoriteIdsRef.current);
+      exercises.forEach((exercise) => {
+        if (favoriteMutationIdsRef.current.has(exercise.id)) return;
+
+        const exerciseMutationVersion =
+          favoriteMutationVersionsRef.current.get(exercise.id) ?? 0;
+        if (exerciseMutationVersion > requestMutationVersion) return;
+
+        if (exercise.isFavorited) {
+          next.add(exercise.id);
+        } else {
+          next.delete(exercise.id);
+        }
+      });
+      favoriteIdsRef.current = next;
+      setFavoriteIds(next);
+    },
+    []
+  );
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,45 +153,47 @@ const ExploreScreen = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Load exercises on mount
   useEffect(() => {
-    async function loadExercises() {
-      try {
-        setIsLoadingExercises(true);
-        setExercisesError(null);
-        const exercises = await getExercises({ limit: 50 });
-        setAllExercises(exercises);
-      } catch (err) {
-        console.warn("Failed to load exercises:", err);
-        setExercisesError("Failed to load exercises");
-      } finally {
-        setIsLoadingExercises(false);
-      }
-    }
-    loadExercises();
-  }, []);
+    favoriteIdsRef.current = new Set();
+    favoriteMutationSequenceRef.current = 0;
+    favoriteMutationVersionsRef.current.clear();
+    setFavoriteIds(new Set());
+  }, [token]);
 
-  // Load favorites when screen gains focus (ensures sync after navigating back from Category/Favorites)
+  // Refresh catalog state whenever the screen gains focus.
   useFocusEffect(
     useCallback(() => {
-      async function loadFavorites() {
-        if (!isLoggedIn || !token) {
-          setFavoriteIds(new Set());
-          return;
-        }
+      let isActive = true;
+
+      async function loadExercises() {
         try {
-          const ids = await getFavoriteExercises(token);
-          setFavoriteIds(new Set(ids));
+          setIsLoadingExercises(true);
+          setExercisesError(null);
+          const requestMutationVersion = favoriteMutationSequenceRef.current;
+          const exercises = await getExercises({ limit: 50 }, token);
+          if (!isActive) return;
+          setAllExercises(exercises);
+          mergeResponseFavorites(exercises, requestMutationVersion);
         } catch (err) {
-          console.warn("Failed to load favorites:", err);
+          if (!isActive) return;
+          console.warn("Failed to load exercises:", err);
+          setExercisesError("Failed to load exercises");
+        } finally {
+          if (isActive) setIsLoadingExercises(false);
         }
       }
-      loadFavorites();
-    }, [isLoggedIn, token])
+      loadExercises();
+
+      return () => {
+        isActive = false;
+      };
+    }, [mergeResponseFavorites, token])
   );
 
   // Search exercises when debounced term changes
   useEffect(() => {
+    let isActive = true;
+
     async function searchExercises() {
       const trimmed = debouncedSearchTerm.trim();
       if (trimmed.length < 2) {
@@ -158,17 +203,25 @@ const ExploreScreen = () => {
       }
       try {
         setIsSearchLoading(true);
-        const results = await getExercises({ q: trimmed, limit: 50 });
+        const requestMutationVersion = favoriteMutationSequenceRef.current;
+        const results = await getExercises({ q: trimmed, limit: 50 }, token);
+        if (!isActive) return;
         setSearchResults(results);
+        mergeResponseFavorites(results, requestMutationVersion);
       } catch (err) {
+        if (!isActive) return;
         console.warn("Search failed:", err);
         setSearchResults([]);
       } finally {
-        setIsSearchLoading(false);
+        if (isActive) setIsSearchLoading(false);
       }
     }
     searchExercises();
-  }, [debouncedSearchTerm]);
+
+    return () => {
+      isActive = false;
+    };
+  }, [debouncedSearchTerm, mergeResponseFavorites, token]);
 
   // Memoized filtered lists for default layout
   const weightsExercises = useMemo(
@@ -208,41 +261,51 @@ const ExploreScreen = () => {
   const handleToggleFavorite = useCallback(
     async (exerciseId: string) => {
       if (!isLoggedIn || !token) return;
+      if (favoriteMutationIdsRef.current.has(exerciseId)) return;
 
-      // Use object to track action and snapshot to avoid stale closure issues
-      const state = {
-        action: "favorite" as "favorite" | "unfavorite",
-        snapshot: null as Set<string> | null,
-      };
-
-      setFavoriteIds((prev) => {
-        state.snapshot = new Set(prev);
-        const next = new Set(prev);
-        if (next.has(exerciseId)) {
-          next.delete(exerciseId);
-          state.action = "unfavorite";
-        } else {
-          next.add(exerciseId);
-          state.action = "favorite";
-        }
-        return next;
-      });
+      const wasFavorite = favoriteIdsRef.current.has(exerciseId);
+      const shouldFavorite = !wasFavorite;
+      const mutationVersion = ++favoriteMutationSequenceRef.current;
+      favoriteMutationIdsRef.current.add(exerciseId);
+      setFavoriteMutationIds(
+        (current) => new Set(current).add(exerciseId)
+      );
+      favoriteMutationVersionsRef.current.set(exerciseId, mutationVersion);
+      updateFavorite(exerciseId, shouldFavorite);
 
       try {
-        if (state.action === "unfavorite") {
-          await unfavoriteExercise(exerciseId, token);
-        } else {
+        if (shouldFavorite) {
           await favoriteExercise(exerciseId, token);
+        } else {
+          await unfavoriteExercise(exerciseId, token);
         }
       } catch (err) {
         console.warn("Failed to toggle favorite:", err);
-        // Revert to snapshot on error
-        if (state.snapshot) {
-          setFavoriteIds(state.snapshot);
+        if (
+          favoriteMutationVersionsRef.current.get(exerciseId) ===
+          mutationVersion
+        ) {
+          updateFavorite(exerciseId, wasFavorite);
+        }
+      } finally {
+        favoriteMutationIdsRef.current.delete(exerciseId);
+        setFavoriteMutationIds((current) => {
+          const next = new Set(current);
+          next.delete(exerciseId);
+          return next;
+        });
+        if (
+          favoriteMutationVersionsRef.current.get(exerciseId) ===
+          mutationVersion
+        ) {
+          favoriteMutationVersionsRef.current.set(
+            exerciseId,
+            ++favoriteMutationSequenceRef.current
+          );
         }
       }
     },
-    [isLoggedIn, token]
+    [isLoggedIn, token, updateFavorite]
   );
 
   // Check if we're in search mode
@@ -284,6 +347,7 @@ const ExploreScreen = () => {
             imageUrl={exercise.imageUrl}
             isFavorite={favoriteIds.has(exercise.id)}
             canFavorite={isLoggedIn}
+            isFavoriteDisabled={favoriteMutationIds.has(exercise.id)}
             onToggleFavorite={handleToggleFavorite}
             onPress={() => navigateToExercise(exercise.id)}
           />
@@ -305,6 +369,7 @@ const ExploreScreen = () => {
           imageUrl={item.imageUrl}
           isFavorite={favoriteIds.has(item.id)}
           canFavorite={isLoggedIn}
+          isFavoriteDisabled={favoriteMutationIds.has(item.id)}
           onToggleFavorite={handleToggleFavorite}
           onPress={() => navigateToExercise(item.id)}
         />
