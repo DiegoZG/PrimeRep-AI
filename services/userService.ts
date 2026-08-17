@@ -26,3 +26,10 @@ export function updateCoachPreference(token: string, enabled: boolean) {
     body: { coach_insights_enabled: enabled },
   });
 }
+
+export async function deleteAccount(token: string): Promise<void> {
+  await requestJson<void>("/v1/users/me", {
+    method: "DELETE",
+    token,
+  });
+}

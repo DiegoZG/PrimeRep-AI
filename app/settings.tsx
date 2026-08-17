@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Platform,
@@ -17,10 +17,16 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext } from "@/utils/authContext";
+import { deleteAccount } from "@/services/userService";
+import {
+  loadWeightUnit,
+  saveWeightUnit,
+  WeightUnit,
+} from "@/utils/weightUnits";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, updateCoachPreference } = useContext(AuthContext);
+  const { user, token, logOut, updateCoachPreference } = useContext(AuthContext);
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
@@ -28,6 +34,84 @@ export default function SettingsScreen() {
   const coachEnabled = user?.coach_insights_enabled ?? false;
 
   const [isToggling, setIsToggling] = useState(false);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>("LB");
+  const [isUnitReady, setIsUnitReady] = useState(false);
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deletingRef = useRef(false);
+  const savingUnitRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadWeightUnit().then((unit) => {
+      if (!cancelled) {
+        setWeightUnit(unit);
+        setIsUnitReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleWeightUnit = useCallback(async (unit: WeightUnit) => {
+    if (!isUnitReady || savingUnitRef.current || unit === weightUnit) return;
+    const previousUnit = weightUnit;
+    savingUnitRef.current = true;
+    setIsSavingUnit(true);
+    setWeightUnit(unit);
+    const saved = await saveWeightUnit(unit);
+    if (!saved) {
+      setWeightUnit(previousUnit);
+      Alert.alert("Could Not Save Units", "Please try again.");
+    }
+    savingUnitRef.current = false;
+    setIsSavingUnit(false);
+  }, [isUnitReady, weightUnit]);
+
+  const handleLogOut = useCallback(async () => {
+    try {
+      await logOut();
+    } catch {
+      Alert.alert(
+        "Could Not Log Out",
+        "Your session is still active. Please try again."
+      );
+    }
+  }, [logOut]);
+
+  const confirmDeleteAccount = useCallback(() => {
+    if (isDeleting || !token) return;
+    Alert.alert(
+      "Delete Account?",
+      "This permanently deletes your account and workout data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: async () => {
+            if (deletingRef.current) return;
+            deletingRef.current = true;
+            setIsDeleting(true);
+            try {
+              await deleteAccount(token);
+            } catch {
+              Alert.alert("Could Not Delete Account", "Please try again.");
+              deletingRef.current = false;
+              setIsDeleting(false);
+              return;
+            }
+            try {
+              await logOut({ forceLocal: true });
+            } catch {
+              console.warn("Account deleted, but local token cleanup was incomplete.");
+            }
+          },
+        },
+      ]
+    );
+  }, [isDeleting, logOut, token]);
 
   const handleToggle = useCallback(
     async (value: boolean) => {
@@ -80,6 +164,39 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Units</ThemedText>
+        <View
+          style={[
+            styles.card,
+            styles.sectionCard,
+            styles.unitControl,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          {(["LB", "KG"] as const).map((unit) => {
+            const selected = weightUnit === unit;
+            const disabled = !isUnitReady || isSavingUnit;
+            return (
+              <Pressable
+                key={unit}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"}`}
+                accessibilityState={{ selected, disabled }}
+                onPress={() => void handleWeightUnit(unit)}
+                disabled={disabled}
+                style={[
+                  styles.unitOption,
+                  selected && { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                <ThemedText style={[styles.unitText, selected && styles.selectedUnitText]}>
+                  {unit}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <ThemedText
           style={[styles.sectionLabel, { color: colors.placeholder }]}
         >
@@ -96,6 +213,9 @@ export default function SettingsScreen() {
           <Pressable
             style={styles.navigationRow}
             onPress={() => router.push("/settings/dumbbells" as Href)}
+            accessibilityRole="button"
+            accessibilityLabel="Dumbbells"
+            accessibilityHint="Choose the dumbbell weights you own"
           >
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Dumbbells</ThemedText>
@@ -111,6 +231,9 @@ export default function SettingsScreen() {
           <Pressable
             style={styles.navigationRow}
             onPress={() => router.push("/settings/plates" as Href)}
+            accessibilityRole="button"
+            accessibilityLabel="Plates"
+            accessibilityHint="Choose the plate weights you own"
           >
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Plates</ThemedText>
@@ -132,6 +255,7 @@ export default function SettingsScreen() {
         <View
           style={[
             styles.card,
+            styles.sectionCard,
             { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
           ]}
         >
@@ -162,6 +286,38 @@ export default function SettingsScreen() {
               ios_backgroundColor={colors.inputBorder}
             />
           </View>
+        </View>
+
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Account</ThemedText>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          <Pressable
+            style={styles.accountRow}
+            onPress={handleLogOut}
+            disabled={isDeleting}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            accessibilityState={{ disabled: isDeleting }}
+          >
+            <ThemedText style={styles.rowTitle}>Log Out</ThemedText>
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+          <Pressable
+            style={styles.accountRow}
+            onPress={confirmDeleteAccount}
+            disabled={isDeleting}
+            accessibilityRole="button"
+            accessibilityLabel={isDeleting ? "Deleting account" : "Delete account"}
+            accessibilityState={{ disabled: isDeleting }}
+          >
+            <ThemedText style={styles.deleteText}>
+              {isDeleting ? "Deleting Account…" : "Delete Account"}
+            </ThemedText>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -211,6 +367,26 @@ const styles = StyleSheet.create({
   equipmentCard: {
     marginBottom: 28,
   },
+  sectionCard: {
+    marginBottom: 28,
+  },
+  unitControl: {
+    flexDirection: "row",
+    padding: 4,
+  },
+  unitOption: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 11,
+  },
+  unitText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  selectedUnitText: {
+    color: "#fff",
+  },
   navigationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -228,6 +404,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     gap: 12,
+  },
+  accountRow: {
+    paddingVertical: 17,
+    paddingHorizontal: 16,
+  },
+  deleteText: {
+    color: "#DC2626",
+    fontSize: 15,
+    fontWeight: "600",
   },
   rowContent: {
     flex: 1,

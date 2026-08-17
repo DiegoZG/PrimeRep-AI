@@ -39,7 +39,7 @@ type AuthContextValue = {
 
   logIn: (payload: authService.LoginPayload) => Promise<void>;
   signUp: (payload: authService.SignUpPayload) => Promise<void>;
-  logOut: () => Promise<void>;
+  logOut: (options?: { forceLocal?: boolean }) => Promise<void>;
 
   refreshUser: () => Promise<void>;
   retryBootstrap: () => Promise<void>;
@@ -301,7 +301,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dispatch({ type: "AUTH_SUCCESS", token: res.access_token, user: me });
   }, []);
 
-  const logOut = useCallback(async () => {
+  const logOut = useCallback(async (options?: { forceLocal?: boolean }) => {
+    if (options?.forceLocal) {
+      try {
+        await clearTokens();
+      } finally {
+        dispatch({ type: "LOGOUT" });
+      }
+      return;
+    }
+
     await clearTokens();
     dispatch({ type: "LOGOUT" });
   }, []);

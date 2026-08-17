@@ -58,10 +58,12 @@ export async function loadWeightUnit(): Promise<WeightUnit> {
   return "LB";
 }
 
-export async function saveWeightUnit(unit: WeightUnit): Promise<void> {
+export async function saveWeightUnit(unit: WeightUnit): Promise<boolean> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, unit);
+    return true;
   } catch (err) {
     console.warn("Failed to save weight unit preference:", err);
+    return false;
   }
 }

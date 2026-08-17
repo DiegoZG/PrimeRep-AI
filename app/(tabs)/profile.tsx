@@ -1,7 +1,7 @@
 import { AuthContext } from "@/utils/authContext";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -439,7 +439,14 @@ const ProfileScreen = () => {
 
         {/* Sign Out Button (hidden in design but keeping for functionality) */}
         <Pressable
-          onPress={logOut}
+          onPress={() => {
+            void logOut().catch(() => {
+              Alert.alert(
+                "Could Not Log Out",
+                "Your session is still active. Please try again."
+              );
+            });
+          }}
           style={[
             styles.signOutButton,
             { backgroundColor: colors.inputBackground },
