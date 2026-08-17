@@ -4,6 +4,7 @@ import { AuthContext, AuthProvider } from "@/utils/authContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
 import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
 import { OnboardingProvider } from "@/utils/onboardingContext";
+import { NotificationsProvider } from "@/utils/notificationsContext";
 import { WorkoutWeekProvider } from "@/utils/workoutWeekContext";
 import {
   DarkTheme,
@@ -107,15 +108,17 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <OnboardingProvider>
-          <EquipmentWeightsProvider>
-            <EquipmentProvider>
-              <WorkoutWeekProvider>
-                <RootLayoutNav />
-              </WorkoutWeekProvider>
-            </EquipmentProvider>
-          </EquipmentWeightsProvider>
-        </OnboardingProvider>
+        <NotificationsProvider>
+          <OnboardingProvider>
+            <EquipmentWeightsProvider>
+              <EquipmentProvider>
+                <WorkoutWeekProvider>
+                  <RootLayoutNav />
+                </WorkoutWeekProvider>
+              </EquipmentProvider>
+            </EquipmentWeightsProvider>
+          </OnboardingProvider>
+        </NotificationsProvider>
       </AuthProvider>
     </ThemeProvider>
   );
