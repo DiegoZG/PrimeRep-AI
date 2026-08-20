@@ -142,10 +142,19 @@ function classifyBootstrapError(err: any): Exclude<BootstrapError, null> {
 
 /**
  * Refresh access token using refresh token.
- * Note: backend currently returns only access_token (no refresh rotation).
  */
+class RefreshTokenPersistenceError extends Error {}
+
 async function refreshAccessToken(refreshToken: string): Promise<string> {
   const res = await authService.refresh({ refresh_token: refreshToken });
+  // A rotated refresh token must be durable before we accept its access token.
+  try {
+    await setRefreshToken(res.refresh_token);
+  } catch (error) {
+    throw new RefreshTokenPersistenceError("Could not persist rotated refresh token", {
+      cause: error,
+    });
+  }
   await setAccessToken(res.access_token);
   return res.access_token;
 }
@@ -195,6 +204,13 @@ async function ensureValidSession(): Promise<
     const user = await fetchMe(newAccessToken);
     return { kind: "ok", accessToken: newAccessToken, user };
   } catch (err: any) {
+    if (err instanceof RefreshTokenPersistenceError) {
+      try {
+        await clearTokens();
+      } finally {
+        return { kind: "logged_out" };
+      }
+    }
     const status = getStatus(err);
 
     // If refresh token is invalid, clear tokens and force logout
@@ -311,8 +327,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    await clearTokens();
-    dispatch({ type: "LOGOUT" });
+    try {
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        await authService.logout({ refresh_token: refreshToken });
+      }
+    } catch {
+      // Logout must remain usable while offline; server revocation is best effort.
+    } finally {
+      await clearTokens();
+      dispatch({ type: "LOGOUT" });
+    }
   }, []);
 
   const updateCoachPreference = useCallback(

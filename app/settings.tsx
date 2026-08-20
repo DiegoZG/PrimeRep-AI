@@ -105,13 +105,9 @@ export default function SettingsScreen() {
     if (!token || isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      await unregisterCurrentDevice(token);
+      await unregisterCurrentDevice(token).catch(() => {});
       await logOut();
-    } catch {
-      Alert.alert(
-        "Could Not Log Out",
-        "Could not finish signing out this device. Your session is still active; please try again."
-      );
+    } finally {
       setIsLoggingOut(false);
     }
   }, [isLoggingOut, logOut, token, unregisterCurrentDevice]);
@@ -242,6 +238,7 @@ export default function SettingsScreen() {
           ]}
         >
           <Pressable
+            testID="settings-push-notifications"
             style={styles.navigationRow}
             onPress={() => void handleNotifications()}
             disabled={isUpdatingNotifications || notificationPermission === "unsupported"}

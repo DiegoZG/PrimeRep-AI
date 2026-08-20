@@ -1,0 +1,11 @@
+# Push controls are app-owned; OS permission dialogs are tested manually on a dev build.
+appId: com.diegozegarra.primerep
+---
+- runFlow: flows/launch-dev-build.yaml
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- assertVisible:
+    id: "settings-push-notifications"
+- assertVisible: "Push Notifications"

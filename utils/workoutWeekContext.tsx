@@ -429,4 +429,3 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
     </WorkoutWeekContext.Provider>
   );
 }
-

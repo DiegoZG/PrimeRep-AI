@@ -21,6 +21,7 @@ export type TokenResponse = {
 
 export type RefreshTokenResponse = {
   access_token: string;
+  refresh_token: string;
   token_type: "bearer";
 };
 
@@ -44,6 +45,13 @@ export function login(payload: LoginPayload) {
 
 export function refresh(payload: RefreshPayload) {
   return requestJson<RefreshTokenResponse>("/v1/auth/refresh", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function logout(payload: RefreshPayload) {
+  return requestJson<void>("/v1/auth/logout", {
     method: "POST",
     body: payload,
   });

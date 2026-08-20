@@ -1,0 +1,8 @@
+# Push settings is exercised only in a native development build; OS permission dialogs stay manual.
+appId: com.diegozegarra.primerep
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 20000
