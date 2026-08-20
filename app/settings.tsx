@@ -17,6 +17,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext } from "@/utils/authContext";
+import { NotificationsContext } from "@/utils/notificationsContext";
 import { deleteAccount } from "@/services/userService";
 import {
   loadWeightUnit,
@@ -27,6 +28,14 @@ import {
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, token, logOut, updateCoachPreference } = useContext(AuthContext);
+  const {
+    permission: notificationPermission,
+    isLoading: isUpdatingNotifications,
+    refreshPermission,
+    requestPermission,
+    unregisterCurrentDevice,
+    openSettings: openNotificationSettings,
+  } = useContext(NotificationsContext);
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
@@ -38,6 +47,7 @@ export default function SettingsScreen() {
   const [isUnitReady, setIsUnitReady] = useState(false);
   const [isSavingUnit, setIsSavingUnit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const deletingRef = useRef(false);
   const savingUnitRef = useRef(false);
 
@@ -53,6 +63,28 @@ export default function SettingsScreen() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    void refreshPermission();
+  }, [refreshPermission]);
+
+  const handleNotifications = useCallback(async () => {
+    try {
+      if (
+        notificationPermission === "granted" ||
+        notificationPermission === "denied"
+      ) {
+        await openNotificationSettings();
+        return;
+      }
+      await requestPermission();
+    } catch {
+      Alert.alert(
+        "Could Not Update Notifications",
+        "Please try again or manage notification access in system settings."
+      );
+    }
+  }, [notificationPermission, openNotificationSettings, requestPermission]);
 
   const handleWeightUnit = useCallback(async (unit: WeightUnit) => {
     if (!isUnitReady || savingUnitRef.current || unit === weightUnit) return;
@@ -70,15 +102,19 @@ export default function SettingsScreen() {
   }, [isUnitReady, weightUnit]);
 
   const handleLogOut = useCallback(async () => {
+    if (!token || isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
+      await unregisterCurrentDevice(token);
       await logOut();
     } catch {
       Alert.alert(
         "Could Not Log Out",
-        "Your session is still active. Please try again."
+        "Could not finish signing out this device. Your session is still active; please try again."
       );
+      setIsLoggingOut(false);
     }
-  }, [logOut]);
+  }, [isLoggingOut, logOut, token, unregisterCurrentDevice]);
 
   const confirmDeleteAccount = useCallback(() => {
     if (isDeleting || !token) return;
@@ -197,6 +233,46 @@ export default function SettingsScreen() {
           })}
         </View>
 
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Notifications</ThemedText>
+        <View
+          style={[
+            styles.card,
+            styles.sectionCard,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          <Pressable
+            style={styles.navigationRow}
+            onPress={() => void handleNotifications()}
+            disabled={isUpdatingNotifications || notificationPermission === "unsupported"}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            accessibilityState={{
+              disabled: isUpdatingNotifications || notificationPermission === "unsupported",
+            }}
+          >
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Push Notifications</ThemedText>
+              <ThemedText
+                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+              >
+                {isUpdatingNotifications
+                  ? "Updating…"
+                  : notificationPermission === "granted"
+                    ? "Allowed — manage in system settings"
+                    : notificationPermission === "denied"
+                      ? "Blocked — open system settings"
+                      : notificationPermission === "unsupported"
+                        ? "Unavailable on this platform"
+                        : "Not enabled"}
+              </ThemedText>
+            </View>
+            {notificationPermission !== "unsupported" && (
+              <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            )}
+          </Pressable>
+        </View>
+
         <ThemedText
           style={[styles.sectionLabel, { color: colors.placeholder }]}
         >
@@ -297,13 +373,15 @@ export default function SettingsScreen() {
         >
           <Pressable
             style={styles.accountRow}
-            onPress={handleLogOut}
-            disabled={isDeleting}
+            onPress={() => void handleLogOut()}
+            disabled={isDeleting || isLoggingOut}
             accessibilityRole="button"
             accessibilityLabel="Log out"
-            accessibilityState={{ disabled: isDeleting }}
+            accessibilityState={{ disabled: isDeleting || isLoggingOut, busy: isLoggingOut }}
           >
-            <ThemedText style={styles.rowTitle}>Log Out</ThemedText>
+            <ThemedText style={styles.rowTitle}>
+              {isLoggingOut ? "Logging Out…" : "Log Out"}
+            </ThemedText>
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
           <Pressable

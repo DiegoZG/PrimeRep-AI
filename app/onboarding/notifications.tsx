@@ -20,6 +20,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
+import { NotificationsContext } from "@/utils/notificationsContext";
 import { NOTIFICATIONS_SCREEN } from "./constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
@@ -28,6 +29,7 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { updateField } = useContext(OnboardingContext);
+  const { requestPermission, isLoading } = useContext(NotificationsContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
@@ -172,9 +174,15 @@ export default function NotificationsScreen() {
     };
   });
 
-  const handleEnable = () => {
-    updateField("notificationsEnabled", true);
-    router.push("/onboarding/final");
+  const handleEnable = async () => {
+    try {
+      const status = await requestPermission();
+      updateField("notificationsEnabled", status === "granted");
+    } catch {
+      updateField("notificationsEnabled", false);
+    } finally {
+      router.push("/onboarding/final");
+    }
   };
 
   const handleSkip = () => {
@@ -186,13 +194,20 @@ export default function NotificationsScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={handleSkip} style={{ marginHorizontal: 16 }}>
+        <TouchableOpacity
+          onPress={handleSkip}
+          disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Skip notifications"
+          accessibilityState={{ disabled: isLoading, busy: isLoading }}
+          style={{ marginHorizontal: 16, opacity: isLoading ? 0.5 : 1 }}
+        >
           <Text style={{ color: colors.electricBlue, fontSize: 16 }}>Skip</Text>
         </TouchableOpacity>
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation]);
+  }, [isLoading, navigation]);
 
   return (
     <ThemedView style={styles.container}>
@@ -398,14 +413,22 @@ export default function NotificationsScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleEnable}>
+          <AnimatedButton
+            onPress={() => void handleEnable()}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Enable notifications"
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
+          >
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
               ]}
             >
-              <Text style={styles.primaryButtonText}>ENABLE</Text>
+              <Text style={styles.primaryButtonText}>
+                {isLoading ? "ENABLING…" : "ENABLE"}
+              </Text>
             </View>
           </AnimatedButton>
         </View>

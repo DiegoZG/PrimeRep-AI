@@ -1,4 +1,5 @@
 import { AuthContext } from "@/utils/authContext";
+import { NotificationsContext } from "@/utils/notificationsContext";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -35,7 +36,8 @@ function toLocalIsoDate(value: Date): string {
 }
 
 const ProfileScreen = () => {
-  const { logOut, user } = useContext(AuthContext);
+  const { logOut, user, token } = useContext(AuthContext);
+  const { unregisterCurrentDevice } = useContext(NotificationsContext);
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -46,6 +48,7 @@ const ProfileScreen = () => {
   // body weight and total volume can't disagree about units.
   const [weightUnit, setWeightUnit] = useState<WeightUnit>("LB");
   const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +62,7 @@ const ProfileScreen = () => {
     };
   }, []);
 
-  const { token, isLoggedIn } = useContext(AuthContext);
+  const { isLoggedIn } = useContext(AuthContext);
   useEffect(() => {
     let cancelled = false;
     async function loadBodyWeight() {
@@ -440,20 +443,30 @@ const ProfileScreen = () => {
         {/* Sign Out Button (hidden in design but keeping for functionality) */}
         <Pressable
           onPress={() => {
-            void logOut().catch(() => {
+            if (!token || isLoggingOut) return;
+            setIsLoggingOut(true);
+            void (async () => {
+              await unregisterCurrentDevice(token);
+              await logOut();
+            })().catch(() => {
+              setIsLoggingOut(false);
               Alert.alert(
                 "Could Not Log Out",
-                "Your session is still active. Please try again."
+                "Could not finish signing out this device. Your session is still active; please try again."
               );
             });
           }}
+          disabled={isLoggingOut}
+          accessibilityRole="button"
+          accessibilityLabel={isLoggingOut ? "Logging out" : "Sign out"}
+          accessibilityState={{ disabled: isLoggingOut, busy: isLoggingOut }}
           style={[
             styles.signOutButton,
             { backgroundColor: colors.inputBackground },
           ]}
         >
           <ThemedText type="default" style={styles.signOutText}>
-            Sign Out
+            {isLoggingOut ? "Signing Out…" : "Sign Out"}
           </ThemedText>
         </Pressable>
       </ScrollView>
