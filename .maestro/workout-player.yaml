@@ -29,6 +29,8 @@ env:
 # =============================================
 
 - assertVisible: "This Week"
+- assertVisible:
+    id: "home-live-stats"
 
 - extendedWaitUntil:
     notVisible: "Loading your week..."
@@ -142,3 +144,16 @@ env:
 
 - tapOn:
     id: "summary-done"
+
+# Returning to Home verifies completion propagates beyond the player.
+- extendedWaitUntil:
+    visible:
+      id: "tab-home"
+    timeout: 10000
+- assertVisible: "This Week"
+- assertVisible:
+    id: "home-stat-workouts"
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "profile-activity-grid"

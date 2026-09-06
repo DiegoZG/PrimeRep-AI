@@ -558,7 +558,7 @@ const Home = () => {
           </View>
 
           <AnimatedCard delay={300}>
-            <View style={styles.statsRow}>
+            <View testID="home-live-stats" style={styles.statsRow}>
               <View
                 style={[
                   styles.statCard,
@@ -577,7 +577,7 @@ const Home = () => {
                     color={colors.primaryButton}
                   />
                 </View>
-                <ThemedText style={styles.statValue}>
+                <ThemedText testID="home-stat-streak" style={styles.statValue}>
                   {statValue(stats?.streak)}
                 </ThemedText>
                 <ThemedText style={styles.statLabel}>Day Streak</ThemedText>
@@ -601,7 +601,7 @@ const Home = () => {
                     color={colors.electricBlue}
                   />
                 </View>
-                <ThemedText style={styles.statValue}>
+                <ThemedText testID="home-stat-workouts" style={styles.statValue}>
                   {statValue(stats?.totalCompleted)}
                 </ThemedText>
                 <ThemedText style={styles.statLabel}>Workouts</ThemedText>

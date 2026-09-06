@@ -161,7 +161,6 @@ export function EquipmentProvider({ children }: PropsWithChildren) {
 
   const ensureEquipmentLoaded = useCallback(
     async (options?: { force?: boolean }) => {
-      console.log("in ensure fucntion");
       const { force = false } = options || {};
 
       // If not forcing and we have fresh data, skip fetch

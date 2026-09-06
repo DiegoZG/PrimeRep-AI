@@ -2,7 +2,7 @@ import { AuthContext } from "@/utils/authContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -158,6 +158,7 @@ const ProfileScreen = () => {
           <Pressable
             onPress={() => router.push("/settings")}
             style={styles.settingsButton}
+            testID="profile-settings-button"
           >
             <Ionicons name="settings-outline" size={24} color={colors.text} />
           </Pressable>
@@ -306,6 +307,7 @@ const ProfileScreen = () => {
 
           {/* Activity Grid */}
           <View
+            testID="profile-activity-grid"
             style={[
               styles.activityGrid,
               {
@@ -446,14 +448,10 @@ const ProfileScreen = () => {
             if (!token || isLoggingOut) return;
             setIsLoggingOut(true);
             void (async () => {
-              await unregisterCurrentDevice(token);
+              await unregisterCurrentDevice(token).catch(() => {});
               await logOut();
-            })().catch(() => {
+            })().finally(() => {
               setIsLoggingOut(false);
-              Alert.alert(
-                "Could Not Log Out",
-                "Could not finish signing out this device. Your session is still active; please try again."
-              );
             });
           }}
           disabled={isLoggingOut}

@@ -195,6 +195,7 @@ export default function NotificationsScreen() {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
+          testID="onboarding-notifications-skip"
           onPress={handleSkip}
           disabled={isLoading}
           accessibilityRole="button"
@@ -414,6 +415,7 @@ export default function NotificationsScreen() {
           ]}
         >
           <AnimatedButton
+            testID="onboarding-notifications-enable"
             onPress={() => void handleEnable()}
             disabled={isLoading}
             accessibilityRole="button"
