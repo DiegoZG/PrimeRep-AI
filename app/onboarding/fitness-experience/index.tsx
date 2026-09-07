@@ -20,6 +20,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { ExperienceLevel } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { FITNESS_EXPERIENCE_SCREEN } from "../constants";
 
@@ -152,7 +153,7 @@ export default function FitnessExperienceScreen() {
     };
   });
 
-  const handleSelectExperience = (experienceId: string) => {
+  const handleSelectExperience = (experienceId: ExperienceLevel) => {
     setSelectedExperience(experienceId);
     updateField("experienceLevel", experienceId);
   };
@@ -383,4 +384,3 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
-

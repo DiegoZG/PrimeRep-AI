@@ -1,3 +1,12 @@
+import type {
+  ExperienceLevel,
+  FitnessGoal,
+  TrainingPlace,
+  VarietyLevel,
+  WorkoutFrequency,
+  WorkoutSplit,
+} from "@/interfaces/onboarding/types";
+
 export interface ReasonOption {
   id: string;
   title: string;
@@ -5,13 +14,13 @@ export interface ReasonOption {
 }
 
 export interface ExperienceOption {
-  id: string;
+  id: ExperienceLevel;
   title: string;
   description: string;
 }
 
 export interface FitnessGoalOption {
-  id: string;
+  id: FitnessGoal;
   title: string;
   description: string;
   tag?: {
@@ -21,7 +30,7 @@ export interface FitnessGoalOption {
 }
 
 export interface TrainingFrequencyOption {
-  id: string;
+  id: WorkoutFrequency;
   title: string;
   tag?: {
     text: string;
@@ -30,7 +39,7 @@ export interface TrainingFrequencyOption {
 }
 
 export interface WorkoutSplitOption {
-  id: string;
+  id: WorkoutSplit;
   title: string;
   description: string;
   tag?: {
@@ -331,9 +340,9 @@ export const WORKOUT_SPLIT_SCREEN = {
   options: [
     {
       id: "ai-optimized",
-      title: "AI-Optimized",
+      title: "PrimeRep Optimized",
       description:
-        "Our AI creates dynamic workouts prioritising the muscle groups with the best recovery state",
+        "PrimeRep creates balanced workouts based on your schedule, goals, experience, and available equipment.",
       icon: "✨",
     },
     {
@@ -485,7 +494,7 @@ export const ADD_WORKOUT_MODAL = {
 };
 
 export interface VarietyLevelOption {
-  id: string;
+  id: VarietyLevel;
   title: string;
   description: string;
 }
@@ -520,7 +529,7 @@ export const VARIETY_LEVEL_SCREEN = {
 };
 
 export interface TrainingPlaceOption {
-  id: string;
+  id: TrainingPlace;
   title: string;
   description: string;
 }

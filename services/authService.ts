@@ -1,11 +1,12 @@
 import { requestJson } from "./httpClient";
+import type { OnboardingData } from "@/interfaces/onboarding/types";
 
 export type SignUpPayload = {
   email: string;
   password: string;
   preferred_name: string;
   last_name?: string | null;
-  onboarding?: Record<string, any> | null;
+  onboarding?: OnboardingData | null;
 };
 
 export type LoginPayload = {

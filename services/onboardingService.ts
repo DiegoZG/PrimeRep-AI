@@ -1,14 +1,7 @@
 import { requestJson } from "./httpClient";
+import type { OnboardingData } from "@/interfaces/onboarding/types";
 
-// Minimal shape — the onboarding `data` blob is a flexible JSONB field on the
-// backend, so we only type the parts the frontend currently reads from it.
-export interface OnboardingData {
-  experienceLevel?: "no-experience" | "beginner" | "intermediate" | "advanced";
-  /** Body weight as the user entered it, in `weightUnit` — not normalised to kg. */
-  weight?: number;
-  weightUnit?: "LB" | "KG";
-  [key: string]: unknown;
-}
+export type { OnboardingData } from "@/interfaces/onboarding/types";
 
 export interface OnboardingProfileResponse {
   data: OnboardingData;

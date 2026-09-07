@@ -14,6 +14,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { TrainingPlace } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { TRAINING_PLACE_SCREEN } from "../constants";
 
@@ -127,7 +128,7 @@ export default function TrainingPlaceScreen() {
     };
   });
 
-  const handleSelectPlace = (placeId: string) => {
+  const handleSelectPlace = (placeId: TrainingPlace) => {
     setSelectedPlace(placeId);
     updateField("trainingPlace", placeId);
   };

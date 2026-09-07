@@ -1,41 +1,15 @@
 import { createContext, PropsWithChildren, useState } from "react";
-
-interface OnboardingData {
-  preferredName: string;
-  lastName?: string;
-  email?: string;
-  age?: number;
-  gender?: string;
-  weight?: number; // Weight value
-  weightUnit?: "LB" | "KG"; // Weight unit (pounds or kilograms)
-  reason?: string; // Reason for using the fitness app
-  fitnessGoal?: string; // Single fitness goal (changed from array to single value)
-  experienceLevel?: string;
-  workoutFrequency?: string;
-  workoutSplit?: string; // Preferred workout split
-  varietyLevel?: string; // Exercise variety preference
-  trainingPlace?: string; // Where user exercises
-  selectedEquipment?: string[]; // Selected equipment IDs
-  dumbbellWeights?: number[]; // Selected dumbbell weights
-  plateWeights?: number[]; // Selected plate weights
-  customWorkouts?: {
-    id: string;
-    name: string;
-    type: "workout-split" | "custom";
-    muscleGroups: string[]; // Array of muscle group IDs
-  }[];
-  preferredWorkoutTime?: string;
-  notificationsEnabled?: boolean; // Whether user enabled notifications
-  // One-rep max values (for Intermediate/Advanced users)
-  benchPress1RM?: number; // Bench press one-rep max in pounds
-  backSquat1RM?: number; // Back squat one-rep max in pounds
-  deadlift1RM?: number; // Deadlift one-rep max in pounds
-  [key: string]: any; // Allow for additional fields
-}
+import type {
+  OnboardingData,
+  OnboardingFields,
+} from "@/interfaces/onboarding/types";
 
 interface OnboardingState {
   data: OnboardingData;
-  updateField: (field: keyof OnboardingData, value: any) => void;
+  updateField: <Key extends keyof OnboardingFields>(
+    field: Key,
+    value: OnboardingFields[Key]
+  ) => void;
   updateMultipleFields: (fields: Partial<OnboardingData>) => void;
   resetOnboarding: () => void;
   getOnboardingData: () => OnboardingData;
@@ -50,12 +24,12 @@ const initialData: OnboardingData = {
   weight: undefined,
   weightUnit: "LB",
   reason: "",
-  fitnessGoal: "",
-  experienceLevel: "",
-  workoutFrequency: "",
-  workoutSplit: "",
-  varietyLevel: "",
-  trainingPlace: "",
+  fitnessGoal: undefined,
+  experienceLevel: undefined,
+  workoutFrequency: undefined,
+  workoutSplit: undefined,
+  varietyLevel: undefined,
+  trainingPlace: undefined,
   selectedEquipment: [],
   dumbbellWeights: [],
   plateWeights: [],
@@ -78,7 +52,10 @@ export const OnboardingContext = createContext<OnboardingState>({
 export function OnboardingProvider({ children }: PropsWithChildren) {
   const [data, setData] = useState<OnboardingData>(initialData);
 
-  const updateField = (field: keyof OnboardingData, value: any) => {
+  const updateField = <Key extends keyof OnboardingFields>(
+    field: Key,
+    value: OnboardingFields[Key]
+  ) => {
     setData((prevData) => ({
       ...prevData,
       [field]: value,

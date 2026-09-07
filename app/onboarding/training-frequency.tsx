@@ -14,6 +14,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { WorkoutFrequency } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { TRAINING_FREQUENCY_SCREEN } from "./constants";
 
@@ -179,7 +180,7 @@ export default function TrainingFrequencyScreen() {
     };
   });
 
-  const handleSelectFrequency = (frequencyId: string) => {
+  const handleSelectFrequency = (frequencyId: WorkoutFrequency) => {
     setSelectedFrequency(frequencyId);
     updateField("workoutFrequency", frequencyId);
   };
