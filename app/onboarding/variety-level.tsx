@@ -14,6 +14,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { VarietyLevel } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { VARIETY_LEVEL_SCREEN } from "./constants";
 
@@ -127,7 +128,7 @@ export default function VarietyLevelScreen() {
     };
   });
 
-  const handleSelectVariety = (varietyId: string) => {
+  const handleSelectVariety = (varietyId: VarietyLevel) => {
     setSelectedVariety(varietyId);
     updateField("varietyLevel", varietyId);
   };
@@ -259,4 +260,3 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
-

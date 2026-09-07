@@ -20,6 +20,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { FitnessGoal } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { FITNESS_GOAL_SCREEN } from "./constants";
 
@@ -152,7 +153,7 @@ export default function FitnessGoalScreen() {
     };
   });
 
-  const handleSelectGoal = (goalId: string) => {
+  const handleSelectGoal = (goalId: FitnessGoal) => {
     setSelectedGoal(goalId);
     updateField("fitnessGoal", goalId);
   };
