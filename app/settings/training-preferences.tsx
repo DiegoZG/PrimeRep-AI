@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -81,13 +81,20 @@ export default function TrainingPreferencesScreen() {
   const [saving, setSaving] = useState(false);
   const [customWorkoutName, setCustomWorkoutName] = useState("");
   const [customMuscles, setCustomMuscles] = useState<string[]>([]);
+  const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
+  const [equipmentQuery, setEquipmentQuery] = useState("");
+  const [equipmentDraft, setEquipmentDraft] = useState<string[]>([]);
 
-  const equipmentByCategory = useMemo(() => {
-    return catalogItems.reduce<Record<string, typeof catalogItems>>((groups, item) => {
-      (groups[item.category] ??= []).push(item);
-      return groups;
-    }, {});
-  }, [catalogItems]);
+  const selectedEquipmentItems = useMemo(
+    () => catalogItems.filter((item) => preferences.selectedEquipment?.includes(item.id)),
+    [catalogItems, preferences.selectedEquipment]
+  );
+  const pickerItems = useMemo(() => {
+    const query = equipmentQuery.trim().toLowerCase();
+    return query
+      ? catalogItems.filter((item) => item.name.toLowerCase().includes(query) || item.category.toLowerCase().includes(query))
+      : catalogItems.filter((item) => equipmentDraft.includes(item.id));
+  }, [catalogItems, equipmentDraft, equipmentQuery]);
 
   useEffect(() => {
     if (!token) return;
@@ -130,15 +137,26 @@ export default function TrainingPreferencesScreen() {
     } finally { setSaving(false); }
   };
 
-  const toggleEquipment = (equipment: string) => setPreferences((current) => {
-    const selected = new Set(current.selectedEquipment || []);
+  const toggleDraftEquipment = (equipment: string) => setEquipmentDraft((current) => {
+    const selected = new Set(current);
     if (selected.has(equipment)) {
       selected.delete(equipment);
     } else {
       selected.add(equipment);
     }
-    return { ...current, selectedEquipment: [...selected].sort() };
+    return [...selected].sort();
   });
+
+  const openEquipmentPicker = () => {
+    setEquipmentDraft(preferences.selectedEquipment || []);
+    setEquipmentQuery("");
+    setEquipmentPickerVisible(true);
+  };
+
+  const applyEquipmentDraft = () => {
+    setPreferences((current) => ({ ...current, selectedEquipment: equipmentDraft }));
+    setEquipmentPickerVisible(false);
+  };
 
   const toggleCustomMuscle = (muscle: string) => {
     setCustomMuscles((current) => current.includes(muscle)
@@ -179,11 +197,33 @@ export default function TrainingPreferencesScreen() {
           <Pressable onPress={addCustomWorkout} accessibilityRole="button" style={[styles.addWorkout, { borderColor: colors.primaryButton }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Add custom workout</ThemedText></Pressable>
         </View>}
         <ChoiceGroup title="Training location" choices={PLACES} value={preferences.trainingPlace} onChange={(value) => setPreferences((p) => ({ ...p, trainingPlace: value as TrainingPreferences["trainingPlace"] }))} />
-        <View style={styles.group}><ThemedText style={[styles.label, { color: colors.placeholder }]}>General equipment</ThemedText>{Object.entries(equipmentByCategory).map(([category, equipment]) => <View key={category} style={styles.catalogCategory}><ThemedText style={{ color: colors.placeholder, fontWeight: "600" }}>{category}</ThemedText><View style={styles.chips}>{equipment.map((item) => { const selected = preferences.selectedEquipment?.includes(item.id); return <Pressable key={item.id} onPress={() => toggleEquipment(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.chip, { borderColor: colors.inputBorder }, selected && { backgroundColor: colors.primaryButton, borderColor: colors.primaryButton }]}><ThemedText style={[styles.chipText, selected && styles.selectedChipText]}>{item.name}</ThemedText></Pressable>; })}</View></View>)}</View>
+        <View style={styles.group}>
+          <ThemedText style={[styles.label, { color: colors.placeholder }]}>General equipment</ThemedText>
+          <Pressable onPress={openEquipmentPicker} accessibilityRole="button" accessibilityLabel="Edit owned equipment" accessibilityHint="Opens a searchable equipment picker" style={[styles.equipmentSummary, { borderColor: colors.inputBorder }]}>
+            <View style={styles.equipmentSummaryCopy}>
+              <ThemedText style={styles.customWorkoutName}>{selectedEquipmentItems.length} {selectedEquipmentItems.length === 1 ? "item" : "items"} selected</ThemedText>
+              <ThemedText numberOfLines={1} style={{ color: colors.placeholder }}>{selectedEquipmentItems.length ? selectedEquipmentItems.slice(0, 3).map((item) => item.name).join(", ") + (selectedEquipmentItems.length > 3 ? "…" : "") : "No equipment selected"}</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={colors.placeholder} />
+          </Pressable>
+        </View>
         <Pressable onPress={() => void save()} disabled={saving} accessibilityRole="button" accessibilityState={{ disabled: saving, busy: saving }} style={[styles.save, { backgroundColor: colors.primaryButton }, saving && styles.dim]}><ThemedText style={styles.saveText}>{saving ? "Saving…" : "Save preferences"}</ThemedText></Pressable>
       </>}
     </ScrollView>
+    <Modal visible={equipmentPickerVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEquipmentPickerVisible(false)}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+        <View style={styles.header}><Pressable onPress={() => setEquipmentPickerVisible(false)} style={styles.back} accessibilityRole="button" accessibilityLabel="Cancel equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Cancel</ThemedText></Pressable><ThemedText type="title" style={styles.title}>Your equipment</ThemedText><Pressable onPress={applyEquipmentDraft} style={styles.back} accessibilityRole="button" accessibilityLabel="Apply equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Done</ThemedText></Pressable></View>
+        <View style={styles.pickerContent}>
+          <TextInput value={equipmentQuery} onChangeText={setEquipmentQuery} placeholder="Search equipment" placeholderTextColor={colors.placeholder} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} accessibilityLabel="Search equipment" />
+          <ThemedText style={{ color: colors.placeholder }}>{equipmentQuery ? "Search results" : "Selected equipment"}</ThemedText>
+          <ScrollView contentContainerStyle={styles.pickerList} keyboardShouldPersistTaps="handled">
+            {pickerItems.map((item) => { const selected = equipmentDraft.includes(item.id); return <Pressable key={item.id} onPress={() => toggleDraftEquipment(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.pickerRow, { borderColor: colors.inputBorder }]}><View><ThemedText style={styles.customWorkoutName}>{item.name}</ThemedText><ThemedText style={{ color: colors.placeholder }}>{item.category}</ThemedText></View><Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={25} color={selected ? colors.primaryButton : colors.placeholder} /></Pressable>; })}
+            {!pickerItems.length && <ThemedText style={{ color: colors.placeholder }}>Search the catalog to add equipment you own.</ThemedText>}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </Modal>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, back: { width: 40, minHeight: 44, justifyContent: "center" }, title: { fontSize: 20 }, content: { padding: 20, paddingBottom: 44, gap: 28 }, group: { gap: 12 }, label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.7 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, chip: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center" }, chipText: { fontSize: 15, fontWeight: "600" }, selectedChipText: { color: "#FFFFFF" }, save: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 }, saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 }, dim: { opacity: 0.6 }, catalogCategory: { gap: 8 }, customWorkout: { minHeight: 56, padding: 12, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, customWorkoutName: { fontWeight: "700" }, textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, fontSize: 16 }, addWorkout: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" } });
+const styles = StyleSheet.create({ safe: { flex: 1 }, header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, back: { width: 64, minHeight: 44, justifyContent: "center" }, title: { fontSize: 20 }, content: { padding: 20, paddingBottom: 44, gap: 28 }, group: { gap: 12 }, label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.7 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, chip: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center" }, chipText: { fontSize: 15, fontWeight: "600" }, selectedChipText: { color: "#FFFFFF" }, save: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 }, saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 }, dim: { opacity: 0.6 }, customWorkout: { minHeight: 56, padding: 12, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, customWorkoutName: { fontWeight: "700" }, textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, fontSize: 16 }, addWorkout: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }, equipmentSummary: { minHeight: 68, paddingHorizontal: 16, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, equipmentSummaryCopy: { flex: 1, gap: 4, paddingRight: 12 }, pickerContent: { flex: 1, padding: 20, gap: 16 }, pickerList: { gap: 10, paddingBottom: 32 }, pickerRow: { minHeight: 64, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" } });

@@ -84,6 +84,8 @@ function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
     dayType: apiDay.dayType,
     splitKey: apiDay.splitKey,
     workoutIntent: apiDay.workoutIntent ?? undefined,
+    deferredMuscles: apiDay.deferredMuscles ?? [],
+    unavailableMuscles: apiDay.unavailableMuscles ?? [],
     blocks: (apiDay.exerciseBlocks || []).map(mapApiBlock),
   };
 }

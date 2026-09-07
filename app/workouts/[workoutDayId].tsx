@@ -355,6 +355,22 @@ export default function WorkoutDayDetailScreen() {
     <View style={styles.listHeader}>
       {/* Coach intent — renders nothing when absent */}
       <CoachCard intent={workout?.workoutIntent} colors={colors} />
+      {!!workout?.unavailableMuscles?.length && (
+        <View style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
+          <ThemedText style={styles.coverageNoticeTitle}>Equipment update</ThemedText>
+          <ThemedText style={{ color: colors.placeholder }}>
+            {`We couldn't add ${workout.unavailableMuscles.join(", ")} with your current equipment.`}
+          </ThemedText>
+        </View>
+      )}
+      {!!workout?.deferredMuscles?.length && (
+        <View style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
+          <ThemedText style={styles.coverageNoticeTitle}>Muscle rotation</ThemedText>
+          <ThemedText style={{ color: colors.placeholder }}>
+            {`${workout.deferredMuscles.join(", ")} will be prioritized in your next custom workout.`}
+          </ThemedText>
+        </View>
+      )}
       {/* Duration selector */}
       <View style={styles.durationSection}>
         <ThemedText type="default" style={styles.durationLabel}>
@@ -638,6 +654,16 @@ const styles = StyleSheet.create({
   },
   durationSection: {
     marginBottom: 16,
+  },
+  coverageNotice: {
+    borderRadius: 12,
+    padding: 14,
+    gap: 4,
+    marginBottom: 16,
+  },
+  coverageNoticeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   durationLabel: {
     fontSize: 14,

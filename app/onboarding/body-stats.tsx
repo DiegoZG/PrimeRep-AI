@@ -193,6 +193,15 @@ export default function BodyStatsScreen() {
     Number(age) >= 13 &&
     Number(age) <= 120;
 
+  const ageError = (() => {
+    if (!age.trim()) return null;
+    const numericAge = Number(age);
+    if (!Number.isInteger(numericAge)) return "Enter your age in whole years.";
+    if (numericAge <= 12) return "You need to be at least 13 to use PrimeRep.";
+    if (numericAge > 120) return "Enter an age between 13 and 120.";
+    return null;
+  })();
+
   const dismissKeyboard = () => {
     Keyboard.dismiss();
     setShowGenderPicker(false);
@@ -441,6 +450,14 @@ export default function BodyStatsScreen() {
                           >
                             {BODY_STATS_SCREEN.formFields.age.label}
                           </Text>
+                          {ageError && (
+                            <Text
+                              accessibilityLiveRegion="polite"
+                              style={styles.fieldError}
+                            >
+                              {ageError}
+                            </Text>
+                          )}
                           <AnimatedInput
                             style={styles.input}
                             placeholder={
@@ -449,6 +466,10 @@ export default function BodyStatsScreen() {
                             value={age}
                             onChangeText={handleAgeChange}
                             keyboardType="numeric"
+                            error={Boolean(ageError)}
+                            accessibilityLabel="Age"
+                            aria-invalid={Boolean(ageError)}
+                            accessibilityHint={ageError || "Enter your age in whole years"}
                           />
                         </View>
                       </View>
@@ -554,6 +575,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+  },
+  fieldError: {
+    color: "#D14343",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: -4,
   },
   genderInput: {
     borderRadius: 12,
