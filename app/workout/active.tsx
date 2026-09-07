@@ -109,6 +109,19 @@ function mergePersistedSets(prescribed: SetState[], persisted: SetState[]): SetS
   return prescribed.map((set) => bySet.get(`${set.exerciseId}:${set.setNumber}`) ?? set);
 }
 
+function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] {
+  const bySet = new Map(replayed.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
+  return current.map((set) => {
+    const replayedSet = bySet.get(`${set.exerciseId}:${set.setNumber}`);
+    if (!replayedSet || (set.confirmed && !replayedSet.confirmed)) return set;
+    return {
+      ...replayedSet,
+      reps: set.reps || replayedSet.reps,
+      weight: set.weight || replayedSet.weight,
+    };
+  });
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function ActiveWorkoutScreen() {
@@ -130,6 +143,8 @@ export default function ActiveWorkoutScreen() {
   const [operations, setOperations] = useState<PendingWorkoutOperation[]>([]);
   const [persistedRevision, setPersistedRevision] = useState(0);
   const [isReplaying, setIsReplaying] = useState(false);
+  const replayInFlightRef = useRef(false);
+  const operationsRef = useRef<PendingWorkoutOperation[]>([]);
   const [storageError, setStorageError] = useState(false);
   const [didComplete, setDidComplete] = useState(false);
   const isTerminalRef = useRef(false);
@@ -144,6 +159,10 @@ export default function ActiveWorkoutScreen() {
 
   // Initialize set tracking state from prescription
   const [sets, setSets] = useState<SetState[]>([]);
+
+  useEffect(() => {
+    operationsRef.current = operations;
+  }, [operations]);
 
   useEffect(() => {
     if (exercises.length > 0 && sets.length === 0) {
@@ -380,7 +399,7 @@ export default function ActiveWorkoutScreen() {
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
   useEffect(() => {
-    if (isTerminalRef.current || isRestoring || !user || !workout || sets.length === 0) return;
+    if (isTerminalRef.current || replayInFlightRef.current || isRestoring || !user || !workout || sets.length === 0) return;
     void saveActiveWorkout({
       userId: user.id,
       workoutDayId: workout.workoutDayId,
@@ -402,14 +421,22 @@ export default function ActiveWorkoutScreen() {
   }, [isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations]);
 
   const replayPendingWrites = useCallback(async () => {
-    if (!token || !user || isReplaying) return;
+    if (!token || !user || replayInFlightRef.current) return;
+    replayInFlightRef.current = true;
+    const operationIdsAtStart = new Set(operationsRef.current.map((operation) => operation.id));
     setIsReplaying(true);
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
       if (!result.workout) return;
       setSessionId(result.workout.serverSessionId);
-      setSets(result.workout.sets);
-      setOperations(result.workout.operations);
+      setSets((current) => mergeReplaySets(current, result.workout!.sets));
+      setOperations((current) => {
+        const remainingById = new Map(result.workout!.operations.map((operation) => [operation.id, operation]));
+        return [
+          ...result.workout!.operations,
+          ...current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id)),
+        ];
+      });
       if (result.abandoned || result.completed) {
         isTerminalRef.current = true;
         await clearActiveWorkout(user.id);
@@ -418,9 +445,10 @@ export default function ActiveWorkoutScreen() {
     } catch {
       // The operation remains durable and will be retried on the next retry window.
     } finally {
+      replayInFlightRef.current = false;
       setIsReplaying(false);
     }
-  }, [token, user, isReplaying]);
+  }, [token, user]);
 
   const retryAt = useMemo(() => Math.min(
     ...operations
