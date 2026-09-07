@@ -25,7 +25,9 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { WeightUnit } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
+import { convertWeight } from "@/utils/weightConversion";
 import { ONE_REP_MAX_SCREEN } from "../constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
@@ -47,6 +49,7 @@ export default function OneRepMaxScreen() {
   const [deadlift, setDeadlift] = useState<string>(
     data.deadlift1RM ? String(data.deadlift1RM) : ""
   );
+  const weightUnit = data.weightUnit ?? "LB";
 
   // Update local state when context data changes (e.g., after modal applies value)
   useEffect(() => {
@@ -130,6 +133,34 @@ export default function OneRepMaxScreen() {
       ? `/onboarding/fitness-experience/calculator-modal?exercise=${exerciseId}`
       : "/onboarding/fitness-experience/calculator-modal";
     router.push(url as any);
+  };
+
+  const convertInputWeight = (value: string, fromUnit: WeightUnit) => {
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return value;
+    return String(convertWeight(parsed, fromUnit, fromUnit === "LB" ? "KG" : "LB"));
+  };
+
+  const handleWeightUnitChange = (nextUnit: WeightUnit) => {
+    if (nextUnit === weightUnit) return;
+
+    const nextBenchPress = convertInputWeight(benchPress, weightUnit);
+    const nextBackSquat = convertInputWeight(backSquat, weightUnit);
+    const nextDeadlift = convertInputWeight(deadlift, weightUnit);
+
+    setBenchPress(nextBenchPress);
+    setBackSquat(nextBackSquat);
+    setDeadlift(nextDeadlift);
+    updateField("weightUnit", nextUnit);
+    updateField(
+      "weight",
+      typeof data.weight === "number"
+        ? convertWeight(data.weight, weightUnit, nextUnit)
+        : data.weight
+    );
+    updateField("benchPress1RM", Number.parseFloat(nextBenchPress) || undefined);
+    updateField("backSquat1RM", Number.parseFloat(nextBackSquat) || undefined);
+    updateField("deadlift1RM", Number.parseFloat(nextDeadlift) || undefined);
   };
 
   const handleBenchPressChange = (value: string) => {
@@ -219,7 +250,7 @@ export default function OneRepMaxScreen() {
                         {ONE_REP_MAX_SCREEN.calculatorSection.heading}
                       </Text>
                       <TouchableOpacity
-                        onPress={handleOpenCalculator}
+                        onPress={() => handleOpenCalculator()}
                         activeOpacity={0.7}
                         style={[
                           styles.calculatorButton,
@@ -228,6 +259,42 @@ export default function OneRepMaxScreen() {
                       >
                         <Entypo name="calculator" size={20} color="#FFFFFF" />
                       </TouchableOpacity>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.unitControl,
+                        {
+                          backgroundColor: colors.inputBackground,
+                          borderColor: colors.inputBorder,
+                        },
+                      ]}
+                    >
+                      {(["LB", "KG"] as const).map((unit) => {
+                        const selected = weightUnit === unit;
+                        return (
+                          <TouchableOpacity
+                            key={unit}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"} for body weight and one-rep maxes`}
+                            accessibilityState={{ selected }}
+                            onPress={() => handleWeightUnitChange(unit)}
+                            style={[
+                              styles.unitOption,
+                              selected && { backgroundColor: colors.primaryButton },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.unitOptionText,
+                                { color: selected ? "#FFFFFF" : colors.text },
+                              ]}
+                            >
+                              {unit}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </Animated.View>
 
@@ -271,10 +338,10 @@ export default function OneRepMaxScreen() {
                                 <Text
                                   style={[
                                     styles.unitLabel,
-                                    { color: colors.placeholder },
+                                    { color: colors.text },
                                   ]}
                                 >
-                                  lb
+                                  {weightUnit.toLowerCase()}
                                 </Text>
                               </View>
                             </View>
@@ -360,6 +427,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  unitControl: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 4,
+  },
+  unitOption: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+  },
+  unitOptionText: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Fonts.sans,
+  },
   calculatorHeading: {
     fontSize: 18,
     fontWeight: "600",
@@ -398,7 +483,7 @@ const styles = StyleSheet.create({
   },
   unitLabel: {
     fontSize: 14,
-    fontWeight: "400",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
     minWidth: 30,
   },
@@ -425,4 +510,3 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
-

@@ -31,7 +31,7 @@ import {
 
 export default function CalculatorModal() {
   const params = useLocalSearchParams<{ exercise?: string }>();
-  const { updateField } = useContext(OnboardingContext);
+  const { data, updateField } = useContext(OnboardingContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
@@ -41,6 +41,7 @@ export default function CalculatorModal() {
   const [selectedExercise, setSelectedExercise] = useState<string | null>(
     params.exercise || null
   );
+  const weightUnit = data.weightUnit ?? "LB";
 
   // Animation shared values
   const modalOpacity = useSharedValue(0);
@@ -157,7 +158,7 @@ export default function CalculatorModal() {
                     <Text
                       style={[styles.unitLabel, { color: colors.placeholder }]}
                     >
-                      {ONE_REP_MAX_CALCULATOR_MODAL.inputs.weight.unit}
+                      {weightUnit.toLowerCase()}
                     </Text>
                   </View>
                 </View>
@@ -174,7 +175,7 @@ export default function CalculatorModal() {
                   <Text
                     style={[styles.resultValue, { color: colors.electricBlue }]}
                   >
-                    {calculated1RM} lb
+                    {calculated1RM} {weightUnit.toLowerCase()}
                   </Text>
                 </View>
               )}
@@ -419,4 +420,3 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
 });
-

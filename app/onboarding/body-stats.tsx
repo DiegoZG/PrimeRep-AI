@@ -25,7 +25,9 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
+import type { WeightUnit } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
+import { convertWeight } from "@/utils/weightConversion";
 import { BODY_STATS_SCREEN } from "./constants";
 
 export default function BodyStatsScreen() {
@@ -39,7 +41,7 @@ export default function BodyStatsScreen() {
   const [weight, setWeight] = useState<string>(
     data.weight ? String(data.weight) : ""
   );
-  const [weightUnit, setWeightUnit] = useState<"LB" | "KG">(
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(
     data.weightUnit || "LB"
   );
   const [age, setAge] = useState<string>(data.age ? String(data.age) : "");
@@ -52,6 +54,11 @@ export default function BodyStatsScreen() {
   const manualSectionTranslateY = useSharedValue(20);
   const formFieldsOpacity = useSharedValue(0);
   const formFieldsTranslateY = useSharedValue(20);
+
+  useEffect(() => {
+    setWeight(data.weight ? String(data.weight) : "");
+    setWeightUnit(data.weightUnit || "LB");
+  }, [data.weight, data.weightUnit]);
 
   useEffect(() => {
     // Sync section animation - starts after 200ms delay
@@ -129,8 +136,23 @@ export default function BodyStatsScreen() {
 
   const handleToggleWeightUnit = () => {
     const newUnit = weightUnit === "LB" ? "KG" : "LB";
+    const parsedWeight = Number.parseFloat(weight);
+    const convertedWeight = Number.isFinite(parsedWeight) && parsedWeight > 0
+      ? convertWeight(parsedWeight, weightUnit, newUnit)
+      : undefined;
     setWeightUnit(newUnit);
+    if (convertedWeight !== undefined) {
+      setWeight(String(convertedWeight));
+    }
     updateField("weightUnit", newUnit);
+    updateField("weight", convertedWeight);
+    (['benchPress1RM', 'backSquat1RM', 'deadlift1RM'] as const).forEach((field) => {
+      const value = data[field];
+      updateField(
+        field,
+        typeof value === "number" ? convertWeight(value, weightUnit, newUnit) : value
+      );
+    });
   };
 
   const handleAgeChange = (value: string) => {
