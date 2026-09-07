@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -116,8 +117,10 @@ export default function BodyStatsScreen() {
   });
 
   const handleSyncAppleHealth = () => {
-    // TODO: Implement Apple Health sync
-    console.log("Sync with Apple Health");
+    Alert.alert(
+      "Apple Health sync is coming soon",
+      "You can enter your details below. HealthKit syncing will be available in a future iOS update."
+    );
   };
 
   const handleSelectGender = (selectedGender: string) => {
@@ -128,9 +131,11 @@ export default function BodyStatsScreen() {
 
   const handleWeightChange = (value: string) => {
     setWeight(value);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
+    const numValue = Number(value);
+    if (value.trim() && Number.isFinite(numValue) && numValue > 0 && numValue <= 700) {
       updateField("weight", numValue);
+    } else {
+      updateField("weight", undefined);
     }
   };
 
@@ -157,19 +162,45 @@ export default function BodyStatsScreen() {
 
   const handleAgeChange = (value: string) => {
     setAge(value);
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue)) {
+    const numValue = Number(value);
+    if (value.trim() && Number.isInteger(numValue) && numValue >= 13 && numValue <= 120) {
       updateField("age", numValue);
+    } else {
+      updateField("age", undefined);
     }
   };
 
   const handleNext = () => {
-    if (gender && weight && age) {
+    const numericWeight = Number(weight);
+    const numericAge = Number(age);
+    if (
+      gender &&
+      Number.isFinite(numericWeight) && numericWeight > 0 && numericWeight <= 700 &&
+    Number.isInteger(numericAge) && numericAge >= 13 && numericAge <= 120
+    ) {
       router.push("/onboarding/fitness-experience");
     }
   };
 
-  const isFormValid = gender && weight && age;
+  const isFormValid =
+    Boolean(gender) &&
+    weight.trim().length > 0 &&
+    Number.isFinite(Number(weight)) &&
+    Number(weight) > 0 &&
+    Number(weight) <= 700 &&
+    age.trim().length > 0 &&
+    Number.isInteger(Number(age)) &&
+    Number(age) >= 13 &&
+    Number(age) <= 120;
+
+  const ageError = (() => {
+    if (!age.trim()) return null;
+    const numericAge = Number(age);
+    if (!Number.isInteger(numericAge)) return "Enter your age in whole years.";
+    if (numericAge <= 12) return "You need to be at least 13 to use PrimeRep.";
+    if (numericAge > 120) return "Enter an age between 13 and 120.";
+    return null;
+  })();
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -419,6 +450,14 @@ export default function BodyStatsScreen() {
                           >
                             {BODY_STATS_SCREEN.formFields.age.label}
                           </Text>
+                          {ageError && (
+                            <Text
+                              accessibilityLiveRegion="polite"
+                              style={styles.fieldError}
+                            >
+                              {ageError}
+                            </Text>
+                          )}
                           <AnimatedInput
                             style={styles.input}
                             placeholder={
@@ -427,6 +466,10 @@ export default function BodyStatsScreen() {
                             value={age}
                             onChangeText={handleAgeChange}
                             keyboardType="numeric"
+                            error={Boolean(ageError)}
+                            accessibilityLabel="Age"
+                            aria-invalid={Boolean(ageError)}
+                            accessibilityHint={ageError || "Enter your age in whole years"}
                           />
                         </View>
                       </View>
@@ -532,6 +575,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+  },
+  fieldError: {
+    color: "#D14343",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: -4,
   },
   genderInput: {
     borderRadius: 12,

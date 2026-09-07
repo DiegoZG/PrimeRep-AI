@@ -258,11 +258,23 @@ export default function CustomSplitScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleContinue}>
+          {!data.customWorkouts?.length && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[styles.validationMessage, { color: "#D14343" }]}
+            >
+              Add at least one workout day to continue.
+            </Text>
+          )}
+          <AnimatedButton
+            onPress={handleContinue}
+            disabled={!data.customWorkouts?.length}
+          >
             <View
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
+                !data.customWorkouts?.length && styles.disabledButton,
               ]}
             >
               <Text style={styles.primaryButtonText}>CONTINUE</Text>
@@ -375,6 +387,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  disabledButton: {
+    opacity: 0.45,
+  },
+  validationMessage: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+    textAlign: "center",
   },
   primaryButtonText: {
     color: "#FFFFFF",

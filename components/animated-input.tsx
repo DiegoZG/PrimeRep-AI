@@ -13,10 +13,12 @@ const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface AnimatedInputProps extends TextInputProps {
   style?: any;
+  error?: boolean;
 }
 
 export function AnimatedInput({
   style,
+  error = false,
   onFocus,
   onBlur,
   ...props
@@ -28,9 +30,9 @@ export function AnimatedInput({
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      borderColor: isFocused ? colors.electricBlue : colors.inputBorder,
+      borderColor: error ? "#D14343" : isFocused ? colors.electricBlue : colors.inputBorder,
       borderWidth: isFocused ? 2 : 1,
-      shadowColor: colors.electricBlue,
+      shadowColor: error ? "#D14343" : colors.electricBlue,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: glowOpacity.value,
       shadowRadius: 8,

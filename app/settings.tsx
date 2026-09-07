@@ -273,6 +273,35 @@ export default function SettingsScreen() {
         <ThemedText
           style={[styles.sectionLabel, { color: colors.placeholder }]}
         >
+          Training
+        </ThemedText>
+        <View
+          style={[
+            styles.card,
+            styles.sectionCard,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          <Pressable
+            style={styles.navigationRow}
+            onPress={() => router.push("/settings/training-preferences" as Href)}
+            accessibilityRole="button"
+            accessibilityLabel="Training preferences"
+            accessibilityHint="Edit your goal, experience, schedule, split, location, and equipment"
+          >
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Training Preferences</ThemedText>
+              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>
+                Goal, experience, schedule, split, and equipment
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+        </View>
+
+        <ThemedText
+          style={[styles.sectionLabel, { color: colors.placeholder }]}
+        >
           Equipment Weights
         </ThemedText>
 

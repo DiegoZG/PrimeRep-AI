@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
 import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
-import { OnboardingProvider } from "@/utils/onboardingContext";
+import { OnboardingContext, OnboardingProvider } from "@/utils/onboardingContext";
 import { NotificationsProvider } from "@/utils/notificationsContext";
 import { WorkoutWeekProvider } from "@/utils/workoutWeekContext";
 import {
@@ -36,8 +36,9 @@ function RootLayoutNav() {
     hasCompletedOnboarding,
     bootstrapError,
   } = useContext(AuthContext);
+  const { isRestoring: isRestoringOnboarding } = useContext(OnboardingContext);
 
-  if (isBootstrapping) {
+  if (isBootstrapping || (!isLoggedIn && isRestoringOnboarding)) {
     return <Splash />;
   }
 
@@ -81,6 +82,10 @@ function RootLayoutNav() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="settings/training-preferences"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen
             name="settings/dumbbells"
             options={{ headerShown: false }}

@@ -1,4 +1,4 @@
-import type { WorkoutBlock, WorkoutItem } from "./types";
+import type { WorkoutBlock } from "./types";
 
 // =============================================================================
 // API Response Types (camelCase from backend)
@@ -43,6 +43,8 @@ export interface WorkoutDayApiResponse {
   dayType: string;
   splitKey: string;
   workoutIntent?: string | null;
+  deferredMuscles?: string[];
+  unavailableMuscles?: string[];
   exerciseBlocks: WorkoutDayApiBlock[];
 }
 
@@ -65,6 +67,8 @@ export interface WorkoutDay {
   dayType: string;
   splitKey: string;
   workoutIntent?: string;
+  deferredMuscles?: string[];
+  unavailableMuscles?: string[];
   blocks: WorkoutBlock[];
 }
 
@@ -91,4 +95,3 @@ export interface UpdateWorkoutDurationParams {
   workoutDayId: string;
   durationMinutes: number;
 }
-
