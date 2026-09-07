@@ -84,6 +84,7 @@ export default function TrainingPreferencesScreen() {
   const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
   const [equipmentQuery, setEquipmentQuery] = useState("");
   const [equipmentDraft, setEquipmentDraft] = useState<string[]>([]);
+  const [equipmentPickerTab, setEquipmentPickerTab] = useState<"selected" | "not-selected">("selected");
 
   const selectedEquipmentItems = useMemo(
     () => catalogItems.filter((item) => preferences.selectedEquipment?.includes(item.id)),
@@ -91,10 +92,13 @@ export default function TrainingPreferencesScreen() {
   );
   const pickerItems = useMemo(() => {
     const query = equipmentQuery.trim().toLowerCase();
-    return query
-      ? catalogItems.filter((item) => item.name.toLowerCase().includes(query) || item.category.toLowerCase().includes(query))
-      : catalogItems.filter((item) => equipmentDraft.includes(item.id));
-  }, [catalogItems, equipmentDraft, equipmentQuery]);
+    return catalogItems.filter((item) => {
+      const selected = equipmentDraft.includes(item.id);
+      const matchesTab = equipmentPickerTab === "selected" ? selected : !selected;
+      const matchesQuery = !query || item.name.toLowerCase().includes(query) || item.category.toLowerCase().includes(query);
+      return matchesTab && matchesQuery;
+    });
+  }, [catalogItems, equipmentDraft, equipmentPickerTab, equipmentQuery]);
 
   useEffect(() => {
     if (!token) return;
@@ -150,6 +154,7 @@ export default function TrainingPreferencesScreen() {
   const openEquipmentPicker = () => {
     setEquipmentDraft(preferences.selectedEquipment || []);
     setEquipmentQuery("");
+    setEquipmentPickerTab("selected");
     setEquipmentPickerVisible(true);
   };
 
@@ -215,10 +220,17 @@ export default function TrainingPreferencesScreen() {
         <View style={styles.header}><Pressable onPress={() => setEquipmentPickerVisible(false)} style={styles.back} accessibilityRole="button" accessibilityLabel="Cancel equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Cancel</ThemedText></Pressable><ThemedText type="title" style={styles.title}>Your equipment</ThemedText><Pressable onPress={applyEquipmentDraft} style={styles.back} accessibilityRole="button" accessibilityLabel="Apply equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Done</ThemedText></Pressable></View>
         <View style={styles.pickerContent}>
           <TextInput value={equipmentQuery} onChangeText={setEquipmentQuery} placeholder="Search equipment" placeholderTextColor={colors.placeholder} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} accessibilityLabel="Search equipment" />
-          <ThemedText style={{ color: colors.placeholder }}>{equipmentQuery ? "Search results" : "Selected equipment"}</ThemedText>
+          <View style={[styles.pickerTabs, { borderColor: colors.inputBorder }]} accessibilityRole="tablist">
+            {(["selected", "not-selected"] as const).map((tab) => {
+              const selected = equipmentPickerTab === tab;
+              const label = tab === "selected" ? `Selected (${equipmentDraft.length})` : `Not selected (${Math.max(0, catalogItems.length - equipmentDraft.length)})`;
+              return <Pressable key={tab} onPress={() => setEquipmentPickerTab(tab)} accessibilityRole="tab" accessibilityState={{ selected }} style={[styles.pickerTab, selected && { backgroundColor: colors.primaryButton }]}><ThemedText style={[styles.pickerTabText, selected && styles.selectedPickerTabText]}>{label}</ThemedText></Pressable>;
+            })}
+          </View>
+          <ThemedText style={{ color: colors.placeholder }}>{equipmentQuery ? "Search results" : equipmentPickerTab === "selected" ? "Equipment you own" : "Available equipment"}</ThemedText>
           <ScrollView contentContainerStyle={styles.pickerList} keyboardShouldPersistTaps="handled">
-            {pickerItems.map((item) => { const selected = equipmentDraft.includes(item.id); return <Pressable key={item.id} onPress={() => toggleDraftEquipment(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.pickerRow, { borderColor: colors.inputBorder }]}><View><ThemedText style={styles.customWorkoutName}>{item.name}</ThemedText><ThemedText style={{ color: colors.placeholder }}>{item.category}</ThemedText></View><Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={25} color={selected ? colors.primaryButton : colors.placeholder} /></Pressable>; })}
-            {!pickerItems.length && <ThemedText style={{ color: colors.placeholder }}>Search the catalog to add equipment you own.</ThemedText>}
+            {pickerItems.map((item) => { const selected = equipmentDraft.includes(item.id); return <Pressable key={item.id} onPress={() => toggleDraftEquipment(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.pickerRow, { borderColor: colors.inputBorder }]}><View style={styles.pickerRowCopy}><ThemedText numberOfLines={2} style={styles.customWorkoutName}>{item.name}</ThemedText><ThemedText numberOfLines={1} style={{ color: colors.placeholder }}>{item.category}</ThemedText></View><Ionicons style={styles.pickerRowControl} name={selected ? "checkmark-circle" : "ellipse-outline"} size={25} color={selected ? colors.primaryButton : colors.placeholder} /></Pressable>; })}
+            {!pickerItems.length && <ThemedText style={{ color: colors.placeholder }}>{equipmentPickerTab === "selected" ? "No selected equipment matches your search." : "No unselected equipment matches your search."}</ThemedText>}
           </ScrollView>
         </View>
       </SafeAreaView>
@@ -226,4 +238,4 @@ export default function TrainingPreferencesScreen() {
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, back: { width: 64, minHeight: 44, justifyContent: "center" }, title: { fontSize: 20 }, content: { padding: 20, paddingBottom: 44, gap: 28 }, group: { gap: 12 }, label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.7 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, chip: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center" }, chipText: { fontSize: 15, fontWeight: "600" }, selectedChipText: { color: "#FFFFFF" }, save: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 }, saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 }, dim: { opacity: 0.6 }, customWorkout: { minHeight: 56, padding: 12, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, customWorkoutName: { fontWeight: "700" }, textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, fontSize: 16 }, addWorkout: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }, equipmentSummary: { minHeight: 68, paddingHorizontal: 16, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, equipmentSummaryCopy: { flex: 1, gap: 4, paddingRight: 12 }, pickerContent: { flex: 1, padding: 20, gap: 16 }, pickerList: { gap: 10, paddingBottom: 32 }, pickerRow: { minHeight: 64, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" } });
+const styles = StyleSheet.create({ safe: { flex: 1 }, header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, back: { width: 64, minHeight: 44, justifyContent: "center" }, title: { fontSize: 20 }, content: { padding: 20, paddingBottom: 44, gap: 28 }, group: { gap: 12 }, label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.7 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, chip: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center" }, chipText: { fontSize: 15, fontWeight: "600" }, selectedChipText: { color: "#FFFFFF" }, save: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 }, saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 }, dim: { opacity: 0.6 }, customWorkout: { minHeight: 56, padding: 12, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, customWorkoutName: { fontWeight: "700" }, textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, fontSize: 16 }, addWorkout: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }, equipmentSummary: { minHeight: 68, paddingHorizontal: 16, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, equipmentSummaryCopy: { flex: 1, gap: 4, paddingRight: 12 }, pickerContent: { flex: 1, padding: 20, gap: 16 }, pickerTabs: { minHeight: 44, borderWidth: 1, borderRadius: 12, padding: 3, flexDirection: "row" }, pickerTab: { flex: 1, minHeight: 36, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, pickerTabText: { fontSize: 14, fontWeight: "700", textAlign: "center" }, selectedPickerTabText: { color: "#FFFFFF" }, pickerList: { gap: 10, paddingBottom: 32 }, pickerRow: { minHeight: 64, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center" }, pickerRowCopy: { flex: 1, minWidth: 0, gap: 2 }, pickerRowControl: { flexShrink: 0, marginLeft: 12 } });
