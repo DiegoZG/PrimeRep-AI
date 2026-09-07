@@ -258,7 +258,10 @@ export default function CustomSplitScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleContinue}>
+          <AnimatedButton
+            onPress={handleContinue}
+            disabled={!data.customWorkouts?.length}
+          >
             <View
               style={[
                 styles.primaryButton,

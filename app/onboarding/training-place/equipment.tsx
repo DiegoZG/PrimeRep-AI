@@ -37,7 +37,6 @@ export default function EquipmentScreen() {
 
   // Load equipment on mount
   useEffect(() => {
-    console.log("ensuring ");
     ensureEquipmentLoaded();
   }, [ensureEquipmentLoaded]);
 
@@ -213,16 +212,10 @@ export default function EquipmentScreen() {
   // Get selected weights for display
   const getSelectedWeights = (equipmentId: string): string[] => {
     if (equipmentId === "dumbbells") {
-      // Display only weights up to 20lb, then ellipsis
-      const weights: number[] = [];
-      for (let i = 2.5; i <= 20; i += 2.5) {
-        weights.push(i);
-      }
-      return weights.map((w) => `${w}`);
+      return (data.dumbbellWeights || []).map(String);
     }
     if (equipmentId === "plates") {
-      // Default plate weights from screenshot
-      return ["1.25", "2.5", "5", "10", "15", "20", "25", "35", "45", "50"];
+      return (data.plateWeights || []).map(String);
     }
     return [];
   };

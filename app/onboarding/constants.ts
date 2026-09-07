@@ -91,7 +91,7 @@ export const BODY_STATS_SCREEN = {
   step: 2,
   totalSteps: 9,
   syncSection: {
-    heading: "Sync Gravl with Apple Health for the best experience.",
+    heading: "Sync PrimeRep with Apple Health for the best experience.",
     description:
       "To personalize workouts and calculate calories burned, sync your Apple health profile. Your data is never shared with third parties.",
     buttonText: "Sync with Apple Health",
@@ -567,7 +567,7 @@ export const NOTIFICATIONS_SCREEN = {
   totalSteps: 9,
   heading: "Enable notifications",
   description:
-    "To get the full benefit of Gravl, turn on your notifications to receive:",
+    "To get the full benefit of PrimeRep, turn on notifications to receive:",
   notifications: [
     {
       id: "workout",

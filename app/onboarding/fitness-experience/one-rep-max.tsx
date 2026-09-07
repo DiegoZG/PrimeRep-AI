@@ -166,7 +166,7 @@ export default function OneRepMaxScreen() {
   const handleBenchPressChange = (value: string) => {
     setBenchPress(value);
     const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue > 0 && numValue <= 1500) {
       updateField("benchPress1RM", numValue);
     } else {
       updateField("benchPress1RM", undefined);
@@ -176,7 +176,7 @@ export default function OneRepMaxScreen() {
   const handleBackSquatChange = (value: string) => {
     setBackSquat(value);
     const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue > 0 && numValue <= 1500) {
       updateField("backSquat1RM", numValue);
     } else {
       updateField("backSquat1RM", undefined);
@@ -186,7 +186,7 @@ export default function OneRepMaxScreen() {
   const handleDeadliftChange = (value: string) => {
     setDeadlift(value);
     const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue > 0 && numValue <= 1500) {
       updateField("deadlift1RM", numValue);
     } else {
       updateField("deadlift1RM", undefined);
