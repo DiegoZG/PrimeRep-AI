@@ -122,6 +122,19 @@ function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] 
   });
 }
 
+function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOperation[]): SetState[] {
+  const pendingSetKeys = new Set(
+    operations
+      .filter((operation): operation is Extract<PendingWorkoutOperation, { type: "set" }> => operation.type === "set")
+      .map((operation) => `${operation.payload.exerciseId}:${operation.payload.setNumber}`)
+  );
+  return sets.map((set) =>
+    set.confirmed && !pendingSetKeys.has(`${set.exerciseId}:${set.setNumber}`)
+      ? { ...set, syncing: false, syncStatus: "synced" as const }
+      : set
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function ActiveWorkoutScreen() {
@@ -248,10 +261,10 @@ export default function ActiveWorkoutScreen() {
   const totalSets = sets.length;
   const syncLabel = useMemo(() => {
     if (isReplaying) return "Syncing…";
-    if (operations.some((operation) => operation.status === "failed")) return "Sync needs attention";
-    if (operations.length > 0) return "Saved locally — waiting to sync";
+    if (operations.some((operation) => operation.status === "failed") || sets.some((set) => set.syncStatus === "failed")) return "Sync needs attention";
+    if (operations.length > 0 || sets.some((set) => set.confirmed && set.syncStatus !== "synced")) return "Saved locally — waiting to sync";
     return "Synced";
-  }, [isReplaying, operations]);
+  }, [isReplaying, operations, sets]);
 
   const getExerciseProgress = useCallback(
     (exerciseId: string) => {
@@ -429,9 +442,13 @@ export default function ActiveWorkoutScreen() {
       const result = await replayPendingWorkoutOperations(token, user.id);
       if (!result.workout) return;
       setSessionId(result.workout.serverSessionId);
-      setSets((current) => mergeReplaySets(current, result.workout!.sets));
+      const remainingById = new Map(result.workout.operations.map((operation) => [operation.id, operation]));
+      const nextOperations = [
+        ...result.workout.operations,
+        ...operationsRef.current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id)),
+      ];
+      setSets((current) => reconcileSetSyncState(mergeReplaySets(current, result.workout!.sets), nextOperations));
       setOperations((current) => {
-        const remainingById = new Map(result.workout!.operations.map((operation) => [operation.id, operation]));
         return [
           ...result.workout!.operations,
           ...current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id)),
