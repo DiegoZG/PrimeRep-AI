@@ -28,7 +28,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   onUpdate,
   onConfirm,
 }: SetInputRowProps) {
-  const { setNumber, reps, weight, confirmed, syncing } = setRow;
+  const { setNumber, reps, weight, confirmed, syncing, syncStatus } = setRow;
 
   return (
     <View
@@ -168,6 +168,11 @@ export const SetInputRow = React.memo(function SetInputRow({
           )}
         </Pressable>
       </View>
+      {confirmed && syncStatus !== "synced" ? (
+        <ThemedText style={{ marginTop: 6, fontSize: 12, color: syncStatus === "failed" ? "#D14343" : colors.placeholder }}>
+          {syncStatus === "failed" ? "Couldn't sync — retry from the workout screen" : syncStatus === "retrying" ? "Retrying…" : "Saved on this device — syncing…"}
+        </ThemedText>
+      ) : null}
 
       {!confirmed && lastTimeHint ? (
         <ThemedText

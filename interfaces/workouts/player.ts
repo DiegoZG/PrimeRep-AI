@@ -13,6 +13,7 @@ export interface SetState {
   weight: string;
   confirmed: boolean;
   syncing: boolean;
+  syncStatus: "pending" | "synced" | "failed" | "retrying";
   logId: string | null;
 }
 
