@@ -104,6 +104,11 @@ function mergeServerLogs(
   });
 }
 
+function mergePersistedSets(prescribed: SetState[], persisted: SetState[]): SetState[] {
+  const bySet = new Map(persisted.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
+  return prescribed.map((set) => bySet.get(`${set.exerciseId}:${set.setNumber}`) ?? set);
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function ActiveWorkoutScreen() {
@@ -362,7 +367,8 @@ export default function ActiveWorkoutScreen() {
         setRestEndsAt(saved.restEndsAt);
         setRestTotalSeconds(saved.restTotalSeconds);
         setRestContext(saved.restContext);
-        setSets(serverActive ? mergeServerLogs(saved.sets, serverActive.setLogs, weightUnit) : saved.sets);
+        const restoredSets = mergePersistedSets(prescribedSetStates(exercises), saved.sets);
+        setSets(serverActive ? mergeServerLogs(restoredSets, serverActive.setLogs, weightUnit) : restoredSets);
         setOperations(reconciledOperations);
       }
       if (!cancelled) setIsRestoring(false);
@@ -666,17 +672,24 @@ export default function ActiveWorkoutScreen() {
   // ── Back with confirmation ─────────────────────────────────────────────────
 
   const handleBack = useCallback(() => {
+    const leaveWorkout = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
+    };
     if (confirmedCount > 0) {
       Alert.alert(
         "Quit Workout?",
         "Your logged sets will be saved but the session won't be marked as complete.",
         [
           { text: "Keep Going", style: "cancel" },
-          { text: "Quit", style: "destructive", onPress: () => router.back() },
+          { text: "Quit", style: "destructive", onPress: leaveWorkout },
         ]
       );
     } else {
-      router.back();
+      leaveWorkout();
     }
   }, [confirmedCount, router]);
 
@@ -687,7 +700,7 @@ export default function ActiveWorkoutScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ThemedText>Workout not found.</ThemedText>
-          <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Pressable onPress={() => router.replace("/(tabs)")} style={{ marginTop: 16 }}>
             <ThemedText style={{ color: colors.primaryButton }}>Go Back</ThemedText>
           </Pressable>
         </View>
