@@ -14,12 +14,16 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
-import type { RestContext, SetState, WorkoutItem } from "@/interfaces/workouts";
+import type { RestContext, SetState, WorkoutDay, WorkoutItem } from "@/interfaces/workouts";
 import {
+  abandonSession,
+  completeSession,
   fetchLastSetsForExercises,
   getActiveSession,
+  getSession,
   type LastSet,
 } from "@/services/workoutLoggingService";
+import { mapApiWorkoutDay } from "@/services/workoutWeekService";
 import { AuthContext } from "@/utils/authContext";
 import {
   clearActiveWorkout,
@@ -139,14 +143,49 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
-  const { workoutDayId } = useLocalSearchParams<{ workoutDayId: string }>();
+  const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
 
-  const workout = workoutDayId ? getWorkoutById(workoutDayId) : null;
+  const [snapshotWorkout, setSnapshotWorkout] = useState<WorkoutDay | null>(null);
+  const [legacySession, setLegacySession] = useState<Awaited<ReturnType<typeof getActiveSession>>>(null);
+  const [isResolvingSession, setIsResolvingSession] = useState(Boolean(requestedSessionId));
+  const planWorkout = workoutDayId ? getWorkoutById(workoutDayId) : null;
+  const workout = snapshotWorkout ?? planWorkout;
   const [hasRequestedWorkout, setHasRequestedWorkout] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveSessionWorkout() {
+      if (!user) {
+        if (!cancelled) setIsResolvingSession(false);
+        return;
+      }
+      const local = await loadActiveWorkout(user.id).catch(() => null);
+      if (!cancelled && local?.workoutSnapshot && (!requestedSessionId || local.serverSessionId === requestedSessionId)) {
+        setSnapshotWorkout(local.workoutSnapshot);
+      }
+      if (!token) {
+        if (!cancelled) setIsResolvingSession(false);
+        return;
+      }
+      const server = requestedSessionId
+        ? await getSession(token, requestedSessionId).catch(() => null)
+        : await getActiveSession(token).catch(() => null);
+      if (!cancelled && server) {
+        if (server.workoutSnapshot) {
+          setSnapshotWorkout(mapApiWorkoutDay(server.workoutSnapshot));
+        } else if (server.recoveryRequired) {
+          setLegacySession(server);
+        }
+      }
+      if (!cancelled) setIsResolvingSession(false);
+    }
+    void resolveSessionWorkout();
+    return () => { cancelled = true; };
+  }, [user, token, requestedSessionId]);
 
   useEffect(() => {
     if (workout || !workoutDayId || isWeekLoading || hasRequestedWorkout) return;
@@ -382,9 +421,9 @@ export default function ActiveWorkoutScreen() {
 
       // Never overwrite a valid active workout just because a user tapped a
       // different card. Resume the authoritative server workout first.
-      const activeWorkoutDayId = serverActive?.workoutDayId ?? saved?.workoutDayId;
-      if (activeWorkoutDayId && activeWorkoutDayId !== workout.workoutDayId) {
-        router.replace({ pathname: "/workout/active", params: { workoutDayId: activeWorkoutDayId } });
+      const activeSessionId = serverActive?.id ?? saved?.serverSessionId;
+      if (activeSessionId && requestedSessionId !== activeSessionId) {
+        router.replace({ pathname: "/workout/active", params: { sessionId: activeSessionId } });
         return;
       }
 
@@ -424,7 +463,7 @@ export default function ActiveWorkoutScreen() {
     }
     void restore();
     return () => { cancelled = true; };
-  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId]);
+  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId]);
 
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
@@ -435,6 +474,7 @@ export default function ActiveWorkoutScreen() {
       workoutDayId: workout.workoutDayId,
       workoutDate: workout.date,
       dayType: workout.dayType,
+      workoutSnapshot: workout,
       clientSessionId,
       serverSessionId: sessionId,
       startedAt,
@@ -757,8 +797,41 @@ export default function ActiveWorkoutScreen() {
 
   // ── Loading / error states ─────────────────────────────────────────────────
 
+  if (legacySession) {
+    const savedSetCount = legacySession.setLogs.length;
+    const resolveLegacySession = async (action: "complete" | "abandon") => {
+      if (!token || !user) return;
+      try {
+        if (action === "complete") await completeSession(token, legacySession.id);
+        else await abandonSession(token, legacySession.id);
+        await clearActiveWorkout(user.id);
+        router.replace("/(tabs)");
+      } catch {
+        Alert.alert("Couldn't update workout", "Please try again.");
+      }
+    };
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
+        <View style={{ flex: 1, justifyContent: "center", padding: 28, gap: 14 }}>
+          <ThemedText type="title" style={{ textAlign: "center" }}>Workout recovery</ThemedText>
+          <ThemedText style={{ textAlign: "center", color: colors.placeholder }}>
+            This workout was started before PrimeRep could save its exercise plan. We kept {savedSetCount} saved {savedSetCount === 1 ? "set" : "sets"}, but can’t safely recreate the remaining exercises.
+          </ThemedText>
+          {savedSetCount > 0 ? (
+            <Pressable onPress={() => void resolveLegacySession("complete")} style={{ backgroundColor: colors.primaryButton, borderRadius: 14, padding: 16 }}>
+              <ThemedText style={{ color: "#FFF", textAlign: "center", fontWeight: "700" }}>Complete saved sets</ThemedText>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => void resolveLegacySession("abandon")} style={{ borderWidth: 1, borderColor: "#DC2626", borderRadius: 14, padding: 16 }}>
+            <ThemedText style={{ color: "#DC2626", textAlign: "center", fontWeight: "700" }}>Abandon workout</ThemedText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!workout) {
-    if (!hasRequestedWorkout || isWeekLoading) {
+    if (isResolvingSession || !hasRequestedWorkout || isWeekLoading) {
       return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

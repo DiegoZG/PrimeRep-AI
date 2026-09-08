@@ -98,15 +98,8 @@ const Home = () => {
     () => getHighlightedWorkout(todayIso),
     [getHighlightedWorkout, todayIso]
   );
-  const activeWorkoutPlan = useMemo(
-    () => activeWorkout ? sortedWorkouts.find((workout) => workout.workoutDayId === activeWorkout.workoutDayId) ?? null : null,
-    [activeWorkout, sortedWorkouts]
-  );
-  const activeWorkoutTitle = activeWorkoutPlan?.title ?? (activeWorkout ? `${activeWorkout.dayType.replace(/_/g, " ")} workout` : "");
-  const activeWorkoutTotalSets = activeWorkoutPlan?.blocks.reduce(
-    (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
-    0
-  ) ?? 0;
+  const activeWorkoutTitle = activeWorkout?.title ?? "";
+  const activeWorkoutTotalSets = activeWorkout?.totalSets ?? 0;
 
   // Find index of highlighted workout for auto-scroll
   const highlightedIndex = useMemo(() => {
@@ -459,7 +452,7 @@ const Home = () => {
             testID="home-resume-workout"
             accessibilityRole="button"
             accessibilityLabel={`Resume ${activeWorkoutTitle}`}
-            onPress={() => router.push({ pathname: "/workout/active", params: { workoutDayId: activeWorkout.workoutDayId } })}
+            onPress={() => router.push({ pathname: "/workout/active", params: activeWorkout.sessionId ? { sessionId: activeWorkout.sessionId } : { workoutDayId: activeWorkout.workoutDayId } })}
             style={{ marginHorizontal: 20, marginBottom: 6, padding: 16, borderRadius: 18, backgroundColor: colors.primaryButton, flexDirection: "row", alignItems: "center", gap: 12 }}
           >
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.electricBlue, borderWidth: 2, borderColor: "#FFFFFF" }} />

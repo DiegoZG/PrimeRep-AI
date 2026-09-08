@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
 
-import type { SetState } from "@/interfaces/workouts";
+import type { SetState, WorkoutDay } from "@/interfaces/workouts";
 import { HttpError } from "@/services/httpClient";
 import { abandonSession, completeSession, createSession, logSet } from "@/services/workoutLoggingService";
 
@@ -30,6 +30,7 @@ export interface LocalActiveWorkout {
   workoutDayId: string;
   workoutDate: string;
   dayType: string;
+  workoutSnapshot: WorkoutDay | null;
   clientSessionId: string;
   serverSessionId: string | null;
   startedAt: number;
@@ -68,7 +69,8 @@ function database(): Promise<SQLite.SQLiteDatabase> {
           current_exercise_index INTEGER NOT NULL DEFAULT 0,
           rest_ends_at INTEGER,
           rest_total_seconds INTEGER NOT NULL DEFAULT 0,
-          rest_context TEXT
+          rest_context TEXT,
+          workout_snapshot TEXT
         );
         CREATE TABLE IF NOT EXISTS workout_set_drafts (
           user_id TEXT NOT NULL,
@@ -91,6 +93,7 @@ function database(): Promise<SQLite.SQLiteDatabase> {
       for (const statement of [
         "ALTER TABLE workout_pending_operations ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE workout_pending_operations ADD COLUMN next_attempt_at INTEGER",
+        "ALTER TABLE active_workouts ADD COLUMN workout_snapshot TEXT",
       ]) {
         try {
           await db.execAsync(statement);
@@ -113,7 +116,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
   const workout = await db.getFirstAsync<{
     workout_day_id: string; workout_date: string; day_type: string; client_session_id: string;
     server_session_id: string | null; started_at: number; current_exercise_index: number;
-    rest_ends_at: number | null; rest_total_seconds: number; rest_context: string | null;
+    rest_ends_at: number | null; rest_total_seconds: number; rest_context: string | null; workout_snapshot: string | null;
   }>("SELECT * FROM active_workouts WHERE user_id = ?", [userId]);
   if (!workout) return null;
   const drafts = await db.getAllAsync<{ payload: string }>("SELECT payload FROM workout_set_drafts WHERE user_id = ?", [userId]);
@@ -125,6 +128,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     workoutDayId: workout.workout_day_id,
     workoutDate: workout.workout_date,
     dayType: workout.day_type,
+    workoutSnapshot: workout.workout_snapshot ? JSON.parse(workout.workout_snapshot) as WorkoutDay : null,
     clientSessionId: workout.client_session_id,
     serverSessionId: workout.server_session_id,
     startedAt: workout.started_at,
@@ -146,10 +150,10 @@ export async function saveActiveWorkout(workout: LocalActiveWorkout): Promise<vo
     const db = await database();
     await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context`,
-      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null]
+      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, workout_snapshot=excluded.workout_snapshot, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context`,
+      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null, workout.workoutSnapshot ? JSON.stringify(workout.workoutSnapshot) : null]
     );
     await db.runAsync("DELETE FROM workout_set_drafts WHERE user_id = ?", [workout.userId]);
     for (const set of workout.sets) {

@@ -6,8 +6,11 @@ import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 
 export interface ActiveWorkoutSummary {
+  sessionId: string | null;
   workoutDayId: string;
   dayType: string;
+  title: string;
+  totalSets: number;
   startedAt: number;
   completedSets: number;
 }
@@ -40,8 +43,14 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     if (version !== requestVersion.current) return;
     if (serverActive) {
       setActiveWorkout({
+        sessionId: serverActive.id,
         workoutDayId: serverActive.workoutDayId,
         dayType: serverActive.dayType,
+        title: serverActive.workoutSnapshot?.title ?? `${serverActive.dayType.replace(/_/g, " ")} workout`,
+        totalSets: serverActive.workoutSnapshot?.exerciseBlocks.reduce(
+          (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+          0
+        ) ?? 0,
         startedAt: new Date(serverActive.startedAt).getTime(),
         completedSets: serverActive.setLogs.length,
       });
@@ -49,8 +58,14 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     }
     if (localActive) {
       setActiveWorkout({
+        sessionId: localActive.serverSessionId,
         workoutDayId: localActive.workoutDayId,
         dayType: localActive.dayType,
+        title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
+        totalSets: localActive.workoutSnapshot?.blocks.reduce(
+          (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+          0
+        ) ?? 0,
         startedAt: localActive.startedAt,
         completedSets: localActive.sets.filter((set) => set.confirmed).length,
       });

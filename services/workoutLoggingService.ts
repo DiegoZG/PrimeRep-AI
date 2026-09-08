@@ -1,4 +1,5 @@
 import { requestJson } from "./httpClient";
+import type { WorkoutDayApiResponse } from "@/interfaces/workouts";
 
 // ── API Response Types ───────────────────────────────────────────────────────
 
@@ -16,6 +17,8 @@ export interface SessionResponse {
   workoutDayId: string;
   workoutDate: string;
   dayType: string;
+  workoutSnapshot: WorkoutDayApiResponse | null;
+  recoveryRequired: boolean;
   clientSessionId: string | null;
   status: "in_progress" | "completed" | "abandoned";
   startedAt: string;

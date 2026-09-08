@@ -126,8 +126,7 @@ export default function WorkoutDayDetailScreen() {
         openWorkout();
         return;
       }
-      const activeWorkout = getWorkoutById(active.workoutDayId);
-      const activeTitle = activeWorkout?.title ?? `${active.dayType.replace(/_/g, " ")} workout`;
+      const activeTitle = active.workoutSnapshot?.title ?? `${active.dayType.replace(/_/g, " ")} workout`;
       const progress = active.setLogs.length > 0 ? `${active.setLogs.length} set${active.setLogs.length === 1 ? "" : "s"} logged` : "No sets logged yet";
       Alert.alert(
         `${activeTitle} is in progress`,
@@ -135,7 +134,7 @@ export default function WorkoutDayDetailScreen() {
         [
           {
             text: `Resume ${activeTitle}`,
-            onPress: () => router.push({ pathname: "/workout/active", params: { workoutDayId: active.workoutDayId } }),
+            onPress: () => router.push({ pathname: "/workout/active", params: { sessionId: active.id } }),
           },
           {
             text: "Abandon & Start",
@@ -283,34 +282,16 @@ export default function WorkoutDayDetailScreen() {
               }
             };
             try {
-              const active = token ? await getActiveSession(token) : null;
-              if (active?.workoutDayId === workoutDayId) {
-                Alert.alert(
-                  "Workout in progress",
-                  "Abandon this in-progress workout before skipping the day?",
-                  [
-                    { text: "Keep workout", style: "cancel" },
-                    {
-                      text: "Abandon & Skip",
-                      style: "destructive",
-                      onPress: async () => {
-                        if (await abandonActiveWorkout(active.id)) await runSkip();
-                      },
-                    },
-                  ]
-                );
-              } else {
-                await runSkip();
-              }
+              await runSkip();
             } catch {
-              Alert.alert("Couldn't check active workout", "Please try again.");
+              Alert.alert("Couldn't skip workout", "Please try again.");
             }
             // If null returned (stale 404), alert is shown via staleIdRefreshed effect
           },
         },
       ]
     );
-  }, [workout, workoutDayId, skipDay, todayIso, router, token, abandonActiveWorkout]);
+  }, [workout, workoutDayId, skipDay, todayIso, router]);
 
   // Handle update duration
   const handleUpdateDuration = useCallback(

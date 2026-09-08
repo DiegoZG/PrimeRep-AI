@@ -74,7 +74,7 @@ function mapApiBlock(apiBlock: WorkoutDayApiBlock): WorkoutBlock {
 /**
  * Maps API workout day to UI WorkoutDay model
  */
-function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
+export function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
   return {
     workoutDayId: apiDay.workoutDayId,
     slotIndex: apiDay.slotIndex,

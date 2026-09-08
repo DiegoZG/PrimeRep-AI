@@ -83,9 +83,10 @@ function RootLayoutNav() {
         getActiveSession(token).catch(() => null),
         loadActiveWorkout(user.id).catch(() => null),
       ]);
+      const sessionId = serverActive?.id ?? localActive?.serverSessionId;
       const workoutDayId = serverActive?.workoutDayId ?? localActive?.workoutDayId;
-      if (workoutDayId) {
-        router.replace({ pathname: "/workout/active", params: { workoutDayId } });
+      if (sessionId || workoutDayId) {
+        router.replace({ pathname: "/workout/active", params: sessionId ? { sessionId } : { workoutDayId: workoutDayId! } });
       }
     })();
   }, [
