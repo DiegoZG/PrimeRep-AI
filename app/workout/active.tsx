@@ -195,7 +195,7 @@ export default function ActiveWorkoutScreen() {
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isCompleting, setIsCompleting] = useState(false);
+  const [finishStatus, setFinishStatus] = useState<"idle" | "syncing" | "pendingOffline" | "failed">("idle");
   const [isRestoring, setIsRestoring] = useState(true);
   const [clientSessionId, setClientSessionId] = useState(createClientId);
   const [startedAt, setStartedAt] = useState(Date.now);
@@ -207,6 +207,8 @@ export default function ActiveWorkoutScreen() {
   const [storageError, setStorageError] = useState(false);
   const [didComplete, setDidComplete] = useState(false);
   const isTerminalRef = useRef(false);
+  const isFinishingRef = useRef(false);
+  const workoutRevisionRef = useRef(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -454,6 +456,7 @@ export default function ActiveWorkoutScreen() {
         setClientSessionId(reconciledClientSessionId);
         setSessionId(serverActive?.id ?? saved.serverSessionId);
         setStartedAt(saved.startedAt);
+        workoutRevisionRef.current = saved.revision;
         setCurrentExerciseIndex(saved.currentExerciseIndex);
         setRestEndsAt(saved.restEndsAt);
         setRestTotalSeconds(saved.restTotalSeconds);
@@ -471,7 +474,7 @@ export default function ActiveWorkoutScreen() {
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
   useEffect(() => {
-    if (isTerminalRef.current || replayInFlightRef.current || isRestoring || !user || !workout || sets.length === 0) return;
+    if (isTerminalRef.current || isFinishingRef.current || replayInFlightRef.current || isRestoring || !user || !workout || sets.length === 0) return;
     void saveActiveWorkout({
       userId: user.id,
       workoutDayId: workout.workoutDayId,
@@ -487,6 +490,7 @@ export default function ActiveWorkoutScreen() {
       restContext,
       sets,
       operations,
+      revision: ++workoutRevisionRef.current,
     }).then(() => {
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
@@ -501,6 +505,7 @@ export default function ActiveWorkoutScreen() {
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
       if (!result.workout) return;
+      workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
       setSessionId(result.workout.serverSessionId);
       const remainingById = new Map(result.workout.operations.map((operation) => [operation.id, operation]));
       const nextOperations = [
@@ -738,32 +743,68 @@ export default function ActiveWorkoutScreen() {
     weightUnit,
   ]);
 
-  const handleComplete = useCallback(async () => {
-    if (!token || !user) return;
+  const finishWorkout = useCallback(async (retry = false) => {
+    if (!token || !user || !workout || isFinishingRef.current) return;
+    isFinishingRef.current = true;
+    setFinishStatus("syncing");
+    const completionOperation: PendingWorkoutOperation = {
+      id: createClientId(), type: "complete", status: "pending", payload: {},
+    };
+    const nextOperations = retry
+      ? operations.map((operation) => operation.type === "complete"
+        ? { ...operation, status: "pending" as const, nextAttemptAt: undefined }
+        : operation)
+      : [...operations, completionOperation];
+    try {
+      const stored = await loadActiveWorkout(user.id);
+      await saveActiveWorkout({
+        userId: user.id,
+        workoutDayId: workout.workoutDayId,
+        workoutDate: workout.date,
+        dayType: workout.dayType,
+        workoutSnapshot: workout,
+        clientSessionId,
+        serverSessionId: sessionId ?? stored?.serverSessionId ?? null,
+        startedAt,
+        currentExerciseIndex,
+        restEndsAt,
+        restTotalSeconds,
+        restContext,
+        sets,
+        operations: nextOperations,
+        revision: ++workoutRevisionRef.current,
+      });
+      setOperations(nextOperations);
+      const result = await replayPendingWorkoutOperations(token, user.id);
+      const completeOperation = result.workout?.operations.find((operation) => operation.type === "complete");
+      if (result.completed || (result.workout && !completeOperation)) {
+        isTerminalRef.current = true;
+        await clearActiveWorkout(user.id);
+        setDidComplete(true);
+        return;
+      }
+      if (!result.workout) throw new Error("Missing active workout");
+      workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
+      setSets(result.workout.sets);
+      setOperations(result.workout.operations);
+      setFinishStatus(completeOperation?.status === "failed" ? "failed" : "pendingOffline");
+    } catch {
+      setFinishStatus("failed");
+    } finally {
+      isFinishingRef.current = false;
+    }
+  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets]);
 
+  const handleComplete = useCallback(() => {
     if (confirmedCount === 0) {
       Alert.alert("No sets logged", "Log at least one set before finishing.");
       return;
     }
-
-    Alert.alert(
-      "Finish Workout?",
-      `You completed ${confirmedCount} of ${totalSets} sets.`,
-      [
-        { text: "Keep Going", style: "cancel" },
-        {
-          text: "Finish",
-          onPress: async () => {
-            setIsCompleting(true);
-            setOperations((previous) => [
-              ...previous,
-              { id: createClientId(), type: "complete", status: "pending", payload: {} },
-            ]);
-          },
-        },
-      ]
-    );
-  }, [token, user, confirmedCount, totalSets]);
+    Alert.alert("Finish Workout?", `You completed ${confirmedCount} of ${totalSets} sets.`, [
+      { text: "Keep Going", style: "cancel" },
+      { text: "Finish", onPress: () => void finishWorkout() },
+    ]);
+  }, [confirmedCount, totalSets, finishWorkout]);
 
   useEffect(() => {
     if (!didComplete) return;
@@ -918,6 +959,11 @@ export default function ActiveWorkoutScreen() {
         >
           <Ionicons name="list" size={22} color={colors.text} />
         </Pressable>
+        {finishStatus === "pendingOffline" || finishStatus === "failed" ? (
+          <Pressable onPress={() => router.replace("/(tabs)")} style={{ paddingTop: 12 }}>
+            <ThemedText style={{ textAlign: "center", color: colors.primaryButton, fontWeight: "700" }}>Back to Home</ThemedText>
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Overall progress bar */}
@@ -1161,19 +1207,24 @@ export default function ActiveWorkoutScreen() {
           borderTopColor: colors.inputBorder,
         }}
       >
+        {finishStatus !== "idle" ? (
+          <ThemedText style={{ textAlign: "center", color: finishStatus === "failed" ? "#DC2626" : colors.placeholder, fontSize: 13, marginBottom: 8 }}>
+            {finishStatus === "syncing" ? "Finishing workout…" : finishStatus === "failed" ? "Couldn't finish this workout. Your sets are safe." : "Saved on this device — finish when online."}
+          </ThemedText>
+        ) : null}
         <Pressable
           testID="player-finish"
-          onPress={handleComplete}
-          disabled={isCompleting || confirmedCount === 0}
+          onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
+          disabled={finishStatus === "syncing" || confirmedCount === 0}
           style={{
             backgroundColor: confirmedCount > 0 ? colors.primaryButton : colors.inputBackground,
             paddingVertical: 16,
             borderRadius: 14,
             alignItems: "center",
-            opacity: isCompleting ? 0.6 : 1,
+            opacity: finishStatus === "syncing" ? 0.6 : 1,
           }}
         >
-          {isCompleting ? (
+          {finishStatus === "syncing" ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <ThemedText
@@ -1183,7 +1234,7 @@ export default function ActiveWorkoutScreen() {
                 fontSize: 16,
               }}
             >
-              Finish Workout ({confirmedCount}/{totalSets})
+              {finishStatus === "idle" ? `Finish Workout (${confirmedCount}/${totalSets})` : "Retry Finish"}
             </ThemedText>
           )}
         </Pressable>
