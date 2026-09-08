@@ -143,9 +143,16 @@ export default function ActiveWorkoutScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
-  const { getWorkoutById } = useWorkoutWeek();
+  const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
 
   const workout = workoutDayId ? getWorkoutById(workoutDayId) : null;
+  const [hasRequestedWorkout, setHasRequestedWorkout] = useState(false);
+
+  useEffect(() => {
+    if (workout || !workoutDayId || isWeekLoading || hasRequestedWorkout) return;
+    setHasRequestedWorkout(true);
+    void refreshWeek({ force: false });
+  }, [workout, workoutDayId, isWeekLoading, hasRequestedWorkout, refreshWeek]);
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -265,6 +272,16 @@ export default function ActiveWorkoutScreen() {
     if (operations.length > 0 || sets.some((set) => set.confirmed && set.syncStatus !== "synced")) return "Saved locally — waiting to sync";
     return "Synced";
   }, [isReplaying, operations, sets]);
+
+  const pendingSetOperations = useMemo(() => {
+    const bySet = new Map<string, PendingWorkoutOperation>();
+    for (const operation of operations) {
+      if (operation.type === "set") {
+        bySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+      }
+    }
+    return bySet;
+  }, [operations]);
 
   const getExerciseProgress = useCallback(
     (exerciseId: string) => {
@@ -741,6 +758,15 @@ export default function ActiveWorkoutScreen() {
   // ── Loading / error states ─────────────────────────────────────────────────
 
   if (!workout) {
+    if (!hasRequestedWorkout || isWeekLoading) {
+      return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator size="large" color={colors.primaryButton} />
+          </View>
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -1012,10 +1038,20 @@ export default function ActiveWorkoutScreen() {
                     : reason === "hold" ? "—"
                     : reason === "deload" ? "▼"
                     : undefined;
+                  const operation = pendingSetOperations.get(`${setRow.exerciseId}:${setRow.setNumber}`);
+                  const displaySet = operation
+                    ? {
+                        ...setRow,
+                        syncing: operation.status === "retrying",
+                        syncStatus: operation.status === "failed" ? "failed" as const : setRow.syncStatus,
+                      }
+                    : setRow.confirmed
+                    ? { ...setRow, syncing: false, syncStatus: "synced" as const }
+                    : setRow;
                   return (
                     <SetInputRow
                       key={`${setRow.exerciseId}-${setRow.setNumber}`}
-                      setRow={setRow}
+                      setRow={displaySet}
                       colors={colors}
                       weightUnit={weightUnit}
                       lastTimeHint={formatLastTimeHint(
