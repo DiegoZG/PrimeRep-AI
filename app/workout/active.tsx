@@ -412,10 +412,13 @@ export default function ActiveWorkoutScreen() {
     async function restore() {
       if (!user || !workout || !unitReady) return;
       const restoreKey = `${user.id}:${workout.workoutDayId}`;
-      if (restoredWorkoutKey.current === restoreKey) return;
+      if (restoredWorkoutKey.current === restoreKey) {
+        setIsRestoring(false);
+        return;
+      }
       restoredWorkoutKey.current = restoreKey;
       const [saved, serverActive] = await Promise.all([
-        loadActiveWorkout(user.id),
+        loadActiveWorkout(user.id).catch(() => null),
         token ? getActiveSession(token).catch(() => null) : Promise.resolve(null),
       ]);
 
