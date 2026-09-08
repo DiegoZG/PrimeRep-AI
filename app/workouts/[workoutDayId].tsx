@@ -27,6 +27,7 @@ import {
   unfavoriteExercise,
 } from "@/services/exerciseService";
 import { abandonSession, getActiveSession } from "@/services/workoutLoggingService";
+import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { clearActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 
@@ -95,6 +96,7 @@ export default function WorkoutDayDetailScreen() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
+  const { markWorkoutTerminal } = useActiveWorkout();
 
   // Today's date in YYYY-MM-DD format
   const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -107,12 +109,13 @@ export default function WorkoutDayDetailScreen() {
     try {
       await abandonSession(token, sessionId);
       if (user) await clearActiveWorkout(user.id);
+      markWorkoutTerminal();
       return true;
     } catch {
       Alert.alert("Couldn't abandon workout", "Please try again before starting another workout.");
       return false;
     }
-  }, [token, user]);
+  }, [token, user, markWorkoutTerminal]);
 
   const startWorkout = useCallback(async () => {
     if (!workout || !token) return;

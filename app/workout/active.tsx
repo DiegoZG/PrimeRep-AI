@@ -224,6 +224,7 @@ export default function ActiveWorkoutScreen() {
   const operationsRef = useRef<PendingWorkoutOperation[]>([]);
   const [storageError, setStorageError] = useState(false);
   const [didComplete, setDidComplete] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const isTerminalRef = useRef(false);
   const isFinishingRef = useRef(false);
   const workoutRevisionRef = useRef(0);
@@ -837,27 +838,41 @@ export default function ActiveWorkoutScreen() {
 
   // ── Back with confirmation ─────────────────────────────────────────────────
 
-  const handleBack = useCallback(() => {
-    const leaveWorkout = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace("/(tabs)");
-      }
-    };
-    if (confirmedCount > 0) {
-      Alert.alert(
-        "Quit Workout?",
-        "Your logged sets will be saved but the session won't be marked as complete.",
-        [
-          { text: "Keep Going", style: "cancel" },
-          { text: "Quit", style: "destructive", onPress: leaveWorkout },
-        ]
-      );
+  const leaveWorkoutActive = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
     } else {
-      leaveWorkout();
+      router.replace("/(tabs)");
     }
-  }, [confirmedCount, router]);
+  }, [router]);
+
+  const abandonAndExit = useCallback(async () => {
+    if (!token || !user || isExiting) return;
+    setIsExiting(true);
+    try {
+      const activeSessionId = sessionId ?? (await getActiveSession(token))?.id ?? null;
+      if (activeSessionId) await abandonSession(token, activeSessionId);
+      await clearActiveWorkout(user.id);
+      markWorkoutTerminal();
+      router.replace("/(tabs)");
+    } catch {
+      Alert.alert("Couldn't abandon workout", "Your workout is still active. Try again when you're online.");
+    } finally {
+      setIsExiting(false);
+    }
+  }, [token, user, isExiting, sessionId, markWorkoutTerminal, router]);
+
+  const handleBack = useCallback(() => {
+    Alert.alert(
+      "Leave workout?",
+      "Keep it active to resume later, or quit and abandon it. Abandoned workouts don't count toward your progress.",
+      [
+        { text: "Continue Workout", style: "cancel" },
+        { text: "Keep Workout Active", onPress: leaveWorkoutActive },
+        { text: "Quit & Abandon", style: "destructive", onPress: () => void abandonAndExit() },
+      ]
+    );
+  }, [leaveWorkoutActive, abandonAndExit]);
 
   // ── Loading / error states ─────────────────────────────────────────────────
 
