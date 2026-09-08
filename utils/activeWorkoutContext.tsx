@@ -18,11 +18,13 @@ export interface ActiveWorkoutSummary {
 interface ActiveWorkoutContextValue {
   activeWorkout: ActiveWorkoutSummary | null;
   refreshActiveWorkout: () => Promise<void>;
+  markWorkoutTerminal: () => void;
 }
 
 const ActiveWorkoutContext = createContext<ActiveWorkoutContextValue>({
   activeWorkout: null,
   refreshActiveWorkout: async () => {},
+  markWorkoutTerminal: () => {},
 });
 
 export function ActiveWorkoutProvider({ children }: { children: React.ReactNode }) {
@@ -74,6 +76,11 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     setActiveWorkout(null);
   }, [token, user]);
 
+  const markWorkoutTerminal = useCallback(() => {
+    requestVersion.current += 1;
+    setActiveWorkout(null);
+  }, []);
+
   useEffect(() => {
     void refreshActiveWorkout();
   }, [refreshActiveWorkout]);
@@ -86,7 +93,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   }, [refreshActiveWorkout]);
 
   return (
-    <ActiveWorkoutContext.Provider value={{ activeWorkout, refreshActiveWorkout }}>
+    <ActiveWorkoutContext.Provider value={{ activeWorkout, refreshActiveWorkout, markWorkoutTerminal }}>
       {children}
     </ActiveWorkoutContext.Provider>
   );

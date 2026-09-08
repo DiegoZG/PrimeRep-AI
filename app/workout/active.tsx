@@ -25,6 +25,7 @@ import {
 } from "@/services/workoutLoggingService";
 import { mapApiWorkoutDay } from "@/services/workoutWeekService";
 import { AuthContext } from "@/utils/authContext";
+import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import {
   clearActiveWorkout,
   createClientId,
@@ -147,11 +148,13 @@ export default function ActiveWorkoutScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
+  const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
 
   const [snapshotWorkout, setSnapshotWorkout] = useState<WorkoutDay | null>(null);
   const [legacySession, setLegacySession] = useState<Awaited<ReturnType<typeof getActiveSession>>>(null);
   const [isResolvingSession, setIsResolvingSession] = useState(Boolean(requestedSessionId));
+  const [canRestoreRequestedSession, setCanRestoreRequestedSession] = useState(!requestedSessionId);
   const planWorkout = workoutDayId ? getWorkoutById(workoutDayId) : null;
   const workout = snapshotWorkout ?? planWorkout;
   const [hasRequestedWorkout, setHasRequestedWorkout] = useState(false);
@@ -164,28 +167,43 @@ export default function ActiveWorkoutScreen() {
         return;
       }
       const local = await loadActiveWorkout(user.id).catch(() => null);
-      if (!cancelled && local?.workoutSnapshot && (!requestedSessionId || local.serverSessionId === requestedSessionId)) {
-        setSnapshotWorkout(local.workoutSnapshot);
-      }
+      const matchingLocal = local?.workoutSnapshot && (!requestedSessionId || local.serverSessionId === requestedSessionId)
+        ? local
+        : null;
       if (!token) {
-        if (!cancelled) setIsResolvingSession(false);
+        if (!cancelled) {
+          if (matchingLocal) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+          setCanRestoreRequestedSession(Boolean(matchingLocal) || !requestedSessionId);
+          setIsResolvingSession(false);
+        }
         return;
       }
       const server = requestedSessionId
         ? await getSession(token, requestedSessionId).catch(() => null)
         : await getActiveSession(token).catch(() => null);
-      if (!cancelled && server) {
+      if (cancelled) return;
+      if (requestedSessionId && server?.status !== "in_progress") {
+        if (server?.status === "completed" || server?.status === "abandoned") markWorkoutTerminal();
+        if (matchingLocal) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+        setCanRestoreRequestedSession(Boolean(matchingLocal) && !server);
+        setIsResolvingSession(false);
+        if (server) router.replace("/(tabs)");
+        return;
+      }
+      if (server) {
         if (server.workoutSnapshot) {
           setSnapshotWorkout(mapApiWorkoutDay(server.workoutSnapshot));
         } else if (server.recoveryRequired) {
           setLegacySession(server);
         }
       }
-      if (!cancelled) setIsResolvingSession(false);
+      if (matchingLocal && !server) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+      setCanRestoreRequestedSession(Boolean(server) || Boolean(matchingLocal) || !requestedSessionId);
+      setIsResolvingSession(false);
     }
     void resolveSessionWorkout();
     return () => { cancelled = true; };
-  }, [user, token, requestedSessionId]);
+  }, [user, token, requestedSessionId, router, markWorkoutTerminal]);
 
   useEffect(() => {
     if (workout || !workoutDayId || isWeekLoading || hasRequestedWorkout) return;
@@ -412,7 +430,7 @@ export default function ActiveWorkoutScreen() {
   useEffect(() => {
     let cancelled = false;
     async function restore() {
-      if (!user || !workout || !unitReady) return;
+      if (!user || !workout || !unitReady || (requestedSessionId && !canRestoreRequestedSession)) return;
       const restoreKey = `${user.id}:${workout.workoutDayId}`;
       if (restoredWorkoutKey.current === restoreKey) {
         setIsRestoring(false);
@@ -469,7 +487,7 @@ export default function ActiveWorkoutScreen() {
     }
     void restore();
     return () => { cancelled = true; };
-  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId]);
+  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId, canRestoreRequestedSession]);
 
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
@@ -522,6 +540,7 @@ export default function ActiveWorkoutScreen() {
       if (result.abandoned || result.completed) {
         isTerminalRef.current = true;
         await clearActiveWorkout(user.id);
+        markWorkoutTerminal();
         if (result.completed) setDidComplete(true);
       }
     } catch {
@@ -530,7 +549,7 @@ export default function ActiveWorkoutScreen() {
       replayInFlightRef.current = false;
       setIsReplaying(false);
     }
-  }, [token, user]);
+  }, [token, user, markWorkoutTerminal]);
 
   const retryAt = useMemo(() => Math.min(
     ...operations
@@ -780,6 +799,7 @@ export default function ActiveWorkoutScreen() {
       if (result.completed || (result.workout && !completeOperation)) {
         isTerminalRef.current = true;
         await clearActiveWorkout(user.id);
+        markWorkoutTerminal();
         setDidComplete(true);
         return;
       }
@@ -793,7 +813,7 @@ export default function ActiveWorkoutScreen() {
     } finally {
       isFinishingRef.current = false;
     }
-  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets]);
+  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets, markWorkoutTerminal]);
 
   const handleComplete = useCallback(() => {
     if (confirmedCount === 0) {
@@ -849,6 +869,7 @@ export default function ActiveWorkoutScreen() {
         if (action === "complete") await completeSession(token, legacySession.id);
         else await abandonSession(token, legacySession.id);
         await clearActiveWorkout(user.id);
+        markWorkoutTerminal();
         router.replace("/(tabs)");
       } catch {
         Alert.alert("Couldn't update workout", "Please try again.");
