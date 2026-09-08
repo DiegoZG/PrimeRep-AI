@@ -33,6 +33,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useStats } from "@/hooks/use-stats";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
 import type { WorkoutDay } from "@/interfaces/workouts";
+import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
 
 import { CARD_GAP, CARD_WIDTH, styles } from "./index.styles";
@@ -59,6 +60,7 @@ const Home = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
+  const { activeWorkout, refreshActiveWorkout } = useActiveWorkout();
   const { stats } = useStats();
   const flatListRef = useRef<FlatList>(null);
 
@@ -96,6 +98,15 @@ const Home = () => {
     () => getHighlightedWorkout(todayIso),
     [getHighlightedWorkout, todayIso]
   );
+  const activeWorkoutPlan = useMemo(
+    () => activeWorkout ? sortedWorkouts.find((workout) => workout.workoutDayId === activeWorkout.workoutDayId) ?? null : null,
+    [activeWorkout, sortedWorkouts]
+  );
+  const activeWorkoutTitle = activeWorkoutPlan?.title ?? (activeWorkout ? `${activeWorkout.dayType.replace(/_/g, " ")} workout` : "");
+  const activeWorkoutTotalSets = activeWorkoutPlan?.blocks.reduce(
+    (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+    0
+  ) ?? 0;
 
   // Find index of highlighted workout for auto-scroll
   const highlightedIndex = useMemo(() => {
@@ -109,10 +120,11 @@ const Home = () => {
   // Refresh week on focus (only if we don't have data yet)
   useFocusEffect(
     useCallback(() => {
+      void refreshActiveWorkout();
       if (token && sortedWorkouts.length === 0) {
         refreshWeek({ force: false });
       }
-    }, [token, refreshWeek, sortedWorkouts.length])
+    }, [token, refreshWeek, refreshActiveWorkout, sortedWorkouts.length])
   );
 
   const scrollToIndex = useCallback((index: number, viewPosition = 0.1) => {
@@ -403,6 +415,7 @@ const Home = () => {
             </ThemedText>
           </View>
         </View>
+
       )}
 
       <ScrollView
@@ -440,6 +453,26 @@ const Home = () => {
             />
           </Pressable>
         </View>
+
+        {activeWorkout ? (
+          <Pressable
+            testID="home-resume-workout"
+            accessibilityRole="button"
+            accessibilityLabel={`Resume ${activeWorkoutTitle}`}
+            onPress={() => router.push({ pathname: "/workout/active", params: { workoutDayId: activeWorkout.workoutDayId } })}
+            style={{ marginHorizontal: 20, marginBottom: 6, padding: 16, borderRadius: 18, backgroundColor: colors.primaryButton, flexDirection: "row", alignItems: "center", gap: 12 }}
+          >
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.electricBlue, borderWidth: 2, borderColor: "#FFFFFF" }} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "700" }}>Workout in progress</ThemedText>
+              <ThemedText style={{ color: "#FFFFFF", fontSize: 20, fontWeight: "700", marginTop: 2 }} numberOfLines={1}>{activeWorkoutTitle}</ThemedText>
+              <ThemedText style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 3 }}>
+                {activeWorkout.completedSets}{activeWorkoutTotalSets > 0 ? `/${activeWorkoutTotalSets}` : ""} sets completed
+              </ThemedText>
+            </View>
+            <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
 
         {/* This Week Section */}
         <View style={styles.section}>

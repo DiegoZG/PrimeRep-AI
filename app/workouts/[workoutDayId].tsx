@@ -126,11 +126,17 @@ export default function WorkoutDayDetailScreen() {
         openWorkout();
         return;
       }
+      const activeWorkout = getWorkoutById(active.workoutDayId);
+      const activeTitle = activeWorkout?.title ?? `${active.dayType.replace(/_/g, " ")} workout`;
+      const progress = active.setLogs.length > 0 ? `${active.setLogs.length} set${active.setLogs.length === 1 ? "" : "s"} logged` : "No sets logged yet";
       Alert.alert(
-        "Workout in progress",
-        "Finish it later, or abandon it before starting this workout.",
+        `${activeTitle} is in progress`,
+        `${progress}. Resume it, or abandon it before starting ${workout.title}.`,
         [
-          { text: "Keep current workout", style: "cancel" },
+          {
+            text: `Resume ${activeTitle}`,
+            onPress: () => router.push({ pathname: "/workout/active", params: { workoutDayId: active.workoutDayId } }),
+          },
           {
             text: "Abandon & Start",
             style: "destructive",
@@ -143,7 +149,7 @@ export default function WorkoutDayDetailScreen() {
     } catch {
       Alert.alert("Couldn't check active workout", "Please try again.");
     }
-  }, [workout, token, router, abandonActiveWorkout]);
+  }, [workout, token, router, abandonActiveWorkout, getWorkoutById]);
 
   // Handle stale ID notification
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { OfflineScreen } from "@/components/offline-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
+import { ActiveWorkoutProvider } from "@/utils/activeWorkoutContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
 import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
 import { OnboardingContext, OnboardingProvider } from "@/utils/onboardingContext";
@@ -179,7 +180,9 @@ export default function RootLayout() {
             <EquipmentWeightsProvider>
               <EquipmentProvider>
                 <WorkoutWeekProvider>
-                  <RootLayoutNav />
+                  <ActiveWorkoutProvider>
+                    <RootLayoutNav />
+                  </ActiveWorkoutProvider>
                 </WorkoutWeekProvider>
               </EquipmentProvider>
             </EquipmentWeightsProvider>

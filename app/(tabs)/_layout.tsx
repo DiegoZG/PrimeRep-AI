@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -13,6 +14,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme ?? "light"];
+  const { activeWorkout } = useActiveWorkout();
 
   return (
     <Tabs
@@ -28,8 +30,14 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <View testID="tab-home">
+            <View testID="tab-home" style={{ position: "relative" }}>
               <Ionicons name="barbell-sharp" size={size || 24} color={color} />
+              {activeWorkout ? (
+                <View
+                  accessibilityLabel="Workout in progress"
+                  style={{ position: "absolute", top: -1, right: -5, width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.primaryButton, borderWidth: 1, borderColor: themeColors.background }}
+                />
+              ) : null}
             </View>
           ),
         }}
