@@ -44,6 +44,18 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     ]);
     if (version !== requestVersion.current) return;
     if (serverActive) {
+      const matchingLocal = localActive && (
+        localActive.serverSessionId === serverActive.id ||
+        (serverActive.clientSessionId !== null && localActive.clientSessionId === serverActive.clientSessionId)
+      );
+      const completedSetKeys = new Set(
+        serverActive.setLogs.map((set) => `${set.exerciseId}:${set.setNumber}`)
+      );
+      if (matchingLocal) {
+        for (const set of localActive.sets) {
+          if (set.confirmed) completedSetKeys.add(`${set.exerciseId}:${set.setNumber}`);
+        }
+      }
       setActiveWorkout({
         sessionId: serverActive.id,
         workoutDayId: serverActive.workoutDayId,
@@ -54,7 +66,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           0
         ) ?? 0,
         startedAt: new Date(serverActive.startedAt).getTime(),
-        completedSets: serverActive.setLogs.length,
+        completedSets: completedSetKeys.size,
       });
       return;
     }
