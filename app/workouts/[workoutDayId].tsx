@@ -26,6 +26,8 @@ import {
   getFavoriteExercises,
   unfavoriteExercise,
 } from "@/services/exerciseService";
+import { abandonSession, getActiveSession } from "@/services/workoutLoggingService";
+import { clearActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 
 // Block type display names
@@ -74,7 +76,7 @@ export default function WorkoutDayDetailScreen() {
   const { workoutDayId } = useLocalSearchParams<{ workoutDayId: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { token, isLoggedIn } = useContext(AuthContext);
+  const { token, user, isLoggedIn } = useContext(AuthContext);
 
   // Workout week context
   const {
@@ -99,6 +101,49 @@ export default function WorkoutDayDetailScreen() {
 
   // Get current workout from context
   const workout = workoutDayId ? getWorkoutById(workoutDayId) : null;
+
+  const abandonActiveWorkout = useCallback(async (sessionId: string) => {
+    if (!token) return false;
+    try {
+      await abandonSession(token, sessionId);
+      if (user) await clearActiveWorkout(user.id);
+      return true;
+    } catch {
+      Alert.alert("Couldn't abandon workout", "Please try again before starting another workout.");
+      return false;
+    }
+  }, [token, user]);
+
+  const startWorkout = useCallback(async () => {
+    if (!workout || !token) return;
+    const openWorkout = () => router.push({
+      pathname: "/workout/active",
+      params: { workoutDayId: workout.workoutDayId },
+    });
+    try {
+      const active = await getActiveSession(token);
+      if (!active || active.workoutDayId === workout.workoutDayId) {
+        openWorkout();
+        return;
+      }
+      Alert.alert(
+        "Workout in progress",
+        "Finish it later, or abandon it before starting this workout.",
+        [
+          { text: "Keep current workout", style: "cancel" },
+          {
+            text: "Abandon & Start",
+            style: "destructive",
+            onPress: async () => {
+              if (await abandonActiveWorkout(active.id)) openWorkout();
+            },
+          },
+        ]
+      );
+    } catch {
+      Alert.alert("Couldn't check active workout", "Please try again.");
+    }
+  }, [workout, token, router, abandonActiveWorkout]);
 
   // Handle stale ID notification
   useEffect(() => {
@@ -205,10 +250,12 @@ export default function WorkoutDayDetailScreen() {
             const priorSlotIndex = workout.slotIndex;
 
             setIsActionLoading(true);
-            const newPlan = await skipDay(workoutDayId);
-            setIsActionLoading(false);
+            const runSkip = async () => {
+              setIsActionLoading(true);
+              const newPlan = await skipDay(workoutDayId);
+              setIsActionLoading(false);
 
-            if (newPlan) {
+              if (newPlan) {
               // Find workout with same slotIndex from the returned plan
               const sorted = [...newPlan.workouts].sort(
                 (a, b) => a.slotIndex - b.slotIndex
@@ -227,13 +274,37 @@ export default function WorkoutDayDetailScreen() {
               } else {
                 router.back();
               }
+              }
+            };
+            try {
+              const active = token ? await getActiveSession(token) : null;
+              if (active?.workoutDayId === workoutDayId) {
+                Alert.alert(
+                  "Workout in progress",
+                  "Abandon this in-progress workout before skipping the day?",
+                  [
+                    { text: "Keep workout", style: "cancel" },
+                    {
+                      text: "Abandon & Skip",
+                      style: "destructive",
+                      onPress: async () => {
+                        if (await abandonActiveWorkout(active.id)) await runSkip();
+                      },
+                    },
+                  ]
+                );
+              } else {
+                await runSkip();
+              }
+            } catch {
+              Alert.alert("Couldn't check active workout", "Please try again.");
             }
             // If null returned (stale 404), alert is shown via staleIdRefreshed effect
           },
         },
       ]
     );
-  }, [workout, workoutDayId, skipDay, todayIso, router]);
+  }, [workout, workoutDayId, skipDay, todayIso, router, token, abandonActiveWorkout]);
 
   // Handle update duration
   const handleUpdateDuration = useCallback(
@@ -546,12 +617,7 @@ export default function WorkoutDayDetailScreen() {
         <View style={styles.startButtonContainer}>
           <Pressable
             testID="start-workout-button"
-            onPress={() =>
-              router.push({
-                pathname: "/workout/active",
-                params: { workoutDayId: workout.workoutDayId },
-              })
-            }
+            onPress={() => void startWorkout()}
             style={[styles.startButton, { backgroundColor: colors.primaryButton }]}
           >
             <Ionicons name="play" size={20} color="#FFFFFF" />
