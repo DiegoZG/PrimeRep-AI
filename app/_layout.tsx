@@ -1,6 +1,7 @@
 import { OfflineScreen } from "@/components/offline-screen";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext, AuthProvider } from "@/utils/authContext";
+import { ActiveWorkoutProvider } from "@/utils/activeWorkoutContext";
 import { EquipmentProvider } from "@/utils/equipmentContext";
 import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
 import { OnboardingContext, OnboardingProvider } from "@/utils/onboardingContext";
@@ -11,11 +12,13 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useContext } from "react";
-import { ActivityIndicator, View } from "react-native";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, AppState, View } from "react-native";
 import "react-native-reanimated";
+import { getActiveSession } from "@/services/workoutLoggingService";
+import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -35,8 +38,68 @@ function RootLayoutNav() {
     isLoggedIn,
     hasCompletedOnboarding,
     bootstrapError,
+    token,
+    user,
   } = useContext(AuthContext);
   const { isRestoring: isRestoringOnboarding } = useContext(OnboardingContext);
+  const router = useRouter();
+  const segments = useSegments();
+  const attemptedResumeForUser = useRef<string | null>(null);
+  const [resumeRevision, setResumeRevision] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user) attemptedResumeForUser.current = null;
+  }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        attemptedResumeForUser.current = null;
+        setResumeRevision((revision) => revision + 1);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (
+      isBootstrapping ||
+      bootstrapError ||
+      !isLoggedIn ||
+      !hasCompletedOnboarding ||
+      !token ||
+      !user ||
+      attemptedResumeForUser.current === user.id ||
+      segments.join("/").includes("active")
+    ) {
+      return;
+    }
+
+    attemptedResumeForUser.current = user.id;
+    void (async () => {
+      // The server wins when it is reachable. A locally-created, unsynced
+      // session remains resumable while offline.
+      const [serverActive, localActive] = await Promise.all([
+        getActiveSession(token).catch(() => null),
+        loadActiveWorkout(user.id).catch(() => null),
+      ]);
+      const sessionId = serverActive?.id ?? localActive?.serverSessionId;
+      const workoutDayId = serverActive?.workoutDayId ?? localActive?.workoutDayId;
+      if (sessionId || workoutDayId) {
+        router.replace({ pathname: "/workout/active", params: sessionId ? { sessionId } : { workoutDayId: workoutDayId! } });
+      }
+    })();
+  }, [
+    isBootstrapping,
+    bootstrapError,
+    isLoggedIn,
+    hasCompletedOnboarding,
+    token,
+    user,
+    router,
+    segments,
+    resumeRevision,
+  ]);
 
   if (isBootstrapping || (!isLoggedIn && isRestoringOnboarding)) {
     return <Splash />;
@@ -118,7 +181,9 @@ export default function RootLayout() {
             <EquipmentWeightsProvider>
               <EquipmentProvider>
                 <WorkoutWeekProvider>
-                  <RootLayoutNav />
+                  <ActiveWorkoutProvider>
+                    <RootLayoutNav />
+                  </ActiveWorkoutProvider>
                 </WorkoutWeekProvider>
               </EquipmentProvider>
             </EquipmentWeightsProvider>

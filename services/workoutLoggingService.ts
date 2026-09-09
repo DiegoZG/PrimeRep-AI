@@ -1,4 +1,5 @@
 import { requestJson } from "./httpClient";
+import type { WorkoutDayApiResponse } from "@/interfaces/workouts";
 
 // ── API Response Types ───────────────────────────────────────────────────────
 
@@ -16,6 +17,11 @@ export interface SessionResponse {
   workoutDayId: string;
   workoutDate: string;
   dayType: string;
+  workoutSnapshot: WorkoutDayApiResponse | null;
+  recoveryRequired: boolean;
+  clientSessionId: string | null;
+  status: "in_progress" | "completed" | "abandoned";
+  startedAt: string;
   completedAt: string | null;
   createdAt: string;
   setLogs: SetLogResponse[];
@@ -66,12 +72,13 @@ export async function createSession(
   token: string,
   workoutDayId: string,
   workoutDate: string,
-  dayType: string
+  dayType: string,
+  clientSessionId: string
 ): Promise<SessionResponse> {
   return requestJson<SessionResponse>("/v1/workouts/sessions", {
     method: "POST",
     token,
-    body: { workoutDayId, workoutDate, dayType },
+    body: { workoutDayId, workoutDate, dayType, clientSessionId },
   });
 }
 
@@ -85,14 +92,15 @@ export async function logSet(
   exerciseId: string,
   setNumber: number,
   reps: number,
-  weightKg?: number
+  weightKg: number | undefined,
+  clientOperationId: string
 ): Promise<SetLogResponse> {
   return requestJson<SetLogResponse>(
     `/v1/workouts/sessions/${sessionId}/sets`,
     {
       method: "POST",
       token,
-      body: { exerciseId, setNumber, reps, weightKg: weightKg ?? null },
+      body: { exerciseId, setNumber, reps, weightKg: weightKg ?? null, clientOperationId },
     }
   );
 }
@@ -109,6 +117,21 @@ export async function completeSession(
     `/v1/workouts/sessions/${sessionId}/complete`,
     { method: "PATCH", token }
   );
+}
+
+export async function abandonSession(token: string, sessionId: string): Promise<SessionResponse> {
+  return requestJson<SessionResponse>(`/v1/workouts/sessions/${sessionId}/abandon`, {
+    method: "PATCH",
+    token,
+  });
+}
+
+export async function getActiveSession(token: string): Promise<SessionResponse | null> {
+  return requestJson<SessionResponse | null>("/v1/workouts/sessions/active", { method: "GET", token });
+}
+
+export async function getSession(token: string, sessionId: string): Promise<SessionResponse> {
+  return requestJson<SessionResponse>(`/v1/workouts/sessions/${sessionId}`, { method: "GET", token });
 }
 
 /**
