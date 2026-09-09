@@ -850,8 +850,22 @@ export default function ActiveWorkoutScreen() {
     if (!token || !user || isExiting) return;
     setIsExiting(true);
     try {
-      const activeSessionId = sessionId ?? (await getActiveSession(token))?.id ?? null;
-      if (activeSessionId) await abandonSession(token, activeSessionId);
+      // Wait for a queued create before abandoning. Clearing local state while a
+      // create request is still in flight can leave a hidden server session.
+      const replayed = await replayPendingWorkoutOperations(token, user.id);
+      if (replayed.completed || replayed.abandoned) {
+        isTerminalRef.current = true;
+        await clearActiveWorkout(user.id);
+        markWorkoutTerminal();
+        router.replace("/(tabs)");
+        return;
+      }
+      const activeSessionId = replayed.workout?.serverSessionId ?? sessionId ?? (await getActiveSession(token))?.id ?? null;
+      if (!activeSessionId) {
+        throw new Error("The workout has not reached PrimeRep yet.");
+      }
+      await abandonSession(token, activeSessionId);
+      isTerminalRef.current = true;
       await clearActiveWorkout(user.id);
       markWorkoutTerminal();
       router.replace("/(tabs)");
