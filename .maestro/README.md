@@ -71,6 +71,7 @@ maestro studio
 | Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles + equipment |
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
+| Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, then save a workout note |
 
 ---
 
@@ -88,15 +89,21 @@ Elements with `testID` props added for Maestro targeting:
 | `exercise-row` | `Pressable` | `components/explore/ExerciseRow.tsx` — each exercise list item |
 | `start-workout-button` | `Pressable` | `app/workouts/[workoutDayId].tsx` — "Start Workout" button |
 | `player-finish` | `Pressable` | `app/workout/active.tsx` — footer "Finish Workout" button |
-| `player-confirm-set` | `Pressable` | `components/workout/SetInputRow.tsx` — per-set confirm (checkmark) button |
-| `player-weight-input` | `TextInput` | `components/workout/SetInputRow.tsx` — weight field for the current exercise's sets |
-| `player-reps-input` | `TextInput` | `components/workout/SetInputRow.tsx` — reps field for the current exercise's sets |
+| `player-confirm-set-{exerciseId}-{setNumber}` | `Pressable` | `components/workout/SetInputRow.tsx` — unique per-set confirm (checkmark) button |
+| `player-weight-input-{exerciseId}-{setNumber}` | `TextInput` | `components/workout/SetInputRow.tsx` — unique weight field for each exercise set |
+| `player-reps-input-{exerciseId}-{setNumber}` | `TextInput` | `components/workout/SetInputRow.tsx` — unique reps field for each exercise set |
 | `player-rest-skip` | `Pressable` | `components/workout/RestTimer.tsx` — "Skip Rest" button |
 | `player-next-exercise` | `Pressable` | `app/workout/active.tsx` — "Continue" button on the "Next up" transition (only rendered between exercises) |
 | `player-exercise-list-button` | `Pressable` | `app/workout/active.tsx` — header button opening the exercise list sheet |
 | `player-sheet-exercise-row` | `Pressable` | `components/workout/ExerciseListSheet.tsx` — each exercise row in the jump-to sheet |
 | `player-sheet-close` | `Pressable` | `components/workout/ExerciseListSheet.tsx` — sheet close button |
 | `summary-done` | `Pressable` | `app/workout/summary.tsx` — "Done" button, returns to tabs |
+| `player-edit-set-{exerciseId}-{setNumber}` | `Pressable` | confirmed set correction action |
+| `player-remove-set-{exerciseId}-{setNumber}` | `Pressable` | soft-delete action |
+| `player-restore-set-{exerciseId}-{setNumber}` | `Pressable` | Undo action for a removed set |
+| `player-add-set-{exerciseId}` | `Pressable` | adds the next non-renumbering set slot |
+| `player-workout-note` | `Pressable` | opens the workout-note sheet |
+| `history-session-{sessionId}` | `Pressable` | opens a completed session from Profile history |
 
 ---
 

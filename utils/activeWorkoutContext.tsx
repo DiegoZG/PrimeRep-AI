@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
-import { getActiveSession } from "@/services/workoutLoggingService";
-import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
+import { getActiveSession, getSession } from "@/services/workoutLoggingService";
+import { clearActiveWorkout, loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 
 export interface ActiveWorkoutSummary {
@@ -29,15 +29,23 @@ const ActiveWorkoutContext = createContext<ActiveWorkoutContextValue>({
 
 export function ActiveWorkoutProvider({ children }: { children: React.ReactNode }) {
   const { token, user } = useContext(AuthContext);
-  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutSummary | null>(null);
+  const authenticatedUserId = user?.id ?? null;
+  const [activeState, setActiveState] = useState<{
+    ownerUserId: string | null;
+    workout: ActiveWorkoutSummary | null;
+  }>({ ownerUserId: null, workout: null });
   const requestVersion = useRef(0);
+  const activeWorkout = activeState.ownerUserId === authenticatedUserId
+    ? activeState.workout
+    : null;
 
   const refreshActiveWorkout = useCallback(async () => {
     const version = ++requestVersion.current;
     if (!token || !user) {
-      setActiveWorkout(null);
+      setActiveState({ ownerUserId: null, workout: null });
       return;
     }
+    const requestUserId = user.id;
     const [serverActive, localActive] = await Promise.all([
       getActiveSession(token).catch(() => null),
       loadActiveWorkout(user.id).catch(() => null),
@@ -53,45 +61,62 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       );
       if (matchingLocal) {
         for (const set of localActive.sets) {
-          if (set.confirmed) completedSetKeys.add(`${set.exerciseId}:${set.setNumber}`);
+          if (set.confirmed && !set.deleted) completedSetKeys.add(`${set.exerciseId}:${set.setNumber}`);
         }
       }
-      setActiveWorkout({
-        sessionId: serverActive.id,
-        workoutDayId: serverActive.workoutDayId,
-        dayType: serverActive.dayType,
-        title: serverActive.workoutSnapshot?.title ?? `${serverActive.dayType.replace(/_/g, " ")} workout`,
-        totalSets: serverActive.workoutSnapshot?.exerciseBlocks.reduce(
-          (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
-          0
-        ) ?? 0,
-        startedAt: new Date(serverActive.startedAt).getTime(),
-        completedSets: completedSetKeys.size,
+      setActiveState({
+        ownerUserId: requestUserId,
+        workout: {
+          sessionId: serverActive.id,
+          workoutDayId: serverActive.workoutDayId,
+          dayType: serverActive.dayType,
+          title: serverActive.workoutSnapshot?.title ?? `${serverActive.dayType.replace(/_/g, " ")} workout`,
+          totalSets: serverActive.workoutSnapshot?.exerciseBlocks.reduce(
+            (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+            0
+          ) ?? 0,
+          startedAt: new Date(serverActive.startedAt).getTime(),
+          completedSets: completedSetKeys.size,
+        },
       });
       return;
     }
     if (localActive) {
-      setActiveWorkout({
-        sessionId: localActive.serverSessionId,
-        workoutDayId: localActive.workoutDayId,
-        dayType: localActive.dayType,
-        title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
-        totalSets: localActive.workoutSnapshot?.blocks.reduce(
-          (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
-          0
-        ) ?? 0,
-        startedAt: localActive.startedAt,
-        completedSets: localActive.sets.filter((set) => set.confirmed).length,
+      if (localActive.serverSessionId) {
+        const localSession = await getSession(token, localActive.serverSessionId).catch(() => null);
+        if (version !== requestVersion.current) return;
+        if (localSession && localSession.status !== "in_progress") {
+          await clearActiveWorkout(user.id);
+          if (version === requestVersion.current) {
+            setActiveState({ ownerUserId: requestUserId, workout: null });
+          }
+          return;
+        }
+      }
+      setActiveState({
+        ownerUserId: requestUserId,
+        workout: {
+          sessionId: localActive.serverSessionId,
+          workoutDayId: localActive.workoutDayId,
+          dayType: localActive.dayType,
+          title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
+          totalSets: localActive.workoutSnapshot?.blocks.reduce(
+            (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+            0
+          ) ?? 0,
+          startedAt: localActive.startedAt,
+          completedSets: localActive.sets.filter((set) => set.confirmed && !set.deleted).length,
+        },
       });
       return;
     }
-    setActiveWorkout(null);
+    setActiveState({ ownerUserId: requestUserId, workout: null });
   }, [token, user]);
 
   const markWorkoutTerminal = useCallback(() => {
     requestVersion.current += 1;
-    setActiveWorkout(null);
-  }, []);
+    setActiveState({ ownerUserId: authenticatedUserId, workout: null });
+  }, [authenticatedUserId]);
 
   useEffect(() => {
     void refreshActiveWorkout();

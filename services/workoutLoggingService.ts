@@ -10,6 +10,21 @@ export interface SetLogResponse {
   reps: number;
   weightKg: number | null;
   loggedAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface ExerciseFeedbackResponse {
+  exerciseId: string;
+  effort: "easy" | "right" | "hard" | null;
+  rir: number | null;
+}
+
+export interface WorkoutSessionSummary {
+  title: string;
+  durationSeconds: number;
+  completedSetCount: number;
+  totalVolumeKg: number;
 }
 
 export interface SessionResponse {
@@ -25,6 +40,10 @@ export interface SessionResponse {
   completedAt: string | null;
   createdAt: string;
   setLogs: SetLogResponse[];
+  deletedSetLogs: SetLogResponse[];
+  workoutNote: string | null;
+  exerciseFeedback: ExerciseFeedbackResponse[];
+  summary: WorkoutSessionSummary;
 }
 
 export interface SessionSummary {
@@ -34,6 +53,8 @@ export interface SessionSummary {
   dayType: string;
   completedAt: string | null;
   setCount: number;
+  title: string;
+  totalVolumeKg: number;
 }
 
 export interface SessionListResponse {
@@ -105,6 +126,91 @@ export async function logSet(
   );
 }
 
+export async function updateLoggedSet(
+  token: string,
+  sessionId: string,
+  setLogId: string,
+  reps: number | undefined,
+  weightKg: number | null | undefined,
+  expectedVersion: number,
+  clientOperationId: string
+): Promise<SetLogResponse> {
+  const body: Record<string, unknown> = { clientOperationId, expectedVersion };
+  if (reps !== undefined) body.reps = reps;
+  if (weightKg !== undefined) body.weightKg = weightKg;
+  return requestJson<SetLogResponse>(`/v1/workouts/sessions/${sessionId}/sets/${setLogId}`, {
+    method: "PATCH",
+    token,
+    body,
+  });
+}
+
+export async function deleteLoggedSet(
+  token: string,
+  sessionId: string,
+  setLogId: string,
+  clientOperationId: string
+): Promise<void> {
+  await requestJson<null>(
+    `/v1/workouts/sessions/${sessionId}/sets/${setLogId}?clientOperationId=${encodeURIComponent(clientOperationId)}`,
+    { method: "DELETE", token }
+  );
+}
+
+export async function restoreLoggedSet(
+  token: string,
+  sessionId: string,
+  setLogId: string,
+  clientOperationId: string
+): Promise<SetLogResponse> {
+  return requestJson<SetLogResponse>(`/v1/workouts/sessions/${sessionId}/sets/${setLogId}/restore`, {
+    method: "POST",
+    token,
+    body: { clientOperationId },
+  });
+}
+
+export async function updateWorkoutNote(
+  token: string,
+  sessionId: string,
+  note: string | null,
+  clientOperationId: string
+): Promise<SessionResponse> {
+  return requestJson<SessionResponse>(`/v1/workouts/sessions/${sessionId}/note`, {
+    method: "PUT",
+    token,
+    body: { note, clientOperationId },
+  });
+}
+
+export async function updateExerciseFeedback(
+  token: string,
+  sessionId: string,
+  exerciseId: string,
+  effort: "easy" | "right" | "hard" | null,
+  rir: number | null,
+  clientOperationId: string
+): Promise<ExerciseFeedbackResponse> {
+  return requestJson<ExerciseFeedbackResponse>(
+    `/v1/workouts/sessions/${sessionId}/exercises/${exerciseId}/feedback`,
+    { method: "PUT", token, body: { effort, rir, clientOperationId } }
+  );
+}
+
+export interface UserExerciseNoteResponse { exerciseId: string; note: string }
+
+export async function getUserExerciseNote(token: string, exerciseId: string): Promise<UserExerciseNoteResponse | null> {
+  return requestJson<UserExerciseNoteResponse | null>(`/v1/users/me/exercises/${exerciseId}/note`, { method: "GET", token });
+}
+
+export async function updateUserExerciseNote(
+  token: string, exerciseId: string, note: string | null
+): Promise<UserExerciseNoteResponse | null> {
+  return requestJson<UserExerciseNoteResponse | null>(`/v1/users/me/exercises/${exerciseId}/note`, {
+    method: "PUT", token, body: { note },
+  });
+}
+
 /**
  * Mark a session as complete.
  * PATCH /v1/workouts/sessions/{sessionId}/complete
@@ -145,6 +251,17 @@ export async function listSessions(
 ): Promise<SessionListResponse> {
   return requestJson<SessionListResponse>(
     `/v1/workouts/sessions?limit=${limit}&offset=${offset}`,
+    { method: "GET", token }
+  );
+}
+
+export async function listCompletedSessions(
+  token: string,
+  limit = 20,
+  offset = 0
+): Promise<SessionListResponse> {
+  return requestJson<SessionListResponse>(
+    `/v1/workouts/sessions/history?limit=${limit}&offset=${offset}`,
     { method: "GET", token }
   );
 }

@@ -11,10 +11,17 @@ export interface SetState {
   setNumber: number;
   reps: string;
   weight: string;
+  weightKg?: number | null;
   confirmed: boolean;
   syncing: boolean;
   syncStatus: "pending" | "synced" | "failed" | "retrying";
   logId: string | null;
+  version?: number;
+  deleted?: boolean;
+  deletedLogId?: string | null;
+  editing?: boolean;
+  editDraft?: { reps: string; weight: string };
+  isAdded?: boolean;
 }
 
 /**

@@ -136,6 +136,8 @@ function RootLayoutNav() {
           <Stack.Screen name="workout/today" options={{ headerShown: false }} />
           <Stack.Screen name="workout/active" options={{ headerShown: false }} />
           <Stack.Screen name="workout/summary" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/history" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/history/[sessionId]" options={{ headerShown: false }} />
           <Stack.Screen
             name="exercises/[id]"
             options={{ headerShown: false }}

@@ -9,8 +9,10 @@ import React, {
   PropsWithChildren,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 import { AuthContext } from "./authContext";
 
@@ -19,6 +21,7 @@ import { AuthContext } from "./authContext";
 // =============================================================================
 
 interface WorkoutWeekState {
+  ownerUserId: string | null;
   weekPlan: WorkoutWeekPlan | null;
   isLoading: boolean;
   error: string | null;
@@ -38,10 +41,14 @@ interface WorkoutWeekContextValue {
     force?: boolean;
     weekStart?: string;
   }) => Promise<WorkoutWeekPlan | null>;
-  skipDay: (workoutDayId: string) => Promise<WorkoutWeekPlan | null>;
+  skipDay: (
+    workoutDayId: string,
+    weekStart?: string
+  ) => Promise<WorkoutWeekPlan | null>;
   setDuration: (
     workoutDayId: string,
-    durationMinutes: number
+    durationMinutes: number,
+    weekStart?: string
   ) => Promise<WorkoutWeekPlan | null>;
   clearStaleIdFlag: () => void;
 
@@ -53,12 +60,17 @@ interface WorkoutWeekContextValue {
 }
 
 type Action =
-  | { type: "FETCH_START" }
-  | { type: "FETCH_SUCCESS"; payload: WorkoutWeekPlan; weekStart?: string }
-  | { type: "FETCH_ERROR"; payload: string }
-  | { type: "SET_WEEK_START"; payload: string }
-  | { type: "STALE_ID_REFRESHED" }
-  | { type: "CLEAR_STALE_ID_FLAG" };
+  | { type: "RESET_OWNER"; userId: string | null }
+  | { type: "FETCH_START"; userId: string }
+  | {
+      type: "FETCH_SUCCESS";
+      userId: string;
+      payload: WorkoutWeekPlan;
+      weekStart?: string;
+    }
+  | { type: "FETCH_ERROR"; userId: string; payload: string }
+  | { type: "STALE_ID_REFRESHED"; userId: string }
+  | { type: "CLEAR_STALE_ID_FLAG"; userId: string };
 
 // =============================================================================
 // Helpers
@@ -74,7 +86,10 @@ function getCurrentWeekStart(): string {
   const diff = day === 0 ? -6 : 1 - day;
   const monday = new Date(now);
   monday.setDate(now.getDate() + diff);
-  return monday.toISOString().split("T")[0];
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, "0");
+  const date = String(monday.getDate()).padStart(2, "0");
+  return `${year}-${month}-${date}`;
 }
 
 /**
@@ -95,15 +110,28 @@ function isUnauthorizedError(err: any): boolean {
 // Reducer
 // =============================================================================
 
-const initialState: WorkoutWeekState = {
-  weekPlan: null,
-  isLoading: false,
-  error: null,
-  currentWeekStart: getCurrentWeekStart(),
-  staleIdRefreshed: false,
-};
+function createInitialState(ownerUserId: string | null): WorkoutWeekState {
+  return {
+    ownerUserId,
+    weekPlan: null,
+    isLoading: ownerUserId !== null,
+    error: null,
+    currentWeekStart: getCurrentWeekStart(),
+    staleIdRefreshed: false,
+  };
+}
+
+const initialState = createInitialState(null);
 
 function reducer(state: WorkoutWeekState, action: Action): WorkoutWeekState {
+  if (action.type === "RESET_OWNER") {
+    return createInitialState(action.userId);
+  }
+
+  if (action.userId !== state.ownerUserId) {
+    return state;
+  }
+
   switch (action.type) {
     case "FETCH_START":
       return { ...state, isLoading: true, error: null };
@@ -122,12 +150,6 @@ function reducer(state: WorkoutWeekState, action: Action): WorkoutWeekState {
         ...state,
         isLoading: false,
         error: action.payload,
-      };
-
-    case "SET_WEEK_START":
-      return {
-        ...state,
-        currentWeekStart: action.payload,
       };
 
     case "STALE_ID_REFRESHED":
@@ -173,7 +195,14 @@ export const WorkoutWeekContext = createContext<WorkoutWeekContextValue>({
 
 export function WorkoutWeekProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { token, logOut } = useContext(AuthContext);
+  const { token, user, logOut } = useContext(AuthContext);
+  const authenticatedUserId = user?.id ?? null;
+  const authenticatedUserIdRef = useRef(authenticatedUserId);
+  const initializedUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    authenticatedUserIdRef.current = authenticatedUserId;
+  }, [authenticatedUserId]);
 
   // -------------------------------------------------------------------------
   // Helper: Handle unauthorized errors
@@ -183,9 +212,10 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
    * Handles 401 unauthorized errors by clearing loading state and logging out
    * This ensures isLoading never gets stuck when auth fails
    */
-  const handleUnauthorized = useCallback(async () => {
+  const handleUnauthorized = useCallback(async (requestUserId: string) => {
     dispatch({
       type: "FETCH_ERROR",
+      userId: requestUserId,
       payload: "Session expired. Please sign in again.",
     });
     try {
@@ -202,51 +232,96 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
 
   const refreshWeek = useCallback(
     async (options?: { force?: boolean; weekStart?: string }) => {
-      if (!token) {
-        dispatch({ type: "FETCH_ERROR", payload: "Authentication required" });
+      const requestUserId = authenticatedUserId;
+      if (!token || !requestUserId) {
         return null;
       }
 
       const weekStart = options?.weekStart || state.currentWeekStart;
       const force = options?.force ?? false;
 
-      dispatch({ type: "FETCH_START" });
+      if (state.ownerUserId !== requestUserId) {
+        dispatch({ type: "RESET_OWNER", userId: requestUserId });
+      }
+      dispatch({ type: "FETCH_START", userId: requestUserId });
 
       try {
         // Timeout is now handled by requestJson in httpClient
         const plan = await getWorkoutWeek(token, weekStart, force);
-        dispatch({ type: "FETCH_SUCCESS", payload: plan, weekStart });
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
+        dispatch({
+          type: "FETCH_SUCCESS",
+          userId: requestUserId,
+          payload: plan,
+          weekStart,
+        });
         return plan;
       } catch (err: any) {
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
         if (isUnauthorizedError(err)) {
-          await handleUnauthorized();
+          await handleUnauthorized(requestUserId);
           return null;
         }
 
         const message = err?.message || "Failed to load workout week";
-        dispatch({ type: "FETCH_ERROR", payload: message });
+        dispatch({
+          type: "FETCH_ERROR",
+          userId: requestUserId,
+          payload: message,
+        });
         return null;
       }
     },
-    [token, state.currentWeekStart, handleUnauthorized]
+    [authenticatedUserId, token, state.currentWeekStart, state.ownerUserId, handleUnauthorized]
   );
 
+  useEffect(() => {
+    if (!authenticatedUserId) {
+      initializedUserIdRef.current = null;
+      dispatch({ type: "RESET_OWNER", userId: null });
+      return;
+    }
+
+    if (!token) {
+      dispatch({ type: "RESET_OWNER", userId: authenticatedUserId });
+      return;
+    }
+
+    if (initializedUserIdRef.current === authenticatedUserId) return;
+    initializedUserIdRef.current = authenticatedUserId;
+    dispatch({ type: "RESET_OWNER", userId: authenticatedUserId });
+    void refreshWeek({
+      force: false,
+      weekStart: getCurrentWeekStart(),
+    });
+  }, [authenticatedUserId, token, refreshWeek]);
+
   const skipDay = useCallback(
-    async (workoutDayId: string) => {
-      if (!token) {
-        dispatch({ type: "FETCH_ERROR", payload: "Authentication required" });
+    async (workoutDayId: string, requestedWeekStart?: string) => {
+      const requestUserId = authenticatedUserId;
+      if (!token || !requestUserId) {
         return null;
       }
 
-      dispatch({ type: "FETCH_START" });
+      const weekStart =
+        requestedWeekStart || state.weekPlan?.weekStart || state.currentWeekStart;
+      if (state.ownerUserId !== requestUserId) return null;
+      dispatch({ type: "FETCH_START", userId: requestUserId });
 
       try {
-        const plan = await skipWorkoutDay(token, workoutDayId);
-        dispatch({ type: "FETCH_SUCCESS", payload: plan });
+        const plan = await skipWorkoutDay(token, workoutDayId, weekStart);
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
+        dispatch({
+          type: "FETCH_SUCCESS",
+          userId: requestUserId,
+          payload: plan,
+          weekStart: plan.weekStart,
+        });
         return plan;
       } catch (err: any) {
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
         if (isUnauthorizedError(err)) {
-          await handleUnauthorized();
+          await handleUnauthorized(requestUserId);
           return null;
         }
 
@@ -255,51 +330,81 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
           try {
             const refreshedPlan = await getWorkoutWeek(
               token,
-              state.currentWeekStart,
+              weekStart,
               false
             );
-            dispatch({ type: "FETCH_SUCCESS", payload: refreshedPlan });
-            dispatch({ type: "STALE_ID_REFRESHED" });
+            if (authenticatedUserIdRef.current !== requestUserId) return null;
+            dispatch({
+              type: "FETCH_SUCCESS",
+              userId: requestUserId,
+              payload: refreshedPlan,
+              weekStart: refreshedPlan.weekStart,
+            });
+            dispatch({ type: "STALE_ID_REFRESHED", userId: requestUserId });
           } catch (refreshErr: any) {
+            if (authenticatedUserIdRef.current !== requestUserId) return null;
             if (isUnauthorizedError(refreshErr)) {
-              await handleUnauthorized();
+              await handleUnauthorized(requestUserId);
               return null;
             }
             const message =
               refreshErr?.message || "Failed to refresh workout week";
-            dispatch({ type: "FETCH_ERROR", payload: message });
+            dispatch({
+              type: "FETCH_ERROR",
+              userId: requestUserId,
+              payload: message,
+            });
           }
           return null; // Return null to signal the mutation didn't apply
         }
 
         const message = err?.message || "Failed to skip workout day";
-        dispatch({ type: "FETCH_ERROR", payload: message });
+        dispatch({
+          type: "FETCH_ERROR",
+          userId: requestUserId,
+          payload: message,
+        });
         return null;
       }
     },
-    [token, state.currentWeekStart, handleUnauthorized]
+    [authenticatedUserId, token, state.currentWeekStart, state.ownerUserId, state.weekPlan?.weekStart, handleUnauthorized]
   );
 
   const setDuration = useCallback(
-    async (workoutDayId: string, durationMinutes: number) => {
-      if (!token) {
-        dispatch({ type: "FETCH_ERROR", payload: "Authentication required" });
+    async (
+      workoutDayId: string,
+      durationMinutes: number,
+      requestedWeekStart?: string
+    ) => {
+      const requestUserId = authenticatedUserId;
+      if (!token || !requestUserId) {
         return null;
       }
 
-      dispatch({ type: "FETCH_START" });
+      const weekStart =
+        requestedWeekStart || state.weekPlan?.weekStart || state.currentWeekStart;
+      if (state.ownerUserId !== requestUserId) return null;
+      dispatch({ type: "FETCH_START", userId: requestUserId });
 
       try {
         const plan = await updateWorkoutDuration(
           token,
           workoutDayId,
-          durationMinutes
+          durationMinutes,
+          weekStart
         );
-        dispatch({ type: "FETCH_SUCCESS", payload: plan });
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
+        dispatch({
+          type: "FETCH_SUCCESS",
+          userId: requestUserId,
+          payload: plan,
+          weekStart: plan.weekStart,
+        });
         return plan;
       } catch (err: any) {
+        if (authenticatedUserIdRef.current !== requestUserId) return null;
         if (isUnauthorizedError(err)) {
-          await handleUnauthorized();
+          await handleUnauthorized(requestUserId);
           return null;
         }
 
@@ -308,43 +413,65 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
           try {
             const refreshedPlan = await getWorkoutWeek(
               token,
-              state.currentWeekStart,
+              weekStart,
               false
             );
-            dispatch({ type: "FETCH_SUCCESS", payload: refreshedPlan });
-            dispatch({ type: "STALE_ID_REFRESHED" });
+            if (authenticatedUserIdRef.current !== requestUserId) return null;
+            dispatch({
+              type: "FETCH_SUCCESS",
+              userId: requestUserId,
+              payload: refreshedPlan,
+              weekStart: refreshedPlan.weekStart,
+            });
+            dispatch({ type: "STALE_ID_REFRESHED", userId: requestUserId });
           } catch (refreshErr: any) {
+            if (authenticatedUserIdRef.current !== requestUserId) return null;
             if (isUnauthorizedError(refreshErr)) {
-              await handleUnauthorized();
+              await handleUnauthorized(requestUserId);
               return null;
             }
             const message =
               refreshErr?.message || "Failed to refresh workout week";
-            dispatch({ type: "FETCH_ERROR", payload: message });
+            dispatch({
+              type: "FETCH_ERROR",
+              userId: requestUserId,
+              payload: message,
+            });
           }
           return null; // Return null to signal the mutation didn't apply
         }
 
         const message = err?.message || "Failed to update workout duration";
-        dispatch({ type: "FETCH_ERROR", payload: message });
+        dispatch({
+          type: "FETCH_ERROR",
+          userId: requestUserId,
+          payload: message,
+        });
         return null;
       }
     },
-    [token, state.currentWeekStart, handleUnauthorized]
+    [authenticatedUserId, token, state.currentWeekStart, state.ownerUserId, state.weekPlan?.weekStart, handleUnauthorized]
   );
 
   const clearStaleIdFlag = useCallback(() => {
-    dispatch({ type: "CLEAR_STALE_ID_FLAG" });
-  }, []);
+    if (!authenticatedUserId) return;
+    dispatch({
+      type: "CLEAR_STALE_ID_FLAG",
+      userId: authenticatedUserId,
+    });
+  }, [authenticatedUserId]);
 
   // -------------------------------------------------------------------------
   // Derived Selectors
   // -------------------------------------------------------------------------
 
+  const ownsPlan = state.ownerUserId === authenticatedUserId;
+  const visibleWeekPlan = ownsPlan ? state.weekPlan : null;
+
   const getSortedWorkouts = useCallback((): WorkoutDay[] => {
-    if (!state.weekPlan?.workouts) return [];
-    return [...state.weekPlan.workouts].sort((a, b) => a.slotIndex - b.slotIndex);
-  }, [state.weekPlan]);
+    if (!visibleWeekPlan?.workouts) return [];
+    return [...visibleWeekPlan.workouts].sort((a, b) => a.slotIndex - b.slotIndex);
+  }, [visibleWeekPlan]);
 
   const getHighlightedWorkout = useCallback(
     (todayIso: string): WorkoutDay | null => {
@@ -369,13 +496,13 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
 
   const getWorkoutById = useCallback(
     (workoutDayId: string): WorkoutDay | null => {
-      if (!state.weekPlan?.workouts) return null;
+      if (!visibleWeekPlan?.workouts) return null;
       return (
-        state.weekPlan.workouts.find((w) => w.workoutDayId === workoutDayId) ||
+        visibleWeekPlan.workouts.find((w) => w.workoutDayId === workoutDayId) ||
         null
       );
     },
-    [state.weekPlan]
+    [visibleWeekPlan]
   );
 
   const getExerciseCount = useCallback((workout: WorkoutDay): number => {
@@ -392,11 +519,13 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<WorkoutWeekContextValue>(
     () => ({
-      weekPlan: state.weekPlan,
-      isLoading: state.isLoading,
-      error: state.error,
-      currentWeekStart: state.currentWeekStart,
-      staleIdRefreshed: state.staleIdRefreshed,
+      weekPlan: visibleWeekPlan,
+      isLoading: ownsPlan ? state.isLoading : authenticatedUserId !== null,
+      error: ownsPlan ? state.error : null,
+      currentWeekStart: ownsPlan
+        ? state.currentWeekStart
+        : getCurrentWeekStart(),
+      staleIdRefreshed: ownsPlan ? state.staleIdRefreshed : false,
       refreshWeek,
       skipDay,
       setDuration,
@@ -407,7 +536,9 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       getExerciseCount,
     }),
     [
-      state.weekPlan,
+      visibleWeekPlan,
+      ownsPlan,
+      authenticatedUserId,
       state.isLoading,
       state.error,
       state.currentWeekStart,

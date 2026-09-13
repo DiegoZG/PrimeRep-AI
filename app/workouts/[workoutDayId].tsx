@@ -74,7 +74,10 @@ function getHighlightedFromPlan(
 
 export default function WorkoutDayDetailScreen() {
   const router = useRouter();
-  const { workoutDayId } = useLocalSearchParams<{ workoutDayId: string }>();
+  const { workoutDayId, weekStart: routeWeekStart } = useLocalSearchParams<{
+    workoutDayId: string;
+    weekStart?: string;
+  }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user, isLoggedIn } = useContext(AuthContext);
@@ -101,8 +104,15 @@ export default function WorkoutDayDetailScreen() {
   // Today's date in YYYY-MM-DD format
   const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
 
-  // Get current workout from context
-  const workout = workoutDayId ? getWorkoutById(workoutDayId) : null;
+  const requestedWeekStart =
+    typeof routeWeekStart === "string" ? routeWeekStart : undefined;
+  const targetWeekStart = requestedWeekStart || weekPlan?.weekStart;
+  const isTargetWeekLoaded =
+    !targetWeekStart || weekPlan?.weekStart === targetWeekStart;
+
+  // Never resolve a route's workout ID against a different week plan.
+  const workout =
+    workoutDayId && isTargetWeekLoaded ? getWorkoutById(workoutDayId) : null;
 
   const abandonActiveWorkout = useCallback(async (sessionId: string) => {
     if (!token) return false;
@@ -121,7 +131,10 @@ export default function WorkoutDayDetailScreen() {
     if (!workout || !token) return;
     const openWorkout = () => router.push({
       pathname: "/workout/active",
-      params: { workoutDayId: workout.workoutDayId },
+        params: {
+          workoutDayId: workout.workoutDayId,
+          weekStart: targetWeekStart,
+        },
     });
     try {
       const active = await getActiveSession(token);
@@ -151,29 +164,40 @@ export default function WorkoutDayDetailScreen() {
     } catch {
       Alert.alert("Couldn't check active workout", "Please try again.");
     }
-  }, [workout, token, router, abandonActiveWorkout, getWorkoutById]);
+  }, [workout, token, router, abandonActiveWorkout, targetWeekStart]);
 
   // Handle stale ID notification
   useEffect(() => {
     if (staleIdRefreshed) {
       Alert.alert(
         "Plan Refreshed",
-        "Your workout plan has been updated. Please try again.",
-        [{ text: "OK", onPress: () => clearStaleIdFlag() }]
+        "This workout is no longer available. Return to your workouts to choose another one.",
+        [{ text: "OK", onPress: () => {
+          clearStaleIdFlag();
+          router.replace("/(tabs)");
+        } }]
       );
     }
-  }, [staleIdRefreshed, clearStaleIdFlag]);
+  }, [staleIdRefreshed, clearStaleIdFlag, router]);
 
   // If workout not found and we haven't tried refreshing, try to refresh
   useEffect(() => {
     async function tryRefresh() {
       if (!workout && workoutDayId && weekPlan && !hasTriedRefresh && !isWeekLoading) {
         setHasTriedRefresh(true);
-        await refreshWeek({ force: false });
+        await refreshWeek({ force: false, weekStart: targetWeekStart });
       }
     }
     tryRefresh();
-  }, [workout, workoutDayId, weekPlan, hasTriedRefresh, isWeekLoading, refreshWeek]);
+  }, [
+    workout,
+    workoutDayId,
+    weekPlan,
+    targetWeekStart,
+    hasTriedRefresh,
+    isWeekLoading,
+    refreshWeek,
+  ]);
 
   // Load favorites when screen gains focus
   useFocusEffect(
@@ -260,7 +284,7 @@ export default function WorkoutDayDetailScreen() {
             setIsActionLoading(true);
             const runSkip = async () => {
               setIsActionLoading(true);
-              const newPlan = await skipDay(workoutDayId);
+              const newPlan = await skipDay(workoutDayId, targetWeekStart);
               setIsActionLoading(false);
 
               if (newPlan) {
@@ -277,7 +301,10 @@ export default function WorkoutDayDetailScreen() {
               if (targetWorkout) {
                 router.replace({
                   pathname: "/workouts/[workoutDayId]",
-                  params: { workoutDayId: targetWorkout.workoutDayId },
+                  params: {
+                    workoutDayId: targetWorkout.workoutDayId,
+                    weekStart: newPlan.weekStart,
+                  },
                 });
               } else {
                 router.back();
@@ -294,7 +321,7 @@ export default function WorkoutDayDetailScreen() {
         },
       ]
     );
-  }, [workout, workoutDayId, skipDay, todayIso, router]);
+  }, [workout, workoutDayId, skipDay, targetWeekStart, todayIso, router]);
 
   // Handle update duration
   const handleUpdateDuration = useCallback(
@@ -311,7 +338,7 @@ export default function WorkoutDayDetailScreen() {
             text: "Update",
             onPress: async () => {
               setIsActionLoading(true);
-              await setDuration(workoutDayId, newDuration);
+              await setDuration(workoutDayId, newDuration, targetWeekStart);
               setIsActionLoading(false);
 
               // If newPlan is null (stale 404), alert is shown via staleIdRefreshed effect
@@ -321,7 +348,7 @@ export default function WorkoutDayDetailScreen() {
         ]
       );
     },
-    [workout, workoutDayId, setDuration]
+    [workout, workoutDayId, setDuration, targetWeekStart]
   );
 
   // Get formatted date

@@ -161,14 +161,15 @@ export async function getWorkoutWeek(
  */
 export async function skipWorkoutDay(
   token: string,
-  workoutDayId: string
+  workoutDayId: string,
+  weekStart?: string
 ): Promise<WorkoutWeekPlan> {
   const data = await requestJson<WorkoutWeekPlanApiResponse>(
     "/v1/workouts/week/skip",
     {
       method: "POST",
       token,
-      body: { workoutDayId },
+      body: { workoutDayId, weekStart },
     }
   );
   return mapApiWeekPlan(data);
@@ -185,14 +186,15 @@ export async function skipWorkoutDay(
 export async function updateWorkoutDuration(
   token: string,
   workoutDayId: string,
-  durationMinutes: number
+  durationMinutes: number,
+  weekStart?: string
 ): Promise<WorkoutWeekPlan> {
   const data = await requestJson<WorkoutWeekPlanApiResponse>(
     "/v1/workouts/week/duration",
     {
       method: "PATCH",
       token,
-      body: { workoutDayId, durationMinutes },
+      body: { workoutDayId, durationMinutes, weekStart },
     }
   );
 
