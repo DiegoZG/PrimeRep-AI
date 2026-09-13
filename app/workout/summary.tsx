@@ -1,241 +1,109 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
-interface WorkoutSummaryPayload {
-  workoutName: string;
-  durationSeconds: number;
-  setsCompleted: number;
-  totalSets: number;
-  totalVolumeKg: number;
-  weightUnit?: "KG" | "LB";
-  prExerciseNames: string[];
-}
-
-const LB_PER_KG = 2.2046226218;
+import { getSession, type SessionResponse } from "@/services/workoutLoggingService";
+import { AuthContext } from "@/utils/authContext";
+import { formatWeightInput, fromKg, loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
 function formatDuration(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  if (m === 0) return `${s}s`;
-  return `${m}m ${s.toString().padStart(2, "0")}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds.toString().padStart(2, "0")}s` : `${seconds}s`;
 }
 
-function parsePayload(raw: string | undefined): WorkoutSummaryPayload | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      workoutName: typeof parsed.workoutName === "string" ? parsed.workoutName : "Workout",
-      durationSeconds: Number(parsed.durationSeconds) || 0,
-      setsCompleted: Number(parsed.setsCompleted) || 0,
-      totalSets: Number(parsed.totalSets) || 0,
-      totalVolumeKg: Number(parsed.totalVolumeKg) || 0,
-      weightUnit: parsed.weightUnit === "LB" || parsed.weightUnit === "KG" ? parsed.weightUnit : "KG",
-      prExerciseNames: Array.isArray(parsed.prExerciseNames) ? parsed.prExerciseNames : [],
-    };
-  } catch (err) {
-    console.warn("Failed to parse workout summary payload:", err);
-    return null;
-  }
-}
-
-interface StatCardProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  colors: typeof Colors.light;
-}
-
-function StatCard({ icon, label, value, colors }: StatCardProps) {
+function StatCard({ icon, label, value, colors }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; colors: typeof Colors.light }) {
   return (
-    <View
-      style={{
-        flex: 1,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.inputBorder,
-        backgroundColor: colors.inputBackground,
-        padding: 16,
-        alignItems: "center",
-      }}
-    >
+    <View style={{ flex: 1, borderRadius: 16, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, padding: 16, alignItems: "center" }}>
       <Ionicons name={icon} size={20} color={colors.primaryButton} style={{ marginBottom: 8 }} />
-      <ThemedText type="defaultSemiBold" style={{ fontSize: 20 }}>
-        {value}
-      </ThemedText>
-      <ThemedText style={{ fontSize: 12, color: colors.placeholder, marginTop: 2 }}>
-        {label}
-      </ThemedText>
+      <ThemedText type="defaultSemiBold" style={{ fontSize: 20 }}>{value}</ThemedText>
+      <ThemedText style={{ fontSize: 12, color: colors.placeholder, marginTop: 2 }}>{label}</ThemedText>
     </View>
   );
 }
 
 export default function WorkoutSummaryScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
-  const { payload } = useLocalSearchParams<{ payload?: string }>();
+  const { token } = useContext(AuthContext);
+  const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
+  const colors = Colors[useColorScheme() ?? "light"];
+  const [session, setSession] = useState<SessionResponse | null>(null);
+  const [unit, setUnit] = useState<WeightUnit>("LB");
+  const [error, setError] = useState(false);
 
-  const summary = useMemo(() => parsePayload(payload), [payload]);
+  useEffect(() => { void loadWeightUnit().then(setUnit); }, []);
+  useEffect(() => {
+    if (!token || !sessionId) { setError(true); return; }
+    let cancelled = false;
+    void getSession(token, sessionId).then((result) => {
+      if (!cancelled) setSession(result);
+    }).catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, [token, sessionId]);
 
-  const handleShare = () => {
-    Alert.alert("Share Workout", "Sharing is coming soon!");
-  };
+  const exerciseNames = useMemo(() => new Map(
+    (session?.workoutSnapshot?.exerciseBlocks ?? [])
+      .flatMap((block) => block.items)
+      .map((item) => [String(item.exercise.id), item.exercise.name])
+  ), [session?.workoutSnapshot]);
+  const logsByExercise = useMemo(() => {
+    const groups = new Map<string, SessionResponse["setLogs"]>();
+    session?.setLogs.forEach((set) => groups.set(set.exerciseId, [...(groups.get(set.exerciseId) ?? []), set]));
+    return Array.from(groups.entries()).map(([exerciseId, logs]) => [exerciseId, logs.sort((left, right) => left.setNumber - right.setNumber)] as const);
+  }, [session?.setLogs]);
 
-  const handleDone = () => {
-    // Pop back to the tabs root rather than pushing a new screen, so the
-    // workout flow doesn't linger in the back stack.
-    if (router.canDismiss()) {
-      router.dismissAll();
-    } else {
-      router.replace("/(tabs)");
-    }
-  };
-
-  if (!summary) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <ThemedText>Workout summary unavailable.</ThemedText>
-          <Pressable onPress={handleDone} style={{ marginTop: 16 }}>
-            <ThemedText style={{ color: colors.primaryButton }}>Back to Home</ThemedText>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
+  const handleDone = () => router.replace("/(tabs)");
+  if (!session && !error) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={colors.primaryButton} /></View></SafeAreaView>;
   }
+  if (!session || session.status !== "completed") {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}><ThemedText>Workout summary unavailable.</ThemedText><Pressable onPress={handleDone} style={{ marginTop: 16 }}><ThemedText style={{ color: colors.primaryButton }}>Back to Home</ThemedText></Pressable></View></SafeAreaView>;
+  }
+  const volume = unit === "LB" ? fromKg(session.summary.totalVolumeKg, unit) : session.summary.totalVolumeKg;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40, flexGrow: 1 }}>
-        {/* Celebration header */}
         <View style={{ alignItems: "center", marginTop: 12, marginBottom: 32 }}>
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: `${colors.primaryButton}18`,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 16,
-            }}
-          >
-            <Ionicons name="checkmark-circle" size={40} color={colors.primaryButton} />
-          </View>
-          <ThemedText type="title" style={{ fontSize: 26, textAlign: "center" }}>
-            Workout Complete!
-          </ThemedText>
-          <ThemedText style={{ fontSize: 15, color: colors.placeholder, marginTop: 6 }}>
-            {summary.workoutName}
-          </ThemedText>
-        </View>
-
-        {/* Stat grid */}
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-          <StatCard
-            icon="time-outline"
-            label="Duration"
-            value={formatDuration(summary.durationSeconds)}
-            colors={colors}
-          />
-          <StatCard
-            icon="checkmark-done-outline"
-            label="Sets"
-            value={`${summary.setsCompleted}/${summary.totalSets}`}
-            colors={colors}
-          />
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: `${colors.primaryButton}18`, alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Ionicons name="checkmark-circle" size={40} color={colors.primaryButton} /></View>
+          <ThemedText type="title" style={{ fontSize: 26, textAlign: "center" }}>Workout Complete!</ThemedText>
+          <ThemedText style={{ fontSize: 15, color: colors.placeholder, marginTop: 6 }}>{session.summary.title}</ThemedText>
         </View>
         <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-          <StatCard
-            icon="barbell-outline"
-            label="Total Volume"
-            value={
-              summary.weightUnit === "LB"
-                ? `${Math.round(summary.totalVolumeKg * LB_PER_KG).toLocaleString()} lb`
-                : `${Math.round(summary.totalVolumeKg).toLocaleString()} kg`
-            }
-            colors={colors}
-          />
-          <StatCard
-            icon="trophy-outline"
-            label="PRs"
-            value={`${summary.prExerciseNames.length}`}
-            colors={colors}
-          />
+          <StatCard icon="time-outline" label="Duration" value={formatDuration(session.summary.durationSeconds)} colors={colors} />
+          <StatCard icon="checkmark-done-outline" label="Sets" value={String(session.summary.completedSetCount)} colors={colors} />
         </View>
-
-        {/* PR list */}
-        {summary.prExerciseNames.length > 0 && (
-          <View
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: colors.inputBorder,
-              backgroundColor: colors.inputBackground,
-              padding: 16,
-              marginTop: 12,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 8 }}>
-              <Ionicons name="trophy" size={18} color="#F5A623" />
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>
-                New Personal Records
-              </ThemedText>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <StatCard icon="barbell-outline" label="Total Volume" value={`${Math.round(volume).toLocaleString()} ${unit.toLowerCase()}`} colors={colors} />
+          <StatCard icon="chatbubble-ellipses-outline" label="Note" value={session.workoutNote ? "Saved" : "—"} colors={colors} />
+        </View>
+        {session.workoutNote ? <View style={{ marginTop: 18, borderRadius: 16, padding: 16, backgroundColor: colors.inputBackground }}><ThemedText type="defaultSemiBold">Workout note</ThemedText><ThemedText style={{ marginTop: 6, color: colors.placeholder }}>{session.workoutNote}</ThemedText></View> : null}
+        <View style={{ marginTop: 22 }}>
+          <ThemedText type="defaultSemiBold" style={{ fontSize: 18 }}>Logged sets</ThemedText>
+          {logsByExercise.length === 0 ? (
+            <ThemedText testID="summary-empty-sets" style={{ color: colors.placeholder, marginTop: 8 }}>No sets were logged for this workout.</ThemedText>
+          ) : logsByExercise.map(([exerciseId, logs]) => (
+            <View key={exerciseId} testID={`summary-exercise-${exerciseId}`} style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }}>
+              <ThemedText type="defaultSemiBold">{exerciseNames.get(String(exerciseId)) ?? exerciseId}</ThemedText>
+              {logs.map((set, index) => {
+                const displayWeight = set.weightKg == null ? "Bodyweight" : `${formatWeightInput(fromKg(set.weightKg, unit))} ${unit.toLowerCase()}`;
+                return <ThemedText key={set.id} style={{ color: colors.placeholder, marginTop: 6 }}>Set {index + 1}: {displayWeight} × {set.reps}</ThemedText>;
+              })}
             </View>
-            {summary.prExerciseNames.map((name) => (
-              <ThemedText key={name} style={{ fontSize: 14, marginBottom: 4, color: colors.text }}>
-                • {name}
-              </ThemedText>
-            ))}
-          </View>
-        )}
-
-        <View style={{ flex: 1 }} />
-
-        {/* Actions */}
-        <View style={{ gap: 12, marginTop: 32 }}>
-          <Pressable
-            onPress={handleShare}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              paddingVertical: 14,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: colors.inputBorder,
-            }}
-          >
-            <Ionicons name="share-outline" size={18} color={colors.text} />
-            <ThemedText style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>
-              Share Workout
-            </ThemedText>
-          </Pressable>
-
-          <Pressable
-            testID="summary-done"
-            onPress={handleDone}
-            style={{
-              paddingVertical: 16,
-              borderRadius: 14,
-              alignItems: "center",
-              backgroundColor: colors.primaryButton,
-            }}
-          >
-            <ThemedText style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
-              Done
-            </ThemedText>
-          </Pressable>
+          ))}
         </View>
+        <View style={{ flex: 1 }} />
+        <Pressable testID={`summary-detail-${session.id}`} accessibilityRole="button" accessibilityLabel="Review or correct workout" onPress={() => router.push({ pathname: "/workout/history/[sessionId]", params: { sessionId: session.id } })} style={{ marginTop: 32, paddingVertical: 14, borderRadius: 14, alignItems: "center", borderWidth: 1, borderColor: colors.inputBorder }}>
+          <ThemedText style={{ color: colors.text, fontSize: 16, fontWeight: "600", fontFamily: Fonts.sans }}>Review or correct workout</ThemedText>
+        </Pressable>
+        <Pressable testID="summary-done" accessibilityRole="button" accessibilityLabel="Done with workout summary" onPress={handleDone} style={{ marginTop: 12, paddingVertical: 16, borderRadius: 14, alignItems: "center", backgroundColor: colors.primaryButton }}>
+          <ThemedText style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600", fontFamily: Fonts.sans }}>Done</ThemedText>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

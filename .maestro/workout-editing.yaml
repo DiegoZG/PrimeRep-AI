@@ -1,0 +1,67 @@
+# E2E Test: Set correction controls.
+#
+# Requires a signed-in account, generated week, running backend, and native
+# development build (Expo SQLite is part of the active-workout path).
+
+appId: com.diegozegarra.primerep
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-dev-build.yaml
+- runFlow: flows/auth-login.yaml
+
+- tapOn:
+    id: "workout-card"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "start-workout-button"
+    timeout: 10000
+- tapOn:
+    id: "start-workout-button"
+- extendedWaitUntil:
+    visible:
+      id: "player-finish"
+    timeout: 15000
+
+- tapOn:
+    id: "player-reps-input-.*-1"
+- eraseText: 5
+- inputText: "10"
+- tapOn:
+    id: "player-weight-input-.*-1"
+- eraseText: 5
+- inputText: "40"
+- tapOn:
+    id: "player-confirm-set-.*-1"
+
+- extendedWaitUntil:
+    visible: "Edit"
+    timeout: 5000
+- tapOn: "Edit"
+- tapOn:
+    id: "player-reps-input-.*-1"
+- eraseText: 5
+- inputText: "12"
+- tapOn:
+    id: "player-confirm-set-.*-1"
+
+- extendedWaitUntil:
+    visible: "Remove"
+    timeout: 5000
+- tapOn: "Remove"
+- extendedWaitUntil:
+    visible: "Undo"
+    timeout: 3000
+- tapOn: "Undo"
+
+- tapOn:
+    id: "player-workout-note"
+- extendedWaitUntil:
+    visible:
+      id: "player-workout-note-input"
+    timeout: 3000
+- inputText: "Maestro correction note"
+- tapOn:
+    id: "player-save-note"

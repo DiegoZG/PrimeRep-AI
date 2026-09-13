@@ -379,8 +379,21 @@ const ProfileScreen = () => {
           </View>
         </View>
 
+        <Pressable
+          testID="profile-workout-history"
+          onPress={() => router.push("/workout/history")}
+          style={[styles.supportCard, styles.historyCard, { backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }]}
+        >
+          <Ionicons name="time-outline" size={24} color={colors.primaryButton} />
+          <View style={styles.supportTextContainer}>
+            <Text style={[styles.supportTitle, { color: colors.text }]}>Workout History</Text>
+            <Text style={[styles.supportSubtitle, { color: colors.placeholder }]}>Review and correct completed workouts</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+        </Pressable>
+
         {/* Badges Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.badgesSection]}>
           <View style={styles.sectionHeader}>
             <ThemedText type="title" style={styles.sectionTitle}>
               Badges
@@ -637,6 +650,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  historyCard: {
+    alignSelf: "stretch",
+    marginTop: 24,
+  },
   supportTextContainer: {
     flex: 1,
     gap: 2,
@@ -656,6 +673,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+  },
+  badgesSection: {
+    marginTop: 32,
   },
   sectionHeader: {
     flexDirection: "row",

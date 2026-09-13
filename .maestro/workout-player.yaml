@@ -67,20 +67,17 @@ env:
 # Ensure reps/weight have values — if the test account has no history for
 # this exercise the fields are blank, so fill them in defensively.
 - tapOn:
-    id: "player-reps-input"
-    index: 0
+    id: "player-reps-input-.*-1"
 - eraseText: 5
 - inputText: "10"
 
 - tapOn:
-    id: "player-weight-input"
-    index: 0
+    id: "player-weight-input-.*-1"
 - eraseText: 5
 - inputText: "40"
 
 - tapOn:
-    id: "player-confirm-set"
-    index: 0
+    id: "player-confirm-set-.*-1"
 
 # =============================================
 # STEP 5: REST TIMER → SKIP

@@ -89,9 +89,11 @@ export interface GetWorkoutWeekParams {
 
 export interface SkipWorkoutDayParams {
   workoutDayId: string;
+  weekStart?: string;
 }
 
 export interface UpdateWorkoutDurationParams {
   workoutDayId: string;
   durationMinutes: number;
+  weekStart?: string;
 }

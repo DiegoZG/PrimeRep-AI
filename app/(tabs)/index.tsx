@@ -69,6 +69,8 @@ const Home = () => {
 
   // Workout week context
   const {
+    weekPlan,
+    currentWeekStart,
     isLoading,
     error,
     refreshWeek,
@@ -114,10 +116,10 @@ const Home = () => {
   useFocusEffect(
     useCallback(() => {
       void refreshActiveWorkout();
-      if (token && sortedWorkouts.length === 0) {
-        refreshWeek({ force: false });
+      if (token && !isLoading && !error && weekPlan === null) {
+        void refreshWeek({ force: false });
       }
-    }, [token, refreshWeek, refreshActiveWorkout, sortedWorkouts.length])
+    }, [token, isLoading, error, weekPlan, refreshWeek, refreshActiveWorkout])
   );
 
   const scrollToIndex = useCallback((index: number, viewPosition = 0.1) => {
@@ -147,13 +149,16 @@ const Home = () => {
 
   // Navigate to workout day detail
   const handleWorkoutPress = useCallback(
-    (workoutDayId: string) => {
+    (workout: WorkoutDay) => {
       router.push({
         pathname: "/workouts/[workoutDayId]",
-        params: { workoutDayId },
+        params: {
+          workoutDayId: workout.workoutDayId,
+          weekStart: weekPlan?.weekStart || currentWeekStart,
+        },
       });
     },
-    [router]
+    [router, weekPlan?.weekStart, currentWeekStart]
   );
 
   // Open menu for a workout - measure button position first
@@ -305,7 +310,7 @@ const Home = () => {
       <AnimatedCard delay={100 + index * 50}>
         <Pressable
           testID="workout-card"
-          onPress={() => handleWorkoutPress(workout.workoutDayId)}
+          onPress={() => handleWorkoutPress(workout)}
           style={({ pressed }) => [
             styles.workoutCard,
             highlighted && styles.workoutCardHighlighted,
@@ -478,8 +483,8 @@ const Home = () => {
             </Text>
           </View>
 
-          {!hasLoadedOnce && isLoading && sortedWorkouts.length === 0 ? (
-            // Loading state (only show for initial load when no data yet)
+          {isLoading && sortedWorkouts.length === 0 ? (
+            // Never render a prior account's week while the next one loads.
             <View style={styles.stateContainerPadded}>
               <View
                 style={[

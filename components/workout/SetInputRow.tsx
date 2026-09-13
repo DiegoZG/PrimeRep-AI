@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
@@ -9,6 +9,7 @@ import type { WeightUnit } from "@/utils/weightUnits";
 
 interface SetInputRowProps {
   setRow: SetState;
+  displaySetNumber?: number;
   colors: typeof Colors.light;
   weightUnit: WeightUnit;
   /** e.g. "last time: 135lb × 8" — omitted when there's no history for this set. */
@@ -17,18 +18,40 @@ interface SetInputRowProps {
   progressionTag?: string;
   onUpdate: (setNumber: number, field: "reps" | "weight", value: string) => void;
   onConfirm: (setNumber: number) => void;
+  onEdit: (setNumber: number) => void;
+  onRemove: (setNumber: number) => void;
+  onRestore: (setNumber: number) => void;
 }
 
 export const SetInputRow = React.memo(function SetInputRow({
   setRow,
+  displaySetNumber,
   colors,
   weightUnit,
   lastTimeHint,
   progressionTag,
   onUpdate,
   onConfirm,
+  onEdit,
+  onRemove,
+  onRestore,
 }: SetInputRowProps) {
-  const { setNumber, reps, weight, confirmed, syncing, syncStatus } = setRow;
+  const { setNumber, reps, weight, confirmed, syncStatus, deleted, editing } = setRow;
+  const displayedReps = editing ? (setRow.editDraft?.reps ?? reps) : reps;
+  const displayedWeight = editing ? (setRow.editDraft?.weight ?? weight) : weight;
+
+  if (deleted) {
+    return (
+      <View style={{ borderRadius: 14, borderWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <ThemedText style={{ color: colors.placeholder }}>Removed set</ThemedText>
+          <Pressable testID={`player-restore-set-${setRow.exerciseId}-${setNumber}`} onPress={() => onRestore(setNumber)}>
+            <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Undo</ThemedText>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -65,7 +88,7 @@ export const SetInputRow = React.memo(function SetInputRow({
               color: confirmed ? "#FFFFFF" : colors.text,
             }}
           >
-            {setNumber}
+            {displaySetNumber ?? setNumber}
           </ThemedText>
         </View>
 
@@ -89,13 +112,13 @@ export const SetInputRow = React.memo(function SetInputRow({
         {/* Weight input */}
         <View style={{ flex: 1, paddingRight: 8 }}>
           <TextInput
-            testID="player-weight-input"
-            value={weight}
+            testID={`player-weight-input-${setRow.exerciseId}-${setNumber}`}
+            value={displayedWeight}
             onChangeText={(v) => onUpdate(setNumber, "weight", v)}
             placeholder={weightUnit.toLowerCase()}
             placeholderTextColor={colors.placeholder}
             keyboardType="decimal-pad"
-            editable={!confirmed}
+            editable={!confirmed || editing}
             style={{
               backgroundColor: confirmed ? "transparent" : colors.background,
               borderWidth: confirmed ? 0 : 1,
@@ -117,13 +140,13 @@ export const SetInputRow = React.memo(function SetInputRow({
         {/* Reps input */}
         <View style={{ flex: 1, paddingRight: 8 }}>
           <TextInput
-            testID="player-reps-input"
-            value={reps}
+            testID={`player-reps-input-${setRow.exerciseId}-${setNumber}`}
+            value={displayedReps}
             onChangeText={(v) => onUpdate(setNumber, "reps", v)}
             placeholder="reps"
             placeholderTextColor={colors.placeholder}
             keyboardType="number-pad"
-            editable={!confirmed}
+            editable={!confirmed || editing}
             style={{
               backgroundColor: confirmed ? "transparent" : colors.background,
               borderWidth: confirmed ? 0 : 1,
@@ -142,9 +165,9 @@ export const SetInputRow = React.memo(function SetInputRow({
 
         {/* Confirm button */}
         <Pressable
-          testID="player-confirm-set"
+          testID={`player-confirm-set-${setRow.exerciseId}-${setNumber}`}
           onPress={() => onConfirm(setNumber)}
-          disabled={confirmed}
+          disabled={confirmed && !editing}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           style={{
             width: 40,
@@ -152,26 +175,38 @@ export const SetInputRow = React.memo(function SetInputRow({
             borderRadius: 20,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: confirmed ? colors.primaryButton : colors.background,
-            borderWidth: confirmed ? 0 : 1,
+            backgroundColor: confirmed && !editing ? colors.primaryButton : colors.background,
+            borderWidth: confirmed && !editing ? 0 : 1,
             borderColor: colors.inputBorder,
           }}
         >
-          {syncing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons
-              name={confirmed ? "checkmark" : "checkmark-outline"}
-              size={20}
-              color={confirmed ? "#FFFFFF" : colors.placeholder}
-            />
-          )}
+          <Ionicons
+            name={confirmed && !editing ? "checkmark" : "checkmark-outline"}
+            size={20}
+            color={confirmed && !editing ? "#FFFFFF" : colors.placeholder}
+          />
         </Pressable>
       </View>
-      {confirmed && syncStatus !== "synced" ? (
-        <ThemedText style={{ marginTop: 6, fontSize: 12, color: syncStatus === "failed" ? "#D14343" : colors.placeholder }}>
-          {syncStatus === "failed" ? "Couldn't sync — retry from the workout screen" : syncStatus === "retrying" ? "Retrying…" : "Saved on this device — syncing…"}
-        </ThemedText>
+
+      {confirmed && !editing ? (
+        <View style={{ flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 42 }}>
+          <Pressable
+            testID={`player-edit-set-${setRow.exerciseId}-${setNumber}`}
+            onPress={() => onEdit(setNumber)}
+            disabled={syncStatus === "failed"}
+            accessibilityState={{ disabled: syncStatus === "failed" }}
+          >
+            <ThemedText style={{ color: syncStatus === "failed" ? colors.placeholder : colors.primaryButton, fontWeight: "700", fontSize: 13 }}>Edit</ThemedText>
+          </Pressable>
+          <Pressable
+            testID={`player-remove-set-${setRow.exerciseId}-${setNumber}`}
+            onPress={() => onRemove(setNumber)}
+            disabled={syncStatus === "failed"}
+            accessibilityState={{ disabled: syncStatus === "failed" }}
+          >
+            <ThemedText style={{ color: syncStatus === "failed" ? colors.placeholder : "#D14343", fontWeight: "700", fontSize: 13 }}>Remove</ThemedText>
+          </Pressable>
+        </View>
       ) : null}
 
       {!confirmed && lastTimeHint ? (

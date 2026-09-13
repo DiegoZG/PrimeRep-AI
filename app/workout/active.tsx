@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
@@ -21,6 +21,7 @@ import {
   fetchLastSetsForExercises,
   getActiveSession,
   getSession,
+  getUserExerciseNote,
   type LastSet,
 } from "@/services/workoutLoggingService";
 import { mapApiWorkoutDay } from "@/services/workoutWeekService";
@@ -30,9 +31,11 @@ import {
   clearActiveWorkout,
   createClientId,
   loadActiveWorkout,
+  queueWorkoutCompletion,
   replayPendingWorkoutOperations,
   retryFailedWorkoutOperations,
   saveActiveWorkout,
+  type LocalActiveWorkout,
   type PendingWorkoutOperation,
 } from "@/utils/activeWorkoutStore";
 import {
@@ -70,16 +73,6 @@ function formatLastTimeHint(
   return `${match.reps} reps`;
 }
 
-interface WorkoutSummaryPayload {
-  workoutName: string;
-  durationSeconds: number;
-  setsCompleted: number;
-  totalSets: number;
-  totalVolumeKg: number;
-  weightUnit: WeightUnit;
-  prExerciseNames: string[];
-}
-
 function prescribedSetStates(exercises: WorkoutItem[]): SetState[] {
   return exercises.flatMap((item) =>
     Array.from({ length: item.prescription.sets }, (_, index) => ({
@@ -97,21 +90,77 @@ function prescribedSetStates(exercises: WorkoutItem[]): SetState[] {
 
 function mergeServerLogs(
   prescribed: SetState[],
-  logs: { id: string; exerciseId: string; setNumber: number; reps: number; weightKg: number | null }[],
-  unit: WeightUnit
+  logs: { id: string; exerciseId: string; setNumber: number; reps: number; weightKg: number | null; version: number }[],
+  unit: WeightUnit,
+  deletedLogs: { id: string; exerciseId: string; setNumber: number; reps: number; weightKg: number | null; version: number }[] = []
 ): SetState[] {
   const bySet = new Map(logs.map((log) => [`${log.exerciseId}:${log.setNumber}`, log]));
-  return prescribed.map((set) => {
+  const deletedBySet = new Map(deletedLogs.map((log) => [`${log.exerciseId}:${log.setNumber}`, log]));
+  const merged = prescribed.map((set) => {
     const log = bySet.get(`${set.exerciseId}:${set.setNumber}`);
+    const deletedLog = deletedBySet.get(`${set.exerciseId}:${set.setNumber}`);
+    if (deletedLog) {
+      return {
+        ...set,
+        confirmed: true,
+        deleted: true,
+        deletedLogId: deletedLog.id,
+        logId: deletedLog.id,
+        version: deletedLog.version,
+        syncing: false,
+        syncStatus: "synced" as const,
+      };
+    }
     return log
-      ? { ...set, reps: String(log.reps), weight: log.weightKg == null ? "" : formatWeightInput(fromKg(log.weightKg, unit)), confirmed: true, syncing: false, syncStatus: "synced" as const, logId: log.id }
+      ? { ...set, reps: String(log.reps), weight: log.weightKg == null ? "" : formatWeightInput(fromKg(log.weightKg, unit)), weightKg: log.weightKg, confirmed: true, syncing: false, syncStatus: "synced" as const, logId: log.id, version: log.version }
       : set;
   });
+  const prescribedKeys = new Set(prescribed.map((set) => `${set.exerciseId}:${set.setNumber}`));
+  for (const log of logs) {
+    if (prescribedKeys.has(`${log.exerciseId}:${log.setNumber}`)) continue;
+    merged.push({
+      exerciseId: log.exerciseId,
+      setNumber: log.setNumber,
+      reps: String(log.reps),
+      weight: log.weightKg == null ? "" : formatWeightInput(fromKg(log.weightKg, unit)),
+      weightKg: log.weightKg,
+      confirmed: true,
+      syncing: false,
+      syncStatus: "synced",
+      logId: log.id,
+      version: log.version,
+      isAdded: true,
+    });
+  }
+  for (const deletedLog of deletedLogs) {
+    if (prescribedKeys.has(`${deletedLog.exerciseId}:${deletedLog.setNumber}`)) continue;
+    merged.push({
+      exerciseId: deletedLog.exerciseId,
+      setNumber: deletedLog.setNumber,
+      reps: String(deletedLog.reps),
+      weight: deletedLog.weightKg == null ? "" : formatWeightInput(fromKg(deletedLog.weightKg, unit)),
+      weightKg: deletedLog.weightKg,
+      confirmed: true,
+      syncing: false,
+      syncStatus: "synced",
+      logId: deletedLog.id,
+      deleted: true,
+      deletedLogId: deletedLog.id,
+      version: deletedLog.version,
+      isAdded: true,
+    });
+  }
+  return merged;
 }
 
 function mergePersistedSets(prescribed: SetState[], persisted: SetState[]): SetState[] {
   const bySet = new Map(persisted.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
-  return prescribed.map((set) => bySet.get(`${set.exerciseId}:${set.setNumber}`) ?? set);
+  const merged = prescribed.map((set) => bySet.get(`${set.exerciseId}:${set.setNumber}`) ?? set);
+  const prescribedKeys = new Set(prescribed.map((set) => `${set.exerciseId}:${set.setNumber}`));
+  persisted.forEach((set) => {
+    if (!prescribedKeys.has(`${set.exerciseId}:${set.setNumber}`)) merged.push(set);
+  });
+  return merged;
 }
 
 function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] {
@@ -128,16 +177,26 @@ function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] 
 }
 
 function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOperation[]): SetState[] {
-  const pendingSetKeys = new Set(
-    operations
-      .filter((operation): operation is Extract<PendingWorkoutOperation, { type: "set" }> => operation.type === "set")
-      .map((operation) => `${operation.payload.exerciseId}:${operation.payload.setNumber}`)
-  );
-  return sets.map((set) =>
-    set.confirmed && !pendingSetKeys.has(`${set.exerciseId}:${set.setNumber}`)
-      ? { ...set, syncing: false, syncStatus: "synced" as const }
-      : set
-  );
+  const mutationBySet = new Map<string, PendingWorkoutOperation>();
+  for (const operation of operations) {
+    if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
+      mutationBySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+    }
+  }
+  return sets.map((set) => {
+    const operation = mutationBySet.get(`${set.exerciseId}:${set.setNumber}`);
+    if (!operation) {
+      if (set.confirmed && !set.deleted && !set.logId) {
+        return { ...set, syncing: false, syncStatus: "pending" as const };
+      }
+      return set.confirmed ? { ...set, syncing: false, syncStatus: "synced" as const } : set;
+    }
+    return {
+      ...set,
+      syncing: operation.status === "retrying",
+      syncStatus: operation.status === "failed" ? "failed" as const : "pending" as const,
+    };
+  });
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -213,14 +272,14 @@ export default function ActiveWorkoutScreen() {
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [finishStatus, setFinishStatus] = useState<"idle" | "syncing" | "pendingOffline" | "failed">("idle");
+  const [finishStatus, setFinishStatus] = useState<"idle" | "syncing" | "pendingOffline" | "pendingSets" | "failed">("idle");
   const [isRestoring, setIsRestoring] = useState(true);
   const [clientSessionId, setClientSessionId] = useState(createClientId);
   const [startedAt, setStartedAt] = useState(Date.now);
   const [operations, setOperations] = useState<PendingWorkoutOperation[]>([]);
   const [persistedRevision, setPersistedRevision] = useState(0);
-  const [isReplaying, setIsReplaying] = useState(false);
   const replayInFlightRef = useRef(false);
+  const deferredPersistenceRef = useRef(false);
   const operationsRef = useRef<PendingWorkoutOperation[]>([]);
   const [storageError, setStorageError] = useState(false);
   const [didComplete, setDidComplete] = useState(false);
@@ -239,10 +298,23 @@ export default function ActiveWorkoutScreen() {
 
   // Initialize set tracking state from prescription
   const [sets, setSets] = useState<SetState[]>([]);
+  const setsRef = useRef<SetState[]>([]);
+  const [workoutNote, setWorkoutNote] = useState<string | null>(null);
+  const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, { effort: "easy" | "right" | "hard" | null; rir: number | null }>>({});
+  const [exerciseNotes, setExerciseNotes] = useState<Record<string, string | null>>({});
+  const [noteEditorVisible, setNoteEditorVisible] = useState(false);
+  const [noteEditorTarget, setNoteEditorTarget] = useState<"workout" | "exercise">("workout");
+  const [noteDraft, setNoteDraft] = useState("");
+  const [feedbackEditorVisible, setFeedbackEditorVisible] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState<{ effort: "easy" | "right" | "hard" | null; rir: number | null }>({ effort: null, rir: null });
 
   useEffect(() => {
     operationsRef.current = operations;
   }, [operations]);
+
+  useEffect(() => {
+    setsRef.current = sets;
+  }, [sets]);
 
   useEffect(() => {
     if (exercises.length > 0 && sets.length === 0) {
@@ -324,19 +396,12 @@ export default function ActiveWorkoutScreen() {
   }, [unitReady, lastSetsLoaded, sets.length, lastSetsByExercise, weightUnit, exercises]);
 
   // Confirmed set count (overall, across all exercises)
-  const confirmedCount = useMemo(() => sets.filter((s) => s.confirmed).length, [sets]);
-  const totalSets = sets.length;
-  const syncLabel = useMemo(() => {
-    if (isReplaying) return "Syncing…";
-    if (operations.some((operation) => operation.status === "failed") || sets.some((set) => set.syncStatus === "failed")) return "Sync needs attention";
-    if (operations.length > 0 || sets.some((set) => set.confirmed && set.syncStatus !== "synced")) return "Saved locally — waiting to sync";
-    return "Synced";
-  }, [isReplaying, operations, sets]);
-
+  const confirmedCount = useMemo(() => sets.filter((s) => s.confirmed && !s.deleted).length, [sets]);
+  const totalSets = useMemo(() => sets.filter((set) => !set.deleted || !set.isAdded).length, [sets]);
   const pendingSetOperations = useMemo(() => {
     const bySet = new Map<string, PendingWorkoutOperation>();
     for (const operation of operations) {
-      if (operation.type === "set") {
+      if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
         bySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
       }
     }
@@ -345,9 +410,9 @@ export default function ActiveWorkoutScreen() {
 
   const getExerciseProgress = useCallback(
     (exerciseId: string) => {
-      const exerciseSets = sets.filter((s) => s.exerciseId === exerciseId);
+      const exerciseSets = sets.filter((set) => set.exerciseId === exerciseId && (!set.deleted || !set.isAdded));
       return {
-        confirmed: exerciseSets.filter((s) => s.confirmed).length,
+        confirmed: exerciseSets.filter((set) => set.confirmed && !set.deleted).length,
         total: exerciseSets.length,
       };
     },
@@ -416,6 +481,15 @@ export default function ActiveWorkoutScreen() {
       .sort((a, b) => a.setNumber - b.setNumber);
   }, [sets, currentItem]);
 
+  useEffect(() => {
+    if (!token || !currentItem || Object.prototype.hasOwnProperty.call(exerciseNotes, currentItem.exercise.id)) return;
+    let cancelled = false;
+    void getUserExerciseNote(token, currentItem.exercise.id).then((note) => {
+      if (!cancelled) setExerciseNotes((current) => ({ ...current, [currentItem.exercise.id]: note?.note ?? null }));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [token, currentItem, exerciseNotes]);
+
   // ── Rest timer state ───────────────────────────────────────────────────────
 
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
@@ -456,7 +530,9 @@ export default function ActiveWorkoutScreen() {
           setClientSessionId(serverActive.clientSessionId ?? clientSessionId);
           setSessionId(serverActive.id);
           setStartedAt(new Date(serverActive.startedAt).getTime());
-          setSets(mergeServerLogs(prescribedSetStates(exercises), serverActive.setLogs, weightUnit));
+          setSets(mergeServerLogs(prescribedSetStates(exercises), serverActive.setLogs, weightUnit, serverActive.deletedSetLogs ?? []));
+          setWorkoutNote(serverActive.workoutNote);
+          setExerciseFeedback(Object.fromEntries(serverActive.exerciseFeedback.map((feedback) => [feedback.exerciseId, { effort: feedback.effort, rir: feedback.rir }])));
         } else {
           const newClientSessionId = createClientId();
           setClientSessionId(newClientSessionId);
@@ -480,8 +556,11 @@ export default function ActiveWorkoutScreen() {
         setRestEndsAt(saved.restEndsAt);
         setRestTotalSeconds(saved.restTotalSeconds);
         setRestContext(saved.restContext);
+        setWorkoutNote(serverActive?.workoutNote ?? saved.workoutNote ?? null);
+        setExerciseFeedback(serverActive ? Object.fromEntries(serverActive.exerciseFeedback.map((feedback) => [feedback.exerciseId, { effort: feedback.effort, rir: feedback.rir }])) : saved.exerciseFeedback ?? {});
+        setExerciseNotes(saved.exerciseNotes ?? {});
         const restoredSets = mergePersistedSets(prescribedSetStates(exercises), saved.sets);
-        setSets(serverActive ? mergeServerLogs(restoredSets, serverActive.setLogs, weightUnit) : restoredSets);
+        setSets(serverActive ? mergeServerLogs(restoredSets, serverActive.setLogs, weightUnit, serverActive.deletedSetLogs ?? []) : restoredSets);
         setOperations(reconciledOperations);
       }
       if (!cancelled) setIsRestoring(false);
@@ -493,7 +572,13 @@ export default function ActiveWorkoutScreen() {
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
   useEffect(() => {
-    if (isTerminalRef.current || isFinishingRef.current || replayInFlightRef.current || isRestoring || !user || !workout || sets.length === 0) return;
+    if (isTerminalRef.current || isFinishingRef.current || isRestoring || !user || !workout || sets.length === 0) return;
+    if (replayInFlightRef.current) {
+      deferredPersistenceRef.current = true;
+      return;
+    }
+    const latestSets = setsRef.current;
+    const latestOperations = operationsRef.current;
     void saveActiveWorkout({
       userId: user.id,
       workoutDayId: workout.workoutDayId,
@@ -507,37 +592,77 @@ export default function ActiveWorkoutScreen() {
       restEndsAt,
       restTotalSeconds,
       restContext,
-      sets,
-      operations,
+      sets: latestSets,
+      operations: latestOperations,
+      workoutNote,
+      exerciseFeedback,
+      exerciseNotes,
       revision: ++workoutRevisionRef.current,
     }).then(() => {
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
     }).catch(() => setStorageError(true));
-  }, [isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations]);
+  }, [isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
 
   const replayPendingWrites = useCallback(async () => {
     if (!token || !user || replayInFlightRef.current) return;
     replayInFlightRef.current = true;
-    const operationIdsAtStart = new Set(operationsRef.current.map((operation) => operation.id));
-    setIsReplaying(true);
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
       if (!result.workout) return;
+      const operationIdsAtStart = new Set(result.startedOperationIds);
       workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
       setSessionId(result.workout.serverSessionId);
+      const conflictOperations = result.workout.operations.filter(
+        (operation): operation is Extract<PendingWorkoutOperation, { type: "update_set" }> =>
+          operation.type === "update_set" && operation.status === "failed" && operation.payload.conflict === true
+      );
+      const conflictOperationIds = new Set(conflictOperations.map((operation) => operation.id));
+      const failedUpdateKeys = new Set(
+        result.workout.operations
+          .filter((operation): operation is Extract<PendingWorkoutOperation, { type: "update_set" }> => operation.type === "update_set" && operation.status === "failed")
+          .map((operation) => `${operation.payload.exerciseId}:${operation.payload.setNumber}`)
+      );
+      const replayedSetsByKey = new Map(result.workout.sets.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
       const remainingById = new Map(result.workout.operations.map((operation) => [operation.id, operation]));
       const nextOperations = [
-        ...result.workout.operations,
-        ...operationsRef.current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id)),
+        ...result.workout.operations.filter((operation) => !conflictOperationIds.has(operation.id)),
+        ...operationsRef.current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id) && !conflictOperationIds.has(operation.id)),
       ];
-      setSets((current) => reconcileSetSyncState(mergeReplaySets(current, result.workout!.sets), nextOperations));
-      setOperations((current) => {
-        return [
-          ...result.workout!.operations,
-          ...current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id)),
-        ];
+      setSets((current) => {
+        const merged = mergeReplaySets(current, result.workout!.sets).map((set) =>
+          failedUpdateKeys.has(`${set.exerciseId}:${set.setNumber}`)
+            ? replayedSetsByKey.get(`${set.exerciseId}:${set.setNumber}`) ?? set
+            : set
+        );
+        const nextSets = reconcileSetSyncState(merged, nextOperations);
+        setsRef.current = nextSets;
+        return nextSets;
       });
+      operationsRef.current = nextOperations;
+      setOperations(nextOperations);
+      if (conflictOperations.length > 0) {
+        try {
+          const latest = await getSession(token, result.workout.serverSessionId!);
+          const latestById = new Map(latest.setLogs.map((set) => [set.id, set]));
+          setSets((current) => current.map((set) => {
+            const latestSet = set.logId ? latestById.get(set.logId) : undefined;
+            return latestSet
+              ? {
+                  ...set,
+                  reps: String(latestSet.reps),
+                  weight: latestSet.weightKg == null ? "" : formatWeightInput(fromKg(latestSet.weightKg, weightUnit)),
+                  version: latestSet.version,
+                  syncing: false,
+                  syncStatus: "synced",
+                }
+              : set;
+          }));
+          Alert.alert("Set updated elsewhere", "The latest saved value was restored.");
+        } catch {
+          Alert.alert("Couldn’t refresh set", "Your previous value was restored. Try again when you’re back online.");
+        }
+      }
       if (result.abandoned || result.completed) {
         isTerminalRef.current = true;
         await clearActiveWorkout(user.id);
@@ -548,9 +673,12 @@ export default function ActiveWorkoutScreen() {
       // The operation remains durable and will be retried on the next retry window.
     } finally {
       replayInFlightRef.current = false;
-      setIsReplaying(false);
+      if (deferredPersistenceRef.current) {
+        deferredPersistenceRef.current = false;
+        setOperations((current) => [...current]);
+      }
     }
-  }, [token, user, markWorkoutTerminal]);
+  }, [token, user, markWorkoutTerminal, weightUnit]);
 
   const retryAt = useMemo(() => Math.min(
     ...operations
@@ -575,12 +703,45 @@ export default function ActiveWorkoutScreen() {
     }
   }, [user]);
 
+  const persistConfirmedMutation = useCallback(
+    async (nextSets: SetState[], nextOperations: PendingWorkoutOperation[]) => {
+      if (!user || !workout || isRestoring || isTerminalRef.current) return;
+      const localWorkout: LocalActiveWorkout = {
+        userId: user.id,
+        workoutDayId: workout.workoutDayId,
+        workoutDate: workout.date,
+        dayType: workout.dayType,
+        workoutSnapshot: workout,
+        clientSessionId,
+        serverSessionId: sessionId,
+        startedAt,
+        currentExerciseIndex,
+        restEndsAt,
+        restTotalSeconds,
+        restContext,
+        sets: nextSets,
+        operations: nextOperations,
+        workoutNote,
+        exerciseFeedback,
+        exerciseNotes,
+        revision: ++workoutRevisionRef.current,
+      };
+      await saveActiveWorkout(localWorkout);
+      setStorageError(false);
+      setPersistedRevision((revision) => revision + 1);
+    },
+    [user, workout, isRestoring, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes]
+  );
+
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") setPersistedRevision((revision) => revision + 1);
+      if (state === "active") {
+        void retryFailedWrites();
+        setPersistedRevision((revision) => revision + 1);
+      }
     });
     return () => subscription.remove();
-  }, []);
+  }, [retryFailedWrites]);
 
   const isRestingCurrentExercise =
     restEndsAt !== null && restContext?.exerciseIndex === currentExerciseIndex;
@@ -647,7 +808,9 @@ export default function ActiveWorkoutScreen() {
       setSets((prev) =>
         prev.map((s) =>
           s.exerciseId === exerciseId && s.setNumber === setNumber
-            ? { ...s, [field]: value }
+            ? s.editing
+              ? { ...s, editDraft: { reps: s.editDraft?.reps ?? s.reps, weight: s.editDraft?.weight ?? s.weight, [field]: value } }
+              : { ...s, [field]: value }
             : s
         )
       );
@@ -660,19 +823,21 @@ export default function ActiveWorkoutScreen() {
       if (!token || !currentItem) return;
       const exerciseId = currentItem.exercise.id;
 
-      const target = sets.find(
+      const currentSets = setsRef.current;
+      const target = currentSets.find(
         (s) => s.exerciseId === exerciseId && s.setNumber === setNumber
       );
-      if (!target || target.confirmed) return;
+      if (!target || target.deleted || (target.confirmed && !target.editing)) return;
 
-      const reps = parseInt(target.reps, 10);
+      const draft = target.editing && target.editDraft ? target.editDraft : target;
+      const reps = parseInt(draft.reps, 10);
       if (isNaN(reps) || reps <= 0) {
         Alert.alert("Invalid reps", "Enter a valid number of reps.");
         return;
       }
 
-      const weightDisplay = target.weight ? parseFloat(target.weight) : undefined;
-      if (target.weight && (isNaN(weightDisplay!) || weightDisplay! < 0)) {
+      const weightDisplay = draft.weight ? parseFloat(draft.weight) : undefined;
+      if (draft.weight && (isNaN(weightDisplay!) || weightDisplay! < 0)) {
         Alert.alert("Invalid weight", "Enter a valid weight.");
         return;
       }
@@ -680,124 +845,258 @@ export default function ActiveWorkoutScreen() {
       const weightKg =
         weightDisplay != null ? Math.round(toKg(weightDisplay, weightUnit) * 100) / 100 : undefined;
 
+      const isEditing = Boolean(target.editing);
       // Determine whether this confirmation completes the exercise, so we
       // know what to do once the rest period that follows ends.
-      const exerciseSetsAfter = sets
-        .filter((s) => s.exerciseId === exerciseId)
+      const exerciseSetsAfter = currentSets
+        .filter((s) => s.exerciseId === exerciseId && !s.deleted)
         .map((s) => (s.setNumber === setNumber ? { ...s, confirmed: true } : s));
       const isLastSetOfExercise = exerciseSetsAfter.every((s) => s.confirmed);
 
       // Optimistic update
-      setSets((prev) =>
-        prev.map((s) =>
+      const nextSets: SetState[] = currentSets.map((s) =>
           s.exerciseId === exerciseId && s.setNumber === setNumber
-            ? { ...s, confirmed: true, syncing: true, syncStatus: "pending" }
+            ? isEditing
+              ? {
+                  ...s,
+                  reps: draft.reps,
+                  weight: draft.weight,
+                  weightKg: weightKg ?? null,
+                  editing: false,
+                  editDraft: undefined,
+                  syncing: true,
+                  syncStatus: "pending",
+                }
+              : { ...s, weightKg: weightKg ?? null, confirmed: true, editing: false, syncing: true, syncStatus: "pending" }
             : s
-        )
-      );
+        );
+      setsRef.current = nextSets;
+      setSets(nextSets);
 
-      // Rest timer starts immediately — it's a UX affordance independent of
-      // whether the network call has resolved yet.
-      const restSeconds = currentItem.prescription.restSeconds;
-      setRestTotalSeconds(restSeconds);
-      setRestEndsAt(Date.now() + restSeconds * 1000);
-      setRestContext({ exerciseIndex: currentExerciseIndex, isLastSetOfExercise });
+      if (!isEditing) {
+        // Rest begins only for a newly completed set. Corrections must never
+        // reset an active rest timer.
+        const restSeconds = currentItem.prescription.restSeconds;
+        setRestTotalSeconds(restSeconds);
+        setRestEndsAt(Date.now() + restSeconds * 1000);
+        setRestContext({ exerciseIndex: currentExerciseIndex, isLastSetOfExercise });
+      }
 
-      setOperations((previous) => [
-        ...previous,
-        {
-          id: createClientId(),
-          type: "set",
-          status: "pending",
+      const previousOperations = operationsRef.current;
+      const nextOperations: PendingWorkoutOperation[] = (() => {
+        if (isEditing && target.logId) {
+          return [...previousOperations, {
+            id: createClientId(), type: "update_set", status: "pending",
+            payload: {
+              logId: target.logId,
+              exerciseId,
+              setNumber,
+              reps,
+              weightKg: weightKg ?? null,
+              displayWeight: draft.weight,
+              expectedVersion: target.version ?? 1,
+              previousReps: target.reps,
+              previousWeight: target.weight,
+              previousVersion: target.version ?? 1,
+            },
+          }];
+        }
+        if (isEditing) {
+          return previousOperations.map((operation) =>
+            operation.type === "set" && operation.payload.exerciseId === exerciseId && operation.payload.setNumber === setNumber
+              ? { ...operation, payload: { ...operation.payload, reps, weightKg } }
+              : operation
+          );
+        }
+        return [...previousOperations, {
+          id: createClientId(), type: "set", status: "pending",
           payload: { exerciseId, setNumber, reps, weightKg },
-        },
-      ]);
+        }];
+      })();
+      operationsRef.current = nextOperations;
+      setOperations(nextOperations);
+      void persistConfirmedMutation(nextSets, nextOperations)
+        .then(() => void replayPendingWrites())
+        .catch(() => setStorageError(true));
     },
-    [token, sets, currentItem, currentExerciseIndex, weightUnit]
+    [token, currentItem, currentExerciseIndex, weightUnit, persistConfirmedMutation, replayPendingWrites]
   );
 
-  // ── Complete workout ───────────────────────────────────────────────────────
+  const beginSetEdit = useCallback((setNumber: number) => {
+    if (!currentItem) return;
+    setSets((previous) => previous.map((set) =>
+      set.exerciseId === currentItem.exercise.id && set.setNumber === setNumber && set.syncStatus !== "failed"
+        ? { ...set, editing: true, editDraft: { reps: set.reps, weight: set.weight } }
+        : set
+    ));
+  }, [currentItem]);
 
-  const buildSummaryPayload = useCallback((): WorkoutSummaryPayload => {
-    let totalVolumeKg = 0;
-    const prExerciseNames = new Set<string>();
-
-    for (const item of exercises) {
-      const history = lastSetsByExercise[item.exercise.id] || [];
-      const priorMaxWeight = history.reduce<number | null>((max, h) => {
-        if (h.weightKg == null) return max;
-        return max === null ? h.weightKg : Math.max(max, h.weightKg);
-      }, null);
-
-      const exerciseSets = sets.filter((s) => s.exerciseId === item.exercise.id && s.confirmed);
-      for (const s of exerciseSets) {
-        const weightDisplay = s.weight ? parseFloat(s.weight) : null;
-        const reps = parseInt(s.reps, 10);
-        if (weightDisplay != null && !isNaN(weightDisplay) && !isNaN(reps)) {
-          const weightKg = toKg(weightDisplay, weightUnit);
-          totalVolumeKg += weightKg * reps;
-          if (priorMaxWeight !== null && weightKg > priorMaxWeight) {
-            prExerciseNames.add(item.exercise.name);
-          }
-        }
-      }
+  const removeSet = useCallback((setNumber: number) => {
+    if (!currentItem) return;
+    const exerciseId = currentItem.exercise.id;
+    const target = setsRef.current.find((set) => set.exerciseId === exerciseId && set.setNumber === setNumber);
+    if (!target || target.syncStatus === "failed") return;
+    if (!target.logId) {
+      const nextSets = setsRef.current.filter((set) => !(set.exerciseId === exerciseId && set.setNumber === setNumber));
+      const nextOperations = operationsRef.current.filter((operation) => !(
+        operation.type === "set" && operation.payload.exerciseId === exerciseId && operation.payload.setNumber === setNumber
+      ));
+      setsRef.current = nextSets;
+      operationsRef.current = nextOperations;
+      setSets(nextSets);
+      setOperations(nextOperations);
+      void persistConfirmedMutation(nextSets, nextOperations)
+        .then(() => void replayPendingWrites())
+        .catch(() => setStorageError(true));
+      return;
     }
+    const nextSets: SetState[] = setsRef.current.map((set) =>
+      set.exerciseId === exerciseId && set.setNumber === setNumber
+        ? { ...set, deleted: true, deletedLogId: target.logId, syncing: true, syncStatus: "pending" as const }
+        : set
+    );
+    const nextOperations: PendingWorkoutOperation[] = [...operationsRef.current, {
+      id: createClientId(), type: "delete_set", status: "pending",
+      payload: { logId: target.logId!, exerciseId, setNumber },
+    }];
+    setsRef.current = nextSets;
+    operationsRef.current = nextOperations;
+    setSets(nextSets);
+    setOperations(nextOperations);
+    void persistConfirmedMutation(nextSets, nextOperations)
+      .then(() => void replayPendingWrites())
+      .catch(() => setStorageError(true));
+  }, [currentItem, persistConfirmedMutation, replayPendingWrites]);
 
-    return {
-      workoutName: workout?.title || "Workout",
-      durationSeconds: elapsedSeconds,
-      setsCompleted: confirmedCount,
-      totalSets,
-      totalVolumeKg,
-      weightUnit,
-      prExerciseNames: Array.from(prExerciseNames),
-    };
-  }, [
-    exercises,
-    lastSetsByExercise,
-    sets,
-    workout,
-    elapsedSeconds,
-    confirmedCount,
-    totalSets,
-    weightUnit,
-  ]);
+  const restoreSet = useCallback((setNumber: number) => {
+    if (!currentItem) return;
+    const exerciseId = currentItem.exercise.id;
+    const target = setsRef.current.find((set) => set.exerciseId === exerciseId && set.setNumber === setNumber);
+    if (!target?.deletedLogId) return;
+    const hasPendingDelete = operationsRef.current.some((operation) => operation.type === "delete_set" && operation.payload.logId === target.deletedLogId);
+    const nextSets: SetState[] = setsRef.current.map((set) =>
+      set.exerciseId === exerciseId && set.setNumber === setNumber
+        ? {
+            ...set,
+            deleted: false,
+            deletedLogId: null,
+            syncing: hasPendingDelete,
+            syncStatus: hasPendingDelete ? "pending" as const : "synced" as const,
+          }
+        : set
+    );
+    let nextOperations: PendingWorkoutOperation[];
+    if (hasPendingDelete) {
+      nextOperations = operationsRef.current.filter((operation) => !(operation.type === "delete_set" && operation.payload.logId === target.deletedLogId));
+    } else {
+      nextOperations = [...operationsRef.current, {
+        id: createClientId(), type: "restore_set", status: "pending",
+        payload: { logId: target.deletedLogId!, exerciseId, setNumber },
+      }];
+    }
+    setsRef.current = nextSets;
+    operationsRef.current = nextOperations;
+    setSets(nextSets);
+    setOperations(nextOperations);
+    void persistConfirmedMutation(nextSets, nextOperations)
+      .then(() => void replayPendingWrites())
+      .catch(() => setStorageError(true));
+  }, [currentItem, persistConfirmedMutation, replayPendingWrites]);
+
+  const addSet = useCallback(() => {
+    if (!currentItem) return;
+    const exerciseId = currentItem.exercise.id;
+    const nextSetNumber = sets
+      .filter((set) => set.exerciseId === exerciseId)
+      .reduce((maximum, set) => Math.max(maximum, set.setNumber), 0) + 1;
+    setSets((previous) => [...previous, {
+      exerciseId, setNumber: nextSetNumber, reps: "", weight: "", confirmed: false,
+      syncing: false, syncStatus: "synced", logId: null, isAdded: true,
+    }]);
+  }, [currentItem, sets]);
+
+  const openWorkoutNoteEditor = useCallback(() => {
+    setNoteEditorTarget("workout");
+    setNoteDraft(workoutNote ?? "");
+    setNoteEditorVisible(true);
+  }, [workoutNote]);
+
+  const openExerciseNoteEditor = useCallback(() => {
+    if (!currentItem) return;
+    setNoteEditorTarget("exercise");
+    setNoteDraft(exerciseNotes[currentItem.exercise.id] ?? "");
+    setNoteEditorVisible(true);
+  }, [currentItem, exerciseNotes]);
+
+  const saveNote = useCallback(() => {
+    const note = noteDraft.trim() || null;
+    if (noteEditorTarget === "workout") {
+      setWorkoutNote(note);
+      setOperations((previous) => [...previous, {
+        id: createClientId(), type: "update_workout_note", status: "pending", payload: { note },
+      }]);
+    } else if (currentItem) {
+      const exerciseId = currentItem.exercise.id;
+      setExerciseNotes((current) => ({ ...current, [exerciseId]: note }));
+      setOperations((previous) => [...previous, {
+        id: createClientId(), type: "update_exercise_note", status: "pending", payload: { exerciseId, note },
+      }]);
+    }
+    setNoteEditorVisible(false);
+  }, [noteDraft, noteEditorTarget, currentItem]);
+
+  const openFeedbackEditor = useCallback(() => {
+    if (!currentItem) return;
+    setFeedbackDraft(exerciseFeedback[currentItem.exercise.id] ?? { effort: null, rir: null });
+    setFeedbackEditorVisible(true);
+  }, [currentItem, exerciseFeedback]);
+
+  const saveExerciseFeedback = useCallback(() => {
+    if (!currentItem) return;
+    const exerciseId = currentItem.exercise.id;
+    setExerciseFeedback((current) => ({ ...current, [exerciseId]: feedbackDraft }));
+    setOperations((previous) => [...previous, {
+      id: createClientId(), type: "update_exercise_feedback", status: "pending",
+      payload: { exerciseId, effort: feedbackDraft.effort, rir: feedbackDraft.rir },
+    }]);
+    setFeedbackEditorVisible(false);
+  }, [currentItem, feedbackDraft]);
+
+  // ── Complete workout ───────────────────────────────────────────────────────
 
   const finishWorkout = useCallback(async (retry = false) => {
     if (!token || !user || !workout || isFinishingRef.current) return;
     isFinishingRef.current = true;
     setFinishStatus("syncing");
-    const completionOperation: PendingWorkoutOperation = {
-      id: createClientId(), type: "complete", status: "pending", payload: {},
-    };
-    const nextOperations = retry
-      ? operations.map((operation) => operation.type === "complete"
-        ? { ...operation, status: "pending" as const, nextAttemptAt: undefined }
-        : operation)
-      : [...operations, completionOperation];
     try {
-      const stored = await loadActiveWorkout(user.id);
-      await saveActiveWorkout({
+      const queued = await queueWorkoutCompletion({
         userId: user.id,
         workoutDayId: workout.workoutDayId,
         workoutDate: workout.date,
         dayType: workout.dayType,
         workoutSnapshot: workout,
         clientSessionId,
-        serverSessionId: sessionId ?? stored?.serverSessionId ?? null,
+        serverSessionId: sessionId,
         startedAt,
         currentExerciseIndex,
         restEndsAt,
         restTotalSeconds,
         restContext,
         sets,
-        operations: nextOperations,
+        operations,
+        workoutNote,
+        exerciseFeedback,
+        exerciseNotes,
         revision: ++workoutRevisionRef.current,
-      });
-      setOperations(nextOperations);
+      }, retry);
+      workoutRevisionRef.current = Math.max(workoutRevisionRef.current, queued.revision);
+      setSets(queued.sets);
+      setOperations(queued.operations);
+      setWorkoutNote(queued.workoutNote ?? null);
       const result = await replayPendingWorkoutOperations(token, user.id);
       const completeOperation = result.workout?.operations.find((operation) => operation.type === "complete");
       if (result.completed || (result.workout && !completeOperation)) {
+        setSessionId(result.workout?.serverSessionId ?? sessionId);
         isTerminalRef.current = true;
         await clearActiveWorkout(user.id);
         markWorkoutTerminal();
@@ -808,13 +1107,13 @@ export default function ActiveWorkoutScreen() {
       workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
       setSets(result.workout.sets);
       setOperations(result.workout.operations);
-      setFinishStatus(completeOperation?.status === "failed" ? "failed" : "pendingOffline");
+      setFinishStatus(completeOperation?.status === "failed" ? "failed" : result.completionBlocked ? "pendingSets" : "pendingOffline");
     } catch {
       setFinishStatus("failed");
     } finally {
       isFinishingRef.current = false;
     }
-  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets, markWorkoutTerminal]);
+  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets, workoutNote, exerciseFeedback, exerciseNotes, markWorkoutTerminal]);
 
   const handleComplete = useCallback(() => {
     if (confirmedCount === 0) {
@@ -828,13 +1127,13 @@ export default function ActiveWorkoutScreen() {
   }, [confirmedCount, totalSets, finishWorkout]);
 
   useEffect(() => {
-    if (!didComplete) return;
+    if (!didComplete || !sessionId) return;
     if (timerRef.current) clearInterval(timerRef.current);
     router.replace({
       pathname: "/workout/summary",
-      params: { payload: JSON.stringify(buildSummaryPayload()) },
+      params: { sessionId },
     });
-  }, [didComplete, router, buildSummaryPayload]);
+  }, [didComplete, router, sessionId]);
 
   // ── Back with confirmation ─────────────────────────────────────────────────
 
@@ -997,9 +1296,6 @@ export default function ActiveWorkoutScreen() {
             {formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}
             {exercises.length} • {confirmedCount}/{totalSets} sets
           </ThemedText>
-          <ThemedText style={{ fontSize: 11, color: colors.placeholder, marginTop: 2 }}>
-            {syncLabel}
-          </ThemedText>
         </Pressable>
         <Pressable
           testID="player-exercise-list-button"
@@ -1009,7 +1305,7 @@ export default function ActiveWorkoutScreen() {
         >
           <Ionicons name="list" size={22} color={colors.text} />
         </Pressable>
-        {finishStatus === "pendingOffline" || finishStatus === "failed" ? (
+        {finishStatus === "pendingOffline" || finishStatus === "pendingSets" || finishStatus === "failed" ? (
           <Pressable onPress={() => router.replace("/(tabs)")} style={{ paddingTop: 12 }}>
             <ThemedText style={{ textAlign: "center", color: colors.primaryButton, fontWeight: "700" }}>Back to Home</ThemedText>
           </Pressable>
@@ -1036,15 +1332,6 @@ export default function ActiveWorkoutScreen() {
           <ThemedText style={{ color: "#D14343", fontSize: 13, marginBottom: 12 }}>
             Your latest change could not be saved on this device. Try again before leaving this workout.
           </ThemedText>
-        ) : null}
-        {operations.some((operation) => operation.status === "failed") ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void retryFailedWrites()}
-            style={{ alignSelf: "flex-start", marginBottom: 14, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: `${colors.primaryButton}15` }}
-          >
-            <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry failed sync</ThemedText>
-          </Pressable>
         ) : null}
         {pendingTransition ? (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
@@ -1112,6 +1399,28 @@ export default function ActiveWorkoutScreen() {
                 </ThemedText>
               </View>
             </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: -10, marginBottom: 18 }}>
+              <Pressable testID="player-workout-note" onPress={openWorkoutNoteEditor}>
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700", fontSize: 13 }}>
+                  {workoutNote ? "Edit workout note" : "Add workout note"}
+                </ThemedText>
+              </Pressable>
+              <Pressable testID={`player-feedback-${currentItem.exercise.id}`} onPress={openFeedbackEditor}>
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700", fontSize: 13 }}>
+                  {exerciseFeedback[currentItem.exercise.id]?.effort ? "Edit feedback" : "Add feedback"}
+                </ThemedText>
+              </Pressable>
+              <Pressable testID={`player-exercise-note-${currentItem.exercise.id}`} onPress={openExerciseNoteEditor}>
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700", fontSize: 13 }}>
+                  {exerciseNotes[currentItem.exercise.id] ? "Edit exercise note" : "Add exercise note"}
+                </ThemedText>
+              </Pressable>
+            </View>
+            {exerciseNotes[currentItem.exercise.id] ? (
+              <ThemedText style={{ color: colors.placeholder, marginTop: -10, marginBottom: 16, fontSize: 13 }}>
+                {exerciseNotes[currentItem.exercise.id]}
+              </ThemedText>
+            ) : null}
 
             {isRestingCurrentExercise && restEndsAt !== null ? (
               <RestTimer
@@ -1220,10 +1529,14 @@ export default function ActiveWorkoutScreen() {
                     : setRow.confirmed
                     ? { ...setRow, syncing: false, syncStatus: "synced" as const }
                     : setRow;
+                  const displaySetNumber = setRow.deleted
+                    ? undefined
+                    : currentSets.filter((set) => !set.deleted).findIndex((set) => set.exerciseId === setRow.exerciseId && set.setNumber === setRow.setNumber) + 1;
                   return (
                     <SetInputRow
                       key={`${setRow.exerciseId}-${setRow.setNumber}`}
                       setRow={displaySet}
+                      displaySetNumber={displaySetNumber}
                       colors={colors}
                       weightUnit={weightUnit}
                       lastTimeHint={formatLastTimeHint(
@@ -1233,9 +1546,19 @@ export default function ActiveWorkoutScreen() {
                       progressionTag={progressionTag}
                       onUpdate={updateSet}
                       onConfirm={confirmSet}
+                      onEdit={beginSetEdit}
+                      onRemove={removeSet}
+                      onRestore={restoreSet}
                     />
                   );
                 })}
+                <Pressable
+                  testID={`player-add-set-${currentItem.exercise.id}`}
+                  onPress={addSet}
+                  style={{ alignSelf: "flex-start", marginTop: 2, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: `${colors.primaryButton}15` }}
+                >
+                  <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>+ Add set</ThemedText>
+                </Pressable>
               </>
             )}
           </>
@@ -1259,7 +1582,13 @@ export default function ActiveWorkoutScreen() {
       >
         {finishStatus !== "idle" ? (
           <ThemedText style={{ textAlign: "center", color: finishStatus === "failed" ? "#DC2626" : colors.placeholder, fontSize: 13, marginBottom: 8 }}>
-            {finishStatus === "syncing" ? "Finishing workout…" : finishStatus === "failed" ? "Couldn't finish this workout. Your sets are safe." : "Saved on this device — finish when online."}
+            {finishStatus === "syncing"
+              ? "Finishing workout…"
+              : finishStatus === "failed"
+                ? "Couldn't finish this workout. Your sets are safe."
+                : finishStatus === "pendingSets"
+                  ? "Your sets are still saving — finish will resume automatically."
+                  : "Saved on this device — finish when online."}
           </ThemedText>
         ) : null}
         <Pressable
@@ -1312,6 +1641,54 @@ export default function ActiveWorkoutScreen() {
         isLoggedIn={Boolean(token)}
         onClose={() => setInfoSheetVisible(false)}
       />
+
+      <Modal transparent visible={noteEditorVisible} animationType="fade" onRequestClose={() => setNoteEditorVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "#00000066" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
+            <ThemedText type="title" style={{ fontSize: 21 }}>{noteEditorTarget === "workout" ? "Workout note" : "Exercise note"}</ThemedText>
+            <TextInput
+              testID={noteEditorTarget === "workout" ? "player-workout-note-input" : `player-exercise-note-input-${currentItem?.exercise.id ?? ""}`}
+              value={noteDraft}
+              onChangeText={setNoteDraft}
+              placeholder="Add a note"
+              placeholderTextColor={colors.placeholder}
+              multiline
+              style={{ minHeight: 110, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, color: colors.text, padding: 12, textAlignVertical: "top" }}
+            />
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 18 }}>
+              <Pressable onPress={() => setNoteEditorVisible(false)}><ThemedText style={{ color: colors.placeholder, fontWeight: "700" }}>Cancel</ThemedText></Pressable>
+              <Pressable testID="player-save-note" onPress={saveNote}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText></Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal transparent visible={feedbackEditorVisible} animationType="fade" onRequestClose={() => setFeedbackEditorVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "#00000066" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
+            <ThemedText type="title" style={{ fontSize: 21 }}>How did that feel?</ThemedText>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {(["easy", "right", "hard"] as const).map((effort) => (
+                <Pressable key={effort} testID={`player-feedback-effort-${effort}`} onPress={() => setFeedbackDraft((draft) => ({ ...draft, effort }))} style={{ flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: "center", backgroundColor: feedbackDraft.effort === effort ? colors.primaryButton : colors.inputBackground }}>
+                  <ThemedText style={{ color: feedbackDraft.effort === effort ? "#FFF" : colors.text, fontWeight: "700", textTransform: "capitalize" }}>{effort}</ThemedText>
+                </Pressable>
+              ))}
+            </View>
+            <ThemedText style={{ color: colors.placeholder }}>Optional RIR</ThemedText>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {[0, 1, 2, 3, 4, 5].map((rir) => (
+                <Pressable key={rir} onPress={() => setFeedbackDraft((draft) => ({ ...draft, rir: draft.rir === rir ? null : rir }))} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: feedbackDraft.rir === rir ? colors.primaryButton : colors.inputBackground }}>
+                  <ThemedText style={{ color: feedbackDraft.rir === rir ? "#FFF" : colors.text, fontWeight: "700" }}>{rir}</ThemedText>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 18 }}>
+              <Pressable onPress={() => setFeedbackEditorVisible(false)}><ThemedText style={{ color: colors.placeholder, fontWeight: "700" }}>Cancel</ThemedText></Pressable>
+              <Pressable testID="player-save-feedback" onPress={saveExerciseFeedback}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText></Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
