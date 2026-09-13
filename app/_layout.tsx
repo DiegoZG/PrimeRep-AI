@@ -44,6 +44,11 @@ function RootLayoutNav() {
   const { isRestoring: isRestoringOnboarding } = useContext(OnboardingContext);
   const router = useRouter();
   const segments = useSegments();
+  const routePath = segments.join("/");
+  const isPublicRecoveryRoute =
+    routePath.includes("forgot-password") ||
+    routePath.includes("reset-password") ||
+    routePath.includes("legal/");
   const attemptedResumeForIdentity = useRef<string | null>(null);
   const resumeRequestIdRef = useRef(0);
   const authIdentity = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
@@ -120,7 +125,7 @@ function RootLayoutNav() {
   }
 
   // Show offline screen if there's a bootstrap error (tokens still valid, just can't connect)
-  if (bootstrapError) {
+  if (bootstrapError && !isPublicRecoveryRoute) {
     return <OfflineScreen />;
   }
 
