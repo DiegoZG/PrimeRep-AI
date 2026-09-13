@@ -2,7 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -47,6 +49,17 @@ export function ExerciseInfoSheet({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isBeginner = useIsBeginner();
+
+  const handleWatchDemo = async () => {
+    if (!detail?.demoVideoUrl) return;
+    try {
+      const canOpen = await Linking.canOpenURL(detail.demoVideoUrl);
+      if (!canOpen) throw new Error("Unsupported demo URL");
+      await Linking.openURL(detail.demoVideoUrl);
+    } catch {
+      Alert.alert("Demo Unavailable", "This exercise video could not be opened. Use the written instructions for now.");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +144,7 @@ export function ExerciseInfoSheet({
                 >
                   {exerciseName}
                 </ThemedText>
-                <Pressable testID="player-info-sheet-close" onPress={onClose} hitSlop={10}>
+                <Pressable testID="player-info-sheet-close" accessibilityRole="button" accessibilityLabel="Close exercise information" onPress={onClose} hitSlop={10}>
                   <Ionicons name="close" size={22} color={colors.text} />
                 </Pressable>
               </View>
@@ -155,10 +168,23 @@ export function ExerciseInfoSheet({
                   <>
                     <ExerciseMedia
                       imageUrl={detail.imageUrl}
+                      demoVideoUrl={detail.demoVideoUrl}
                       exerciseName={detail.name}
                       colors={colors}
                       height={180}
                     />
+                    {detail.demoVideoUrl ? (
+                      <Pressable
+                        testID="player-watch-exercise-demo"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Watch ${detail.name} demo video`}
+                        onPress={() => void handleWatchDemo()}
+                        style={{ minHeight: 48, marginBottom: 20, borderRadius: 14, backgroundColor: colors.primaryButton, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
+                      >
+                        <Ionicons name="play-circle" size={22} color="#FFFFFF" />
+                        <ThemedText style={{ color: "#FFFFFF", fontWeight: "700" }}>Watch Demo</ThemedText>
+                      </Pressable>
+                    ) : null}
 
                     {isBeginner && detail.beginnerNotes && (
                       <ContentSection

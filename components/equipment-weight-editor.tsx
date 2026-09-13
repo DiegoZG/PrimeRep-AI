@@ -95,11 +95,11 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
     <ThemedView style={styles.container}>
       {mode === "settings" && (
         <View style={styles.settingsHeader}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.settingsTitle, { color: colors.text }]}>{title}</Text>
-          <TouchableOpacity onPress={handleSave} disabled={isSaving} hitSlop={10}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Save ${title}`} accessibilityState={{ disabled: isSaving, busy: isSaving }} onPress={handleSave} disabled={isSaving} hitSlop={10}>
             <Text style={[styles.saveText, { color: colors.primaryButton }]}>
               {isSaving ? "Saving…" : "Save"}
             </Text>

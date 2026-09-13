@@ -27,7 +27,7 @@ import {
   ONE_REP_MAX_CALCULATOR_MODAL,
   ONE_REP_MAX_SCREEN,
   calculateOneRepMax,
-} from "../constants";
+} from "@/features/onboarding/constants";
 
 export default function CalculatorModal() {
   const params = useLocalSearchParams<{ exercise?: string }>();
@@ -235,6 +235,7 @@ export default function CalculatorModal() {
               <AnimatedButton
                 onPress={handleCalculate}
                 disabled={!reps || !weight}
+                accessibilityState={{ disabled: !reps || !weight }}
               >
                 <View
                   style={[

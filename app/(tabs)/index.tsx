@@ -16,6 +16,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   Text,
   View,
 } from "react-native";
@@ -36,7 +37,7 @@ import type { WorkoutDay } from "@/interfaces/workouts";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
 
-import { CARD_GAP, CARD_WIDTH, styles } from "./index.styles";
+import { CARD_GAP, CARD_WIDTH, styles } from "@/styles/home.styles";
 
 // Day name abbreviations
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -137,7 +138,7 @@ const Home = () => {
         }
         scrollToIndex(highlightedIndex);
       }
-    }, [sortedWorkouts.length, highlightedIndex, scrollToIndex])
+    }, [sortedWorkouts.length, highlightedIndex, scrollToIndex, hasLoadedOnce])
   );
 
   // Handle pull-to-refresh (uses local state, not global isLoading)
@@ -225,11 +226,20 @@ const Home = () => {
     );
   }, [handleCloseMenu, refreshWeek, todayIso, scrollToIndex]);
 
-  // Handle share (stub)
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async (workout: WorkoutDay) => {
     handleCloseMenu();
-    // Share functionality stub - show alert for now
-    Alert.alert("Share", "Share functionality coming soon!");
+    const exercises = workout.blocks.flatMap((block) => block.items.map((item) => item.exercise.name));
+    try {
+      await Share.share({
+        title: workout.title,
+        message: `${workout.title}\n${workout.date} · ${workout.durationMinutes} min\n${exercises.join(", ")}\n\nPlanned with PrimeRep.`,
+      });
+    } catch {
+      Alert.alert("Couldn't Share Workout", "The share sheet could not open.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Try Again", onPress: () => void handleShare(workout) },
+      ]);
+    }
   }, [handleCloseMenu]);
 
   // Get greeting based on time of day
@@ -278,9 +288,10 @@ const Home = () => {
       // All cards get Share option
       items.push({
         id: "share",
+        testID: "home-share-workout",
         label: "Share Workout",
         icon: "share-outline",
-        onPress: handleShare,
+        onPress: () => void handleShare(workout),
       });
 
       return items;
@@ -342,6 +353,7 @@ const Home = () => {
             collapsable={false}
           >
             <Pressable
+              testID="home-workout-options"
               onPress={() => handleOpenMenu(workout)}
               style={styles.overflowButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -439,13 +451,17 @@ const Home = () => {
             </ThemedText>
           </View>
           <Pressable
+            testID="home-open-coach"
+            accessibilityRole="button"
+            accessibilityLabel="Open Coach"
+            onPress={() => router.push("/(tabs)/feed")}
             style={[
               styles.notificationButton,
               { backgroundColor: colors.inputBackground },
             ]}
           >
             <Ionicons
-              name="notifications-outline"
+              name="sparkles-outline"
               size={22}
               color={colors.text}
             />

@@ -90,12 +90,6 @@ export const BODY_STATS_SCREEN = {
   title: "Body Stats",
   step: 2,
   totalSteps: 9,
-  syncSection: {
-    heading: "Sync PrimeRep with Apple Health for the best experience.",
-    description:
-      "To personalize workouts and calculate calories burned, sync your Apple health profile. Your data is never shared with third parties.",
-    buttonText: "Sync with Apple Health",
-  },
   manualSection: {
     heading: "Enter your health profile",
     description:

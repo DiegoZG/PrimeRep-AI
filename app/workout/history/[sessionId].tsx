@@ -140,7 +140,7 @@ export default function WorkoutHistoryDetailScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", padding: 20, gap: 12 }}><Pressable onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={28} color={colors.text} /></Pressable><View style={{ flex: 1 }}><ThemedText type="title" style={{ fontSize: 24 }}>{session.summary.title}</ThemedText><ThemedText style={{ color: colors.placeholder }}>{session.status === "abandoned" ? "Abandoned — read only" : "Completed workout"}</ThemedText></View></View>
+      <View style={{ flexDirection: "row", alignItems: "center", padding: 20, gap: 12 }}><Pressable accessibilityRole="button" accessibilityLabel="Back from workout details" onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={28} color={colors.text} /></Pressable><View style={{ flex: 1 }}><ThemedText type="title" style={{ fontSize: 24 }}>{session.summary.title}</ThemedText><ThemedText style={{ color: colors.placeholder }}>{session.status === "abandoned" ? "Abandoned — read only" : "Completed workout"}</ThemedText></View></View>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
         {Array.from(logsByExercise.entries()).map(([exerciseId, logs]) => (
           <View key={exerciseId} style={{ borderRadius: 16, padding: 16, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }}>

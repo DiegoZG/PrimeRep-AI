@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -65,6 +65,20 @@ export default function WorkoutSummaryScreen() {
     return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}><ThemedText>Workout summary unavailable.</ThemedText><Pressable onPress={handleDone} style={{ marginTop: 16 }}><ThemedText style={{ color: colors.primaryButton }}>Back to Home</ThemedText></Pressable></View></SafeAreaView>;
   }
   const volume = unit === "LB" ? fromKg(session.summary.totalVolumeKg, unit) : session.summary.totalVolumeKg;
+  const handleShare = async () => {
+    const names = Array.from(exerciseNames.values());
+    try {
+      await Share.share({
+        title: session.summary.title,
+        message: `${session.summary.title}\n${formatDuration(session.summary.durationSeconds)} · ${session.summary.completedSetCount} sets · ${Math.round(volume).toLocaleString()} ${unit.toLowerCase()} total volume${names.length ? `\n${names.join(", ")}` : ""}\n\nCompleted with PrimeRep.`,
+      });
+    } catch {
+      Alert.alert("Couldn't Share Workout", "The share sheet could not open.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Try Again", onPress: () => void handleShare() },
+      ]);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
@@ -98,7 +112,11 @@ export default function WorkoutSummaryScreen() {
           ))}
         </View>
         <View style={{ flex: 1 }} />
-        <Pressable testID={`summary-detail-${session.id}`} accessibilityRole="button" accessibilityLabel="Review or correct workout" onPress={() => router.push({ pathname: "/workout/history/[sessionId]", params: { sessionId: session.id } })} style={{ marginTop: 32, paddingVertical: 14, borderRadius: 14, alignItems: "center", borderWidth: 1, borderColor: colors.inputBorder }}>
+        <Pressable testID="summary-share" accessibilityRole="button" accessibilityLabel="Share workout summary" onPress={() => void handleShare()} style={{ marginTop: 32, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, backgroundColor: `${colors.primaryButton}12` }}>
+          <Ionicons name="share-outline" size={20} color={colors.primaryButton} />
+          <ThemedText style={{ color: colors.primaryButton, fontSize: 16, fontWeight: "600", fontFamily: Fonts.sans }}>Share workout</ThemedText>
+        </Pressable>
+        <Pressable testID={`summary-detail-${session.id}`} accessibilityRole="button" accessibilityLabel="Review or correct workout" onPress={() => router.push({ pathname: "/workout/history/[sessionId]", params: { sessionId: session.id } })} style={{ marginTop: 12, paddingVertical: 14, borderRadius: 14, alignItems: "center", borderWidth: 1, borderColor: colors.inputBorder }}>
           <ThemedText style={{ color: colors.text, fontSize: 16, fontWeight: "600", fontFamily: Fonts.sans }}>Review or correct workout</ThemedText>
         </Pressable>
         <Pressable testID="summary-done" accessibilityRole="button" accessibilityLabel="Done with workout summary" onPress={handleDone} style={{ marginTop: 12, paddingVertical: 16, borderRadius: 14, alignItems: "center", backgroundColor: colors.primaryButton }}>

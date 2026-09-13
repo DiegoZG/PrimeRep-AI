@@ -22,7 +22,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { FitnessGoal } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { FITNESS_GOAL_SCREEN } from "./constants";
+import { FITNESS_GOAL_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -304,7 +304,7 @@ export default function FitnessGoalScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedGoal}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedGoal} accessibilityState={{ disabled: !selectedGoal }}>
             <View
               style={[
                 styles.primaryButton,

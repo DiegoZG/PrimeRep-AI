@@ -18,15 +18,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedCard } from "@/components/animated-card";
 import { AnimatedSearch } from "@/components/animated-search";
 import {
   ExerciseRow,
   FavoritesCard,
-  FeaturedWorkoutCard,
-  MuscleProgressRing,
-  SplitCard,
 } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
@@ -42,56 +38,23 @@ import {
 } from "@/services/exerciseService";
 import { AuthContext } from "@/utils/authContext";
 
-// Mock data for featured and splits sections
-const FEATURED_WORKOUT = {
-  title: "Full Body Power",
-  subtitle: "Compound movements for maximum gains",
-  duration: "45 min",
-  calories: "320 kcal",
-  badgeLabel: "TRENDING",
-};
-
-const SPLIT_CARDS = [
-  {
-    id: "ppl",
-    title: "Push Pull Legs",
-    subtitle: "6 days/week • Intermediate",
-    progress: 0.3,
-    gradientColors: ["#6a4ff5", "#8b5cf6"] as [string, string],
-  },
-  {
-    id: "upper-lower",
-    title: "Upper Lower",
-    subtitle: "4 days/week • Beginner",
-    progress: 0.5,
-    gradientColors: ["#00D4FF", "#0096c7"] as [string, string],
-  },
-  {
-    id: "full-body",
-    title: "Full Body",
-    subtitle: "3 days/week • All levels",
-    progress: 0.7,
-    gradientColors: ["#FF6B6B", "#ee5a5a"] as [string, string],
-  },
-];
-
-const MUSCLE_RINGS = [
-  { label: "Chest", progress: 0.65 },
-  { label: "Back", progress: 0.35 },
-  { label: "Legs", progress: 0.7 },
-  { label: "Arms", progress: 0.15 },
-];
-
 const ExploreScreen = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { isLoggedIn, token } = useContext(AuthContext);
+  const { isLoggedIn, token, user } = useContext(AuthContext);
 
   // Exercise data state
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(true);
   const [exercisesError, setExercisesError] = useState<string | null>(null);
+  const [catalogRevision, setCatalogRevision] = useState(0);
+  const catalogRequestIdRef = useRef(0);
+  const catalogRevisionRef = useRef(catalogRevision);
+  catalogRevisionRef.current = catalogRevision;
+  const accountKey = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
+  const accountKeyRef = useRef(accountKey);
+  accountKeyRef.current = accountKey;
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -144,6 +107,9 @@ const ExploreScreen = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Exercise[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRevision, setSearchRevision] = useState(0);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   // Debounce search term
   useEffect(() => {
@@ -155,39 +121,55 @@ const ExploreScreen = () => {
 
   useEffect(() => {
     favoriteIdsRef.current = new Set();
+    favoriteMutationIdsRef.current = new Set();
     favoriteMutationSequenceRef.current = 0;
     favoriteMutationVersionsRef.current.clear();
     setFavoriteIds(new Set());
-  }, [token]);
+    setFavoriteMutationIds(new Set());
+    setAllExercises([]);
+    setSearchResults([]);
+    setExercisesError(null);
+    setSearchError(null);
+    setFavoriteError(null);
+  }, [accountKey]);
 
   // Refresh catalog state whenever the screen gains focus.
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
+      let cancelled = false;
+      const requestId = ++catalogRequestIdRef.current;
+      const requestAccountKey = accountKey;
+      const requestRevision = catalogRevision;
+      const requestMutationVersion = favoriteMutationSequenceRef.current;
+
+      const isCurrentRequest = () =>
+        !cancelled &&
+        catalogRequestIdRef.current === requestId &&
+        catalogRevisionRef.current === requestRevision &&
+        accountKeyRef.current === requestAccountKey;
 
       async function loadExercises() {
         try {
           setIsLoadingExercises(true);
           setExercisesError(null);
-          const requestMutationVersion = favoriteMutationSequenceRef.current;
           const exercises = await getExercises({ limit: 50 }, token);
-          if (!isActive) return;
+          if (!isCurrentRequest()) return;
           setAllExercises(exercises);
           mergeResponseFavorites(exercises, requestMutationVersion);
         } catch (err) {
-          if (!isActive) return;
+          if (!isCurrentRequest()) return;
           console.warn("Failed to load exercises:", err);
-          setExercisesError("Failed to load exercises");
+          setExercisesError("Exercises couldn't load. Check your connection and try again.");
         } finally {
-          if (isActive) setIsLoadingExercises(false);
+          if (isCurrentRequest()) setIsLoadingExercises(false);
         }
       }
-      loadExercises();
+      void loadExercises();
 
       return () => {
-        isActive = false;
+        cancelled = true;
       };
-    }, [mergeResponseFavorites, token])
+    }, [accountKey, catalogRevision, mergeResponseFavorites, token])
   );
 
   // Search exercises when debounced term changes
@@ -199,10 +181,12 @@ const ExploreScreen = () => {
       if (trimmed.length < 2) {
         setSearchResults([]);
         setIsSearchLoading(false);
+        setSearchError(null);
         return;
       }
       try {
         setIsSearchLoading(true);
+        setSearchError(null);
         const requestMutationVersion = favoriteMutationSequenceRef.current;
         const results = await getExercises({ q: trimmed, limit: 50 }, token);
         if (!isActive) return;
@@ -212,6 +196,7 @@ const ExploreScreen = () => {
         if (!isActive) return;
         console.warn("Search failed:", err);
         setSearchResults([]);
+        setSearchError("Search couldn't load. Check your connection and try again.");
       } finally {
         if (isActive) setIsSearchLoading(false);
       }
@@ -221,7 +206,7 @@ const ExploreScreen = () => {
     return () => {
       isActive = false;
     };
-  }, [debouncedSearchTerm, mergeResponseFavorites, token]);
+  }, [debouncedSearchTerm, mergeResponseFavorites, searchRevision, token]);
 
   // Memoized filtered lists for default layout
   const weightsExercises = useMemo(
@@ -263,8 +248,10 @@ const ExploreScreen = () => {
       if (!isLoggedIn || !token) return;
       if (favoriteMutationIdsRef.current.has(exerciseId)) return;
 
+      const mutationAccountKey = accountKey;
       const wasFavorite = favoriteIdsRef.current.has(exerciseId);
       const shouldFavorite = !wasFavorite;
+      setFavoriteError(null);
       const mutationVersion = ++favoriteMutationSequenceRef.current;
       favoriteMutationIdsRef.current.add(exerciseId);
       setFavoriteMutationIds(
@@ -280,24 +267,18 @@ const ExploreScreen = () => {
           await unfavoriteExercise(exerciseId, token);
         }
       } catch (err) {
+        if (accountKeyRef.current !== mutationAccountKey || favoriteMutationVersionsRef.current.get(exerciseId) !== mutationVersion) return;
         console.warn("Failed to toggle favorite:", err);
-        if (
-          favoriteMutationVersionsRef.current.get(exerciseId) ===
-          mutationVersion
-        ) {
-          updateFavorite(exerciseId, wasFavorite);
-        }
+        updateFavorite(exerciseId, wasFavorite);
+        setFavoriteError("Favorite wasn't updated. Try again.");
       } finally {
-        favoriteMutationIdsRef.current.delete(exerciseId);
-        setFavoriteMutationIds((current) => {
-          const next = new Set(current);
-          next.delete(exerciseId);
-          return next;
-        });
-        if (
-          favoriteMutationVersionsRef.current.get(exerciseId) ===
-          mutationVersion
-        ) {
+        if (accountKeyRef.current === mutationAccountKey && favoriteMutationVersionsRef.current.get(exerciseId) === mutationVersion) {
+          favoriteMutationIdsRef.current.delete(exerciseId);
+          setFavoriteMutationIds((current) => {
+            const next = new Set(current);
+            next.delete(exerciseId);
+            return next;
+          });
           favoriteMutationVersionsRef.current.set(
             exerciseId,
             ++favoriteMutationSequenceRef.current
@@ -305,22 +286,11 @@ const ExploreScreen = () => {
         }
       }
     },
-    [isLoggedIn, token, updateFavorite]
+    [accountKey, isLoggedIn, token, updateFavorite]
   );
 
   // Check if we're in search mode
   const isInSearchMode = debouncedSearchTerm.trim().length >= 2;
-
-  // Render section header with optional right element
-  const renderSectionHeader = (
-    title: string,
-    rightElement?: React.ReactNode
-  ) => (
-    <View style={styles.sectionHeader}>
-      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
-      {rightElement}
-    </View>
-  );
 
   // Render exercise list section with tappable header
   const renderExerciseSection = (
@@ -386,7 +356,12 @@ const ExploreScreen = () => {
         ) : null
       }
       ListEmptyComponent={
-        !isSearchLoading ? (
+        searchError ? (
+          <View style={styles.emptyState}>
+            <ThemedText accessibilityRole="alert" style={styles.errorText}>{searchError}</ThemedText>
+            <Pressable accessibilityRole="button" accessibilityLabel="Retry exercise search" onPress={() => setSearchRevision((value) => value + 1)} style={[styles.retryButton, { backgroundColor: colors.primaryButton }]}><ThemedText style={styles.retryText}>Retry</ThemedText></Pressable>
+          </View>
+        ) : !isSearchLoading ? (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyText}>No exercises found</ThemedText>
           </View>
@@ -401,85 +376,14 @@ const ExploreScreen = () => {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* Featured Workouts + Favorites Section */}
+      {/* Only backend-backed library surfaces live here until templates ship. */}
       <AnimatedCard style={styles.section} delay={0}>
-        {renderSectionHeader(
-          "Featured Workouts",
-          <Pressable style={styles.viewAllButton}>
-            <ThemedText
-              style={[styles.viewAllText, { color: colors.primaryButton }]}
-            >
-              View all
-            </ThemedText>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={colors.primaryButton}
-            />
-          </Pressable>
-        )}
-        <View style={styles.quickAccessRow}>
-          <FeaturedWorkoutCard
-            title={FEATURED_WORKOUT.title}
-            subtitle={FEATURED_WORKOUT.subtitle}
-            duration={FEATURED_WORKOUT.duration}
-            calories={FEATURED_WORKOUT.calories}
-            badgeLabel={FEATURED_WORKOUT.badgeLabel}
-            compact={true}
-          />
+        <ThemedText style={styles.sectionTitle}>Your library</ThemedText>
+        <View style={styles.libraryRow}>
           <FavoritesCard
             count={favoriteIds.size}
             onPress={navigateToFavorites}
           />
-        </View>
-      </AnimatedCard>
-
-      {/* PrimeRep Splits Section */}
-      <AnimatedCard style={styles.section} delay={100}>
-        {renderSectionHeader(
-          "PrimeRep Splits",
-          <View
-            style={[
-              styles.dropdownPill,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            <ThemedText style={styles.dropdownText}>Recommended</ThemedText>
-            <Ionicons
-              name="chevron-down"
-              size={14}
-              color={colors.placeholder}
-            />
-          </View>
-        )}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.splitsCarousel}
-        >
-          {SPLIT_CARDS.map((split) => (
-            <SplitCard
-              key={split.id}
-              title={split.title}
-              subtitle={split.subtitle}
-              progress={split.progress}
-              gradientColors={split.gradientColors}
-            />
-          ))}
-        </ScrollView>
-      </AnimatedCard>
-
-      {/* By Muscle Section */}
-      <AnimatedCard style={styles.section} delay={200}>
-        <ThemedText style={styles.sectionTitle}>By Muscle</ThemedText>
-        <View style={styles.muscleRingsRow}>
-          {MUSCLE_RINGS.map((ring) => (
-            <MuscleProgressRing
-              key={ring.label}
-              label={ring.label}
-              progress={ring.progress}
-            />
-          ))}
         </View>
       </AnimatedCard>
 
@@ -495,9 +399,16 @@ const ExploreScreen = () => {
       {/* Error state */}
       {exercisesError && !isLoadingExercises && (
         <View style={styles.errorState}>
-          <ThemedText style={styles.errorText}>{exercisesError}</ThemedText>
+          <ThemedText accessibilityRole="alert" style={styles.errorText}>{exercisesError}</ThemedText>
+          <Pressable accessibilityRole="button" accessibilityLabel="Retry loading exercises" onPress={() => setCatalogRevision((revision) => revision + 1)} style={[styles.retryButton, { backgroundColor: colors.primaryButton }]}>
+            <ThemedText style={styles.retryText}>Retry</ThemedText>
+          </Pressable>
         </View>
       )}
+
+      {!isLoadingExercises && !exercisesError && allExercises.length === 0 ? (
+        <View style={styles.emptyState}><ThemedText style={styles.emptyText}>No exercises are available yet.</ThemedText></View>
+      ) : null}
 
       {/* Weights Section */}
       {weightsExercises.length > 0 &&
@@ -531,20 +442,16 @@ const ExploreScreen = () => {
         <ThemedText type="title" style={styles.headerTitle}>
           Explore
         </ThemedText>
-        <AnimatedButton
-          style={[styles.addButton, { backgroundColor: colors.primaryButton }]}
-        >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-        </AnimatedButton>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <AnimatedSearch
-          placeholder="Search exercises, workouts…"
+          placeholder="Search exercises…"
           value={searchTerm}
-          onChangeText={setSearchTerm}
+          onChangeText={(value) => { setSearchTerm(value); setSearchError(null); }}
         />
+        {favoriteError ? <ThemedText accessibilityRole="alert" style={styles.favoriteError}>{favoriteError}</ThemedText> : null}
       </View>
 
       {/* Content: Search results or default layout */}
@@ -570,18 +477,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
   },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
   searchContainer: {
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -593,12 +488,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
   },
   exerciseSectionHeader: {
     flexDirection: "row",
@@ -612,47 +501,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
-  viewAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  dropdownPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  dropdownText: {
-    fontSize: 13,
-    fontWeight: "500",
-    fontFamily: Fonts.sans,
-  },
-  quickAccessRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  splitsCarousel: {
-    gap: 12,
-    paddingRight: 24,
-  },
-  muscleRingsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
+  libraryRow: { marginTop: 16, alignItems: "flex-start" },
+  retryButton: { minHeight: 44, paddingHorizontal: 22, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 14 },
+  retryText: { color: "#FFFFFF", fontWeight: "700" },
+  favoriteError: { color: "#D92D20", fontSize: 13, marginTop: 8 },
   exerciseList: {
     gap: 10,
   },

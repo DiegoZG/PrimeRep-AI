@@ -29,7 +29,7 @@ export default function WorkoutHistoryScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 20, gap: 12 }}>
-        <Pressable onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={28} color={colors.text} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back from Workout History" onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={28} color={colors.text} /></Pressable>
         <ThemedText type="title" style={{ fontSize: 26 }}>Workout History</ThemedText>
       </View>
       {loading ? <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}><ActivityIndicator color={colors.primaryButton} /></View> : error ? <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}><ThemedText>Couldn’t load your history.</ThemedText><Pressable onPress={load}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText></Pressable></View> : sessions.length === 0 ? <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}><ThemedText type="defaultSemiBold">No completed workouts yet</ThemedText><ThemedText style={{ color: colors.placeholder, marginTop: 6, textAlign: "center" }}>Your completed workouts will appear here.</ThemedText></View> : <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>

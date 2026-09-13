@@ -32,6 +32,8 @@ export default function WorkoutSplitLayout() {
           headerTitle: "Workout Split (6/9)",
           headerLeft: () => (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back"
               onPress={() => router.back()}
               style={{ marginLeft: 2 }}
             >

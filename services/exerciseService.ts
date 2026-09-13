@@ -182,10 +182,11 @@ export function getCardioPreview(exercises: Exercise[]): Exercise[] {
  */
 export async function getExercisesByTypes(
   types: string[],
-  params?: Omit<GetExercisesParams, "type">
+  params?: Omit<GetExercisesParams, "type">,
+  token?: string | null,
 ): Promise<Exercise[]> {
   const results = await Promise.all(
-    types.map((type) => getExercises({ ...params, type }))
+    types.map((type) => getExercises({ ...params, type }, token))
   );
 
   // Merge and deduplicate by id

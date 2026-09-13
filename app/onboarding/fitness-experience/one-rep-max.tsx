@@ -28,7 +28,7 @@ import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { WeightUnit } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { convertWeight } from "@/utils/weightConversion";
-import { ONE_REP_MAX_SCREEN } from "../constants";
+import { ONE_REP_MAX_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -250,6 +250,8 @@ export default function OneRepMaxScreen() {
                         {ONE_REP_MAX_SCREEN.calculatorSection.heading}
                       </Text>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Open one-rep max calculator"
                         onPress={() => handleOpenCalculator()}
                         activeOpacity={0.7}
                         style={[

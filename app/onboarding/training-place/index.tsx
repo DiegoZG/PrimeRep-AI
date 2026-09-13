@@ -16,7 +16,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { TrainingPlace } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { TRAINING_PLACE_SCREEN } from "../constants";
+import { TRAINING_PLACE_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -193,7 +193,7 @@ export default function TrainingPlaceScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedPlace}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedPlace} accessibilityState={{ disabled: !selectedPlace }}>
             <View
               style={[
                 styles.primaryButton,

@@ -16,7 +16,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { WorkoutFrequency } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { TRAINING_FREQUENCY_SCREEN } from "./constants";
+import { TRAINING_FREQUENCY_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -242,7 +242,7 @@ export default function TrainingFrequencyScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedFrequency}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedFrequency} accessibilityState={{ disabled: !selectedFrequency }}>
             <View
               style={[
                 styles.primaryButton,

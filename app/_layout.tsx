@@ -44,17 +44,21 @@ function RootLayoutNav() {
   const { isRestoring: isRestoringOnboarding } = useContext(OnboardingContext);
   const router = useRouter();
   const segments = useSegments();
-  const attemptedResumeForUser = useRef<string | null>(null);
+  const attemptedResumeForIdentity = useRef<string | null>(null);
+  const resumeRequestIdRef = useRef(0);
+  const authIdentity = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
+  const authIdentityRef = useRef(authIdentity);
+  authIdentityRef.current = authIdentity;
   const [resumeRevision, setResumeRevision] = useState(0);
 
   useEffect(() => {
-    if (!isLoggedIn || !user) attemptedResumeForUser.current = null;
+    if (!isLoggedIn || !user) attemptedResumeForIdentity.current = null;
   }, [isLoggedIn, user]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        attemptedResumeForUser.current = null;
+        attemptedResumeForIdentity.current = null;
         setResumeRevision((revision) => revision + 1);
       }
     });
@@ -69,13 +73,19 @@ function RootLayoutNav() {
       !hasCompletedOnboarding ||
       !token ||
       !user ||
-      attemptedResumeForUser.current === user.id ||
-      segments.join("/").includes("active")
+      attemptedResumeForIdentity.current === authIdentity ||
+      segments.join("/").includes("active") ||
+      segments.join("/").includes("reset-password") ||
+      segments.join("/").includes("forgot-password") ||
+      segments.join("/").includes("legal/")
     ) {
       return;
     }
 
-    attemptedResumeForUser.current = user.id;
+    attemptedResumeForIdentity.current = authIdentity;
+    let cancelled = false;
+    const requestId = ++resumeRequestIdRef.current;
+    const requestAuthIdentity = authIdentity;
     void (async () => {
       // The server wins when it is reachable. A locally-created, unsynced
       // session remains resumable while offline.
@@ -85,11 +95,15 @@ function RootLayoutNav() {
       ]);
       const sessionId = serverActive?.id ?? localActive?.serverSessionId;
       const workoutDayId = serverActive?.workoutDayId ?? localActive?.workoutDayId;
-      if (sessionId || workoutDayId) {
+      if (!cancelled && resumeRequestIdRef.current === requestId && authIdentityRef.current === requestAuthIdentity && (sessionId || workoutDayId)) {
         router.replace({ pathname: "/workout/active", params: sessionId ? { sessionId } : { workoutDayId: workoutDayId! } });
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [
+    authIdentity,
     isBootstrapping,
     bootstrapError,
     isLoggedIn,
@@ -133,7 +147,6 @@ function RootLayoutNav() {
             name="explore/favorites"
             options={{ headerShown: false }}
           />
-          <Stack.Screen name="workout/today" options={{ headerShown: false }} />
           <Stack.Screen name="workout/active" options={{ headerShown: false }} />
           <Stack.Screen name="workout/summary" options={{ headerShown: false }} />
           <Stack.Screen name="workout/history" options={{ headerShown: false }} />
@@ -166,6 +179,10 @@ function RootLayoutNav() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="signup" options={{ headerShown: false }} />
         </Stack.Protected>
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </>

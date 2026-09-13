@@ -24,7 +24,7 @@ import {
   getDefaultEquipmentSelections,
   getDefaultPlateWeights,
   groupEquipmentByDisplayCategory,
-} from "./equipment-helpers";
+} from "@/features/onboarding/equipment-helpers";
 
 export default function EquipmentScreen() {
   const router = useRouter();

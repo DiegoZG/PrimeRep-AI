@@ -180,6 +180,8 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back from Settings"
           onPress={() => router.back()}
           style={styles.backButton}
           hitSlop={10}
@@ -349,7 +351,21 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Legal</ThemedText>
+        <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+          <Pressable testID="settings-terms" style={styles.navigationRow} onPress={() => router.push("/legal/terms" as Href)} accessibilityRole="button" accessibilityLabel="Terms of Service">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Terms of Service</ThemedText></View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+          <Pressable testID="settings-privacy" style={styles.navigationRow} onPress={() => router.push("/legal/privacy" as Href)} accessibilityRole="button" accessibilityLabel="Privacy Policy">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Privacy Policy</ThemedText></View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+        </View>
+
         {/* AI Features section */}
+        {isPremium ? <>
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>
           AI Features
         </ThemedText>
@@ -389,6 +405,7 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+        </> : null}
 
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Account</ThemedText>
         <View

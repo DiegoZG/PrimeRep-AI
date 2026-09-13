@@ -30,9 +30,8 @@ env:
 - tapOn:
     id: "tab-explore"
 
-# Visible sections above the fold
-- assertVisible: "Featured Workouts"
-- assertVisible: "PrimeRep Splits"
+# The Explore landing page contains only backend-backed exercise surfaces.
+- assertVisible: "Your library"
 
 # Scroll down until exercise sections are visible
 - scrollUntilVisible:
@@ -43,6 +42,14 @@ env:
     visibilityPercentage: 40
 
 - assertVisible:
+    id: "exercise-section-weights"
+- scrollUntilVisible:
+    element:
+      id: "exercise-section-bodyweight"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 40
+- assertVisible:
     id: "exercise-section-bodyweight"
 
 - takeScreenshot: 01-explore-loaded
@@ -51,12 +58,7 @@ env:
 # STEP 3: SEARCH FOR AN EXERCISE
 # =============================================
 
-# Scroll back to top so search bar is visible
-- swipe:
-    direction: UP
-    duration: 500
-
-- tapOn: "Search exercises, workouts…"
+- tapOn: "Search exercises…"
 - inputText: "bench"
 
 # Wait for search results

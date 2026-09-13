@@ -90,6 +90,9 @@ export function ExerciseRow({
 
       {/* Favorite control */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isFavorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
+        accessibilityState={{ disabled: !canFavorite || isFavoriteDisabled, busy: isFavoriteDisabled }}
         onPress={handleFavoritePress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={styles.favoriteButton}

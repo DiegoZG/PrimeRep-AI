@@ -12,11 +12,9 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 
 ### App ID
 
-The `appId` in each flow is currently set to `host.exp.Exponent` (Expo Go).
-
-Update this when switching to a dev/prod build:
-- **Dev build (iOS)**: your `ios.bundleIdentifier` from `app.json`
-- **Dev build (Android)**: your `android.package` from `app.json`
+Expo Go flows use `host.exp.Exponent`. Native-only flows use the configured
+development-build identifier, `com.diegozegarra.primerep`, and the dedicated
+`flows/auth-login-dev-build.yaml` authentication helper.
 
 ### Test Account
 
@@ -25,7 +23,7 @@ Each flow uses `testuser@primerep.com` / `StrongPass123`. Create this account on
 ```bash
 curl -X POST http://localhost:8000/v1/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"email":"testuser@primerep.com","password":"StrongPass123","preferred_name":"Test","last_name":"User"}'
+  -d '{"email":"testuser@primerep.com","password":"StrongPass123","preferred_name":"Test","last_name":"User","legalAcceptance":{"accepted":true,"termsVersion":"2026-09-12","privacyVersion":"2026-09-12"}}'
 ```
 
 Then complete onboarding via the app (equipment + workout split must be set for
@@ -68,10 +66,12 @@ maestro studio
 |------|------|-------|
 | Smoke: Home | `smoke-home.yaml` | Auth resolves, tab bar visible, workout cards load |
 | Workout Browse | `workout-browse.yaml` | Tap workout card → workout detail with exercise list |
-| Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles + equipment |
+| Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles, resolved equipment, and truthful demo status |
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
 | Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, then save a workout note |
+| Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
+| Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 
 ---
 
@@ -104,6 +104,21 @@ Elements with `testID` props added for Maestro targeting:
 | `player-add-set-{exerciseId}` | `Pressable` | adds the next non-renumbering set slot |
 | `player-workout-note` | `Pressable` | opens the workout-note sheet |
 | `history-session-{sessionId}` | `Pressable` | opens a completed session from Profile history |
+| `forgot-password-link` | `Pressable` | opens password-reset request from Login |
+| `password-reset-request-submit` | `AnimatedButton` | submits the generic reset request |
+| `password-reset-confirm-submit` | `AnimatedButton` | submits a new password from a reset link |
+| `home-open-coach` | `Pressable` | opens the Coach tab from Home |
+| `home-share-workout` | `Pressable` | verifies Home exposes native sharing without automating a share destination |
+| `coach-screen` | `SafeAreaView` | confirms the Coach preview is open regardless of its truthful data state |
+| `coach-resume-workout` | `Pressable` | resumes an active workout from Coach |
+| `coach-open-workout` | `Pressable` | opens the next planned workout from Coach |
+| `settings-terms` | `Pressable` | opens Terms of Service |
+| `settings-privacy` | `Pressable` | opens Privacy Policy |
+| `legal-terms-screen` | `SafeAreaView` | Terms of Service screen |
+| `legal-privacy-screen` | `SafeAreaView` | Privacy Policy screen |
+| `summary-share` | `Pressable` | opens the native privacy-light summary share sheet |
+| `exercise-equipment-names` | `Text` | resolved equipment names or truthful loading/error state |
+| `exercise-demo-status` | `View` | reports whether a real demo URL is available |
 
 ---
 
@@ -121,3 +136,10 @@ showing, and skip it if already authenticated.
 Every flow waits for `auth-loaded` (a zero-size marker rendered in
 `app/_layout.tsx` once bootstrapping completes) before interacting with the UI.
 This prevents race conditions on cold boot.
+
+### Native sharing
+
+Maestro verifies that the completed-summary share action is present. Test the
+Home and Summary native share sheets manually on a development build: simulator
+share destinations vary by installed apps, and dismissing the sheet should not
+show an error.

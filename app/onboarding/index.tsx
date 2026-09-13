@@ -21,7 +21,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { useOnboardingStyles } from "./styles";
+import { useOnboardingStyles } from "@/features/onboarding/styles";
 
 const OnboardingFirstScreen = () => {
   const { data, updateField } = useContext(OnboardingContext);
@@ -89,6 +89,7 @@ const OnboardingFirstScreen = () => {
                 <AnimatedButton
                   onPress={handleNext}
                   disabled={!preferredName.trim()}
+                  accessibilityState={{ disabled: !preferredName.trim() }}
                 >
                   <View
                     style={[

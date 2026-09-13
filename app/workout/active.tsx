@@ -1281,6 +1281,8 @@ export default function ActiveWorkoutScreen() {
         }}
       >
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Leave workout"
           onPress={handleBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
@@ -1299,6 +1301,8 @@ export default function ActiveWorkoutScreen() {
         </Pressable>
         <Pressable
           testID="player-exercise-list-button"
+          accessibilityRole="button"
+          accessibilityLabel="Open exercise list"
           onPress={() => setSheetVisible(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
@@ -1383,6 +1387,8 @@ export default function ActiveWorkoutScreen() {
                   </ThemedText>
                   <Pressable
                     testID="player-exercise-info"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${currentItem.exercise.name} details`}
                     onPress={() => setInfoSheetVisible(true)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
@@ -1595,6 +1601,7 @@ export default function ActiveWorkoutScreen() {
           testID="player-finish"
           onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
           disabled={finishStatus === "syncing" || confirmedCount === 0}
+          accessibilityState={{ disabled: finishStatus === "syncing" || confirmedCount === 0, busy: finishStatus === "syncing" }}
           style={{
             backgroundColor: confirmedCount > 0 ? colors.primaryButton : colors.inputBackground,
             paddingVertical: 16,

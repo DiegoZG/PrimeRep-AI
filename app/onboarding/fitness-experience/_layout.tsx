@@ -32,6 +32,8 @@ export default function FitnessExperienceLayout() {
           headerTitle: "Fitness Experience (3/9)",
           headerLeft: () => (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back"
               onPress={() => router.back()}
               style={{ marginLeft: 2 }}
             >

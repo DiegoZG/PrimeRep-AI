@@ -159,6 +159,8 @@ const ProfileScreen = () => {
             onPress={() => router.push("/settings")}
             style={styles.settingsButton}
             testID="profile-settings-button"
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
           >
             <Ionicons name="settings-outline" size={24} color={colors.text} />
           </Pressable>
@@ -173,7 +175,7 @@ const ProfileScreen = () => {
         >
           <View style={styles.profileContent}>
             {/* Avatar */}
-            <View style={styles.avatarContainer}>
+            <View style={styles.avatarContainer} accessibilityLabel={`${user?.preferred_name || "User"} profile initials`}>
               <View
                 style={[
                   styles.avatar,
@@ -182,18 +184,6 @@ const ProfileScreen = () => {
               >
                 <Text style={styles.avatarText}>{initials}</Text>
               </View>
-              <Pressable
-                style={[
-                  styles.editAvatarButton,
-                  { backgroundColor: colors.background },
-                ]}
-              >
-                <Ionicons
-                  name="pencil"
-                  size={12}
-                  color={colors.primaryButton}
-                />
-              </Pressable>
             </View>
 
             {/* Name and Info */}
@@ -201,16 +191,6 @@ const ProfileScreen = () => {
               <ThemedText type="title" style={styles.profileName}>
                 {user?.preferred_name || "User"}
               </ThemedText>
-              <View style={styles.badgeContainer}>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: colors.electricBlue },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>PRO MEMBER</Text>
-                </View>
-              </View>
               <ThemedText type="default" style={styles.profileSubtext}>
                 Joined {joinYear} • {workoutCount} Workout
                 {workoutCount !== 1 ? "s" : ""}
@@ -266,25 +246,6 @@ const ProfileScreen = () => {
               />
             </View>
           </ThemedView>
-        </View>
-
-        {/* Support Row — a Friends card lived here until there was a social
-            feature to back it; re-add it alongside this one when there is. */}
-        <View style={styles.bottomStatsRow}>
-          {/* Support Card */}
-          <Pressable
-            style={[
-              styles.supportCard,
-              { backgroundColor: colors.primaryButton },
-            ]}
-          >
-            <Ionicons name="headset-outline" size={24} color="#FFFFFF" />
-            <View style={styles.supportTextContainer}>
-              <Text style={styles.supportTitle}>Need help?</Text>
-              <Text style={styles.supportSubtitle}>Talk to support</Text>
-            </View>
-            <Ionicons name="open-outline" size={20} color="#FFFFFF" />
-          </Pressable>
         </View>
 
         {/* Activity Section */}
@@ -359,28 +320,14 @@ const ProfileScreen = () => {
               <Text style={[styles.volumeValue, { color: colors.text }]}>
                 {totalVolumeLabel}
               </Text>
-              <View style={styles.volumeDots}>
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.volumeDot,
-                      {
-                        backgroundColor:
-                          index === 0
-                            ? colors.electricBlue
-                            : colors.inputBorder,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
             </View>
           </View>
         </View>
 
         <Pressable
           testID="profile-workout-history"
+          accessibilityRole="button"
+          accessibilityLabel="Open Workout History"
           onPress={() => router.push("/workout/history")}
           style={[styles.supportCard, styles.historyCard, { backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }]}
         >
@@ -391,69 +338,6 @@ const ProfileScreen = () => {
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
         </Pressable>
-
-        {/* Badges Section */}
-        <View style={[styles.section, styles.badgesSection]}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="title" style={styles.sectionTitle}>
-              Badges
-            </ThemedText>
-            <Pressable>
-              <ThemedText
-                type="link"
-                style={[styles.viewAllText, { color: colors.primaryButton }]}
-              >
-                View All
-              </ThemedText>
-            </Pressable>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.badgesContainer}
-          >
-            {/* GYM LOCAL Badge */}
-            <ThemedView
-              style={[
-                styles.badgeCard,
-                { backgroundColor: colors.inputBackground },
-              ]}
-            >
-              <View
-                style={[styles.badgeIconCircle, { backgroundColor: "#FFD700" }]}
-              >
-                <Ionicons name="location" size={32} color="#FF8C00" />
-              </View>
-              <ThemedText type="default" style={styles.badgeTitle}>
-                GYM LOCAL
-              </ThemedText>
-              <ThemedText type="default" style={styles.badgeSubtitle}>
-                First check-in
-              </ThemedText>
-            </ThemedView>
-
-            {/* 5K CLUB Badge */}
-            <ThemedView
-              style={[
-                styles.badgeCard,
-                { backgroundColor: colors.inputBackground },
-              ]}
-            >
-              <View
-                style={[styles.badgeIconCircle, { backgroundColor: "#87CEEB" }]}
-              >
-                <Ionicons name="barbell" size={32} color="#4169E1" />
-              </View>
-              <ThemedText type="default" style={styles.badgeTitle}>
-                5K CLUB
-              </ThemedText>
-              <ThemedText type="default" style={styles.badgeSubtitle}>
-                Volume Milestone
-              </ThemedText>
-            </ThemedView>
-          </ScrollView>
-        </View>
 
         {/* Sign Out Button (hidden in design but keeping for functionality) */}
         <Pressable
@@ -539,18 +423,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontFamily: Fonts.sans,
   },
-  editAvatarButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
   profileInfo: {
     flex: 1,
     gap: 8,
@@ -558,20 +430,6 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  badgeContainer: {
-    alignSelf: "flex-start",
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
     fontFamily: Fonts.sans,
   },
   profileSubtext: {
@@ -637,11 +495,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.sans,
   },
-  bottomStatsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 32,
-  },
   supportCard: {
     flex: 1,
     borderRadius: 12,
@@ -673,9 +526,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
-  },
-  badgesSection: {
-    marginTop: 32,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -721,9 +571,6 @@ const styles = StyleSheet.create({
     width: 36,
     opacity: 0.6,
   },
-  gridLabelEmpty: {
-    opacity: 0.3,
-  },
   gridRowCells: {
     flex: 1,
     flexDirection: "row",
@@ -758,56 +605,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: Fonts.sans,
     letterSpacing: -0.5,
-  },
-  volumeDots: {
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-  },
-  volumeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  badgesContainer: {
-    gap: 12,
-  },
-  badgeCard: {
-    width: 140,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  badgeIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-    textAlign: "center",
-  },
-  badgeSubtitle: {
-    fontSize: 12,
-    fontWeight: "400",
-    opacity: 0.7,
-    fontFamily: Fonts.sans,
-    textAlign: "center",
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
   },
   signOutButton: {
     marginTop: 8,

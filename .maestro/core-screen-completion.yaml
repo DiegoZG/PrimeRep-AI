@@ -1,0 +1,76 @@
+# Part 5 core-screen completion smoke coverage.
+# Runs adaptively from either Login or an authenticated Home screen.
+
+appId: com.diegozegarra.primerep
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-dev-build.yaml
+
+- runFlow:
+    when:
+      visible:
+        id: "login-button"
+    commands:
+      - tapOn:
+          id: "forgot-password-link"
+      - assertVisible:
+          id: "password-reset-request-submit"
+      - tapOn:
+          id: "password-reset-email"
+      - inputText: "nobody@example.com"
+      - tapOn:
+          id: "password-reset-request-submit"
+      - extendedWaitUntil:
+          visible:
+            id: "password-reset-requested"
+          timeout: 10000
+      - tapOn:
+          id: "password-reset-return-login"
+
+- runFlow: flows/auth-login-dev-build.yaml
+
+- tapOn:
+    id: "home-workout-options"
+    index: 0
+- assertVisible:
+    id: "home-share-workout"
+- tapOn:
+    point: "10%,90%"
+
+- extendedWaitUntil:
+    visible:
+      id: "home-open-coach"
+    timeout: 15000
+- tapOn:
+    id: "home-open-coach"
+- assertVisible: "Coach"
+- assertVisible:
+    id: "tab-coach"
+- assertVisible:
+    id: "coach-screen"
+
+- tapOn:
+    id: "tab-explore"
+- assertVisible: "Explore"
+- assertNotVisible: "Featured Workouts"
+- assertNotVisible: "PrimeRep Splits"
+
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- scrollUntilVisible:
+    element:
+      id: "settings-terms"
+    direction: DOWN
+- tapOn:
+    id: "settings-terms"
+- assertVisible:
+    id: "legal-terms-screen"
+- back
+- tapOn:
+    id: "settings-privacy"
+- assertVisible:
+    id: "legal-privacy-screen"
