@@ -30,8 +30,8 @@ export interface ExerciseDetailApiResponse {
   sort_order?: number;
   // `required_equipment_ids` is the current field name; `equipment_ids` is kept
   // as a fallback for backwards compatibility with older backend responses.
-  required_equipment_ids?: number[];
-  equipment_ids?: number[];
+  required_equipment_ids?: string[];
+  equipment_ids?: string[];
   how_to?: string | null;
   why_it_works?: string | null;
   common_mistakes?: string | null;
@@ -57,7 +57,7 @@ export interface ExerciseDetail {
   secondaryMuscles: string[];
   imageUrl?: string;
   demoVideoUrl?: string;
-  equipmentIds: number[];
+  equipmentIds: string[];
   howTo?: string;
   whyItWorks?: string;
   commonMistakes?: string;

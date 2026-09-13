@@ -15,6 +15,7 @@ const MENU_OFFSET = 20; // Gap between button and menu
 
 export interface MenuItemConfig {
   id: string;
+  testID?: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   destructive?: boolean;
@@ -142,6 +143,7 @@ export function WorkoutCardMenu({
             {items.map((item) => (
               <Pressable
                 key={item.id}
+                testID={item.testID}
                 onPress={() => {
                   item.onPress();
                 }}

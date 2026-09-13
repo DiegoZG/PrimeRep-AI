@@ -16,7 +16,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { VarietyLevel } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { VARIETY_LEVEL_SCREEN } from "./constants";
+import { VARIETY_LEVEL_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -190,7 +190,7 @@ export default function VarietyLevelScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedVariety}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedVariety} accessibilityState={{ disabled: !selectedVariety }}>
             <View
               style={[
                 styles.primaryButton,

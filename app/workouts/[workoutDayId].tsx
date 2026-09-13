@@ -92,7 +92,6 @@ export default function WorkoutDayDetailScreen() {
     setDuration,
     clearStaleIdFlag,
     getWorkoutById,
-    getExerciseCount,
   } = useWorkoutWeek();
 
   // Local state
@@ -470,6 +469,7 @@ export default function WorkoutDayDetailScreen() {
               key={duration}
               onPress={() => handleUpdateDuration(duration)}
               disabled={isActionLoading}
+              accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
               style={[
                 styles.durationOption,
                 {
@@ -502,6 +502,7 @@ export default function WorkoutDayDetailScreen() {
       <Pressable
         onPress={handleSkipDay}
         disabled={isActionLoading}
+        accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
         style={[styles.skipButton, { backgroundColor: colors.inputBackground }]}
       >
         <Ionicons name="play-skip-forward" size={18} color={colors.text} />
@@ -520,7 +521,7 @@ export default function WorkoutDayDetailScreen() {
         edges={["top"]}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back from workout" onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerTitleContainer}>
@@ -546,7 +547,7 @@ export default function WorkoutDayDetailScreen() {
         edges={["top"]}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back from unavailable workout" onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerTitleContainer}>
@@ -588,6 +589,8 @@ export default function WorkoutDayDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back from workout details"
           onPress={() => router.back()}
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

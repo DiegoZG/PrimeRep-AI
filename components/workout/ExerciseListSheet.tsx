@@ -75,7 +75,7 @@ export function ExerciseListSheet({
               <ThemedText type="defaultSemiBold" style={{ fontSize: 18 }}>
                 Exercises
               </ThemedText>
-              <Pressable testID="player-sheet-close" onPress={onClose} hitSlop={10}>
+              <Pressable testID="player-sheet-close" accessibilityRole="button" accessibilityLabel="Close exercise list" onPress={onClose} hitSlop={10}>
                 <Ionicons name="close" size={22} color={colors.text} />
               </Pressable>
             </View>

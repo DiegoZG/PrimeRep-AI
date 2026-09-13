@@ -16,7 +16,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { WorkoutSplit } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { WORKOUT_SPLIT_SCREEN } from "../constants";
+import { WORKOUT_SPLIT_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -295,7 +295,7 @@ export default function WorkoutSplitScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedSplit}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedSplit} accessibilityState={{ disabled: !selectedSplit }}>
             <View
               style={[
                 styles.primaryButton,

@@ -20,7 +20,7 @@ export interface WorkoutApiExercise {
   secondaryMuscles: string[];
   imageUrl: string | null;
   demoVideoUrl: string | null;
-  requiredEquipmentIds: number[];
+  requiredEquipmentIds: string[];
 }
 
 export interface WorkoutApiItem {
@@ -64,7 +64,7 @@ export interface WorkoutExercise {
   secondaryMuscles: string[];
   imageUrl?: string;
   demoVideoUrl?: string;
-  requiredEquipmentIds: number[];
+  requiredEquipmentIds: string[];
 }
 
 export interface WorkoutItem {
@@ -99,4 +99,3 @@ export interface NextWorkoutParams {
   difficulty?: string;
   force?: boolean; // Query param for regeneration
 }
-

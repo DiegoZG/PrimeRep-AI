@@ -12,7 +12,7 @@ export interface WorkoutDayApiExercise {
   secondaryMuscles: string[];
   imageUrl: string | null;
   demoVideoUrl: string | null;
-  requiredEquipmentIds: number[];
+  requiredEquipmentIds: string[];
 }
 
 export interface WorkoutDayApiItem {

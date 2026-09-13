@@ -7,6 +7,11 @@ export type SignUpPayload = {
   preferred_name: string;
   last_name?: string | null;
   onboarding?: OnboardingData | null;
+  legalAcceptance: {
+    accepted: true;
+    termsVersion: string;
+    privacyVersion: string;
+  };
 };
 
 export type LoginPayload = {
@@ -55,5 +60,19 @@ export function logout(payload: RefreshPayload) {
   return requestJson<void>("/v1/auth/logout", {
     method: "POST",
     body: payload,
+  });
+}
+
+export function requestPasswordReset(email: string) {
+  return requestJson<{ message: string }>("/v1/auth/password-reset/request", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function confirmPasswordReset(token: string, newPassword: string) {
+  return requestJson<void>("/v1/auth/password-reset/confirm", {
+    method: "POST",
+    body: { token, newPassword },
   });
 }

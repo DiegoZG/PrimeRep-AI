@@ -17,7 +17,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useEquipment } from "@/utils/equipmentContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { getEquipmentCategoryType } from "./equipment-helpers";
+import { getEquipmentCategoryType } from "@/features/onboarding/equipment-helpers";
 
 export default function SeeAllScreen() {
   const params = useLocalSearchParams<{ category?: string }>();

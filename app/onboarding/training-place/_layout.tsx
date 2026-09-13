@@ -32,6 +32,8 @@ export default function TrainingPlaceLayout() {
           headerTitle: "Training Place (8/9)",
           headerLeft: () => (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back"
               onPress={() => router.back()}
               style={{ marginLeft: 2 }}
             >

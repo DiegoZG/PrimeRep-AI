@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -29,7 +28,7 @@ import { useScreenTransition } from "@/hooks/use-screen-transition";
 import type { WeightUnit } from "@/interfaces/onboarding/types";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { convertWeight } from "@/utils/weightConversion";
-import { BODY_STATS_SCREEN } from "./constants";
+import { BODY_STATS_SCREEN } from "@/features/onboarding/constants";
 
 export default function BodyStatsScreen() {
   const router = useRouter();
@@ -49,8 +48,6 @@ export default function BodyStatsScreen() {
   const [showGenderPicker, setShowGenderPicker] = useState(false);
 
   // Animation shared values
-  const syncSectionOpacity = useSharedValue(0);
-  const syncSectionTranslateY = useSharedValue(20);
   const manualSectionOpacity = useSharedValue(0);
   const manualSectionTranslateY = useSharedValue(20);
   const formFieldsOpacity = useSharedValue(0);
@@ -62,27 +59,19 @@ export default function BodyStatsScreen() {
   }, [data.weight, data.weightUnit]);
 
   useEffect(() => {
-    // Sync section animation - starts after 200ms delay
-    syncSectionOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
-    syncSectionTranslateY.value = withDelay(
+    // Manual section animation
+    manualSectionOpacity.value = withDelay(
+      200,
+      withTiming(1, { duration: 400 })
+    );
+    manualSectionTranslateY.value = withDelay(
       200,
       withTiming(0, { duration: 400 })
     );
 
-    // Manual section animation - starts after 500ms delay
-    manualSectionOpacity.value = withDelay(
-      500,
-      withTiming(1, { duration: 400 })
-    );
-    manualSectionTranslateY.value = withDelay(
-      500,
-      withTiming(0, { duration: 400 })
-    );
-
-    // Form fields animation - starts after 800ms delay
-    formFieldsOpacity.value = withDelay(800, withTiming(1, { duration: 400 }));
+    formFieldsOpacity.value = withDelay(500, withTiming(1, { duration: 400 }));
     formFieldsTranslateY.value = withDelay(
-      800,
+      500,
       withTiming(0, { duration: 400 })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,13 +81,6 @@ export default function BodyStatsScreen() {
     return {
       opacity: opacity.value,
       transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const syncSectionAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: syncSectionOpacity.value,
-      transform: [{ translateY: syncSectionTranslateY.value }],
     };
   });
 
@@ -115,13 +97,6 @@ export default function BodyStatsScreen() {
       transform: [{ translateY: formFieldsTranslateY.value }],
     };
   });
-
-  const handleSyncAppleHealth = () => {
-    Alert.alert(
-      "Apple Health sync is coming soon",
-      "You can enter your details below. HealthKit syncing will be available in a future iOS update."
-    );
-  };
 
   const handleSelectGender = (selectedGender: string) => {
     setGender(selectedGender);
@@ -223,67 +198,6 @@ export default function BodyStatsScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.content}>
-                  {/* Sync with Apple Health Section */}
-                  <Animated.View style={syncSectionAnimatedStyle}>
-                    <AnimatedCard delay={0}>
-                      <View style={styles.syncSection}>
-                        <Text style={[styles.heading, { color: colors.text }]}>
-                          {BODY_STATS_SCREEN.syncSection.heading}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.description,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {BODY_STATS_SCREEN.syncSection.description}
-                        </Text>
-                        <AnimatedButton onPress={handleSyncAppleHealth}>
-                          <View
-                            style={[
-                              styles.syncButton,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.inputBorder,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.syncButtonText,
-                                { color: colors.text },
-                              ]}
-                            >
-                              ❤️ {BODY_STATS_SCREEN.syncSection.buttonText}
-                            </Text>
-                          </View>
-                        </AnimatedButton>
-                        <View style={styles.separator}>
-                          <View
-                            style={[
-                              styles.separatorLine,
-                              { backgroundColor: colors.inputBorder },
-                            ]}
-                          />
-                          <Text
-                            style={[
-                              styles.separatorText,
-                              { color: colors.placeholder },
-                            ]}
-                          >
-                            OR
-                          </Text>
-                          <View
-                            style={[
-                              styles.separatorLine,
-                              { backgroundColor: colors.inputBorder },
-                            ]}
-                          />
-                        </View>
-                      </View>
-                    </AnimatedCard>
-                  </Animated.View>
-
                   {/* Manual Entry Section */}
                   <Animated.View style={manualSectionAnimatedStyle}>
                     <AnimatedCard delay={0}>
@@ -480,7 +394,7 @@ export default function BodyStatsScreen() {
 
               {/* Next Button */}
               <View style={styles.buttonContainer}>
-                <AnimatedButton onPress={handleNext} disabled={!isFormValid}>
+                <AnimatedButton onPress={handleNext} disabled={!isFormValid} accessibilityState={{ disabled: !isFormValid }}>
                   <View
                     style={[
                       styles.primaryButton,

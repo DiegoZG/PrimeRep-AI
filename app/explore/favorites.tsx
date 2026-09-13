@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -29,21 +29,50 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { isLoggedIn, token } = useContext(AuthContext);
+  const { isLoggedIn, token, user } = useContext(AuthContext);
+  const accountKey = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
+  const accountKeyRef = useRef(accountKey);
+  accountKeyRef.current = accountKey;
 
   // Exercise data state
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataOwnerKey, setDataOwnerKey] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const favoriteIdsRef = useRef<Set<string>>(new Set());
+  const mutationSequenceRef = useRef(0);
+  const mutationVersionsRef = useRef<Map<string, number>>(new Map());
+  const mutationIdsRef = useRef<Set<string>>(new Set());
+  const [mutationIds, setMutationIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    favoriteIdsRef.current = new Set();
+    mutationSequenceRef.current = 0;
+    mutationVersionsRef.current.clear();
+    mutationIdsRef.current = new Set();
+    setExercises([]);
+    setDataOwnerKey(null);
+    setFavoriteIds(new Set());
+    setMutationIds(new Set());
+    setError(null);
+    setIsLoading(isLoggedIn);
+    setIsRefreshing(false);
+  }, [accountKey, isLoggedIn]);
 
   // Fetch favorite exercises
   const fetchFavorites = useCallback(
     async (showRefreshing = false) => {
+      const requestId = ++requestIdRef.current;
+      const requestAccountKey = accountKey;
+      const requestMutationVersion = mutationSequenceRef.current;
+      const isCurrentRequest = () => requestIdRef.current === requestId && accountKeyRef.current === requestAccountKey;
       if (!isLoggedIn || !token) {
+        favoriteIdsRef.current = new Set();
         setExercises([]);
         setFavoriteIds(new Set());
         setIsLoading(false);
@@ -60,32 +89,49 @@ export default function FavoritesScreen() {
 
         // Get favorite IDs first
         const ids = await getFavoriteExercises(token);
-        setFavoriteIds(new Set(ids));
+        if (!isCurrentRequest()) return;
+        const nextFavoriteIds = new Set(ids);
+        for (const [exerciseId, mutationVersion] of mutationVersionsRef.current) {
+          if (mutationVersion <= requestMutationVersion) continue;
+          if (favoriteIdsRef.current.has(exerciseId)) nextFavoriteIds.add(exerciseId);
+          else nextFavoriteIds.delete(exerciseId);
+        }
+        favoriteIdsRef.current = nextFavoriteIds;
+        setFavoriteIds(nextFavoriteIds);
 
-        if (ids.length === 0) {
+        if (nextFavoriteIds.size === 0) {
           setExercises([]);
+          setDataOwnerKey(requestAccountKey);
           return;
         }
 
         // Fetch all exercises and filter to favorites
-        const allExercises = await getExercises({ limit: 200 });
-        const favoriteExercises = allExercises.filter((e) => ids.includes(e.id));
-        setExercises(favoriteExercises);
+        const allExercises = await getExercises({ limit: 200 }, token);
+        if (!isCurrentRequest()) return;
+        setExercises(allExercises.filter((exercise) => favoriteIdsRef.current.has(exercise.id)));
+        setDataOwnerKey(requestAccountKey);
       } catch (err) {
+        if (!isCurrentRequest()) return;
         console.warn("Failed to load favorites:", err);
         setError("Failed to load favorites");
+        setDataOwnerKey(requestAccountKey);
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (isCurrentRequest()) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
-    [isLoggedIn, token]
+    [accountKey, isLoggedIn, token]
   );
 
   // Load favorites when screen gains focus (ensures sync when navigating back)
   useFocusEffect(
     useCallback(() => {
-      fetchFavorites();
+      void fetchFavorites();
+      return () => {
+        requestIdRef.current += 1;
+      };
     }, [fetchFavorites])
   );
 
@@ -93,46 +139,42 @@ export default function FavoritesScreen() {
   const handleToggleFavorite = useCallback(
     async (exerciseId: string) => {
       if (!isLoggedIn || !token) return;
-
-      const state = {
-        action: "favorite" as "favorite" | "unfavorite",
-        snapshot: null as Set<string> | null,
-      };
-
-      setFavoriteIds((prev) => {
-        state.snapshot = new Set(prev);
-        const next = new Set(prev);
-        if (next.has(exerciseId)) {
-          next.delete(exerciseId);
-          state.action = "unfavorite";
-        } else {
-          next.add(exerciseId);
-          state.action = "favorite";
-        }
-        return next;
-      });
-
-      // If unfavoriting, remove from list immediately
-      if (state.action === "unfavorite") {
-        setExercises((prev) => prev.filter((e) => e.id !== exerciseId));
-      }
+      if (mutationIdsRef.current.has(exerciseId)) return;
+      const mutationAccountKey = accountKey;
+      const mutationVersion = ++mutationSequenceRef.current;
+      mutationVersionsRef.current.set(exerciseId, mutationVersion);
+      mutationIdsRef.current.add(exerciseId);
+      setMutationIds(new Set(mutationIdsRef.current));
+      const favoriteSnapshot = new Set(favoriteIdsRef.current);
+      const exerciseSnapshot = exercises;
+      const shouldFavorite = !favoriteSnapshot.has(exerciseId);
+      const optimistic = new Set(favoriteSnapshot);
+      if (shouldFavorite) optimistic.add(exerciseId);
+      else optimistic.delete(exerciseId);
+      favoriteIdsRef.current = optimistic;
+      setFavoriteIds(optimistic);
+      if (!shouldFavorite) setExercises((current) => current.filter((exercise) => exercise.id !== exerciseId));
 
       try {
-        if (state.action === "unfavorite") {
-          await unfavoriteExercise(exerciseId, token);
-        } else {
+        if (shouldFavorite) {
           await favoriteExercise(exerciseId, token);
+        } else {
+          await unfavoriteExercise(exerciseId, token);
         }
       } catch (err) {
+        if (accountKeyRef.current !== mutationAccountKey || mutationVersionsRef.current.get(exerciseId) !== mutationVersion) return;
         console.warn("Failed to toggle favorite:", err);
-        if (state.snapshot) {
-          setFavoriteIds(state.snapshot);
+        favoriteIdsRef.current = favoriteSnapshot;
+        setFavoriteIds(favoriteSnapshot);
+        setExercises(exerciseSnapshot);
+      } finally {
+        if (accountKeyRef.current === mutationAccountKey && mutationVersionsRef.current.get(exerciseId) === mutationVersion) {
+          mutationIdsRef.current.delete(exerciseId);
+          setMutationIds(new Set(mutationIdsRef.current));
         }
-        // Refetch to restore list
-        fetchFavorites();
       }
     },
-    [isLoggedIn, token, fetchFavorites]
+    [accountKey, exercises, isLoggedIn, token]
   );
 
   // Handle pull to refresh
@@ -156,6 +198,7 @@ export default function FavoritesScreen() {
       imageUrl={item.imageUrl}
       isFavorite={favoriteIds.has(item.id)}
       canFavorite={isLoggedIn}
+      isFavoriteDisabled={mutationIds.has(item.id)}
       onToggleFavorite={handleToggleFavorite}
       onPress={() => navigateToExercise(item.id)}
     />
@@ -169,6 +212,8 @@ export default function FavoritesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back from favorites"
           onPress={() => router.back()}
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -203,7 +248,7 @@ export default function FavoritesScreen() {
             anytime
           </ThemedText>
         </View>
-      ) : isLoading ? (
+      ) : isLoading || dataOwnerKey !== accountKey ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primaryButton} />
         </View>
@@ -379,4 +424,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-

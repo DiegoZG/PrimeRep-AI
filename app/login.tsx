@@ -1,5 +1,5 @@
 import { AuthContext } from "@/utils/authContext";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 const LoginScreen = () => {
   const { logIn } = useContext(AuthContext);
   const router = useRouter();
+  const { passwordReset } = useLocalSearchParams<{ passwordReset?: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
@@ -68,6 +69,9 @@ const LoginScreen = () => {
         <ThemedText type="default" style={styles.subtitle}>
           Enter your details to continue
         </ThemedText>
+        {passwordReset === "success" ? (
+          <ThemedText accessibilityRole="alert" style={[styles.successMessage, { color: colors.primaryButton }]}>Your password was updated. Sign in with your new password.</ThemedText>
+        ) : null}
 
         <View style={styles.inputContainer}>
           <View style={styles.inputWithIconContainer}>
@@ -117,6 +121,9 @@ const LoginScreen = () => {
               />
             </View>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
+              accessibilityState={{ disabled: isSubmitting }}
               onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               style={styles.eyeIcon}
               disabled={isSubmitting}
@@ -130,9 +137,11 @@ const LoginScreen = () => {
           </View>
 
           <Pressable
-            onPress={() => {
-              // TODO: Implement forgot password flow
-            }}
+            testID="forgot-password-link"
+            accessibilityRole="button"
+            accessibilityLabel="Reset forgotten password"
+            accessibilityState={{ disabled: isSubmitting }}
+            onPress={() => router.push("/forgot-password")}
             style={styles.forgotPasswordContainer}
             disabled={isSubmitting}
           >
@@ -150,6 +159,7 @@ const LoginScreen = () => {
 
         <AnimatedButton
           testID="login-button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           onPress={handleLogin}
           disabled={isSubmitting}
           style={[
@@ -172,6 +182,7 @@ const LoginScreen = () => {
           <Pressable
             onPress={() => router.push("/onboarding")}
             disabled={isSubmitting}
+            accessibilityState={{ disabled: isSubmitting }}
           >
             <ThemedText
               type="link"
@@ -185,6 +196,7 @@ const LoginScreen = () => {
         <Pressable
           onPress={() => router.push("/onboarding")}
           disabled={isSubmitting}
+          accessibilityState={{ disabled: isSubmitting }}
           style={styles.backToOnboardingContainer}
         >
           <ThemedText
@@ -216,6 +228,14 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     textAlign: "center",
     opacity: 0.7,
+  },
+  successMessage: {
+    marginTop: -16,
+    marginBottom: 20,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
   },
   inputContainer: {
     marginBottom: 24,

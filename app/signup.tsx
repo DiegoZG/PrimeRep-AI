@@ -18,10 +18,11 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/constants/legal";
 
 const SignUpScreen = () => {
   const { signUp } = useContext(AuthContext);
-  const { getOnboardingData, resetOnboarding, data } =
+  const { getOnboardingData, resetOnboarding } =
     useContext(OnboardingContext);
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -54,7 +55,7 @@ const SignUpScreen = () => {
     }
 
     if (!hasAcceptedTerms) {
-      setErrorMessage("Please accept the Terms and Conditions");
+      setErrorMessage("Accept the Terms of Service and acknowledge the Privacy Policy to continue.");
       return;
     }
 
@@ -78,6 +79,11 @@ const SignUpScreen = () => {
         preferred_name: preferredName,
         last_name: onboardingSnapshot.lastName?.trim() || null,
         onboarding: onboardingSnapshot,
+        legalAcceptance: {
+          accepted: true as const,
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+        },
       };
 
       await signUp(payload);
@@ -153,6 +159,9 @@ const SignUpScreen = () => {
               />
             </View>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
+              accessibilityState={{ disabled: isSubmitting }}
               onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               style={styles.eyeIcon}
               disabled={isSubmitting}
@@ -166,42 +175,59 @@ const SignUpScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
-          style={styles.termsContainer}
-          disabled={isSubmitting}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: hasAcceptedTerms }}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              hasAcceptedTerms && { backgroundColor: colors.primaryButton },
-            ]}
+        <View style={styles.termsContainer}>
+          <TouchableOpacity
+            testID="legal-acceptance-checkbox"
+            style={styles.checkboxButton}
+            onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+            disabled={isSubmitting}
+            accessibilityRole="checkbox"
+            accessibilityLabel="Accept Terms of Service and acknowledge Privacy Policy"
+            accessibilityState={{ checked: hasAcceptedTerms, disabled: isSubmitting }}
           >
-            {hasAcceptedTerms && (
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-            )}
-          </View>
+            <View
+              style={[
+                styles.checkbox,
+                hasAcceptedTerms && { backgroundColor: colors.primaryButton },
+              ]}
+            >
+              {hasAcceptedTerms && (
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              )}
+            </View>
+          </TouchableOpacity>
           <View style={styles.termsTextContainer}>
             <ThemedText type="default" style={styles.termsText}>
               I agree to the{" "}
             </ThemedText>
             <TouchableOpacity
-              onPress={() => {
-                // TODO: Open terms and conditions screen/modal
-              }}
+              testID="signup-terms-link"
+              accessibilityRole="link"
+              accessibilityLabel="Open Terms of Service"
+              accessibilityState={{ disabled: isSubmitting }}
+              onPress={() => router.push("/legal/terms")}
               disabled={isSubmitting}
             >
               <ThemedText
                 type="link"
                 style={[styles.termsLink, { color: colors.primaryButton }]}
               >
-                Terms and Conditions
+                Terms of Service
               </ThemedText>
             </TouchableOpacity>
+            <ThemedText type="default" style={styles.termsText}> and acknowledge the </ThemedText>
+            <TouchableOpacity
+              testID="signup-privacy-link"
+              accessibilityRole="link"
+              accessibilityLabel="Open Privacy Policy"
+              accessibilityState={{ disabled: isSubmitting }}
+              onPress={() => router.push("/legal/privacy")}
+              disabled={isSubmitting}
+            >
+              <ThemedText type="link" style={[styles.termsLink, { color: colors.primaryButton }]}>Privacy Policy</ThemedText>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
         {errorMessage && (
           <ThemedText style={[styles.errorText, { color: "#FF3B30" }]}>
@@ -212,6 +238,7 @@ const SignUpScreen = () => {
         <AnimatedButton
           onPress={handleSignUp}
           disabled={isSubmitting}
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           style={[
             styles.signUpButton,
             { backgroundColor: colors.primaryButton },
@@ -232,6 +259,7 @@ const SignUpScreen = () => {
           <TouchableOpacity
             onPress={() => router.push("/login")}
             disabled={isSubmitting}
+            accessibilityState={{ disabled: isSubmitting }}
           >
             <ThemedText
               type="link"
@@ -300,14 +328,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 24,
   },
+  checkboxButton: {
+    width: 44,
+    height: 44,
+    marginTop: -10,
+    marginBottom: -10,
+    marginRight: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   checkbox: {
     width: 20,
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
     borderColor: "#E5E5E5",
-    marginRight: 12,
-    marginTop: 2,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -166,6 +166,9 @@ export const SetInputRow = React.memo(function SetInputRow({
         {/* Confirm button */}
         <Pressable
           testID={`player-confirm-set-${setRow.exerciseId}-${setNumber}`}
+          accessibilityRole="button"
+          accessibilityLabel={`${editing ? "Save changes to" : "Confirm"} set ${setNumber}`}
+          accessibilityState={{ disabled: confirmed && !editing }}
           onPress={() => onConfirm(setNumber)}
           disabled={confirmed && !editing}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}

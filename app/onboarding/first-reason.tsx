@@ -20,7 +20,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { REASON_SCREEN } from "./constants";
+import { REASON_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -243,7 +243,7 @@ export default function FirstReasonScreen() {
             { backgroundColor: colors.background },
           ]}
         >
-          <AnimatedButton onPress={handleNext} disabled={!selectedReason}>
+          <AnimatedButton onPress={handleNext} disabled={!selectedReason} accessibilityState={{ disabled: !selectedReason }}>
             <View
               style={[
                 styles.primaryButton,

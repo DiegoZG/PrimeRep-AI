@@ -139,6 +139,9 @@ env:
 
 - takeScreenshot: 04-workout-summary
 
+- assertVisible:
+    id: "summary-share"
+
 - tapOn:
     id: "summary-done"
 

@@ -214,6 +214,9 @@ export function ExerciseAskThread({
         />
         <Pressable
           testID="exercise-ask-send"
+          accessibilityRole="button"
+          accessibilityLabel="Send exercise question"
+          accessibilityState={{ disabled: isAsking || !questionText.trim(), busy: isAsking }}
           onPress={handleSend}
           disabled={isAsking || !questionText.trim()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

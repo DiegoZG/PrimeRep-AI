@@ -21,11 +21,11 @@ import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ADD_WORKOUT_MODAL } from "../constants";
+import { ADD_WORKOUT_MODAL } from "@/features/onboarding/constants";
 import {
   buildMuscleGroupsFromSplitSelection,
   inferSplitSelectionFromMuscleGroups,
-} from "./helpers";
+} from "@/features/onboarding/workout-split-helpers";
 
 export default function AddWorkoutModal() {
   const colorScheme = useColorScheme();
@@ -195,7 +195,7 @@ export default function AddWorkoutModal() {
         activeOpacity={1}
         onPress={canGoBack ? () => router.back() : undefined}
       >
-        <TouchableWithoutFeedback>
+        <TouchableWithoutFeedback onPress={(event) => event.stopPropagation()}>
           <Animated.View
             style={[
               styles.modalContainer,
@@ -363,7 +363,7 @@ export default function AddWorkoutModal() {
                           ]}
                           activeOpacity={0.7}
                         >
-                          {/* Placeholder for muscle icon */}
+                          {/* Stable initials fallback until licensed imagery is available. */}
                           <View
                             style={[
                               styles.muscleIconPlaceholder,
@@ -378,7 +378,7 @@ export default function AddWorkoutModal() {
                                 { color: colors.placeholder },
                               ]}
                             >
-                              Image coming soon
+                              {muscleGroup.name.slice(0, 2).toUpperCase()}
                             </Text>
                           </View>
                           {/* Muscle group name */}

@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -26,6 +27,7 @@ import {
   unfavoriteExercise,
 } from "@/services/exerciseService";
 import { AuthContext } from "@/utils/authContext";
+import { useEquipment } from "@/utils/equipmentContext";
 
 export default function ExerciseDetailScreen() {
   const router = useRouter();
@@ -33,6 +35,13 @@ export default function ExerciseDetailScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, isLoggedIn } = useContext(AuthContext);
+  const {
+    items: equipment,
+    isLoading: isEquipmentLoading,
+    error: equipmentError,
+    lastFetchedAt: equipmentFetchedAt,
+    ensureEquipmentLoaded,
+  } = useEquipment();
 
   // Exercise state
   const [exercise, setExercise] = useState<ExerciseDetail | null>(null);
@@ -72,6 +81,10 @@ export default function ExerciseDetailScreen() {
     fetchExercise();
   }, [fetchExercise]);
 
+  useEffect(() => {
+    void ensureEquipmentLoaded();
+  }, [ensureEquipmentLoaded]);
+
   // Handle favorite toggle
   const handleToggleFavorite = async () => {
     if (!isLoggedIn || !token || !id) return;
@@ -89,6 +102,14 @@ export default function ExerciseDetailScreen() {
     } catch (err) {
       console.warn("Failed to toggle favorite:", err);
       setIsFavorite(previousState);
+      Alert.alert(
+        "Favorite wasn't updated",
+        "Check your connection and try again.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Try Again", onPress: () => void handleToggleFavorite() },
+        ],
+      );
     } finally {
       setIsFavoriteLoading(false);
     }
@@ -98,11 +119,31 @@ export default function ExerciseDetailScreen() {
   const handleWatchDemo = async () => {
     if (!exercise?.demoVideoUrl) return;
 
-    const canOpen = await Linking.canOpenURL(exercise.demoVideoUrl);
-    if (canOpen) {
+    try {
+      const canOpen = await Linking.canOpenURL(exercise.demoVideoUrl);
+      if (!canOpen) throw new Error("Unsupported demo URL");
       await Linking.openURL(exercise.demoVideoUrl);
+    } catch {
+      Alert.alert("Demo Unavailable", "This exercise video could not be opened. Use the written instructions for now.");
     }
   };
+
+  const equipmentIds = exercise?.equipmentIds ?? [];
+  const resolvedEquipmentNames = equipmentIds.flatMap((equipmentId) => {
+    const match = equipment.find((item) => item.id === equipmentId);
+    return match ? [match.name] : [];
+  });
+  const unresolvedEquipmentIds = equipmentIds.filter(
+    (equipmentId) => !equipment.some((item) => item.id === equipmentId),
+  );
+  const isEquipmentPending = equipmentFetchedAt === null || isEquipmentLoading;
+  const equipmentLabel = equipmentIds.length === 0
+    ? "Bodyweight — no equipment required"
+    : unresolvedEquipmentIds.length > 0 && isEquipmentPending
+      ? "Loading equipment details…"
+      : unresolvedEquipmentIds.length > 0 && equipmentError
+        ? [...resolvedEquipmentNames, "Some equipment details couldn't load"].join(", ")
+        : [...resolvedEquipmentNames, ...unresolvedEquipmentIds.map((equipmentId) => `Unknown equipment (${equipmentId})`)].join(", ");
 
   return (
     <SafeAreaView
@@ -112,6 +153,8 @@ export default function ExerciseDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back from exercise"
           onPress={() => router.back()}
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -125,6 +168,9 @@ export default function ExerciseDetailScreen() {
         </View>
         {isLoggedIn && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? `Remove ${exercise?.name ?? "exercise"} from favorites` : `Add ${exercise?.name ?? "exercise"} to favorites`}
+            accessibilityState={{ disabled: isFavoriteLoading, busy: isFavoriteLoading }}
             onPress={handleToggleFavorite}
             style={styles.favoriteButton}
             disabled={isFavoriteLoading}
@@ -162,13 +208,19 @@ export default function ExerciseDetailScreen() {
           <ThemedText style={styles.errorTitle}>Exercise not found</ThemedText>
           <ThemedText style={styles.errorSubtitle}>{error}</ThemedText>
           <Pressable
-            onPress={() => router.back()}
+            testID="exercise-detail-retry"
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading exercise"
+            onPress={() => void fetchExercise()}
             style={[
               styles.backActionButton,
               { backgroundColor: colors.primaryButton },
             ]}
           >
-            <Text style={styles.backActionButtonText}>Go Back</Text>
+            <Text style={styles.backActionButtonText}>Retry</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back from exercise error" onPress={() => router.back()} style={styles.secondaryErrorAction}>
+            <Text style={[styles.secondaryErrorActionText, { color: colors.primaryButton }]}>Go Back</Text>
           </Pressable>
         </View>
       ) : exercise ? (
@@ -179,6 +231,7 @@ export default function ExerciseDetailScreen() {
           {/* Exercise media — real footage, else labelled placeholder */}
           <ExerciseMedia
             imageUrl={exercise.imageUrl}
+            demoVideoUrl={exercise.demoVideoUrl}
             exerciseName={exercise.name}
             colors={colors}
           />
@@ -274,8 +327,7 @@ export default function ExerciseDetailScreen() {
           </View>
 
           {/* Equipment Section */}
-          {exercise.equipmentIds && exercise.equipmentIds.length > 0 && (
-            <View style={styles.section}>
+          <View style={styles.section}>
               <ThemedText type="subtitle" style={styles.sectionTitle}>
                 Equipment
               </ThemedText>
@@ -293,19 +345,24 @@ export default function ExerciseDetailScreen() {
                 >
                   <Ionicons name="barbell" size={20} color="#34C759" />
                 </View>
-                <Text style={[styles.equipmentText, { color: colors.text }]}>
-                  {exercise.equipmentIds.length} piece
-                  {exercise.equipmentIds.length !== 1 ? "s" : ""} of equipment
-                  required
+                <Text testID="exercise-equipment-names" style={[styles.equipmentText, { color: colors.text }]}>
+                  {equipmentLabel}
                 </Text>
               </View>
-            </View>
-          )}
+              {equipmentError && unresolvedEquipmentIds.length > 0 && !isEquipmentPending ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Retry loading equipment names" onPress={() => void ensureEquipmentLoaded({ force: true })} style={styles.equipmentRetry}>
+                  <Text style={[styles.equipmentRetryText, { color: colors.primaryButton }]}>Retry equipment details</Text>
+                </Pressable>
+              ) : null}
+          </View>
 
           {/* Demo Video Button */}
           {exercise.demoVideoUrl && (
             <View style={styles.section}>
               <Pressable
+                testID="exercise-watch-demo"
+                accessibilityRole="button"
+                accessibilityLabel={`Watch ${exercise.name} demo video`}
                 onPress={handleWatchDemo}
                 style={[
                   styles.demoButton,
@@ -444,6 +501,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
+  secondaryErrorAction: {
+    minHeight: 44,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryErrorActionText: {
+    fontSize: 15,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 100,
@@ -524,6 +592,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "500",
+    fontFamily: Fonts.sans,
+  },
+  equipmentRetry: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  equipmentRetryText: {
+    fontSize: 14,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
   },
   demoButton: {

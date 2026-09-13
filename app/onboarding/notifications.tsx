@@ -21,7 +21,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
-import { NOTIFICATIONS_SCREEN } from "./constants";
+import { NOTIFICATIONS_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 

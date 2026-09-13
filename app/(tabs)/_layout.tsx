@@ -9,7 +9,6 @@ import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -45,10 +44,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: "Feed",
+          title: "Coach",
           tabBarIcon: ({ color, size }) => (
-            <View testID="tab-feed">
-              <MaterialIcons name="dynamic-feed" size={size || 24} color={color} />
+            <View testID="tab-coach">
+              <Ionicons name="sparkles" size={size || 24} color={color} />
             </View>
           ),
         }}

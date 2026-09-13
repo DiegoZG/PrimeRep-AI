@@ -21,7 +21,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
-import { ADD_WORKOUT_MODAL, CUSTOM_SPLIT_SCREEN } from "../constants";
+import { ADD_WORKOUT_MODAL, CUSTOM_SPLIT_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -164,6 +164,8 @@ export default function CustomSplitScreen() {
                         {workout.name} - Workout {index + 1}
                       </Text>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${workout.name}`}
                         onPress={() => handleRemoveWorkout(workout.id)}
                         activeOpacity={0.7}
                         style={styles.deleteButton}
@@ -269,6 +271,7 @@ export default function CustomSplitScreen() {
           <AnimatedButton
             onPress={handleContinue}
             disabled={!data.customWorkouts?.length}
+            accessibilityState={{ disabled: !data.customWorkouts?.length }}
           >
             <View
               style={[

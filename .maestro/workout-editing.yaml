@@ -9,7 +9,7 @@ env:
   LOGIN_PASSWORD: StrongPass123
 ---
 - runFlow: flows/launch-dev-build.yaml
-- runFlow: flows/auth-login.yaml
+- runFlow: flows/auth-login-dev-build.yaml
 
 - tapOn:
     id: "workout-card"
