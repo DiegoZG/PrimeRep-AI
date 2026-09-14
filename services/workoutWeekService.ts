@@ -87,17 +87,27 @@ export function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
     deferredMuscles: apiDay.deferredMuscles ?? [],
     unavailableMuscles: apiDay.unavailableMuscles ?? [],
     blocks: (apiDay.exerciseBlocks || []).map(mapApiBlock),
+    programActivationId: apiDay.programActivationId ?? undefined,
+    templateId: apiDay.templateId ?? undefined,
+    templateVersion: apiDay.templateVersion ?? undefined,
+    templateDayId: apiDay.templateDayId ?? undefined,
   };
 }
 
 /**
  * Maps API week plan to UI WorkoutWeekPlan model
  */
-function mapApiWeekPlan(apiPlan: WorkoutWeekPlanApiResponse): WorkoutWeekPlan {
+export function mapApiWeekPlan(apiPlan: WorkoutWeekPlanApiResponse): WorkoutWeekPlan {
+  const end = new Date(`${apiPlan.weekStart}T00:00:00`);
+  end.setDate(end.getDate() + 6);
+  const fallbackWeekEnd = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
   return {
     weekStart: apiPlan.weekStart,
-    weekEnd: apiPlan.weekEnd,
+    weekEnd: apiPlan.weekEnd ?? fallbackWeekEnd,
     workouts: (apiPlan.workouts || []).map(mapApiWorkoutDay),
+    programActivationId: apiPlan.programActivationId ?? undefined,
+    templateId: apiPlan.templateId ?? undefined,
+    templateVersion: apiPlan.templateVersion ?? undefined,
   };
 }
 

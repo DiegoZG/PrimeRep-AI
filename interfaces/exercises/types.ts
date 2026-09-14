@@ -4,10 +4,23 @@ export interface ExerciseApiItem {
   name: string;
   exercise_type: string;
   primary_muscle: string;
+  secondary_muscles?: string[];
+  required_equipment_ids?: string[];
   image_url?: string | null;
   demo_video_url?: string | null;
   is_active?: boolean;
-  is_favorited: boolean;
+  is_favorited?: boolean;
+  source?: "seed" | "custom" | "user";
+  is_editable?: boolean;
+  exerciseType?: string;
+  primaryMuscle?: string;
+  secondaryMuscles?: string[];
+  imageUrl?: string | null;
+  demoVideoUrl?: string | null;
+  equipmentIds?: string[];
+  requiredEquipmentIds?: string[];
+  isFavorited?: boolean;
+  isEditable?: boolean;
 }
 
 export interface ExerciseApiResponse {
@@ -24,8 +37,9 @@ export interface ExerciseDetailApiResponse {
   image_url?: string | null;
   demo_video_url?: string | null;
   is_active?: boolean;
-  is_favorited: boolean;
+  is_favorited?: boolean;
   source?: string;
+  is_editable?: boolean;
   owner_user_id?: string | null;
   sort_order?: number;
   // `required_equipment_ids` is the current field name; `equipment_ids` is kept
@@ -36,6 +50,16 @@ export interface ExerciseDetailApiResponse {
   why_it_works?: string | null;
   common_mistakes?: string | null;
   beginner_notes?: string | null;
+  exerciseType?: string;
+  primaryMuscle?: string;
+  secondaryMuscles?: string[];
+  imageUrl?: string | null;
+  demoVideoUrl?: string | null;
+  equipmentIds?: string[];
+  requiredEquipmentIds?: string[];
+  instructions?: string | null;
+  isFavorited?: boolean;
+  isEditable?: boolean;
 }
 
 // UI model (basic, used in lists)
@@ -46,6 +70,10 @@ export interface Exercise {
   primaryMuscle: string;
   imageUrl?: string;
   isFavorited: boolean;
+  secondaryMuscles?: string[];
+  equipmentIds?: string[];
+  source?: "seed" | "custom";
+  isEditable?: boolean;
 }
 
 // UI model (detailed, used in exercise detail screen)
@@ -63,6 +91,9 @@ export interface ExerciseDetail {
   commonMistakes?: string;
   beginnerNotes?: string;
   isFavorited: boolean;
+  source?: "seed" | "custom";
+  isEditable?: boolean;
+  instructions?: string;
 }
 
 // Query parameters for getExercises

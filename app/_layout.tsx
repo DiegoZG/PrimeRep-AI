@@ -7,6 +7,7 @@ import { EquipmentWeightsProvider } from "@/utils/equipmentWeightsContext";
 import { OnboardingContext, OnboardingProvider } from "@/utils/onboardingContext";
 import { NotificationsProvider } from "@/utils/notificationsContext";
 import { WorkoutWeekProvider } from "@/utils/workoutWeekContext";
+import { ProgramDraftProvider } from "@/utils/programDraftContext";
 import {
   DarkTheme,
   DefaultTheme,
@@ -152,6 +153,13 @@ function RootLayoutNav() {
             name="explore/favorites"
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="programs/index" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/[templateId]" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/builder" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/day" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/exercise-picker" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/custom-exercise" options={{ headerShown: false }} />
+          <Stack.Screen name="programs/activate" options={{ headerShown: false }} />
           <Stack.Screen name="workout/active" options={{ headerShown: false }} />
           <Stack.Screen name="workout/summary" options={{ headerShown: false }} />
           <Stack.Screen name="workout/history" options={{ headerShown: false }} />
@@ -205,9 +213,11 @@ export default function RootLayout() {
             <EquipmentWeightsProvider>
               <EquipmentProvider>
                 <WorkoutWeekProvider>
-                  <ActiveWorkoutProvider>
-                    <RootLayoutNav />
-                  </ActiveWorkoutProvider>
+                  <ProgramDraftProvider>
+                    <ActiveWorkoutProvider>
+                      <RootLayoutNav />
+                    </ActiveWorkoutProvider>
+                  </ProgramDraftProvider>
                 </WorkoutWeekProvider>
               </EquipmentProvider>
             </EquipmentWeightsProvider>

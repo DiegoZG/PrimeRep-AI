@@ -1,0 +1,486 @@
+# E2E Test: Explore Programs
+#
+# Covers catalog and builder actions, immediate/next-week activation,
+# schedule locking/skip, deactivation, and private custom-exercise lifecycle.
+# Equipment-conflict assertions run when the test account produces conflicts.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible:
+      id: "browse-programs"
+    timeout: 12000
+- tapOn:
+    id: "browse-programs"
+- extendedWaitUntil:
+    visible:
+      id: "program-filters-toggle"
+    timeout: 12000
+- tapOn:
+    id: "program-filters-toggle"
+- assertVisible:
+    id: "program-filter-frequency-1"
+- assertVisible:
+    id: "program-filter-frequency-7"
+- tapOn:
+    id: "program-filter-scope-system"
+- tapOn:
+    id: "program-filters-toggle"
+- extendedWaitUntil:
+    visible:
+      id: "program-card-system-minimal-equipment"
+    timeout: 12000
+- assertVisible:
+    id: "program-card-level-system-minimal-equipment"
+- assertVisible:
+    id: "program-card-equipment-system-minimal-equipment"
+- tapOn:
+    id: "program-card-system-minimal-equipment"
+
+- extendedWaitUntil:
+    visible:
+      id: "program-customize"
+    timeout: 10000
+- assertVisible:
+    id: "program-activate"
+- tapOn:
+    id: "program-customize"
+- extendedWaitUntil:
+    visible:
+      id: "program-name-input"
+    timeout: 10000
+- tapOn:
+    id: "program-name-input"
+- eraseText
+- inputText: "Maestro Minimal Program"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "program-day-down-1"
+    direction: DOWN
+- tapOn:
+    id: "program-day-down-1"
+- scrollUntilVisible:
+    element:
+      id: "program-save"
+    direction: DOWN
+- tapOn:
+    id: "program-save"
+
+- extendedWaitUntil:
+    visible:
+      id: "program-edit"
+    timeout: 12000
+- tapOn:
+    id: "program-edit"
+- extendedWaitUntil:
+    visible:
+      id: "program-description-input"
+    timeout: 8000
+- tapOn:
+    id: "program-description-input"
+- eraseText
+- inputText: "A private plan updated by the Explore programs flow."
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "program-save"
+    direction: DOWN
+- tapOn:
+    id: "program-save"
+
+- extendedWaitUntil:
+    visible:
+      id: "program-activate"
+    timeout: 12000
+- tapOn:
+    id: "program-activate"
+- extendedWaitUntil:
+    visible:
+      id: "activation-mode-next-week"
+    timeout: 10000
+- tapOn:
+    id: "activation-mode-next-week"
+- extendedWaitUntil:
+    visible:
+      id: "activation-preview"
+    timeout: 8000
+- tapOn:
+    id: "activation-preview"
+- extendedWaitUntil:
+    visible:
+      id: "activation-review"
+    timeout: 12000
+- assertVisible:
+    id: "activation-target-week"
+- assertVisible: "Week of .*"
+- runFlow:
+    when:
+      visible:
+        id: "activation-conflict-1"
+    commands:
+      - assertVisible: "Suggested"
+      - assertVisible:
+          id: "activation-suggested-.*"
+      - runFlow:
+          when:
+            visible:
+              id: "activation-alternative-.*"
+          commands:
+            - tapOn:
+                id: "activation-alternative-.*"
+- scrollUntilVisible:
+    element:
+      id: "activation-confirm"
+    direction: DOWN
+- tapOn:
+    id: "activation-confirm"
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-explore"
+    timeout: 15000
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible:
+      id: "scheduled-program-banner"
+    timeout: 12000
+- tapOn:
+    id: "scheduled-program-banner"
+- extendedWaitUntil:
+    visible:
+      id: "program-scheduled-badge"
+    timeout: 10000
+- assertVisible:
+    id: "program-cancel-scheduled"
+- tapOn:
+    id: "program-cancel-scheduled"
+- tapOn: "Cancel scheduled program"
+- extendedWaitUntil:
+    visible:
+      id: "program-activate"
+    timeout: 10000
+
+# Activate immediately, then verify program-owned workouts keep locked
+# prescriptions while Skip Day remains available.
+- tapOn:
+    id: "program-activate"
+- extendedWaitUntil:
+    visible:
+      id: "activation-preview"
+    timeout: 10000
+- tapOn:
+    id: "activation-preview"
+- extendedWaitUntil:
+    visible:
+      id: "activation-review"
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: "activation-confirm"
+    direction: DOWN
+- tapOn:
+    id: "activation-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "workout-card"
+    timeout: 15000
+- tapOn:
+    id: "workout-card"
+- extendedWaitUntil:
+    visible:
+      id: "program-duration-locked"
+    timeout: 12000
+- assertVisible:
+    id: "skip-day-button"
+- tapOn:
+    id: "skip-day-button"
+- tapOn: "Skip"
+- extendedWaitUntil:
+    visible:
+      id: "program-duration-locked"
+    timeout: 15000
+
+# An edit to the active program may be scheduled for next week. Stopping the
+# current program must also cancel that scheduled replacement.
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible:
+      id: "active-program-banner"
+    timeout: 12000
+- tapOn:
+    id: "active-program-banner"
+- extendedWaitUntil:
+    visible:
+      id: "program-edit"
+    timeout: 10000
+- tapOn:
+    id: "program-edit"
+- scrollUntilVisible:
+    element:
+      id: "program-save"
+    direction: DOWN
+- tapOn:
+    id: "program-save"
+- tapOn: "Next week"
+- extendedWaitUntil:
+    visible:
+      id: "activation-preview"
+    timeout: 10000
+- tapOn:
+    id: "activation-preview"
+- extendedWaitUntil:
+    visible:
+      id: "activation-review"
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: "activation-confirm"
+    direction: DOWN
+- tapOn:
+    id: "activation-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "tab-explore"
+    timeout: 15000
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible:
+      id: "active-program-banner"
+    timeout: 12000
+- tapOn:
+    id: "active-program-banner"
+- scrollUntilVisible:
+    element:
+      id: "program-deactivate"
+    direction: DOWN
+- tapOn:
+    id: "program-deactivate"
+- assertVisible: ".*This also cancels the program scheduled to start next week.*"
+- tapOn: "Stop program"
+- extendedWaitUntil:
+    visible:
+      id: "program-activate"
+    timeout: 12000
+
+# Re-activate, edit again, and apply that revision immediately.
+- tapOn:
+    id: "program-activate"
+- extendedWaitUntil:
+    visible:
+      id: "activation-preview"
+    timeout: 10000
+- tapOn:
+    id: "activation-preview"
+- extendedWaitUntil:
+    visible:
+      id: "activation-review"
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: "activation-confirm"
+    direction: DOWN
+- tapOn:
+    id: "activation-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "tab-explore"
+    timeout: 15000
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible:
+      id: "active-program-banner"
+    timeout: 12000
+- tapOn:
+    id: "active-program-banner"
+- tapOn:
+    id: "program-edit"
+- scrollUntilVisible:
+    element:
+      id: "program-save"
+    direction: DOWN
+- tapOn:
+    id: "program-save"
+- tapOn: "Apply now"
+- extendedWaitUntil:
+    visible:
+      id: "activation-preview"
+    timeout: 10000
+- tapOn:
+    id: "activation-preview"
+- extendedWaitUntil:
+    visible:
+      id: "activation-review"
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: "activation-confirm"
+    direction: DOWN
+- tapOn:
+    id: "activation-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "tab-explore"
+    timeout: 15000
+- tapOn:
+    id: "tab-explore"
+- tapOn:
+    id: "active-program-banner"
+- scrollUntilVisible:
+    element:
+      id: "program-deactivate"
+    direction: DOWN
+- tapOn:
+    id: "program-deactivate"
+- tapOn: "Stop program"
+- extendedWaitUntil:
+    visible:
+      id: "program-activate"
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: "program-archive"
+    direction: DOWN
+- tapOn:
+    id: "program-archive"
+- tapOn: "Archive"
+- extendedWaitUntil:
+    visible:
+      id: "program-catalog-create"
+    timeout: 10000
+
+- tapOn:
+    id: "program-catalog-create"
+- extendedWaitUntil:
+    visible:
+      id: "program-name-input"
+    timeout: 8000
+- tapOn:
+    id: "program-name-input"
+- inputText: "Maestro Custom Exercise Program"
+- tapOn:
+    id: "program-description-input"
+- inputText: "A repeatable plan built with a private custom exercise."
+- hideKeyboard
+- tapOn:
+    id: "program-add-day"
+- tapOn:
+    id: "program-builder-day-open-1"
+- tapOn:
+    id: "program-day-add-exercise"
+- extendedWaitUntil:
+    visible:
+      id: "custom-exercise-create"
+    timeout: 10000
+- tapOn:
+    id: "custom-exercise-create"
+- extendedWaitUntil:
+    visible:
+      id: "custom-exercise-name"
+    timeout: 8000
+- tapOn:
+    id: "custom-exercise-name"
+- inputText: "Maestro Carry"
+- tapOn:
+    id: "custom-exercise-muscle-quads"
+- tapOn:
+    id: "custom-exercise-secondary-glutes"
+- scrollUntilVisible:
+    element:
+      id: "custom-exercise-bodyweight"
+    direction: DOWN
+- tapOn:
+    id: "custom-exercise-bodyweight"
+- scrollUntilVisible:
+    element:
+      id: "custom-exercise-save"
+    direction: DOWN
+- tapOn:
+    id: "custom-exercise-save"
+- extendedWaitUntil:
+    visible:
+      id: "program-exercise-1"
+    timeout: 12000
+- tapOn:
+    id: "program-day-done"
+- scrollUntilVisible:
+    element:
+      id: "program-save"
+    direction: DOWN
+- tapOn:
+    id: "program-save"
+- extendedWaitUntil:
+    visible:
+      id: "program-edit"
+    timeout: 12000
+
+# Verify the private exercise is searchable, included in the complete
+# Favorites collection, editable, and archiveable.
+- tapOn:
+    id: "tab-explore"
+- extendedWaitUntil:
+    visible: "Search programs and exercises…"
+    timeout: 10000
+- tapOn: "Search programs and exercises…"
+- inputText: "Maestro Carry"
+- tapOn:
+    id: "explore-search-scope-exercises"
+- extendedWaitUntil:
+    visible: "Maestro Carry"
+    timeout: 12000
+- tapOn: "Maestro Carry"
+- extendedWaitUntil:
+    visible:
+      id: "custom-exercise-edit"
+    timeout: 10000
+- tapOn: "Add Maestro Carry to favorites"
+- tapOn: "Back from exercise"
+- tapOn:
+    id: "tab-explore"
+- tapOn: "Search programs and exercises…"
+- eraseText: 50
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "explore-favorites"
+    direction: DOWN
+- tapOn:
+    id: "explore-favorites"
+- extendedWaitUntil:
+    visible: "Maestro Carry"
+    timeout: 12000
+- tapOn: "Maestro Carry"
+- tapOn:
+    id: "custom-exercise-edit"
+- extendedWaitUntil:
+    visible:
+      id: "custom-exercise-name"
+    timeout: 10000
+- tapOn:
+    id: "custom-exercise-name"
+- inputText: " Updated"
+- scrollUntilVisible:
+    element:
+      id: "custom-exercise-save"
+    direction: DOWN
+- tapOn:
+    id: "custom-exercise-save"
+- extendedWaitUntil:
+    visible: "Maestro Carry Updated"
+    timeout: 12000
+- tapOn:
+    id: "custom-exercise-archive"
+- tapOn: "Archive"
+- takeScreenshot: explore-programs-complete

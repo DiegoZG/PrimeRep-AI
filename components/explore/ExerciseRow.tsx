@@ -13,8 +13,10 @@ interface ExerciseRowProps {
   imageUrl?: string;
   isFavorite: boolean;
   canFavorite: boolean;
+  showFavoriteControl?: boolean;
   isFavoriteDisabled?: boolean;
-  onToggleFavorite: (id: string) => void;
+  isPressDisabled?: boolean;
+  onToggleFavorite?: (id: string) => void;
   onPress?: () => void;
 }
 
@@ -25,7 +27,9 @@ export function ExerciseRow({
   imageUrl,
   isFavorite,
   canFavorite,
+  showFavoriteControl = true,
   isFavoriteDisabled = false,
+  isPressDisabled = false,
   onToggleFavorite,
   onPress,
 }: ExerciseRowProps) {
@@ -42,19 +46,23 @@ export function ExerciseRow({
 
   const handleFavoritePress = () => {
     if (canFavorite && !isFavoriteDisabled) {
-      onToggleFavorite(id);
+      onToggleFavorite?.(id);
     }
   };
 
   return (
     <Pressable
       testID="exercise-row"
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={`${name}, ${primaryMuscle}${isPressDisabled ? ", already added" : ""}`}
+      accessibilityState={{ disabled: isPressDisabled }}
       onPress={onPress}
+      disabled={isPressDisabled}
       style={({ pressed }) => [
         styles.container,
         {
           backgroundColor: colors.inputBackground,
-          opacity: pressed ? 0.95 : 1,
+          opacity: isPressDisabled ? 0.5 : pressed ? 0.95 : 1,
         },
       ]}
     >
@@ -89,7 +97,8 @@ export function ExerciseRow({
       </View>
 
       {/* Favorite control */}
-      <Pressable
+      {showFavoriteControl ? <Pressable
+        testID={`exercise-favorite-${id}`}
         accessibilityRole="button"
         accessibilityLabel={isFavorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
         accessibilityState={{ disabled: !canFavorite || isFavoriteDisabled, busy: isFavoriteDisabled }}
@@ -101,23 +110,13 @@ export function ExerciseRow({
         {isFavorite && canFavorite ? (
           <Ionicons name="heart" size={22} color="#FF4B4B" />
         ) : (
-          <View
-            style={[
-              styles.plusButton,
-              {
-                borderColor: colors.inputBorder,
-                opacity: canFavorite ? 1 : 0.35,
-              },
-            ]}
-          >
-            <Ionicons
-              name="add"
-              size={18}
-              color={canFavorite ? colors.placeholder : colors.inputBorder}
-            />
-          </View>
+          <Ionicons
+            name="heart-outline"
+            size={22}
+            color={canFavorite ? colors.placeholder : colors.inputBorder}
+          />
         )}
-      </Pressable>
+      </Pressable> : null}
     </Pressable>
   );
 }
@@ -170,14 +169,6 @@ const styles = StyleSheet.create({
   favoriteButton: {
     width: 40,
     height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  plusButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },

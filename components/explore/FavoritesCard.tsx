@@ -39,6 +39,9 @@ export function FavoritesCard({ count, onPress }: FavoritesCardProps) {
 
   return (
     <AnimatedPressable
+      testID="explore-favorites"
+      accessibilityRole="button"
+      accessibilityLabel={`Open favorites, ${count} ${count === 1 ? "exercise" : "exercises"}`}
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -150,4 +153,3 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
   },
 });
-
