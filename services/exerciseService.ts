@@ -31,14 +31,19 @@ function buildExerciseQueryString(params?: GetExercisesParams): string {
 /**
  * Maps backend ExerciseApiItem to frontend Exercise model
  */
-function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
+export function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
+  const source = apiItem.source === "custom" || apiItem.source === "user" ? "custom" : "seed";
   return {
     id: apiItem.id,
     name: apiItem.name,
-    exerciseType: apiItem.exercise_type,
-    primaryMuscle: apiItem.primary_muscle,
-    imageUrl: apiItem.image_url || undefined,
-    isFavorited: apiItem.is_favorited,
+    exerciseType: apiItem.exerciseType ?? apiItem.exercise_type,
+    primaryMuscle: apiItem.primaryMuscle ?? apiItem.primary_muscle,
+    imageUrl: apiItem.imageUrl ?? apiItem.image_url ?? undefined,
+    isFavorited: apiItem.isFavorited ?? apiItem.is_favorited ?? false,
+    secondaryMuscles: apiItem.secondaryMuscles ?? apiItem.secondary_muscles,
+    equipmentIds: apiItem.equipmentIds ?? apiItem.required_equipment_ids,
+    source,
+    isEditable: apiItem.isEditable ?? apiItem.is_editable,
   };
 }
 
@@ -52,18 +57,21 @@ function mapApiDetailToExerciseDetail(
   return {
     id: String(apiDetail.id),
     name: apiDetail.name,
-    exerciseType: apiDetail.exercise_type,
-    primaryMuscle: apiDetail.primary_muscle,
-    secondaryMuscles: apiDetail.secondary_muscles || [],
-    imageUrl: apiDetail.image_url || undefined,
-    demoVideoUrl: apiDetail.demo_video_url || undefined,
+    exerciseType: apiDetail.exerciseType ?? apiDetail.exercise_type,
+    primaryMuscle: apiDetail.primaryMuscle ?? apiDetail.primary_muscle,
+    secondaryMuscles: apiDetail.secondaryMuscles ?? apiDetail.secondary_muscles ?? [],
+    imageUrl: apiDetail.imageUrl ?? apiDetail.image_url ?? undefined,
+    demoVideoUrl: apiDetail.demoVideoUrl ?? apiDetail.demo_video_url ?? undefined,
     equipmentIds:
-      apiDetail.required_equipment_ids || apiDetail.equipment_ids || [],
+      apiDetail.requiredEquipmentIds ?? apiDetail.equipmentIds ?? apiDetail.required_equipment_ids ?? apiDetail.equipment_ids ?? [],
     howTo: apiDetail.how_to || undefined,
     whyItWorks: apiDetail.why_it_works || undefined,
     commonMistakes: apiDetail.common_mistakes || undefined,
     beginnerNotes: apiDetail.beginner_notes || undefined,
-    isFavorited: apiDetail.is_favorited,
+    isFavorited: apiDetail.isFavorited ?? apiDetail.is_favorited ?? false,
+    source: apiDetail.source === "custom" || apiDetail.source === "user" ? "custom" : "seed",
+    isEditable: apiDetail.isEditable ?? apiDetail.is_editable,
+    instructions: apiDetail.instructions ?? undefined,
   };
 }
 
@@ -93,6 +101,11 @@ export async function getExercises(
  * GET /v1/exercises/favorites
  */
 export async function getFavoriteExercises(token: string): Promise<string[]> {
+  const exercises = await getFavoriteExerciseItems(token);
+  return exercises.map((item) => item.id);
+}
+
+export async function getFavoriteExerciseItems(token: string): Promise<Exercise[]> {
   const data = await requestJson<ExerciseApiResponse>(
     "/v1/exercises/favorites",
     {
@@ -100,7 +113,37 @@ export async function getFavoriteExercises(token: string): Promise<string[]> {
       token,
     }
   );
-  return (data.items || []).map((item) => item.id);
+  return (data.items || []).map(mapApiItemToExercise);
+}
+
+export async function createCustomExercise(
+  token: string,
+  payload: import("@/interfaces/programs").CustomExercisePayload,
+): Promise<ExerciseDetail> {
+  const data = await requestJson<ExerciseDetailApiResponse>(
+    "/v1/users/me/exercises",
+    { method: "POST", token, body: payload },
+  );
+  return mapApiDetailToExerciseDetail(data);
+}
+
+export async function updateCustomExercise(
+  token: string,
+  exerciseId: string,
+  payload: import("@/interfaces/programs").CustomExercisePayload,
+): Promise<ExerciseDetail> {
+  const data = await requestJson<ExerciseDetailApiResponse>(
+    `/v1/users/me/exercises/${encodeURIComponent(exerciseId)}`,
+    { method: "PUT", token, body: payload },
+  );
+  return mapApiDetailToExerciseDetail(data);
+}
+
+export async function archiveCustomExercise(token: string, exerciseId: string): Promise<void> {
+  await requestJson<void>(
+    `/v1/users/me/exercises/${encodeURIComponent(exerciseId)}`,
+    { method: "DELETE", token },
+  );
 }
 
 /**

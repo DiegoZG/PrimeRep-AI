@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -30,6 +30,7 @@ import { abandonSession, getActiveSession } from "@/services/workoutLoggingServi
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { clearActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
+import { localDateIso } from "@/utils/localDate";
 
 // Block type display names
 const BLOCK_TYPE_LABELS: Record<string, string> = {
@@ -92,6 +93,7 @@ export default function WorkoutDayDetailScreen() {
     setDuration,
     clearStaleIdFlag,
     getWorkoutById,
+    syncCurrentWeek,
   } = useWorkoutWeek();
 
   // Local state
@@ -100,8 +102,7 @@ export default function WorkoutDayDetailScreen() {
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   const { markWorkoutTerminal } = useActiveWorkout();
 
-  // Today's date in YYYY-MM-DD format
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [todayIso, setTodayIso] = useState(localDateIso);
 
   const requestedWeekStart =
     typeof routeWeekStart === "string" ? routeWeekStart : undefined;
@@ -201,6 +202,8 @@ export default function WorkoutDayDetailScreen() {
   // Load favorites when screen gains focus
   useFocusEffect(
     useCallback(() => {
+      setTodayIso(localDateIso());
+      void syncCurrentWeek();
       async function loadFavorites() {
         if (!isLoggedIn || !token) {
           setFavoriteIds(new Set());
@@ -214,7 +217,7 @@ export default function WorkoutDayDetailScreen() {
         }
       }
       loadFavorites();
-    }, [isLoggedIn, token])
+    }, [isLoggedIn, syncCurrentWeek, token])
   );
 
   // Handle favorite toggle with optimistic updates
@@ -458,8 +461,8 @@ export default function WorkoutDayDetailScreen() {
           </ThemedText>
         </View>
       )}
-      {/* Duration selector */}
-      <View style={styles.durationSection}>
+      {/* Program prescriptions stay locked to the activated template. */}
+      {!workout?.programActivationId ? <View style={styles.durationSection}>
         <ThemedText type="default" style={styles.durationLabel}>
           Duration
         </ThemedText>
@@ -496,10 +499,16 @@ export default function WorkoutDayDetailScreen() {
             </Pressable>
           ))}
         </View>
-      </View>
+      </View> : (
+        <View testID="program-duration-locked" style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
+          <ThemedText style={styles.coverageNoticeTitle}>Program workout</ThemedText>
+          <ThemedText style={{ color: colors.placeholder }}>Duration and set targets come from your active program.</ThemedText>
+        </View>
+      )}
 
       {/* Skip Day action button */}
       <Pressable
+        testID="skip-day-button"
         onPress={handleSkipDay}
         disabled={isActionLoading}
         accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}

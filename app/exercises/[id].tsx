@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +24,7 @@ import { useIsBeginner } from "@/hooks/use-is-beginner";
 import type { ExerciseDetail } from "@/interfaces/exercises";
 import {
   favoriteExercise,
+  archiveCustomExercise,
   getExerciseById,
   unfavoriteExercise,
 } from "@/services/exerciseService";
@@ -34,7 +36,10 @@ export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { token, isLoggedIn } = useContext(AuthContext);
+  const { token, isLoggedIn, user } = useContext(AuthContext);
+  const accountKey = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
+  const accountRef = useRef(accountKey);
+  accountRef.current = accountKey;
   const {
     items: equipment,
     isLoading: isEquipmentLoading,
@@ -51,6 +56,11 @@ export default function ExerciseDetailScreen() {
   // Favorite state
   const [isFavorite, setIsFavorite] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+  const [customActionBusy, setCustomActionBusy] = useState(false);
+  const [customActionError, setCustomActionError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const focusedRef = useRef(false);
+  const customMutationRef = useRef(0);
 
   // Experience level (used to decide whether beginner notes are shown prominently)
   const isBeginner = useIsBeginner();
@@ -63,23 +73,39 @@ export default function ExerciseDetailScreen() {
       return;
     }
 
+    const requestAccount = accountKey;
     try {
       setIsLoading(true);
       setError(null);
       const data = await getExerciseById(id, token);
+      if (!mountedRef.current || !focusedRef.current || accountRef.current !== requestAccount) return;
       setExercise(data);
       setIsFavorite(data.isFavorited);
     } catch (err: any) {
+      if (!mountedRef.current || !focusedRef.current || accountRef.current !== requestAccount) return;
       console.warn("Failed to load exercise:", err);
       setError(err?.message || "Failed to load exercise");
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && focusedRef.current && accountRef.current === requestAccount) setIsLoading(false);
     }
-  }, [id, token]);
+  }, [accountKey, id, token]);
 
   useEffect(() => {
-    fetchExercise();
-  }, [fetchExercise]);
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      customMutationRef.current += 1;
+    };
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    focusedRef.current = true;
+    void fetchExercise();
+    return () => {
+      focusedRef.current = false;
+      customMutationRef.current += 1;
+    };
+  }, [fetchExercise]));
 
   useEffect(() => {
     void ensureEquipmentLoaded();
@@ -128,6 +154,28 @@ export default function ExerciseDetailScreen() {
     }
   };
 
+  const handleArchiveCustom = () => {
+    if (!token || !exercise?.isEditable || customActionBusy) return;
+    Alert.alert("Archive exercise?", "It stays in completed workouts but can’t be added to new programs.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Archive", style: "destructive", onPress: async () => {
+        const requestAccount = accountRef.current;
+        const mutationId = ++customMutationRef.current;
+        const isCurrent = () => mountedRef.current && focusedRef.current && accountRef.current === requestAccount && customMutationRef.current === mutationId;
+        setCustomActionBusy(true);
+        setCustomActionError(null);
+        try {
+          await archiveCustomExercise(token, exercise.id);
+          if (isCurrent()) router.back();
+        } catch {
+          if (isCurrent()) setCustomActionError("The exercise wasn’t archived. Check your connection and try again.");
+        } finally {
+          if (isCurrent()) setCustomActionBusy(false);
+        }
+      } },
+    ]);
+  };
+
   const equipmentIds = exercise?.equipmentIds ?? [];
   const resolvedEquipmentNames = equipmentIds.flatMap((equipmentId) => {
     const match = equipment.find((item) => item.id === equipmentId);
@@ -155,8 +203,10 @@ export default function ExerciseDetailScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back from exercise"
+          accessibilityState={{ disabled: customActionBusy }}
+          disabled={customActionBusy}
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={[styles.backButton, { opacity: customActionBusy ? 0.35 : 1 }]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -256,6 +306,13 @@ export default function ExerciseDetailScreen() {
               </View>
             )}
           </View>
+
+          {exercise.isEditable ? (
+            <><View style={styles.customActions}>
+              <Pressable testID="custom-exercise-edit" accessibilityRole="button" accessibilityLabel={`Edit ${exercise.name}`} accessibilityState={{ disabled: customActionBusy }} disabled={customActionBusy} onPress={() => router.push({ pathname: "/programs/custom-exercise", params: { exerciseId: exercise.id } })} style={[styles.customAction, { borderColor: colors.inputBorder, opacity: customActionBusy ? 0.5 : 1 }]}><Ionicons name="create-outline" size={20} color={colors.primaryButton} /><Text style={[styles.customActionText, { color: colors.primaryButton }]}>Edit</Text></Pressable>
+              <Pressable testID="custom-exercise-archive" accessibilityRole="button" accessibilityLabel={`Archive ${exercise.name}`} accessibilityState={{ disabled: customActionBusy, busy: customActionBusy }} disabled={customActionBusy} onPress={handleArchiveCustom} style={[styles.customAction, { borderColor: colors.inputBorder, opacity: customActionBusy ? 0.5 : 1 }]}>{customActionBusy ? <ActivityIndicator size="small" color="#D92D20" /> : <Ionicons name="trash-outline" size={20} color="#D92D20" />}<Text style={[styles.customActionText, { color: "#D92D20" }]}>{customActionBusy ? "Archiving…" : "Archive"}</Text></Pressable>
+            </View>{customActionError ? <ThemedText testID="custom-exercise-archive-error" accessibilityRole="alert" style={styles.customActionError}>{customActionError}</ThemedText> : null}</>
+          ) : null}
 
           {/* Muscles Section */}
           <View style={styles.section}>
@@ -519,6 +576,10 @@ const styles = StyleSheet.create({
   titleSection: {
     marginBottom: 24,
   },
+  customActions: { flexDirection: "row", gap: 10, marginBottom: 22 },
+  customAction: { flex: 1, minHeight: 46, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  customActionText: { fontSize: 14, fontWeight: "700", fontFamily: Fonts.sans },
+  customActionError: { color: "#D92D20", marginTop: -12, marginBottom: 20, lineHeight: 20 },
   exerciseName: {
     fontSize: 28,
     marginBottom: 8,

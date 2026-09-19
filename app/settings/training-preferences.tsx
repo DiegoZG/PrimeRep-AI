@@ -11,6 +11,7 @@ import type { TrainingPreferences } from "@/services/onboardingService";
 import { getTrainingPreferences, updateTrainingPreferences } from "@/services/onboardingService";
 import { AuthContext } from "@/utils/authContext";
 import { useEquipment } from "@/utils/equipmentContext";
+import { localDateIso, localWeekStartIso } from "@/utils/localDate";
 import { WorkoutWeekContext } from "@/utils/workoutWeekContext";
 
 type Choice = { label: string; value: string };
@@ -123,18 +124,23 @@ export default function TrainingPreferencesScreen() {
     setSaving(true);
     try {
       const { selectedEquipment, ...otherPreferences } = preferences;
-      const saved = await updateTrainingPreferences(token, {
-        ...otherPreferences,
-        ...(catalogItems.length > 0
-          ? {
-              selectedEquipment: (selectedEquipment || []).filter((id) =>
-                catalogItems.some((item) => item.id === id)
-              ),
-            }
-          : {}),
-      });
+      const weekStart = localWeekStartIso();
+      const saved = await updateTrainingPreferences(
+        token,
+        {
+          ...otherPreferences,
+          ...(catalogItems.length > 0
+            ? {
+                selectedEquipment: (selectedEquipment || []).filter((id) =>
+                  catalogItems.some((item) => item.id === id)
+                ),
+              }
+            : {}),
+        },
+        { weekStart, effectiveDate: localDateIso() },
+      );
       setPreferences(saved);
-      await refreshWeek();
+      await refreshWeek({ weekStart });
       router.back();
     } catch {
       Alert.alert("Could Not Save Preferences", "Your existing workout plan is unchanged. Please try again.");

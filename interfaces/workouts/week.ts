@@ -46,12 +46,19 @@ export interface WorkoutDayApiResponse {
   deferredMuscles?: string[];
   unavailableMuscles?: string[];
   exerciseBlocks: WorkoutDayApiBlock[];
+  programActivationId?: string | null;
+  templateId?: string | null;
+  templateVersion?: number | null;
+  templateDayId?: string | null;
 }
 
 export interface WorkoutWeekPlanApiResponse {
   weekStart: string; // YYYY-MM-DD
-  weekEnd: string; // YYYY-MM-DD
+  weekEnd?: string; // YYYY-MM-DD
   workouts: WorkoutDayApiResponse[];
+  programActivationId?: string | null;
+  templateId?: string | null;
+  templateVersion?: number | null;
 }
 
 // =============================================================================
@@ -70,12 +77,19 @@ export interface WorkoutDay {
   deferredMuscles?: string[];
   unavailableMuscles?: string[];
   blocks: WorkoutBlock[];
+  programActivationId?: string;
+  templateId?: string;
+  templateVersion?: number;
+  templateDayId?: string;
 }
 
 export interface WorkoutWeekPlan {
   weekStart: string; // YYYY-MM-DD
   weekEnd: string; // YYYY-MM-DD
   workouts: WorkoutDay[];
+  programActivationId?: string;
+  templateId?: string;
+  templateVersion?: number;
 }
 
 // =============================================================================

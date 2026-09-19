@@ -19,8 +19,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Exercise } from "@/interfaces/exercises";
 import {
   favoriteExercise,
-  getExercises,
-  getFavoriteExercises,
+  getFavoriteExerciseItems,
   unfavoriteExercise,
 } from "@/services/exerciseService";
 import { AuthContext } from "@/utils/authContext";
@@ -87,10 +86,9 @@ export default function FavoritesScreen() {
         }
         setError(null);
 
-        // Get favorite IDs first
-        const ids = await getFavoriteExercises(token);
+        const favoriteExercises = await getFavoriteExerciseItems(token);
         if (!isCurrentRequest()) return;
-        const nextFavoriteIds = new Set(ids);
+        const nextFavoriteIds = new Set(favoriteExercises.map((item) => item.id));
         for (const [exerciseId, mutationVersion] of mutationVersionsRef.current) {
           if (mutationVersion <= requestMutationVersion) continue;
           if (favoriteIdsRef.current.has(exerciseId)) nextFavoriteIds.add(exerciseId);
@@ -99,16 +97,7 @@ export default function FavoritesScreen() {
         favoriteIdsRef.current = nextFavoriteIds;
         setFavoriteIds(nextFavoriteIds);
 
-        if (nextFavoriteIds.size === 0) {
-          setExercises([]);
-          setDataOwnerKey(requestAccountKey);
-          return;
-        }
-
-        // Fetch all exercises and filter to favorites
-        const allExercises = await getExercises({ limit: 200 }, token);
-        if (!isCurrentRequest()) return;
-        setExercises(allExercises.filter((exercise) => favoriteIdsRef.current.has(exercise.id)));
+        setExercises(favoriteExercises.filter((exercise) => favoriteIdsRef.current.has(exercise.id)));
         setDataOwnerKey(requestAccountKey);
       } catch (err) {
         if (!isCurrentRequest()) return;
@@ -295,7 +284,7 @@ export default function FavoritesScreen() {
               </View>
               <ThemedText style={styles.emptyTitle}>No favorites yet</ThemedText>
               <ThemedText style={styles.emptySubtitle}>
-                Tap the + button on any exercise to add it to your favorites
+                Tap the heart on any exercise to add it to your favorites
               </ThemedText>
             </View>
           }

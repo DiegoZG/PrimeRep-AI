@@ -30,27 +30,10 @@ env:
 - tapOn:
     id: "tab-explore"
 
-# The Explore landing page contains only backend-backed exercise surfaces.
-- assertVisible: "Your library"
-
-# Scroll down until exercise sections are visible
-- scrollUntilVisible:
-    element:
-      id: "exercise-section-weights"
-    direction: DOWN
+- extendedWaitUntil:
+    visible:
+      id: "browse-programs"
     timeout: 10000
-    visibilityPercentage: 40
-
-- assertVisible:
-    id: "exercise-section-weights"
-- scrollUntilVisible:
-    element:
-      id: "exercise-section-bodyweight"
-    direction: DOWN
-    timeout: 10000
-    visibilityPercentage: 40
-- assertVisible:
-    id: "exercise-section-bodyweight"
 
 - takeScreenshot: 01-explore-loaded
 
@@ -58,12 +41,16 @@ env:
 # STEP 3: SEARCH FOR AN EXERCISE
 # =============================================
 
-- tapOn: "Search exercises…"
+- tapOn: "Search programs and exercises…"
 - inputText: "bench"
+
+- tapOn:
+    id: "explore-search-scope-exercises"
 
 # Wait for search results
 - extendedWaitUntil:
-    notVisible: "Searching..."
+    notVisible:
+      id: "explore-search-loading"
     timeout: 8000
 
 - takeScreenshot: 02-search-results
@@ -77,12 +64,15 @@ env:
 
 - eraseText: 50
 
-# Default layout returns — scroll down to verify exercise sections
+# Default layout returns.
 - scrollUntilVisible:
     element:
-      id: "exercise-section-weights"
+      id: "browse-programs"
     direction: DOWN
     timeout: 5000
     visibilityPercentage: 40
+
+- assertVisible:
+    id: "browse-programs"
 
 - takeScreenshot: 03-search-cleared

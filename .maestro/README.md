@@ -72,6 +72,7 @@ maestro studio
 | Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, then save a workout note |
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
+| Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 
 ---
 
@@ -119,6 +120,34 @@ Elements with `testID` props added for Maestro targeting:
 | `summary-share` | `Pressable` | opens the native privacy-light summary share sheet |
 | `exercise-equipment-names` | `Text` | resolved equipment names or truthful loading/error state |
 | `exercise-demo-status` | `View` | reports whether a real demo URL is available |
+| `program-card-{templateId}` | `Pressable` | opens a system or private program |
+| `program-create-button` | `Pressable` | opens the private program builder |
+| `browse-programs` | `Pressable` | opens the filterable program catalog |
+| `program-filter-{field}-{value}` | `Pressable` | applies a catalog filter |
+| `program-builder-day-{position}` | `View` | identifies a draft workout day |
+| `program-builder-day-open-{position}` | `Pressable` | opens an ordered draft workout day |
+| `program-day-add-exercise` | `Pressable` | opens the exercise picker |
+| `program-exercise-{position}` | `View` | identifies an ordered draft exercise |
+| `custom-exercise-save` | `Pressable` | creates or updates a private custom exercise |
+| `activation-weekday-{0-6}` | `Pressable` | selects an activation weekday |
+| `activation-preview` | `Pressable` | loads canonical schedule and equipment impact |
+| `activation-preview-retry` | `Pressable` | retries a failed schedule/equipment preview |
+| `program-review-equipment` | `Pressable` | opens activation review for an active program requiring equipment changes |
+| `program-review-scheduled-equipment` | `Pressable` | opens activation review for a scheduled program requiring equipment changes |
+| `active-program-banner` | `Pressable` | opens the current active program |
+| `scheduled-program-banner` | `Pressable` | opens the program scheduled for next week |
+| `program-scheduled-badge` | `View` | labels a scheduled program as “Starts next week” |
+| `program-cancel-scheduled` | `Pressable` | cancels only the next-week activation |
+| `activation-target-week` | `Text` | identifies the effective week used by next-week preview |
+| `custom-exercise-loading` | screen state | fences custom-exercise edits until the canonical record is loaded |
+| `custom-exercise-load-error` | screen state | retries a failed custom-exercise edit load |
+| `activation-confirm` | `Pressable` | activates the reviewed program revision |
+| `activation-suggested-{templateExerciseId}-{exerciseId}` | `Pressable` | selects the server-recommended equipment replacement |
+| `activation-alternative-{templateExerciseId}-{exerciseId}` | `Pressable` | selects a non-default equipment replacement |
+| `program-duration-locked` | `View` | verifies activated-program duration is not editable |
+| `skip-day-button` | `Pressable` | skips an activated program workout while preserving its sequence |
+| `explore-favorites` | `Pressable` | opens the complete Favorites collection |
+| `exercise-favorite-{exerciseId}` | `Pressable` | adds or removes one catalog exercise from Favorites |
 
 ---
 
@@ -143,3 +172,28 @@ Maestro verifies that the completed-summary share action is present. Test the
 Home and Summary native share sheets manually on a development build: simulator
 share destinations vary by installed apps, and dismissing the sheet should not
 show an error.
+
+### Program account isolation
+
+The request-fencing regression requires two pre-seeded accounts and a delayed
+API response, so it is kept as a manual deterministic check rather than using
+shared credentials in source control: delay Account A's template request, log
+out, log into Account B, and verify no Account A program card or builder draft
+appears before or after the delayed response completes.
+
+### Manual-only program lifecycle checks
+
+The following cases need controlled time or network behavior and are intentionally
+kept out of the shared-account flow:
+
+- **Account switch fencing:** delay a program load or create/update/archive
+  response for Account A, leave the screen or sign into Account B, then release
+  it. The old response may complete on the server but must not update Account B,
+  reopen a screen, or navigate the current stack.
+- **Calendar rollover:** open Home before local midnight on Sunday and foreground
+  the app after midnight. Home, Coach, activation preview, deactivation, and
+  training-preference updates must use the new local Monday without restarting.
+- **Mutation back fencing:** begin a program activation, builder save, clone,
+  archive/deactivate/cancel, or custom-exercise save/archive, then use the native
+  back gesture. Releasing the delayed response must not navigate from the screen
+  now visible.

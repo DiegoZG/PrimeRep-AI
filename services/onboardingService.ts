@@ -45,9 +45,11 @@ export function getTrainingPreferences(token: string) {
 
 export function updateTrainingPreferences(
   token: string,
-  preferences: Partial<TrainingPreferences>
+  preferences: Partial<TrainingPreferences>,
+  dates: { weekStart: string; effectiveDate: string },
 ) {
-  return requestJson<TrainingPreferences>("/v1/users/me/training-preferences", {
+  const query = `weekStart=${encodeURIComponent(dates.weekStart)}&effectiveDate=${encodeURIComponent(dates.effectiveDate)}`;
+  return requestJson<TrainingPreferences>(`/v1/users/me/training-preferences?${query}`, {
     method: "PATCH",
     token,
     body: preferences,

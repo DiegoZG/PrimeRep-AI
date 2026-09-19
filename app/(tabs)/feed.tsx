@@ -13,20 +13,14 @@ import { useWorkoutWeek } from "@/hooks/use-workout-week";
 import { listCompletedSessions } from "@/services/workoutLoggingService";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
-
-function localIsoDate() {
-  const value = new Date();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${value.getFullYear()}-${month}-${day}`;
-}
+import { localDateIso } from "@/utils/localDate";
 
 export default function CoachScreen() {
   const router = useRouter();
   const colors = Colors[useColorScheme() ?? "light"];
   const { token, user } = useContext(AuthContext);
   const { activeWorkout, refreshActiveWorkout } = useActiveWorkout();
-  const { weekPlan, isLoading, error, refreshWeek, getSortedWorkouts } = useWorkoutWeek();
+  const { weekPlan, isLoading, error, refreshWeek, getSortedWorkouts, syncCurrentWeek } = useWorkoutWeek();
   const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
   const [completedOwnerId, setCompletedOwnerId] = useState<string | null>(null);
   const [isCompletedLoading, setIsCompletedLoading] = useState(true);
@@ -47,8 +41,9 @@ export default function CoachScreen() {
   }, [accountKey, token, user]);
 
   useFocusEffect(useCallback(() => {
+    void syncCurrentWeek();
     void refreshActiveWorkout();
-  }, [refreshActiveWorkout]));
+  }, [refreshActiveWorkout, syncCurrentWeek]));
 
   useFocusEffect(useCallback(() => {
     if (!token || !user) return;
@@ -81,7 +76,7 @@ export default function CoachScreen() {
 
   const sortedWorkouts = useMemo(() => getSortedWorkouts(), [getSortedWorkouts]);
   const nextWorkout = useMemo(() => {
-    const today = localIsoDate();
+    const today = localDateIso();
     if (!user || completedOwnerId !== user.id) return null;
     return sortedWorkouts.find((workout) => workout.date >= today && !completedWorkoutIds.has(workout.workoutDayId)) ?? null;
   }, [completedOwnerId, completedWorkoutIds, sortedWorkouts, user]);

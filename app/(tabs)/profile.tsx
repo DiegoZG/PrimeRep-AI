@@ -18,22 +18,12 @@ import {
   toKg,
   type WeightUnit,
 } from "@/utils/weightUnits";
+import { localDateIso } from "@/utils/localDate";
 import { Ionicons } from "@expo/vector-icons";
 
 /** Columns in the activity heatmap. Rows are the seven weekdays. */
 const ACTIVITY_WEEKS = 7;
 const ACTIVITY_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-/**
- * Local calendar date as YYYY-MM-DD. `toISOString()` is deliberately avoided:
- * it converts to UTC first, which lands on the wrong day for anyone west of
- * Greenwich for part of every day.
- */
-function toLocalIsoDate(value: Date): string {
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${value.getFullYear()}-${month}-${day}`;
-}
 
 const ProfileScreen = () => {
   const { logOut, user, token } = useContext(AuthContext);
@@ -131,7 +121,7 @@ const ProfileScreen = () => {
       cells: Array.from({ length: ACTIVITY_WEEKS }, (_, weekIndex) => {
         const cellDate = new Date(firstMonday);
         cellDate.setDate(firstMonday.getDate() + weekIndex * 7 + dayIndex);
-        const iso = toLocalIsoDate(cellDate);
+        const iso = localDateIso(cellDate);
         return {
           iso,
           isActive: completedDates.has(iso),

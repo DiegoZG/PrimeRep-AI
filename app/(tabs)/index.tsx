@@ -36,6 +36,7 @@ import { useWorkoutWeek } from "@/hooks/use-workout-week";
 import type { WorkoutDay } from "@/interfaces/workouts";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
+import { localDateIso } from "@/utils/localDate";
 
 import { CARD_GAP, CARD_WIDTH, styles } from "@/styles/home.styles";
 
@@ -78,6 +79,7 @@ const Home = () => {
     getSortedWorkouts,
     getHighlightedWorkout,
     getExerciseCount,
+    syncCurrentWeek,
   } = useWorkoutWeek();
 
   // Menu state
@@ -92,8 +94,7 @@ const Home = () => {
   // Track if this is the initial load (never had data)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  // Today's date in YYYY-MM-DD format
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [todayIso, setTodayIso] = useState(localDateIso);
 
   // Get sorted workouts and highlighted workout
   const sortedWorkouts = useMemo(() => getSortedWorkouts(), [getSortedWorkouts]);
@@ -116,11 +117,13 @@ const Home = () => {
   // Refresh week on focus (only if we don't have data yet)
   useFocusEffect(
     useCallback(() => {
+      setTodayIso(localDateIso());
+      void syncCurrentWeek();
       void refreshActiveWorkout();
       if (token && !isLoading && !error && weekPlan === null) {
         void refreshWeek({ force: false });
       }
-    }, [token, isLoading, error, weekPlan, refreshWeek, refreshActiveWorkout])
+    }, [token, isLoading, error, weekPlan, refreshWeek, refreshActiveWorkout, syncCurrentWeek])
   );
 
   const scrollToIndex = useCallback((index: number, viewPosition = 0.1) => {
