@@ -25,6 +25,7 @@ type FriendlyLoadInput = {
   currentWeightKg?: number | null;
   reason: LoadReason;
   equipmentIds: string[];
+  loadProfile?: import("@/interfaces/exercises/types").ExerciseLoadProfile | null;
   weightUnit: WeightUnit;
   dumbbellWeights: number[];
   plateWeights: number[];
@@ -188,7 +189,8 @@ export function resolveFriendlyLoad(input: FriendlyLoadInput): FriendlyLoad {
     : fromKg(input.currentWeightKg, input.weightUnit);
   const equipment = new Set(input.equipmentIds);
 
-  if (equipment.has("dumbbells")) {
+  if (equipment.has("dumbbells") && (!input.loadProfile || input.loadProfile.basis === "per_implement")) {
+    const count = input.loadProfile?.implement_count ?? 2;
     const choices = configuredWeights(
       input.dumbbellWeights,
       input.weightUnit,
@@ -204,11 +206,11 @@ export function resolveFriendlyLoad(input: FriendlyLoadInput): FriendlyLoad {
     const perHand = candidate?.displayWeight ?? target;
     return {
       workingWeightKg: toKg(perHand, input.weightUnit),
-      displayText: usesDetailedDisplay(input)
+      displayText: count === 1 ? label(perHand, input.weightUnit) : usesDetailedDisplay(input)
         ? `2 × ${label(perHand, input.weightUnit)} (${label(perHand * 2, input.weightUnit)} total)`
         : `${label(perHand * 2, input.weightUnit)} total`,
       adjustmentNote: limited
-        ? "The next available dumbbell pair would be too large a jump, so stay with this pair for now."
+        ? `The next available dumbbell${count === 2 ? " pair" : ""} would be too large a jump, so keep the current weight for now.`
         : null,
     };
   }

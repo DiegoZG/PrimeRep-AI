@@ -16,6 +16,7 @@ interface ExerciseRowProps {
   showFavoriteControl?: boolean;
   isFavoriteDisabled?: boolean;
   isPressDisabled?: boolean;
+  disabledReason?: string;
   onToggleFavorite?: (id: string) => void;
   onPress?: () => void;
 }
@@ -30,6 +31,7 @@ export function ExerciseRow({
   showFavoriteControl = true,
   isFavoriteDisabled = false,
   isPressDisabled = false,
+  disabledReason = "already added",
   onToggleFavorite,
   onPress,
 }: ExerciseRowProps) {
@@ -54,7 +56,7 @@ export function ExerciseRow({
     <Pressable
       testID="exercise-row"
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={`${name}, ${primaryMuscle}${isPressDisabled ? ", already added" : ""}`}
+      accessibilityLabel={`${name}, ${primaryMuscle}${isPressDisabled ? `, ${disabledReason}` : ""}`}
       accessibilityState={{ disabled: isPressDisabled }}
       onPress={onPress}
       disabled={isPressDisabled}

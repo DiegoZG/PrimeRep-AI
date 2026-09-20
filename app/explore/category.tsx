@@ -19,12 +19,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Exercise } from "@/interfaces/exercises";
 import {
   favoriteExercise,
-  getExercises,
-  getExercisesByTypes,
   getFavoriteExercises,
   unfavoriteExercise,
 } from "@/services/exerciseService";
 import { AuthContext } from "@/utils/authContext";
+import { useExercisePages } from "@/hooks/use-exercise-pages";
+import { CatalogPageFooter } from "@/components/exercises/CatalogPageFooter";
 
 type CategoryType = "weights" | "bodyweight" | "cardio";
 
@@ -47,12 +47,7 @@ export default function CategoryScreen() {
   accountKeyRef.current = accountKey;
 
   // Exercise data state
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [dataOwnerKey, setDataOwnerKey] = useState<string | null>(null);
-  const exerciseRequestIdRef = useRef(0);
+  const { items: exercises, loading: isLoading, refreshing, error, loadingMore, hasMore, loadMore, refresh, retry } = useExercisePages("", categoryType === "weights" ? ["strength", "accessory"] : [categoryType]);
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -68,74 +63,9 @@ export default function CategoryScreen() {
     favoriteMutationSequenceRef.current = 0;
     favoriteMutationVersionsRef.current.clear();
     favoriteMutationIdsRef.current = new Set();
-    setExercises([]);
-    setDataOwnerKey(null);
     setFavoriteIds(new Set());
     setFavoriteMutationIds(new Set());
-    setError(null);
-    setIsLoading(true);
-    setIsRefreshing(false);
   }, [accountKey]);
-
-  // Fetch exercises based on category type
-  const fetchExercises = useCallback(
-    async (showRefreshing = false) => {
-      const requestId = ++exerciseRequestIdRef.current;
-      const requestAccountKey = accountKey;
-      const isCurrentRequest = () => exerciseRequestIdRef.current === requestId && accountKeyRef.current === requestAccountKey;
-      try {
-        if (showRefreshing) {
-          setIsRefreshing(true);
-        } else {
-          setIsLoading(true);
-        }
-        setError(null);
-
-        let result: Exercise[];
-
-        switch (categoryType) {
-          case "weights":
-            // Fetch both strength and accessory types
-            result = await getExercisesByTypes(["strength", "accessory"], {
-              limit: 100,
-            }, token);
-            break;
-          case "bodyweight":
-            result = await getExercises({ type: "bodyweight", limit: 100 }, token);
-            break;
-          case "cardio":
-            result = await getExercises({ type: "cardio", limit: 100 }, token);
-            break;
-          default:
-            result = [];
-        }
-
-        if (isCurrentRequest()) {
-          setExercises(result);
-          setDataOwnerKey(requestAccountKey);
-        }
-      } catch (err) {
-        if (!isCurrentRequest()) return;
-        console.warn("Failed to load exercises:", err);
-        setError("Failed to load exercises");
-        setDataOwnerKey(requestAccountKey);
-      } finally {
-        if (isCurrentRequest()) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    },
-    [accountKey, categoryType, token]
-  );
-
-  // Load exercises on mount
-  useEffect(() => {
-    void fetchExercises();
-    return () => {
-      exerciseRequestIdRef.current += 1;
-    };
-  }, [fetchExercises]);
 
   // Load favorites when screen gains focus (ensures sync when navigating back)
   useFocusEffect(
@@ -212,11 +142,6 @@ export default function CategoryScreen() {
     [accountKey, isLoggedIn, token]
   );
 
-  // Handle pull to refresh
-  const handleRefresh = useCallback(() => {
-    fetchExercises(true);
-  }, [fetchExercises]);
-
   const navigateToExercise = useCallback(
     (exerciseId: string) => {
       router.push({ pathname: "/exercises/[id]", params: { id: exerciseId } });
@@ -264,15 +189,15 @@ export default function CategoryScreen() {
       </View>
 
       {/* Content */}
-      {isLoading || dataOwnerKey !== accountKey ? (
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primaryButton} />
         </View>
-      ) : error ? (
+      ) : error && !exercises.length ? (
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <Pressable
-            onPress={() => fetchExercises()}
+            onPress={refresh}
             style={[
               styles.retryButton,
               { backgroundColor: colors.primaryButton },
@@ -290,11 +215,12 @@ export default function CategoryScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
+              refreshing={refreshing}
+              onRefresh={refresh}
               tintColor={colors.primaryButton}
             />
           }
+          ListFooterComponent={<CatalogPageFooter colors={colors} loading={loadingMore || refreshing} error={error} hasMore={hasMore} onLoad={error ? retry : loadMore} testID="category-exercise-load-more" />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <ThemedText style={styles.emptyText}>

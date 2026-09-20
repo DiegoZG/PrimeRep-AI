@@ -17,7 +17,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, View } from "react-native";
+import { ActivityIndicator, AppState, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { getActiveSession } from "@/services/workoutLoggingService";
@@ -97,7 +97,7 @@ function RootLayoutNav() {
   const [resumeRevision, setResumeRevision] = useState(0);
   const [pendingCoachNotification, setPendingCoachNotification] =
     useState<PendingCoachNotification | null>(() =>
-      coachNotificationIntent(Notifications.getLastNotificationResponse(), null),
+      Platform.OS === "web" ? null : coachNotificationIntent(Notifications.getLastNotificationResponse(), null),
     );
   const pendingCoachNotificationRef = useRef(pendingCoachNotification);
   pendingCoachNotificationRef.current = pendingCoachNotification;
@@ -108,6 +108,7 @@ function RootLayoutNav() {
   );
 
   useEffect(() => {
+    if (Platform.OS === "web") return;
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const intent = coachNotificationIntent(response, authUserIdRef.current);

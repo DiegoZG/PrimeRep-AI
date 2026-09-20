@@ -1,10 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -21,6 +19,8 @@ import { Colors } from "@/constants/theme";
 import { useIsBeginner } from "@/hooks/use-is-beginner";
 import type { ExerciseDetail } from "@/interfaces/exercises";
 import { getExerciseById } from "@/services/exerciseService";
+import { AuthContext } from "@/utils/authContext";
+import { ScreenState } from "@/components/screen-state";
 
 interface ExerciseInfoSheetProps {
   visible: boolean;
@@ -48,40 +48,37 @@ export function ExerciseInfoSheet({
   const [detail, setDetail] = useState<ExerciseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const { user } = useContext(AuthContext);
+  const key = `${user?.id ?? "guest"}:${token}:${exerciseId}`;
+  const keyRef = useRef(key);
+  keyRef.current = key;
+  const [owner, setOwner] = useState("");
   const isBeginner = useIsBeginner();
-
-  const handleWatchDemo = async () => {
-    if (!detail?.demoVideoUrl) return;
-    try {
-      const canOpen = await Linking.canOpenURL(detail.demoVideoUrl);
-      if (!canOpen) throw new Error("Unsupported demo URL");
-      await Linking.openURL(detail.demoVideoUrl);
-    } catch {
-      Alert.alert("Demo Unavailable", "This exercise video could not be opened. Use the written instructions for now.");
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
     async function loadDetail() {
-      if (!visible || !exerciseId) return;
+      if (!visible || !exerciseId || !token) return;
       setIsLoading(true);
       setError(null);
+      setDetail(null);
+      setOwner(key);
       try {
-        const data = await getExerciseById(exerciseId);
-        if (!cancelled) setDetail(data);
+        const data = await getExerciseById(exerciseId, token);
+        if (!cancelled && keyRef.current === key) setDetail(data);
       } catch (err) {
         console.warn("Failed to load exercise detail for info sheet:", err);
-        if (!cancelled) setError("Couldn't load exercise details.");
+        if (!cancelled && keyRef.current === key) setError("Couldn't load exercise details.");
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && keyRef.current === key) setIsLoading(false);
       }
     }
     loadDetail();
     return () => {
       cancelled = true;
     };
-  }, [visible, exerciseId]);
+  }, [visible, exerciseId, token, key, revision]);
 
   // Reset stale content once the sheet closes so it doesn't flash next open.
   useEffect(() => {
@@ -154,37 +151,24 @@ export function ExerciseInfoSheet({
                 contentContainerStyle={{ paddingBottom: 32 }}
                 keyboardShouldPersistTaps="handled"
               >
-                {isLoading ? (
+                {isLoading || owner !== key ? (
                   <View style={{ paddingVertical: 40, alignItems: "center" }}>
                     <ActivityIndicator size="large" color={colors.primaryButton} />
                   </View>
                 ) : error ? (
-                  <ThemedText
-                    style={{ fontSize: 14, color: colors.placeholder, paddingVertical: 20 }}
-                  >
-                    {error}
-                  </ThemedText>
+                  <ScreenState colors={colors} kind="error" title="Exercise unavailable" message={error} actionLabel="Retry" onAction={() => setRevision((value) => value + 1)} testID="player-info-retry" />
                 ) : detail ? (
                   <>
                     <ExerciseMedia
                       imageUrl={detail.imageUrl}
                       demoVideoUrl={detail.demoVideoUrl}
+                      media={detail.media}
+                      active={visible}
                       exerciseName={detail.name}
                       colors={colors}
                       height={180}
                     />
-                    {detail.demoVideoUrl ? (
-                      <Pressable
-                        testID="player-watch-exercise-demo"
-                        accessibilityRole="button"
-                        accessibilityLabel={`Watch ${detail.name} demo video`}
-                        onPress={() => void handleWatchDemo()}
-                        style={{ minHeight: 48, marginBottom: 20, borderRadius: 14, backgroundColor: colors.primaryButton, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
-                      >
-                        <Ionicons name="play-circle" size={22} color="#FFFFFF" />
-                        <ThemedText style={{ color: "#FFFFFF", fontWeight: "700" }}>Watch Demo</ThemedText>
-                      </Pressable>
-                    ) : null}
+                    {detail.structuredContent?.cues.length ? <ContentSection title="Form cues" content={detail.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" /> : null}
 
                     {isBeginner && detail.beginnerNotes && (
                       <ContentSection

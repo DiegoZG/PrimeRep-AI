@@ -15,7 +15,7 @@ appId: host.exp.Exponent
     direction: DOWN
     duration: 100
 
-- openLink: "exp://127.0.0.1:8081"
+- openLink: "${typeof EXPO_URL === 'undefined' ? 'exp://127.0.0.1:8081' : EXPO_URL}"
 
 # Wait for auth bootstrapping to complete
 - extendedWaitUntil:

@@ -14,7 +14,7 @@ export interface WorkoutApiPrescription {
 }
 
 export interface WorkoutApiExercise {
-  id: number;
+  id: string;
   name: string;
   exerciseType: string;
   primaryMuscle: string;
@@ -22,6 +22,7 @@ export interface WorkoutApiExercise {
   imageUrl: string | null;
   demoVideoUrl: string | null;
   requiredEquipmentIds: string[];
+  loadProfile?: import("@/interfaces/exercises/types").ExerciseLoadProfile | null;
 }
 
 export interface WorkoutApiItem {
@@ -59,7 +60,7 @@ export interface Prescription {
 }
 
 export interface WorkoutExercise {
-  id: string; // Converted from number to string for consistency with ExerciseRow
+  id: string;
   name: string;
   exerciseType: string;
   primaryMuscle: string;
@@ -67,6 +68,7 @@ export interface WorkoutExercise {
   imageUrl?: string;
   demoVideoUrl?: string;
   requiredEquipmentIds: string[];
+  loadProfile?: import("@/interfaces/exercises/types").ExerciseLoadProfile | null;
 }
 
 export interface WorkoutItem {

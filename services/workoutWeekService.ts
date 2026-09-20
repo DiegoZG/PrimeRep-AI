@@ -31,6 +31,7 @@ function mapApiExercise(
     imageUrl: apiExercise.imageUrl || undefined,
     demoVideoUrl: apiExercise.demoVideoUrl || undefined,
     requiredEquipmentIds: apiExercise.requiredEquipmentIds || [],
+    loadProfile: apiExercise.loadProfile,
   };
 }
 
