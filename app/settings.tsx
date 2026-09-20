@@ -344,73 +344,84 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Appearance</ThemedText>
-        <View
-          accessibilityRole="radiogroup"
-          style={[
-            styles.card,
-            styles.sectionCard,
-            styles.preferenceControl,
-            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
-          ]}
-        >
-          {(["system", "light", "dark"] as const).map((preference) => {
-            const selected = themePreference === preference;
-            const disabled = !isAppearanceReady || isSavingAppearance;
-            const label = preference.charAt(0).toUpperCase() + preference.slice(1);
-            return (
-              <Pressable
-                key={preference}
-                testID={`settings-appearance-${preference}`}
-                accessibilityRole="radio"
-                accessibilityLabel={`Use ${label.toLowerCase()} appearance`}
-                accessibilityState={{ checked: selected, disabled }}
-                onPress={() => void handleThemePreference(preference)}
-                disabled={disabled}
-                style={[
-                  styles.preferenceOption,
-                  selected && { backgroundColor: colors.primaryButton },
-                ]}
-              >
-                <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Units</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Preferences</ThemedText>
         <View
           style={[
             styles.card,
             styles.sectionCard,
-            styles.unitControl,
             { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
           ]}
         >
-          {(["LB", "KG"] as const).map((unit) => {
-            const selected = weightUnit === unit;
-            const disabled = !isUnitReady || isSavingUnit;
-            return (
-              <Pressable
-                key={unit}
-                accessibilityRole="button"
-                accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"}`}
-                accessibilityState={{ selected, disabled }}
-                onPress={() => void handleWeightUnit(unit)}
-                disabled={disabled}
-                style={[
-                  styles.unitOption,
-                  selected && { backgroundColor: colors.primaryButton },
-                ]}
-              >
-                <ThemedText style={[styles.unitText, selected && styles.selectedUnitText]}>
-                  {unit}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+          <View style={styles.preferenceRow}>
+            <ThemedText style={styles.preferenceLabel}>Appearance</ThemedText>
+            <View
+              accessibilityRole="radiogroup"
+              style={[
+                styles.inlinePreferenceControl,
+                { backgroundColor: colors.background, borderColor: colors.inputBorder },
+              ]}
+            >
+              {(["system", "light", "dark"] as const).map((preference) => {
+                const selected = themePreference === preference;
+                const disabled = !isAppearanceReady || isSavingAppearance;
+                const label = preference.charAt(0).toUpperCase() + preference.slice(1);
+                return (
+                  <Pressable
+                    key={preference}
+                    testID={`settings-appearance-${preference}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Use ${label.toLowerCase()} appearance`}
+                    accessibilityState={{ checked: selected, disabled }}
+                    onPress={() => void handleThemePreference(preference)}
+                    disabled={disabled}
+                    style={[
+                      styles.preferenceOption,
+                      selected && { backgroundColor: colors.primaryButton },
+                    ]}
+                  >
+                    <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
+                      {label}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View style={[styles.preferenceDivider, { backgroundColor: colors.inputBorder }]} />
+          <View style={styles.preferenceRow}>
+            <ThemedText style={styles.preferenceLabel}>Units</ThemedText>
+            <View
+              accessibilityRole="radiogroup"
+              style={[
+                styles.inlinePreferenceControl,
+                styles.unitPreferenceControl,
+                { backgroundColor: colors.background, borderColor: colors.inputBorder },
+              ]}
+            >
+              {(["LB", "KG"] as const).map((unit) => {
+                const selected = weightUnit === unit;
+                const disabled = !isUnitReady || isSavingUnit;
+                return (
+                  <Pressable
+                    key={unit}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"}`}
+                    accessibilityState={{ checked: selected, disabled }}
+                    onPress={() => void handleWeightUnit(unit)}
+                    disabled={disabled}
+                    style={[
+                      styles.preferenceOption,
+                      selected && { backgroundColor: colors.primaryButton },
+                    ]}
+                  >
+                    <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
+                      {unit}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Notifications</ThemedText>
@@ -734,13 +745,29 @@ const styles = StyleSheet.create({
   sectionCard: {
     marginBottom: 28,
   },
-  unitControl: {
+  preferenceRow: {
     flexDirection: "row",
-    padding: 4,
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 60,
+    paddingLeft: 16,
+    paddingRight: 8,
+    gap: 12,
   },
-  preferenceControl: {
+  preferenceLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  inlinePreferenceControl: {
+    flex: 1,
+    maxWidth: 210,
     flexDirection: "row",
-    padding: 4,
+    padding: 3,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  unitPreferenceControl: {
+    maxWidth: 132,
   },
   preferenceOption: {
     flex: 1,
@@ -750,24 +777,15 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   preferenceText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
   },
   selectedPreferenceText: {
     color: "#fff",
   },
-  unitOption: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 11,
-  },
-  unitText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  selectedUnitText: {
-    color: "#fff",
+  preferenceDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
   },
   navigationRow: {
     flexDirection: "row",
