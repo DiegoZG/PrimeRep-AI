@@ -25,6 +25,7 @@ import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { getCoachItem, markCoachItemRead } from "@/services/coachService";
 import { HttpError } from "@/services/httpClient";
 import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
+import { AppearanceProvider } from "@/utils/appearanceContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -414,7 +415,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function ThemedRootLayout() {
   const colorScheme = useColorScheme();
 
   return (
@@ -439,5 +440,13 @@ export default function RootLayout() {
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppearanceProvider>
+      <ThemedRootLayout />
+    </AppearanceProvider>
   );
 }
