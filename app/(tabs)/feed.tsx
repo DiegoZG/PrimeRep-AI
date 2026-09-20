@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Alert, FlatList, LayoutAnimation, Pressable, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Alert, FlatList, LayoutAnimation, Modal, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CoachBriefingItem, type CoachPalette } from "@/components/coach";
@@ -40,10 +40,10 @@ const PALETTES: Record<"light" | "dark", CoachPalette> = {
 type OwnedFeed = { ownerUserId: string; view: CoachFeedView; response: CoachFeedResponse };
 type OwnedCompletedWorkoutIds = { ownerUserId: string; workoutDayIds: Set<string> };
 
-const VIEW_OPTIONS: { value: CoachFeedView; label: string }[] = [
-  { value: "now", label: "Now" },
-  { value: "yesterday", label: "Yesterday" },
-  { value: "last7Days", label: "Last 7 days" },
+const VIEW_OPTIONS: { value: CoachFeedView; label: string; description: string }[] = [
+  { value: "now", label: "Now", description: "Current and unresolved guidance" },
+  { value: "yesterday", label: "Yesterday", description: "Guidance from the previous day" },
+  { value: "last7Days", label: "Last 7 days", description: "Guidance from the previous seven days" },
 ];
 
 function exerciseCount(workout: WorkoutDay | null) {
@@ -92,6 +92,7 @@ export default function CoachScreen() {
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const [ownedFeed, setOwnedFeed] = useState<OwnedFeed | null>(null);
   const [selectedView, setSelectedView] = useState<CoachFeedView>("now");
+  const [periodMenuVisible, setPeriodMenuVisible] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<{ ownerUserId: string; templateId: string | null } | null>(null);
   const [completedWorkoutIds, setCompletedWorkoutIds] = useState<OwnedCompletedWorkoutIds | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -150,6 +151,7 @@ export default function CoachScreen() {
     setOwnedFeed(null);
     selectedViewRef.current = "now";
     setSelectedView("now");
+    setPeriodMenuVisible(false);
     setActiveTemplate(null);
     setCompletedWorkoutIds(null);
     setInitialLoading(Boolean(token && userId));
@@ -461,6 +463,7 @@ export default function CoachScreen() {
   }, [heroTemplateId, router]);
 
   const selectView = useCallback((view: CoachFeedView) => {
+    setPeriodMenuVisible(false);
     if (view === selectedView) return;
     animateChange();
     selectedViewRef.current = view;
@@ -476,44 +479,27 @@ export default function CoachScreen() {
     void loadFirstPage("filter", view);
   }, [animateChange, loadFirstPage, selectedView]);
 
+  const selectedViewLabel = VIEW_OPTIONS.find((option) => option.value === selectedView)?.label ?? "Now";
+
   const header = (
     <View>
-      <View style={styles.header}>
+      <View testID={refreshing ? "coach-refreshing" : response ? "coach-feed-ready" : undefined} style={styles.header}>
         <View style={styles.headerCopy}>
           <ThemedText style={[styles.screenTitle, { color: palette.ink }]}>Coach</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.ink2 }]}>Your next useful move</ThemedText>
         </View>
-        <Pressable testID="coach-refresh" accessibilityRole="button" accessibilityLabel="Refresh coach updates" accessibilityState={{ busy: refreshing, disabled: refreshing }} disabled={refreshing} onPress={() => void loadFirstPage("pull")} style={[styles.refreshButton, { borderColor: palette.separator, backgroundColor: palette.surface }]}>
-          <Ionicons name="refresh" size={18} color={palette.ink2} />
+        <Pressable
+          testID="coach-period-menu"
+          accessibilityRole="button"
+          accessibilityLabel={`Coach guidance period, ${selectedViewLabel}`}
+          accessibilityHint="Opens period options"
+          accessibilityState={{ expanded: periodMenuVisible }}
+          onPress={() => setPeriodMenuVisible(true)}
+          style={[styles.periodButton, { borderColor: palette.separator, backgroundColor: palette.surface }]}
+        >
+          <ThemedText style={[styles.periodButtonText, { color: palette.accent }]}>{selectedViewLabel}</ThemedText>
+          <Ionicons name="chevron-down" size={16} color={palette.accent} />
         </Pressable>
-      </View>
-      <View testID={refreshing ? "coach-refreshing" : response ? "coach-feed-ready" : undefined}>
-        <ThemedText style={[styles.pullHint, { color: palette.ink3 }]}>{refreshing ? "Refreshing…" : "Pull to refresh"}</ThemedText>
-      </View>
-
-      <View
-        testID="coach-view-filter"
-        accessibilityLabel="Coach timeline period"
-        style={[styles.viewFilter, { backgroundColor: palette.surface, borderColor: palette.separator }]}
-      >
-        {VIEW_OPTIONS.map((option) => {
-          const selected = selectedView === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              testID={`coach-view-${option.value}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${option.label.toLowerCase()} Coach guidance`}
-              accessibilityState={{ selected }}
-              onPress={() => selectView(option.value)}
-              style={[styles.viewOption, selected && { backgroundColor: palette.accentSoft }]}
-            >
-              <ThemedText style={[styles.viewOptionText, { color: selected ? palette.accent : palette.ink2 }]}>
-                {option.label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
       </View>
 
       {!isHistory && showActiveHero ? (
@@ -579,6 +565,70 @@ export default function CoachScreen() {
         onRefresh={() => void loadFirstPage("pull")}
         accessibilityRole="list"
       />
+      <Modal
+        visible={periodMenuVisible}
+        transparent
+        animationType={reduceMotion ? "none" : "fade"}
+        onRequestClose={() => setPeriodMenuVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.periodOverlay}>
+          <Pressable
+            testID="coach-period-backdrop"
+            accessibilityRole="button"
+            accessibilityLabel="Close Coach period options"
+            onPress={() => setPeriodMenuVisible(false)}
+            style={StyleSheet.absoluteFill}
+          />
+          <SafeAreaView
+            edges={["bottom"]}
+            accessibilityViewIsModal
+            style={[styles.periodSheet, { backgroundColor: palette.surface }]}
+          >
+            <View style={[styles.periodGrabber, { backgroundColor: palette.separator }]} />
+            <View style={styles.periodSheetHeader}>
+              <View style={styles.periodSheetHeading}>
+                <ThemedText style={[styles.periodSheetTitle, { color: palette.ink }]}>Show Coach guidance</ThemedText>
+                <ThemedText style={[styles.periodSheetSubtitle, { color: palette.ink2 }]}>Choose a recent period to review.</ThemedText>
+              </View>
+              <Pressable
+                testID="coach-period-close"
+                accessibilityRole="button"
+                accessibilityLabel="Close Coach period options"
+                onPress={() => setPeriodMenuVisible(false)}
+                style={styles.periodClose}
+              >
+                <Ionicons name="close" size={22} color={palette.ink2} />
+              </Pressable>
+            </View>
+            {VIEW_OPTIONS.map((option) => {
+              const selected = selectedView === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  testID={`coach-view-${option.value}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label}. ${option.description}`}
+                  accessibilityState={{ selected }}
+                  onPress={() => selectView(option.value)}
+                  style={({ pressed }) => [
+                    styles.periodOption,
+                    { borderTopColor: palette.separator, opacity: pressed ? 0.65 : 1 },
+                  ]}
+                >
+                  <View style={styles.periodOptionCopy}>
+                    <ThemedText style={[styles.periodOptionLabel, { color: selected ? palette.accent : palette.ink }]}>{option.label}</ThemedText>
+                    <ThemedText style={[styles.periodOptionDescription, { color: palette.ink2 }]}>{option.description}</ThemedText>
+                  </View>
+                  <View style={[styles.periodCheck, { borderColor: selected ? palette.accent : palette.separator, backgroundColor: selected ? palette.accent : "transparent" }]}>
+                    {selected ? <Ionicons name="checkmark" size={15} color={palette.accentText} /> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -586,15 +636,12 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingTop: 6 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingTop: 6, paddingBottom: 24 },
   headerCopy: { flex: 1, minWidth: 0 },
   screenTitle: { fontFamily: Fonts.sans, fontSize: 30, lineHeight: 32.4, fontWeight: "700" },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 2 },
-  refreshButton: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  pullHint: { textAlign: "center", fontSize: 11, lineHeight: 15, marginTop: 16, marginBottom: 6 },
-  viewFilter: { flexDirection: "row", borderWidth: 1, borderRadius: 13, padding: 3, marginTop: 4, marginBottom: 22 },
-  viewOption: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
-  viewOptionText: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  periodButton: { minHeight: 44, borderRadius: 13, borderWidth: 1, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
+  periodButtonText: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
   refreshCopy: { textAlign: "center", fontSize: 11, lineHeight: 15, marginBottom: 18 },
   sectionRule: { flexDirection: "row", alignItems: "center", minHeight: 24, marginTop: 2, marginBottom: 7, gap: 9 },
   sectionLabel: { fontFamily: Fonts.mono, fontSize: 9.5, lineHeight: 12, fontWeight: "700", letterSpacing: 0.85 },
@@ -640,6 +687,19 @@ const styles = StyleSheet.create({
   historyEmpty: { alignItems: "center", paddingHorizontal: 26, paddingVertical: 38 },
   historyEmptyTitle: { fontSize: 18, lineHeight: 23, fontWeight: "700", marginTop: 10, textAlign: "center" },
   historyEmptyBody: { fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 320, textAlign: "center" },
+  periodOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)" },
+  periodSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+  periodGrabber: { width: 38, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  periodSheetHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingBottom: 18 },
+  periodSheetHeading: { flex: 1, minWidth: 0 },
+  periodSheetTitle: { fontSize: 20, lineHeight: 25, fontWeight: "800" },
+  periodSheetSubtitle: { fontSize: 13, lineHeight: 18, marginTop: 3 },
+  periodClose: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginTop: -6, marginRight: -8 },
+  periodOption: { minHeight: 66, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", alignItems: "center", gap: 14 },
+  periodOptionCopy: { flex: 1, minWidth: 0 },
+  periodOptionLabel: { fontSize: 16, lineHeight: 21, fontWeight: "700" },
+  periodOptionDescription: { fontSize: 12, lineHeight: 17, marginTop: 1 },
+  periodCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   footer: { alignItems: "center", paddingBottom: 28, paddingTop: 2 },
   pageError: { fontSize: 12, lineHeight: 17, marginBottom: 8 },
   earlierButton: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },

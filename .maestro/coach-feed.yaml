@@ -20,19 +20,14 @@ env:
       id: "coach-hero-.*"
     timeout: 15000
 
+- assertVisible:
+    id: "coach-period-menu"
 - tapOn:
-    id: "coach-refresh"
-- extendedWaitUntil:
-    notVisible:
-      id: "coach-refreshing"
-    timeout: 15000
+    id: "coach-period-menu"
 - extendedWaitUntil:
     visible:
-      id: "coach-feed-ready"
-    timeout: 15000
-
-- assertVisible:
-    id: "coach-view-now"
+      id: "coach-view-now"
+    timeout: 3000
 - assertVisible:
     id: "coach-view-yesterday"
 - assertVisible:
@@ -46,11 +41,15 @@ env:
 - assertNotVisible:
     id: "coach-hero-.*"
 - tapOn:
+    id: "coach-period-menu"
+- tapOn:
     id: "coach-view-last7Days"
 - extendedWaitUntil:
     visible:
       id: "coach-feed-ready"
     timeout: 15000
+- tapOn:
+    id: "coach-period-menu"
 - tapOn:
     id: "coach-view-now"
 - extendedWaitUntil:
