@@ -110,6 +110,7 @@ env:
     id: "tab-profile"
 - tapOn:
     id: "profile-settings-button"
+- tapOn: "Use pounds"
 - scrollUntilVisible:
     element:
       id: "settings-coach-reminder-time"
@@ -129,3 +130,15 @@ env:
       id: "settings-coach-saved"
     timeout: 10000
 - assertVisible: "08:15"
+- tapOn: "Back from Settings"
+- tapOn:
+    id: "tab-coach"
+- extendedWaitUntil:
+    visible:
+      id: "coach-screen"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "coach-item-${PROGRESSION_ID}"
+    direction: DOWN
+- assertVisible: ".*60.6 lb.*"

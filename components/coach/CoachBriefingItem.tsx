@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Fonts } from "@/constants/theme";
 import type { CoachFeedItem, CoachFeedItemKind } from "@/interfaces/coach";
+import { formatWeightInput, fromKg, type WeightUnit } from "@/utils/weightUnits";
 
 export interface CoachPalette {
   canvas: string;
@@ -72,6 +73,7 @@ type Props = {
   expanded: boolean;
   busy: boolean;
   isLast: boolean;
+  weightUnit: WeightUnit | null;
   onToggleDetail: () => void;
   onPrimaryAction: () => void;
   onDismiss: () => void;
@@ -83,11 +85,20 @@ export function CoachBriefingItem({
   expanded,
   busy,
   isLast,
+  weightUnit,
   onToggleDetail,
   onPrimaryAction,
   onDismiss,
 }: Props) {
   const presentation = KIND_PRESENTATION[item.kind] ?? UNKNOWN_PRESENTATION;
+  const weightLabel = item.weightData && weightUnit
+    ? `${formatWeightInput(fromKg(item.weightData.weightKg, weightUnit))} ${weightUnit.toLowerCase()}`
+    : null;
+  const body = weightLabel && item.weightData
+    ? item.weightData.context === "target"
+      ? `Your next ${item.weightData.exerciseName} target is ${weightLabel}.`
+      : `You lifted ${weightLabel}—your heaviest logged set for this exercise.`
+    : item.body;
   const hasDestination = item.target.type !== "none";
   const nodeStyle =
     presentation.node === "action"
@@ -156,7 +167,7 @@ export function CoachBriefingItem({
           {item.title}
         </ThemedText>
         <ThemedText style={[styles.body, { color: palette.ink2 }]}>
-          {item.body}
+          {body}
         </ThemedText>
 
         {expanded && item.detail ? (

@@ -32,6 +32,11 @@ export interface CoachItemDetail {
   body: string;
   detail: string | null;
   target: CoachTarget;
+  weightData?: {
+    context: "target" | "record";
+    exerciseName: string;
+    weightKg: number;
+  } | null;
   isAiAssisted: boolean;
   readAt: string | null;
   createdAt: string;

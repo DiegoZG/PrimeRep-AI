@@ -19,6 +19,7 @@ import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
 import { coachTargetHref } from "@/utils/coachNavigation";
 import { localDateIso } from "@/utils/localDate";
+import { loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
 const PALETTES: Record<"light" | "dark", CoachPalette> = {
   light: {
@@ -93,6 +94,7 @@ export default function CoachScreen() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit | null>(null);
   const firstRequestRef = useRef(0);
   const pageRequestRef = useRef(0);
   const activeProgramRequestRef = useRef(0);
@@ -210,12 +212,17 @@ export default function CoachScreen() {
   }, [accountKey, token, userId]);
 
   useFocusEffect(useCallback(() => {
+    let focused = true;
+    void loadWeightUnit().then((unit) => {
+      if (focused) setWeightUnit(unit);
+    });
     void refreshActiveWorkout();
     void syncCurrentWeek();
     void loadFirstPage("focus");
     void loadActiveTemplate();
     void loadCompletedWorkoutIds();
     return () => {
+      focused = false;
       firstRequestRef.current += 1;
       pageRequestRef.current += 1;
       activeProgramRequestRef.current += 1;
@@ -492,7 +499,7 @@ export default function CoachScreen() {
       <FlatList
         data={response?.items ?? []}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={busyIds.has(item.id)} isLast={index === (response?.items.length ?? 0) - 1} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
+        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={busyIds.has(item.id)} isLast={index === (response?.items.length ?? 0) - 1} weightUnit={weightUnit} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
         ListHeaderComponent={header}
         ListFooterComponent={response?.hasMore || pageError ? <View style={styles.footer}>{pageError ? <ThemedText accessibilityRole="alert" style={[styles.pageError, { color: palette.error }]}>{pageError}</ThemedText> : null}<Pressable testID="coach-earlier-guidance" accessibilityRole="button" accessibilityLabel="Load earlier guidance" accessibilityState={{ disabled: loadingMore, busy: loadingMore }} disabled={loadingMore} onPress={() => void loadEarlier()} style={[styles.earlierButton, { borderColor: palette.separator, opacity: loadingMore ? 0.55 : 1 }]}><ThemedText style={[styles.earlierText, { color: palette.accent }]}>{loadingMore ? "Loading earlier guidance…" : "Earlier guidance"}</ThemedText></Pressable></View> : <View style={styles.bottomSpace} />}
         contentContainerStyle={styles.content}
