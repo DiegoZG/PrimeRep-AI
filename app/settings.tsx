@@ -9,6 +9,7 @@ import {
   StatusBar,
   StyleSheet,
   Switch,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +20,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext } from "@/utils/authContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
 import { deleteAccount } from "@/services/userService";
+import {
+  getCoachPreferences,
+  updateCoachPreferences,
+} from "@/services/coachService";
+import type { CoachPreferences } from "@/interfaces/coach";
 import {
   loadWeightUnit,
   saveWeightUnit,
@@ -48,8 +54,19 @@ export default function SettingsScreen() {
   const [isSavingUnit, setIsSavingUnit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [coachPreferences, setCoachPreferences] = useState<CoachPreferences | null>(null);
+  const [coachReminderDraft, setCoachReminderDraft] = useState("08:00");
+  const [isCoachPreferenceLoading, setIsCoachPreferenceLoading] = useState(false);
+  const [isCoachPreferenceSaving, setIsCoachPreferenceSaving] = useState(false);
+  const [coachPreferenceError, setCoachPreferenceError] = useState<string | null>(null);
+  const [coachPreferenceSaved, setCoachPreferenceSaved] = useState(false);
+  const [coachPreferenceRevision, setCoachPreferenceRevision] = useState(0);
   const deletingRef = useRef(false);
   const savingUnitRef = useRef(false);
+  const coachPreferenceRequestRef = useRef(0);
+  const settingsAccountRef = useRef(`${user?.id ?? "guest"}:${token ?? "anonymous"}`);
+  settingsAccountRef.current = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
+  const settingsAccountKey = settingsAccountRef.current;
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +84,115 @@ export default function SettingsScreen() {
   useEffect(() => {
     void refreshPermission();
   }, [refreshPermission]);
+
+  useEffect(() => {
+    const requestId = ++coachPreferenceRequestRef.current;
+    const requestAccount = settingsAccountKey;
+    setCoachPreferences(null);
+    setCoachReminderDraft("08:00");
+    setCoachPreferenceError(null);
+    setCoachPreferenceSaved(false);
+    if (!token || !user) {
+      setIsCoachPreferenceLoading(false);
+      return;
+    }
+    setIsCoachPreferenceLoading(true);
+    const currentTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    void getCoachPreferences(token)
+      .then(async (preferences) => {
+        if (coachPreferenceRequestRef.current !== requestId || settingsAccountRef.current !== requestAccount) return;
+        setCoachPreferences(preferences);
+        setCoachReminderDraft(preferences.reminderTime.slice(0, 5));
+        if (preferences.notificationsEnabled && preferences.timeZone !== currentTimeZone) {
+          try {
+            const resolved = await updateCoachPreferences(token, { ...preferences, timeZone: currentTimeZone });
+            if (coachPreferenceRequestRef.current !== requestId || settingsAccountRef.current !== requestAccount) return;
+            setCoachPreferences(resolved);
+            setCoachReminderDraft(resolved.reminderTime.slice(0, 5));
+          } catch {
+            if (coachPreferenceRequestRef.current === requestId && settingsAccountRef.current === requestAccount) {
+              setCoachPreferenceError("Your timezone couldn’t be updated. Your existing Coach notification settings are still available.");
+            }
+          }
+        }
+      })
+      .catch(() => {
+        if (coachPreferenceRequestRef.current === requestId && settingsAccountRef.current === requestAccount) {
+          setCoachPreferenceError("Coach notification settings couldn’t load. Try reopening Settings.");
+        }
+      })
+      .finally(() => {
+        if (coachPreferenceRequestRef.current === requestId && settingsAccountRef.current === requestAccount) {
+          setIsCoachPreferenceLoading(false);
+        }
+      });
+  }, [coachPreferenceRevision, settingsAccountKey, token, user]);
+
+  const replaceCoachPreferences = useCallback(async (next: CoachPreferences) => {
+    if (!token || !user || isCoachPreferenceLoading || isCoachPreferenceSaving) return false;
+    const requestId = ++coachPreferenceRequestRef.current;
+    const requestAccount = settingsAccountRef.current;
+    setIsCoachPreferenceSaving(true);
+    setCoachPreferenceError(null);
+    setCoachPreferenceSaved(false);
+    try {
+      const saved = await updateCoachPreferences(token, next);
+      if (coachPreferenceRequestRef.current !== requestId || settingsAccountRef.current !== requestAccount) return false;
+      setCoachPreferences(saved);
+      setCoachReminderDraft(saved.reminderTime.slice(0, 5));
+      setCoachPreferenceSaved(true);
+      return true;
+    } catch {
+      if (coachPreferenceRequestRef.current === requestId && settingsAccountRef.current === requestAccount) {
+        setCoachPreferenceSaved(false);
+        setCoachPreferenceError("Coach notification settings couldn’t be saved. Try again.");
+      }
+      return false;
+    } finally {
+      if (coachPreferenceRequestRef.current === requestId && settingsAccountRef.current === requestAccount) {
+        setIsCoachPreferenceSaving(false);
+      }
+    }
+  }, [isCoachPreferenceLoading, isCoachPreferenceSaving, token, user]);
+
+  const handleCoachNotifications = useCallback(async (enabled: boolean) => {
+    if (!coachPreferences || isCoachPreferenceLoading || isCoachPreferenceSaving) return;
+    if (!enabled) {
+      await replaceCoachPreferences({ ...coachPreferences, notificationsEnabled: false });
+      return;
+    }
+    let permission = await refreshPermission();
+    if (permission === "undetermined") permission = await requestPermission();
+    if (permission !== "granted") {
+      Alert.alert(
+        "Allow Notifications First",
+        permission === "unsupported"
+          ? "Coach notifications aren’t available on this platform."
+          : "Allow PrimeRep notifications in system settings, then turn on Coach notifications.",
+        permission === "denied"
+          ? [{ text: "Not Now", style: "cancel" }, { text: "Open Settings", onPress: () => void openNotificationSettings() }]
+          : [{ text: "OK" }],
+      );
+      return;
+    }
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    await replaceCoachPreferences({ ...coachPreferences, notificationsEnabled: true, timeZone });
+  }, [coachPreferences, isCoachPreferenceLoading, isCoachPreferenceSaving, openNotificationSettings, refreshPermission, replaceCoachPreferences, requestPermission]);
+
+  const saveCoachReminderTime = useCallback(async () => {
+    if (!coachPreferences || isCoachPreferenceLoading || isCoachPreferenceSaving) return;
+    const match = /^(\d{1,2}):(\d{2})$/.exec(coachReminderDraft.trim());
+    const hour = match ? Number(match[1]) : -1;
+    const minute = match ? Number(match[2]) : -1;
+    if (!match || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      setCoachPreferenceSaved(false);
+      setCoachPreferenceError("Enter a reminder time from 00:00 to 23:59.");
+      return;
+    }
+    const reminderTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    await replaceCoachPreferences({ ...coachPreferences, reminderTime, timeZone });
+  }, [coachPreferences, coachReminderDraft, isCoachPreferenceLoading, isCoachPreferenceSaving, replaceCoachPreferences]);
 
   const handleNotifications = useCallback(async () => {
     try {
@@ -197,6 +323,8 @@ export default function SettingsScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Units</ThemedText>
         <View
@@ -270,6 +398,67 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
             )}
           </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+          <View style={styles.row}>
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Coach Notifications</ThemedText>
+              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>
+                Actionable workout reminders only. Progress and recovery guidance stays in the app.
+              </ThemedText>
+            </View>
+            <Switch
+              testID="settings-coach-notifications"
+              accessibilityLabel="Coach notifications"
+              accessibilityHint="Sends at most one scheduled coaching reminder per day"
+              accessibilityState={{ disabled: isCoachPreferenceLoading || isCoachPreferenceSaving || !coachPreferences, busy: isCoachPreferenceSaving }}
+              value={coachPreferences?.notificationsEnabled ?? false}
+              onValueChange={(value) => void handleCoachNotifications(value)}
+              disabled={isCoachPreferenceLoading || isCoachPreferenceSaving || !coachPreferences}
+              trackColor={{ false: colors.inputBorder, true: colors.primaryButton }}
+              thumbColor={Platform.OS === "android" ? colors.background : undefined}
+              ios_backgroundColor={colors.inputBorder}
+            />
+          </View>
+          {coachPreferences?.notificationsEnabled ? <>
+            <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+            <View style={styles.coachReminderRow}>
+              <View style={styles.rowContent}>
+                <ThemedText style={styles.rowTitle}>Daily Reminder Time</ThemedText>
+                <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>{coachPreferences.timeZone}</ThemedText>
+              </View>
+              <TextInput
+                testID="settings-coach-reminder-time"
+                accessibilityLabel="Coach reminder time in 24-hour format"
+                value={coachReminderDraft}
+                onChangeText={(value) => {
+                  setCoachReminderDraft(value);
+                  setCoachPreferenceSaved(false);
+                  setCoachPreferenceError(null);
+                }}
+                placeholder="08:00"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                selectTextOnFocus
+                editable={!isCoachPreferenceLoading && !isCoachPreferenceSaving}
+                accessibilityState={{ disabled: isCoachPreferenceLoading || isCoachPreferenceSaving, busy: isCoachPreferenceLoading || isCoachPreferenceSaving }}
+                style={[styles.timeInput, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.background }]}
+              />
+              <Pressable
+                testID="settings-save-coach-time"
+                accessibilityRole="button"
+                accessibilityLabel="Save Coach reminder time"
+                accessibilityState={{ disabled: isCoachPreferenceLoading || isCoachPreferenceSaving, busy: isCoachPreferenceLoading || isCoachPreferenceSaving }}
+                disabled={isCoachPreferenceLoading || isCoachPreferenceSaving}
+                onPress={() => void saveCoachReminderTime()}
+                style={[styles.saveTimeButton, { opacity: isCoachPreferenceLoading || isCoachPreferenceSaving ? 0.5 : 1 }]}
+              >
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText>
+              </Pressable>
+            </View>
+          </> : null}
+          {coachPreferenceError ? <View style={styles.coachPreferenceErrorRow}><ThemedText testID="settings-coach-error" accessibilityRole="alert" style={styles.coachPreferenceError}>{coachPreferenceError}</ThemedText>{!coachPreferences ? <Pressable testID="settings-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach notification settings" onPress={() => setCoachPreferenceRevision((revision) => revision + 1)} style={styles.coachPreferenceRetry}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText></Pressable> : null}</View> : null}
+          {coachPreferenceSaved ? <ThemedText testID="settings-coach-saved" accessibilityLiveRegion="polite" style={[styles.coachPreferenceSaved, { color: colors.primaryButton }]}>Coach notification settings saved.</ThemedText> : null}
         </View>
 
         <ThemedText
@@ -525,6 +714,58 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     gap: 12,
+  },
+  coachReminderRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  timeInput: {
+    flexBasis: 88,
+    flexShrink: 1,
+    minWidth: 76,
+    maxWidth: 120,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    fontSize: 15,
+    textAlign: "center",
+  },
+  saveTimeButton: {
+    minWidth: 64,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coachPreferenceError: {
+    flex: 1,
+    color: "#DC2626",
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  coachPreferenceErrorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  coachPreferenceSaved: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  coachPreferenceRetry: {
+    minWidth: 52,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   accountRow: {
     paddingVertical: 17,

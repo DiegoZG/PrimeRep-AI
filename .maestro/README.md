@@ -48,8 +48,8 @@ uvicorn app.main:app --reload
 # Single flow
 maestro test .maestro/smoke-home.yaml
 
-# All flows
-maestro test .maestro/
+# Standard flows (fixture-specific Coach flows are run separately)
+maestro test .maestro/*.yaml
 
 # Debug mode (step through interactively)
 maestro test --debug .maestro/smoke-home.yaml
@@ -57,6 +57,59 @@ maestro test --debug .maestro/smoke-home.yaml
 # Interactive UI builder
 maestro studio
 ```
+
+### Coach fixture flows
+
+The deterministic Coach suite lives under `.maestro/seeded/` so the standard
+suite never silently skips data-dependent assertions. Create its real backend
+fixture first:
+
+```bash
+cd ../primerep-backend
+APP_ENV=local PYTHONPATH=. .venv/bin/python scripts/seed_coach_e2e_fixture.py
+```
+
+The fixture provides `coach-fixture@example.com` with password
+`StrongPass123` and this exact state:
+
+- A completed-onboarding account with a current unfinished planned workout.
+- First-page items ordered as program review, missed workout, recovery,
+  progression, personal record, and consistency.
+- `coach-fixture-progression`, targeting that planned workout, with detail text
+  and `isAiAssisted=true`.
+- `coach-fixture-consistency`, which remains dismissible.
+- `coach-fixture-older`, returned only on the second cursor page.
+- `hasMore=true` plus a valid first-page cursor before pagination.
+- Coach preferences enabled at `08:00` in the fixture timezone. OS permission
+  must separately be granted to the simulator development build.
+
+Run it explicitly with `maestro test .maestro/seeded/coach-feed.yaml`. Override
+any fixture value without editing YAML, for example:
+
+```bash
+maestro test -e LOGIN_EMAIL=another-fixture@primerep.test \
+  -e LOGIN_PASSWORD=StrongPass123 \
+  -e PROGRESSION_ID=coach-fixture-progression \
+  -e CONSISTENCY_ID=coach-fixture-consistency \
+  -e OLDER_ID=coach-fixture-older \
+  .maestro/seeded/coach-feed.yaml
+```
+
+The error
+flow requires `coach-error-fixture@primerep.test`, a failing Coach feed endpoint,
+and no active or unfinished workout fallback.
+
+For native notification routing, keep the fixture backend running, install the
+development build, authenticate as the fixture account, then deliver:
+
+```bash
+xcrun simctl push booted com.diegozegarra.primerep \
+  .maestro/fixtures/coach-notification.apns
+```
+
+Tap the notification and verify the allowlisted planned-workout destination.
+Transient item lookup failures expose `coach-notification-routing-retry` and
+must retain the native response until a later successful or terminal lookup.
 
 ---
 
@@ -73,6 +126,10 @@ maestro studio
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
+| Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
+| Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
+| Coach Feed Error | `seeded/coach-feed-error.yaml` | Recoverable full initial error and Retry against the documented failing-feed fixture |
+| Push Settings | `push-settings.yaml` | Native OS notification control plus app-owned Coach notification preference |
 
 ---
 
@@ -110,9 +167,28 @@ Elements with `testID` props added for Maestro targeting:
 | `password-reset-confirm-submit` | `AnimatedButton` | submits a new password from a reset link |
 | `home-open-coach` | `Pressable` | opens the Coach tab from Home |
 | `home-share-workout` | `Pressable` | verifies Home exposes native sharing without automating a share destination |
-| `coach-screen` | `SafeAreaView` | confirms the Coach preview is open regardless of its truthful data state |
+| `coach-screen` | `SafeAreaView` | confirms the private Coach briefing is open |
 | `coach-resume-workout` | `Pressable` | resumes an active workout from Coach |
 | `coach-open-workout` | `Pressable` | opens the next planned workout from Coach |
+| `coach-hero-active` / `coach-hero-next` / `coach-hero-caught-up` | hero state | identifies the canonical primary Coach state |
+| `coach-period-menu` / `coach-period-close` | `Pressable` | opens or closes the compact Coach history-period sheet |
+| `coach-retry` | `Pressable` | retries a recoverable request failure; normal refresh uses the native pull gesture |
+| `coach-refreshing` / `coach-feed-ready` | state marker | distinguishes an in-flight refresh from a settled canonical page |
+| `coach-view-now` / `coach-view-yesterday` / `coach-view-last7Days` | period filter | switches between actionable guidance and read-only recent history |
+| `coach-initial-error` / `coach-inline-error` | error state | distinguishes a full unavailable state from retained-content failure |
+| `coach-item-{itemId}` | rail item | identifies one persisted guidance item |
+| `coach-item-action-{itemId}` | `Pressable` | marks guidance read through primary action and opens its allowlisted target |
+| `coach-item-why-{itemId}` / `coach-item-detail-{itemId}` | expand control/content | opens reasoning in place and marks the item read |
+| `coach-item-read-{itemId}` | state marker | confirms the server-owned item is represented as read locally |
+| `coach-item-dismiss-{itemId}` | `Pressable` | opens permanent-dismiss confirmation |
+| `coach-item-ai-{itemId}` | `Text` | labels wording that was actually AI-assisted |
+| `coach-earlier-guidance` | `Pressable` | explicitly loads the next cursor page |
+| `coach-notification-routing` | root marker | indicates a validated Coach notification destination is being resolved |
+| `coach-notification-routing-retry` | root marker | indicates a transient item lookup is retained for retry |
+| `coach-notification-routing-read` | root marker | destination opened while native response awaits successful read persistence |
+| `settings-coach-notifications` | `Switch` | explicit app-owned coaching notification opt-in |
+| `settings-coach-reminder-time` / `settings-save-coach-time` | time field/action | updates reminder time with the current IANA timezone |
+| `settings-coach-saved` | status text | confirms the Coach preference mutation completed |
 | `settings-terms` | `Pressable` | opens Terms of Service |
 | `settings-privacy` | `Pressable` | opens Privacy Policy |
 | `legal-terms-screen` | `SafeAreaView` | Terms of Service screen |
@@ -180,6 +256,14 @@ Maestro verifies that the completed-summary share action is present. Test the
 Home and Summary native share sheets manually on a development build: simulator
 share destinations vary by installed apps, and dismissing the sheet should not
 show an error.
+
+### Coach notification routing
+
+Remote push delivery, Expo ticket/receipt handling, and foreground/background/cold-start
+taps require a development build on a registered device. Verify a valid Coach payload
+opens only its typed destination, stale or cross-account items fall back to Coach, and a
+notification tap wins over automatic active-workout resume. Expo Go cannot fully exercise
+the remote notification path.
 
 ### Program account isolation
 

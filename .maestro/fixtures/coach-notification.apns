@@ -1,0 +1,12 @@
+{
+  "aps": {
+    "alert": {
+      "title": "PrimeRep Coach",
+      "body": "Review your training week."
+    },
+    "sound": "default"
+  },
+  "version": 1,
+  "type": "coach_item",
+  "coachItemId": "coach-fixture-progression"
+}

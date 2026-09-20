@@ -45,9 +45,10 @@ export default function TabLayout() {
         name="feed"
         options={{
           title: "Coach",
+          tabBarActiveTintColor: colorScheme === "dark" ? "#5CC8F5" : "#06628F",
           tabBarIcon: ({ color, size }) => (
             <View testID="tab-coach">
-              <Ionicons name="sparkles" size={size || 24} color={color} />
+              <Ionicons name="stats-chart" size={size || 24} color={color} />
             </View>
           ),
         }}

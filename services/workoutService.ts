@@ -54,6 +54,7 @@ function mapApiItem(apiItem: WorkoutApiItem): WorkoutItem {
       reps,
       restSeconds: prescription.restSeconds,
       suggestedWeightKg: prescription.suggestedWeightKg ?? undefined,
+      suggestedPreviousWeightKg: prescription.suggestedPreviousWeightKg ?? undefined,
       suggestedWeightReason: prescription.suggestedWeightReason ?? undefined,
     },
     exerciseRationale: apiItem.exerciseRationale ?? undefined,

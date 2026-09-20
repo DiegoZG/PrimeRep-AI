@@ -1,7 +1,11 @@
 # Push controls are app-owned; OS permission dialogs are tested manually on a dev build.
 appId: com.diegozegarra.primerep
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
 ---
 - runFlow: flows/launch-dev-build.yaml
+- runFlow: flows/auth-login-dev-build.yaml
 - tapOn:
     id: "tab-profile"
 - tapOn:
@@ -9,3 +13,5 @@ appId: com.diegozegarra.primerep
 - assertVisible:
     id: "settings-push-notifications"
 - assertVisible: "Push Notifications"
+- assertVisible:
+    id: "settings-coach-notifications"

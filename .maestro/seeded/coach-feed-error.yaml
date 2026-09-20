@@ -1,0 +1,24 @@
+# Requires a mock/backend fixture where Coach feed requests fail and this
+# account has no active or unfinished workout fallback.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: coach-error-fixture@primerep.test
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: ../flows/launch-app.yaml
+- runFlow: ../flows/auth-login.yaml
+- tapOn:
+    id: "tab-coach"
+- extendedWaitUntil:
+    visible:
+      id: "coach-initial-error"
+    timeout: 15000
+- assertVisible:
+    id: "coach-retry"
+- tapOn:
+    id: "coach-retry"
+- extendedWaitUntil:
+    visible:
+      id: "coach-initial-error"
+    timeout: 15000

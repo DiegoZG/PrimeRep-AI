@@ -15,12 +15,16 @@ import {
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { getActiveSession } from "@/services/workoutLoggingService";
 import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
+import { getCoachItem, markCoachItemRead } from "@/services/coachService";
+import { HttpError } from "@/services/httpClient";
+import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -32,6 +36,37 @@ function Splash() {
       <ActivityIndicator />
     </View>
   );
+}
+
+type PendingCoachNotification = {
+  response: Notifications.NotificationResponse;
+  itemId: string | null;
+  ownerUserId: string | null;
+  attempt: number;
+  malformed: boolean;
+  navigated: boolean;
+  resolvedItemId: string | null;
+};
+
+function coachNotificationIntent(
+  response: Notifications.NotificationResponse | null,
+  ownerUserId: string | null,
+): PendingCoachNotification | null {
+  const data = response?.notification.request.content.data;
+  if (!response || data?.type !== "coach_item") return null;
+  const valid =
+    data.version === 1 &&
+    typeof data.coachItemId === "string" &&
+    data.coachItemId.trim().length > 0;
+  return {
+    response,
+    itemId: valid ? data.coachItemId as string : null,
+    ownerUserId,
+    attempt: 0,
+    malformed: !valid,
+    navigated: false,
+    resolvedItemId: null,
+  };
 }
 
 function RootLayoutNav() {
@@ -56,7 +91,163 @@ function RootLayoutNav() {
   const authIdentity = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
   const authIdentityRef = useRef(authIdentity);
   authIdentityRef.current = authIdentity;
+  const authUserIdRef = useRef(user?.id ?? null);
+  authUserIdRef.current = user?.id ?? null;
   const [resumeRevision, setResumeRevision] = useState(0);
+  const [pendingCoachNotification, setPendingCoachNotification] =
+    useState<PendingCoachNotification | null>(() =>
+      coachNotificationIntent(Notifications.getLastNotificationResponse(), null),
+    );
+  const pendingCoachNotificationRef = useRef(pendingCoachNotification);
+  pendingCoachNotificationRef.current = pendingCoachNotification;
+  const notificationProcessingKeysRef = useRef(new Set<string>());
+  const notificationRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationBlockedIdentityRef = useRef<string | null>(
+    pendingCoachNotification ? "*" : null,
+  );
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const intent = coachNotificationIntent(response, authUserIdRef.current);
+        if (!intent) return;
+        if (notificationRetryTimerRef.current) clearTimeout(notificationRetryTimerRef.current);
+        notificationBlockedIdentityRef.current = "*";
+        pendingCoachNotificationRef.current = intent;
+        setPendingCoachNotification(intent);
+      },
+    );
+    return () => {
+      subscription.remove();
+      if (notificationRetryTimerRef.current) clearTimeout(notificationRetryTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      !pendingCoachNotification ||
+      isBootstrapping ||
+      !isLoggedIn ||
+      !hasCompletedOnboarding ||
+      !token ||
+      !user
+    ) return;
+
+    if (pendingCoachNotification.ownerUserId === null) {
+      const claimed = { ...pendingCoachNotification, ownerUserId: user.id };
+      notificationBlockedIdentityRef.current = authIdentity;
+      pendingCoachNotificationRef.current = claimed;
+      setPendingCoachNotification(claimed);
+      return;
+    }
+
+    const requestIdentity = authIdentity;
+    const responseIdentifier = pendingCoachNotification.response.notification.request.identifier;
+    const processingKey = `${requestIdentity}:${responseIdentifier}:${pendingCoachNotification.navigated ? "read" : "resolve"}:${pendingCoachNotification.attempt}`;
+    if (notificationProcessingKeysRef.current.has(processingKey)) return;
+    notificationProcessingKeysRef.current.add(processingKey);
+    notificationBlockedIdentityRef.current = requestIdentity;
+
+    const clearHandledIntent = () => {
+      if (
+        authIdentityRef.current !== requestIdentity ||
+        pendingCoachNotificationRef.current !== pendingCoachNotification
+      ) return;
+      if (notificationRetryTimerRef.current) {
+        clearTimeout(notificationRetryTimerRef.current);
+        notificationRetryTimerRef.current = null;
+      }
+      try {
+        const latestResponse = Notifications.getLastNotificationResponse();
+        if (latestResponse?.notification.request.identifier === responseIdentifier) {
+          Notifications.clearLastNotificationResponse();
+        }
+      } catch (error) {
+        if (__DEV__) console.warn("Could not clear handled notification response", error);
+      }
+      attemptedResumeForIdentity.current = requestIdentity;
+      notificationBlockedIdentityRef.current = null;
+      pendingCoachNotificationRef.current = null;
+      setPendingCoachNotification(null);
+    };
+
+    if (pendingCoachNotification.ownerUserId !== user.id) {
+      router.replace("/(tabs)/feed");
+      clearHandledIntent();
+      notificationProcessingKeysRef.current.delete(processingKey);
+      return;
+    }
+
+    if (pendingCoachNotification.malformed) {
+      router.replace("/(tabs)/feed");
+      clearHandledIntent();
+      notificationProcessingKeysRef.current.delete(processingKey);
+      return;
+    }
+
+    void (async () => {
+      try {
+        if (!pendingCoachNotification.navigated) {
+          const item = await getCoachItem(token, pendingCoachNotification.itemId!);
+          if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+          if (!isCoachTarget(item.target)) {
+            router.replace("/(tabs)/feed");
+            clearHandledIntent();
+            return;
+          }
+          const href = coachTargetHref(item.target) ?? "/(tabs)/feed";
+          router.replace(href);
+          const navigatedIntent: PendingCoachNotification = {
+            ...pendingCoachNotification,
+            navigated: true,
+            resolvedItemId: item.id,
+            attempt: 0,
+          };
+          pendingCoachNotificationRef.current = navigatedIntent;
+          setPendingCoachNotification(navigatedIntent);
+          return;
+        }
+
+        await markCoachItemRead(token, pendingCoachNotification.resolvedItemId!, "primaryAction");
+        if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+        clearHandledIntent();
+      } catch (error) {
+        if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+        const isTerminal =
+          error instanceof HttpError &&
+          error.status !== undefined &&
+          [400, 401, 403, 404, 410, 422].includes(error.status);
+        if (isTerminal) {
+          if (!pendingCoachNotification.navigated) {
+            router.replace("/(tabs)/feed");
+          }
+          clearHandledIntent();
+          return;
+        }
+        const retryDelay = Math.min(30000, 1000 * (2 ** pendingCoachNotification.attempt));
+        notificationRetryTimerRef.current = setTimeout(() => {
+          if (
+            authIdentityRef.current !== requestIdentity ||
+            pendingCoachNotificationRef.current !== pendingCoachNotification
+          ) return;
+          const retry = { ...pendingCoachNotification, attempt: pendingCoachNotification.attempt + 1 };
+          pendingCoachNotificationRef.current = retry;
+          setPendingCoachNotification(retry);
+        }, retryDelay);
+      } finally {
+        notificationProcessingKeysRef.current.delete(processingKey);
+      }
+    })();
+  }, [
+    authIdentity,
+    hasCompletedOnboarding,
+    isBootstrapping,
+    isLoggedIn,
+    pendingCoachNotification,
+    router,
+    token,
+    user,
+  ]);
 
   useEffect(() => {
     if (!isLoggedIn || !user) attemptedResumeForIdentity.current = null;
@@ -80,6 +271,9 @@ function RootLayoutNav() {
       !hasCompletedOnboarding ||
       !token ||
       !user ||
+      pendingCoachNotification ||
+      notificationBlockedIdentityRef.current === "*" ||
+      notificationBlockedIdentityRef.current === authIdentity ||
       attemptedResumeForIdentity.current === authIdentity ||
       segments.join("/").includes("active") ||
       segments.join("/").includes("reset-password") ||
@@ -120,6 +314,7 @@ function RootLayoutNav() {
     router,
     segments,
     resumeRevision,
+    pendingCoachNotification,
   ]);
 
   if (isBootstrapping || (!isLoggedIn && isRestoringOnboarding)) {
@@ -137,6 +332,22 @@ function RootLayoutNav() {
     <>
       {/* Maestro E2E marker: signals auth state has resolved. */}
       <View testID="auth-loaded" accessible={true} accessibilityLabel="auth-loaded" style={{ position: "absolute", width: 1, height: 1 }} />
+      {pendingCoachNotification ? (
+        <View
+          testID={pendingCoachNotification.attempt > 0
+            ? "coach-notification-routing-retry"
+            : pendingCoachNotification.navigated
+              ? "coach-notification-routing-read"
+              : "coach-notification-routing"}
+          accessible={true}
+          accessibilityLabel={pendingCoachNotification.attempt > 0
+            ? "Retrying Coach notification"
+            : pendingCoachNotification.navigated
+              ? "Saving Coach notification read status"
+              : "Opening Coach notification"}
+          style={{ position: "absolute", width: 1, height: 1 }}
+        />
+      ) : null}
       <Stack
         screenOptions={{
           animation: "slide_from_right",

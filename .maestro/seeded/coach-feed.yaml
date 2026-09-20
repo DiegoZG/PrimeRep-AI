@@ -1,0 +1,163 @@
+# Deterministic Part 7 interaction coverage.
+# Requires the documented Coach E2E fixture account and IDs in .maestro/README.md.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: coach-fixture@example.com
+  LOGIN_PASSWORD: StrongPass123
+  PROGRESSION_ID: coach-fixture-progression
+  CONSISTENCY_ID: coach-fixture-consistency
+  OLDER_ID: coach-fixture-older
+---
+- runFlow: ../flows/launch-app.yaml
+- runFlow: ../flows/auth-login.yaml
+- tapOn:
+    id: "tab-coach"
+- extendedWaitUntil:
+    visible:
+      id: "coach-feed-ready"
+    timeout: 15000
+
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-program_review"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-missed_workout"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-recovery"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-progression"
+    direction: DOWN
+- scrollUntilVisible:
+    element: "Move up on Dumbbell Shoulder Press"
+    direction: DOWN
+- assertVisible: ".*lb total.*"
+- scrollUntilVisible:
+    element: "Your next useful move"
+    direction: UP
+- scrollUntilVisible:
+    element: "Move up on Front Squat"
+    direction: DOWN
+- assertVisible: "Your next Front Squat target is .* lb."
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-personal_record"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "coach-item-kind-consistency"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "coach-item-ai-${PROGRESSION_ID}"
+    direction: UP
+- assertVisible:
+    id: "coach-item-ai-${PROGRESSION_ID}"
+
+- scrollUntilVisible:
+    element:
+      id: "coach-item-why-${PROGRESSION_ID}"
+    direction: UP
+- tapOn:
+    id: "coach-item-why-${PROGRESSION_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "coach-item-detail-${PROGRESSION_ID}"
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: "coach-item-read-${PROGRESSION_ID}"
+    timeout: 5000
+
+- scrollUntilVisible:
+    element:
+      id: "coach-item-dismiss-${CONSISTENCY_ID}"
+    direction: DOWN
+    centerElement: true
+- assertVisible:
+    id: "coach-item-dismiss-${CONSISTENCY_ID}"
+- tapOn:
+    id: "coach-item-dismiss-${CONSISTENCY_ID}"
+- extendedWaitUntil:
+    visible: "Dismiss this guidance?"
+    timeout: 3000
+- tapOn: "Dismiss"
+- extendedWaitUntil:
+    notVisible:
+      id: "coach-item-${CONSISTENCY_ID}"
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: "coach-earlier-guidance"
+    direction: DOWN
+- tapOn:
+    id: "coach-earlier-guidance"
+- scrollUntilVisible:
+    element:
+      id: "coach-item-${OLDER_ID}"
+    direction: DOWN
+- assertVisible:
+    id: "coach-item-${OLDER_ID}"
+
+- scrollUntilVisible:
+    element:
+      id: "coach-item-action-${PROGRESSION_ID}"
+    direction: UP
+    centerElement: true
+- assertVisible:
+    id: "coach-item-action-${PROGRESSION_ID}"
+- tapOn:
+    id: "coach-item-action-${PROGRESSION_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "start-workout-button"
+    timeout: 15000
+- tapOn: "Back from workout details"
+- extendedWaitUntil:
+    visible:
+      id: "coach-screen"
+    timeout: 10000
+
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- tapOn: "Use pounds"
+- scrollUntilVisible:
+    element:
+      id: "settings-coach-reminder-time"
+    direction: DOWN
+- extendedWaitUntil:
+    visible:
+      id: "settings-coach-reminder-time"
+    timeout: 10000
+- tapOn:
+    id: "settings-coach-reminder-time"
+- eraseText
+- inputText: "08:15"
+- tapOn:
+    id: "settings-save-coach-time"
+- extendedWaitUntil:
+    visible:
+      id: "settings-coach-saved"
+    timeout: 10000
+- assertVisible: "08:15"
+- tapOn: "Back from Settings"
+- tapOn:
+    id: "tab-coach"
+- extendedWaitUntil:
+    visible:
+      id: "coach-screen"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "coach-item-${PROGRESSION_ID}"
+    direction: DOWN
+- assertVisible: ".*65 lb.*"

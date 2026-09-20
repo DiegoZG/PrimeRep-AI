@@ -25,8 +25,10 @@ import {
   type LastSet,
 } from "@/services/workoutLoggingService";
 import { mapApiWorkoutDay } from "@/services/workoutWeekService";
+import { resolveFriendlyLoad } from "@/utils/attainableLoads";
 import { AuthContext } from "@/utils/authContext";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
+import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
 import {
   clearActiveWorkout,
   createClientId,
@@ -207,6 +209,7 @@ export default function ActiveWorkoutScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
+  const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
 
@@ -374,7 +377,8 @@ export default function ActiveWorkoutScreen() {
   //   2. Last logged weight from history
   // Reps always come from history. Wait for unit preference so values match display unit.
   useEffect(() => {
-    if (!unitReady || !lastSetsLoaded || sets.length === 0 || hasPrefilledRef.current) return;
+    const inventoryReady = equipmentWeights.hasLoaded || Boolean(equipmentWeights.error);
+    if (!unitReady || !inventoryReady || !lastSetsLoaded || sets.length === 0 || hasPrefilledRef.current) return;
     hasPrefilledRef.current = true;
     setSets((prev) =>
       prev.map((s) => {
@@ -382,9 +386,20 @@ export default function ActiveWorkoutScreen() {
         const item = exercises.find((e) => e.exercise.id === s.exerciseId);
         const match = findHistoryForSet(lastSetsByExercise[s.exerciseId], s.setNumber);
         const suggestedKg = item?.prescription.suggestedWeightKg;
+        const friendlySuggestion = suggestedKg != null && item
+          ? resolveFriendlyLoad({
+              targetWeightKg: suggestedKg,
+              currentWeightKg: item.prescription.suggestedPreviousWeightKg,
+              reason: item.prescription.suggestedWeightReason ?? "hold",
+              equipmentIds: item.exercise.requiredEquipmentIds,
+              weightUnit,
+              dumbbellWeights: equipmentWeights.dumbbellWeights,
+              plateWeights: equipmentWeights.plateWeights,
+            })
+          : null;
         const prefillWeight =
-          suggestedKg != null
-            ? formatWeightInput(fromKg(suggestedKg, weightUnit))
+          friendlySuggestion
+            ? formatWeightInput(fromKg(friendlySuggestion.workingWeightKg, weightUnit))
             : match?.weightKg != null
             ? formatWeightInput(fromKg(match.weightKg, weightUnit))
             : s.weight;
@@ -393,7 +408,18 @@ export default function ActiveWorkoutScreen() {
         return { ...s, weight: prefillWeight, reps: prefillReps };
       })
     );
-  }, [unitReady, lastSetsLoaded, sets.length, lastSetsByExercise, weightUnit, exercises]);
+  }, [
+    unitReady,
+    lastSetsLoaded,
+    sets.length,
+    lastSetsByExercise,
+    weightUnit,
+    exercises,
+    equipmentWeights.dumbbellWeights,
+    equipmentWeights.error,
+    equipmentWeights.hasLoaded,
+    equipmentWeights.plateWeights,
+  ]);
 
   // Confirmed set count (overall, across all exercises)
   const confirmedCount = useMemo(() => sets.filter((s) => s.confirmed && !s.deleted).length, [sets]);
@@ -473,6 +499,31 @@ export default function ActiveWorkoutScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
+  const currentEquipmentIds = currentItem?.exercise.requiredEquipmentIds ?? [];
+  const weightColumnLabel = currentEquipmentIds.includes("dumbbells")
+    ? "Weight each"
+    : currentEquipmentIds.includes("olympic_barbell")
+      ? "Total weight"
+      : "Weight";
+  const currentFriendlySuggestion = useMemo(() => {
+    const targetWeightKg = currentItem?.prescription.suggestedWeightKg;
+    if (targetWeightKg == null || !currentItem || !unitReady) return null;
+    return resolveFriendlyLoad({
+      targetWeightKg,
+      currentWeightKg: currentItem.prescription.suggestedPreviousWeightKg,
+      reason: currentItem.prescription.suggestedWeightReason ?? "hold",
+      equipmentIds: currentItem.exercise.requiredEquipmentIds,
+      weightUnit,
+      dumbbellWeights: equipmentWeights.dumbbellWeights,
+      plateWeights: equipmentWeights.plateWeights,
+    });
+  }, [
+    currentItem,
+    equipmentWeights.dumbbellWeights,
+    equipmentWeights.plateWeights,
+    unitReady,
+    weightUnit,
+  ]);
 
   const currentSets = useMemo(() => {
     if (!currentItem) return [];
@@ -1427,6 +1478,29 @@ export default function ActiveWorkoutScreen() {
                 {exerciseNotes[currentItem.exercise.id]}
               </ThemedText>
             ) : null}
+            {currentFriendlySuggestion ? (
+              <View
+                testID={`player-load-setup-${currentItem.exercise.id}`}
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.inputBorder,
+                  backgroundColor: colors.inputBackground,
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 11,
+                  marginBottom: 16,
+                }}
+              >
+                <ThemedText style={{ color: colors.text, fontWeight: "700", fontSize: 13 }}>
+                  Next setup: {currentFriendlySuggestion.displayText}
+                </ThemedText>
+                {currentFriendlySuggestion.adjustmentNote ? (
+                  <ThemedText style={{ color: colors.placeholder, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+                    {currentFriendlySuggestion.adjustmentNote}
+                  </ThemedText>
+                ) : null}
+              </View>
+            ) : null}
 
             {isRestingCurrentExercise && restEndsAt !== null ? (
               <RestTimer
@@ -1459,7 +1533,7 @@ export default function ActiveWorkoutScreen() {
                         textTransform: "uppercase",
                       }}
                     >
-                      Weight
+                      {weightColumnLabel}
                     </ThemedText>
                     <View
                       style={{
