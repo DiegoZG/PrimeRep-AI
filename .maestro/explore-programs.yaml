@@ -64,10 +64,16 @@ env:
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      id: "program-day-down-1"
+      id: "program-day-menu-1"
     direction: DOWN
 - tapOn:
-    id: "program-day-down-1"
+    id: "program-day-menu-1"
+- tapOn:
+    id: "program-day-move-later"
+- extendedWaitUntil:
+    visible:
+      id: "program-day-order-minimal-a-2"
+    timeout: 3000
 - scrollUntilVisible:
     element:
       id: "program-save"
