@@ -126,6 +126,12 @@ Elements with `testID` props added for Maestro targeting:
 | `program-filter-{field}-{value}` | `Pressable` | applies a catalog filter |
 | `program-builder-day-{position}` | `View` | identifies a draft workout day |
 | `program-builder-day-open-{position}` | `Pressable` | opens an ordered draft workout day |
+| `program-day-handle-{position}` | gesture target | drags a visible workout day; exposes increment/decrement accessibility actions |
+| `program-day-menu-{position}` | `Pressable` | opens the cross-platform fallback action sheet |
+| `program-day-move-earlier` / `program-day-move-later` | `Pressable` | moves the selected day one persistent position |
+| `program-day-request-remove` | `Pressable` | opens the explicit remove confirmation step |
+| `program-day-confirm-remove` | `Pressable` | confirms removal after the separate warning step |
+| `program-day-order-{title}-{position}` | persistent state marker | identifies a named workout day's saved draft position |
 | `program-day-add-exercise` | `Pressable` | opens the exercise picker |
 | `program-exercise-{position}` | `View` | identifies an ordered draft exercise |
 | `custom-exercise-save` | `Pressable` | creates or updates a private custom exercise |
@@ -152,6 +158,8 @@ Elements with `testID` props added for Maestro targeting:
 ---
 
 ## Architecture Notes
+
+Program-day handle dragging is intentionally limited to visible nearby rows; it does not auto-scroll the form. Every row's **Options** sheet remains available for repeated one-position moves, including long five-to-seven-day programs.
 
 ### iOS Keychain Warning
 

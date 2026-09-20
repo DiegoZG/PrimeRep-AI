@@ -17,6 +17,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { getActiveSession } from "@/services/workoutLoggingService";
 import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
@@ -206,24 +207,26 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <NotificationsProvider>
-          <OnboardingProvider>
-            <EquipmentWeightsProvider>
-              <EquipmentProvider>
-                <WorkoutWeekProvider>
-                  <ProgramDraftProvider>
-                    <ActiveWorkoutProvider>
-                      <RootLayoutNav />
-                    </ActiveWorkoutProvider>
-                  </ProgramDraftProvider>
-                </WorkoutWeekProvider>
-              </EquipmentProvider>
-            </EquipmentWeightsProvider>
-          </OnboardingProvider>
-        </NotificationsProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <AuthProvider>
+          <NotificationsProvider>
+            <OnboardingProvider>
+              <EquipmentWeightsProvider>
+                <EquipmentProvider>
+                  <WorkoutWeekProvider>
+                    <ProgramDraftProvider>
+                      <ActiveWorkoutProvider>
+                        <RootLayoutNav />
+                      </ActiveWorkoutProvider>
+                    </ProgramDraftProvider>
+                  </WorkoutWeekProvider>
+                </EquipmentProvider>
+              </EquipmentWeightsProvider>
+            </OnboardingProvider>
+          </NotificationsProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

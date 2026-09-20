@@ -1,19 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  AccessibilityInfo,
+  Alert,
+  findNodeHandle,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type AccessibilityActionEvent,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  interpolateColor,
+  LinearTransition,
+  ReduceMotion,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProgramHeader } from "@/components/program";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import type { ProgramGoal, ProgramLevel } from "@/interfaces/programs";
+import type { DraftProgramDay, ProgramGoal, ProgramLevel } from "@/interfaces/programs";
 import { createProgram, updateProgram } from "@/services/programService";
 import { HttpError } from "@/services/httpClient";
 import { AuthContext } from "@/utils/authContext";
 import { useProgramDraft } from "@/utils/programDraftContext";
 import { PROGRAM_GOAL_LABELS, PROGRAM_LEVEL_LABELS } from "@/utils/programDisplay";
+
+const MOVE_DURATION_MS = 210;
+const MOVED_HIGHLIGHT_MS = 850;
+const DAY_GAP = 11;
+
+type DayActionState = { dayId: string; step: "actions" | "confirmRemove" } | null;
 
 export default function ProgramBuilderScreen() {
   const router = useRouter();
@@ -23,6 +54,12 @@ export default function ProgramBuilderScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aliasesText, setAliasesText] = useState(draft.aliases.join(", "));
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [movedDayId, setMovedDayId] = useState<string | null>(null);
+  const [dayAction, setDayAction] = useState<DayActionState>(null);
+  const reduceMotion = useReducedMotion();
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isEditing = Boolean(draft.templateId);
   const accountRef = useRef(`${user?.id ?? "guest"}:${token ?? "anonymous"}`);
   accountRef.current = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
@@ -34,8 +71,62 @@ export default function ProgramBuilderScreen() {
     return () => {
       mountedRef.current = false;
       mutationRef.current += 1;
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
     };
   }, []);
+
+  const showMovedState = (dayId: string, title: string, destination: number) => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setMovedDayId(dayId);
+    highlightTimerRef.current = setTimeout(() => setMovedDayId((current) => current === dayId ? null : current), MOVED_HIGHLIGHT_MS);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setTimeout(() => {
+      AccessibilityInfo.announceForAccessibility(`${title} moved to position ${destination + 1} of ${draft.days.length}.`);
+    }, reduceMotion ? 0 : 80);
+  };
+
+  const moveDayTo = (dayId: string, destination: number) => {
+    const source = draft.days.findIndex((day) => day.localId === dayId);
+    const clampedDestination = Math.max(0, Math.min(destination, draft.days.length - 1));
+    if (source < 0 || source === clampedDestination) return false;
+    const direction: -1 | 1 = clampedDestination > source ? 1 : -1;
+    for (let step = 0; step < Math.abs(clampedDestination - source); step += 1) moveDay(dayId, direction);
+    const day = draft.days[source];
+    showMovedState(dayId, day.title, clampedDestination);
+    setError(null);
+    return true;
+  };
+
+  const moveDayBy = (dayId: string, direction: -1 | 1) => {
+    const source = draft.days.findIndex((day) => day.localId === dayId);
+    if (source >= 0) moveDayTo(dayId, source + direction);
+  };
+
+  const finishDrag = (dayId: string, destination: number) => {
+    const moved = moveDayTo(dayId, destination);
+    if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+    if (reduceMotion || !moved) setActiveDragId(null);
+    else dragTimerRef.current = setTimeout(() => setActiveDragId((current) => current === dayId ? null : current), MOVE_DURATION_MS);
+  };
+
+  const cancelDrag = (dayId: string) => setActiveDragId((current) => current === dayId ? null : current);
+
+  const selectedActionDay = dayAction ? draft.days.find((day) => day.localId === dayAction.dayId) ?? null : null;
+  const selectedActionIndex = selectedActionDay ? draft.days.findIndex((day) => day.localId === selectedActionDay.localId) : -1;
+
+  const moveSelectedDay = (direction: -1 | 1) => {
+    if (!selectedActionDay) return;
+    moveDayBy(selectedActionDay.localId, direction);
+    setDayAction(null);
+  };
+
+  const removeSelectedDay = () => {
+    if (!selectedActionDay) return;
+    removeDay(selectedActionDay.localId);
+    setError(null);
+    setDayAction(null);
+  };
 
   const validation = useMemo(() => {
     if (draft.name.trim().length < 2) return "Give your program a name.";
@@ -88,7 +179,7 @@ export default function ProgramBuilderScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
       <ProgramHeader title={isEditing ? "Edit program" : "Build program"} subtitle="Repeats every week" onBack={() => router.back()} backDisabled={saving} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} scrollEnabled={!activeDragId}>
           <FieldLabel text="Program name" />
           <TextInput testID="program-name-input" accessibilityLabel="Program name" value={draft.name} onChangeText={(name) => { updateMetadata({ name }); setError(null); }} placeholder="My strength plan" placeholderTextColor={colors.placeholder} style={[styles.input, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
           <FieldLabel text="What is this program for?" />
@@ -104,37 +195,253 @@ export default function ProgramBuilderScreen() {
           <FieldLabel text="Workout duration" />
           <View style={styles.wrap}>{[25, 35, 45, 60].map((duration) => <Choice key={duration} testID={`program-duration-${duration}`} label={`${duration} min`} selected={draft.durationMinutes === duration} onPress={() => updateMetadata({ durationMinutes: duration })} colors={colors} />)}</View>
 
-          <View style={styles.daysTitle}><View style={styles.flex}><ThemedText style={styles.sectionTitle}>Workout days</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{draft.days.length}/7 days · drag-free ordering</ThemedText></View><Pressable testID="program-add-day" accessibilityRole="button" accessibilityLabel="Add workout day" accessibilityState={{ disabled: draft.days.length >= 7 }} disabled={draft.days.length >= 7} onPress={() => { addDay(); setError(null); }} style={[styles.addDay, { backgroundColor: colors.primaryButton, opacity: draft.days.length >= 7 ? 0.4 : 1 }]}><Ionicons name="add" size={22} color="#FFF" /></Pressable></View>
-          {draft.days.map((day, index) => (
-            <View testID={`program-builder-day-${index + 1}`} key={day.localId} style={[styles.dayCard, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}>
-              <Pressable testID={`program-builder-day-open-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Edit ${day.title}`} onPress={() => router.push({ pathname: "/programs/day", params: { dayId: day.localId } })} style={styles.dayMain}>
-                <View style={[styles.dayNumber, { backgroundColor: "rgba(106,79,245,0.12)" }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "900" }}>{index + 1}</ThemedText></View>
-                <View style={styles.flex}><ThemedText style={styles.dayName}>{day.title}</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{day.exercises.length} {day.exercises.length === 1 ? "exercise" : "exercises"}</ThemedText></View>
-                <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
-              </Pressable>
-              <View style={[styles.dayActions, { borderTopColor: colors.inputBorder }]}>
-                <MoveButton label={`Move ${day.title} up`} icon="arrow-up" disabled={index === 0} onPress={() => moveDay(day.localId, -1)} colors={colors} testID={`program-day-up-${index + 1}`} />
-                <MoveButton label={`Move ${day.title} down`} icon="arrow-down" disabled={index === draft.days.length - 1} onPress={() => moveDay(day.localId, 1)} colors={colors} testID={`program-day-down-${index + 1}`} />
-                <Pressable testID={`program-day-remove-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Remove ${day.title}`} onPress={() => removeDay(day.localId)} style={styles.move}><Ionicons name="trash-outline" size={20} color="#D92D20" /></Pressable>
-              </View>
-            </View>
-          ))}
+          <View style={styles.daysTitle}><View style={styles.flex}><ThemedText style={styles.sectionTitle}>Workout days</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{draft.days.length}/7 days · Drag nearby or use Options to move farther</ThemedText></View><Pressable testID="program-add-day" accessibilityRole="button" accessibilityLabel="Add workout day" accessibilityState={{ disabled: draft.days.length >= 7 }} disabled={draft.days.length >= 7} onPress={() => { addDay(); setError(null); }} style={[styles.addDay, { backgroundColor: colors.primaryButton, opacity: draft.days.length >= 7 ? 0.4 : 1 }]}><Ionicons name="add" size={22} color="#FFF" /></Pressable></View>
+          {draft.days.map((day, index) => <ReorderableDay
+            key={day.localId}
+            day={day}
+            index={index}
+            count={draft.days.length}
+            colors={colors}
+            reduceMotion={reduceMotion}
+            isDragging={activeDragId === day.localId}
+            isMoved={movedDayId === day.localId}
+            onOpen={() => router.push({ pathname: "/programs/day", params: { dayId: day.localId } })}
+            onOptions={() => setDayAction({ dayId: day.localId, step: "actions" })}
+            onMove={(direction) => moveDayBy(day.localId, direction)}
+            onDragStart={() => setActiveDragId(day.localId)}
+            onDrop={(destination) => finishDrag(day.localId, destination)}
+            onDragCancel={() => cancelDrag(day.localId)}
+          />)}
           {error ? <ThemedText testID="program-builder-error" accessibilityRole="alert" style={styles.error}>{error}</ThemedText> : null}
           <Pressable testID="program-save" accessibilityRole="button" accessibilityLabel={isEditing ? "Save program changes" : "Create program"} accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => void save()} style={[styles.save, { backgroundColor: colors.primaryButton, opacity: saving ? 0.65 : 1 }]}><ThemedText style={styles.saveText}>{saving ? "Saving…" : isEditing ? "Save changes" : "Create program"}</ThemedText></Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
+      <DayActionSheet
+        visible={Boolean(selectedActionDay)}
+        step={dayAction?.step ?? "actions"}
+        day={selectedActionDay}
+        index={selectedActionIndex}
+        count={draft.days.length}
+        colors={colors}
+        reduceMotion={reduceMotion}
+        onClose={() => setDayAction(null)}
+        onMove={moveSelectedDay}
+        onRequestRemove={() => selectedActionDay && setDayAction({ dayId: selectedActionDay.localId, step: "confirmRemove" })}
+        onConfirmRemove={removeSelectedDay}
+      />
     </SafeAreaView>
   );
 }
 
 function FieldLabel({ text }: { text: string }) { return <ThemedText style={styles.label}>{text}</ThemedText>; }
 function Choice({ label, selected, onPress, colors, testID }: { label: string; selected: boolean; onPress: () => void; colors: typeof Colors.light; testID: string }) { return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={label} onPress={onPress} style={[styles.choice, { borderColor: selected ? colors.primaryButton : colors.inputBorder, backgroundColor: selected ? "rgba(106,79,245,0.11)" : colors.inputBackground }]}><ThemedText style={{ color: selected ? colors.primaryButton : colors.text, fontWeight: "700" }}>{label}</ThemedText></Pressable>; }
-function MoveButton({ label, icon, disabled, onPress, colors, testID }: { label: string; icon: "arrow-up" | "arrow-down"; disabled: boolean; onPress: () => void; colors: typeof Colors.light; testID: string }) { return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.move, { opacity: disabled ? 0.3 : 1 }]}><Ionicons name={icon} size={20} color={colors.text} /></Pressable>; }
+
+function DayActionSheet({ visible, step, day, index, count, colors, reduceMotion, onClose, onMove, onRequestRemove, onConfirmRemove }: {
+  visible: boolean;
+  step: "actions" | "confirmRemove";
+  day: DraftProgramDay | null;
+  index: number;
+  count: number;
+  colors: typeof Colors.light;
+  reduceMotion: boolean;
+  onClose: () => void;
+  onMove: (direction: -1 | 1) => void;
+  onRequestRemove: () => void;
+  onConfirmRemove: () => void;
+}) {
+  if (!day) return null;
+  const isConfirmation = step === "confirmRemove";
+  return (
+    <Modal visible={visible} transparent animationType={reduceMotion ? "none" : "fade"} onRequestClose={onClose} statusBarTranslucent>
+      <View style={styles.sheetOverlay}>
+        <Pressable testID="program-day-options-backdrop" accessibilityRole="button" accessibilityLabel="Close workout day options" onPress={onClose} style={StyleSheet.absoluteFill} />
+        <SafeAreaView edges={["bottom"]} style={[styles.sheet, { backgroundColor: colors.background }]} accessibilityViewIsModal>
+          <View style={[styles.sheetGrabber, { backgroundColor: colors.inputBorder }]} />
+          <ThemedText style={styles.sheetTitle}>{isConfirmation ? `Remove ${day.title}?` : day.title}</ThemedText>
+          <ThemedText style={[styles.sheetMessage, { color: colors.placeholder }]}>
+            {isConfirmation
+              ? "This removes the workout day and all of its exercises from this draft."
+              : `Position ${index + 1} of ${count}. Move it one place at a time or remove it.`}
+          </ThemedText>
+          {isConfirmation ? (
+            <>
+              <SheetAction testID="program-day-confirm-remove" icon="trash-outline" label="Remove workout day" destructive onPress={onConfirmRemove} colors={colors} />
+              <SheetAction testID="program-day-confirm-cancel" icon="close" label="Keep workout day" onPress={onClose} colors={colors} />
+            </>
+          ) : (
+            <>
+              <SheetAction testID="program-day-move-earlier" icon="arrow-up" label="Move earlier" disabled={index <= 0} onPress={() => onMove(-1)} colors={colors} />
+              <SheetAction testID="program-day-move-later" icon="arrow-down" label="Move later" disabled={index >= count - 1} onPress={() => onMove(1)} colors={colors} />
+              <SheetAction testID="program-day-request-remove" icon="trash-outline" label="Remove workout day" destructive onPress={onRequestRemove} colors={colors} />
+              <SheetAction testID="program-day-options-cancel" icon="close" label="Cancel" onPress={onClose} colors={colors} />
+            </>
+          )}
+        </SafeAreaView>
+      </View>
+    </Modal>
+  );
+}
+
+function SheetAction({ testID, icon, label, destructive = false, disabled = false, onPress, colors }: {
+  testID: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  destructive?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  colors: typeof Colors.light;
+}) {
+  const color = destructive ? "#D92D20" : colors.text;
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.sheetAction, { borderTopColor: colors.inputBorder, opacity: disabled ? 0.35 : pressed ? 0.65 : 1 }]}
+    >
+      <Ionicons name={icon} size={21} color={color} />
+      <ThemedText style={[styles.sheetActionText, { color }]}>{label}</ThemedText>
+    </Pressable>
+  );
+}
+
+function ReorderableDay({ day, index, count, colors, reduceMotion, isDragging, isMoved, onOpen, onOptions, onMove, onDragStart, onDrop, onDragCancel }: {
+  day: DraftProgramDay;
+  index: number;
+  count: number;
+  colors: typeof Colors.light;
+  reduceMotion: boolean;
+  isDragging: boolean;
+  isMoved: boolean;
+  onOpen: () => void;
+  onOptions: () => void;
+  onMove: (direction: -1 | 1) => void;
+  onDragStart: () => void;
+  onDrop: (destination: number) => void;
+  onDragCancel: () => void;
+}) {
+  const translateY = useSharedValue(0);
+  const dragActive = useSharedValue(0);
+  const movedProgress = useSharedValue(0);
+  const rowStride = useSharedValue(89);
+  const handleRef = useRef<View>(null);
+  const dragStartRef = useRef(onDragStart);
+  const dropRef = useRef(onDrop);
+  const dragCancelRef = useRef(onDragCancel);
+  dragStartRef.current = onDragStart;
+  dropRef.current = onDrop;
+  dragCancelRef.current = onDragCancel;
+  const beginDragOnRN = useCallback(() => dragStartRef.current(), []);
+  const finishDropOnRN = useCallback((destination: number) => dropRef.current(destination), []);
+  const cancelDragOnRN = useCallback(() => dragCancelRef.current(), []);
+
+  useEffect(() => {
+    movedProgress.value = withTiming(isMoved ? 1 : 0, { duration: reduceMotion ? 0 : 160, reduceMotion: ReduceMotion.System });
+    if (!isMoved) return;
+    void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
+      const node = findNodeHandle(handleRef.current);
+      if (enabled && node) AccessibilityInfo.setAccessibilityFocus(node);
+    });
+  }, [isMoved, movedProgress, reduceMotion]);
+
+  const dragGesture = useMemo(() => Gesture.Pan()
+    .minDistance(3)
+    .onStart(() => {
+      dragActive.value = 1;
+      translateY.value = 0;
+      scheduleOnRN(beginDragOnRN);
+    })
+    .onUpdate((event) => {
+      translateY.value = event.translationY;
+    })
+    .onEnd((event) => {
+      const stride = Math.max(1, rowStride.value);
+      const destination = Math.max(0, Math.min(count - 1, Math.round(index + event.translationY / stride)));
+      if (destination !== index) translateY.value = event.translationY - (destination - index) * stride;
+      translateY.value = withTiming(0, { duration: reduceMotion ? 0 : MOVE_DURATION_MS, reduceMotion: ReduceMotion.System });
+      dragActive.value = 0;
+      scheduleOnRN(finishDropOnRN, destination);
+    })
+    .onFinalize((_event, success) => {
+      if (success) return;
+      translateY.value = withTiming(0, { duration: reduceMotion ? 0 : 140, reduceMotion: ReduceMotion.System });
+      dragActive.value = 0;
+      scheduleOnRN(cancelDragOnRN);
+    }), [beginDragOnRN, cancelDragOnRN, count, dragActive, finishDropOnRN, index, reduceMotion, rowStride, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    borderColor: interpolateColor(movedProgress.value, [0, 1], [colors.inputBorder, colors.primaryButton]),
+    borderWidth: 1 + movedProgress.value,
+    transform: [
+      { translateY: translateY.value },
+      { scale: reduceMotion ? 1 : 1 + dragActive.value * 0.018 },
+    ],
+    zIndex: dragActive.value ? 20 : 0,
+  }), [colors.inputBorder, colors.primaryButton, reduceMotion]);
+
+  const accessibilityActions = [
+    ...(index > 0 ? [{ name: "decrement", label: "Move earlier" }] : []),
+    ...(index < count - 1 ? [{ name: "increment", label: "Move later" }] : []),
+  ];
+  const onAccessibilityAction = (event: AccessibilityActionEvent) => {
+    if (event.nativeEvent.actionName === "decrement" && index > 0) onMove(-1);
+    if (event.nativeEvent.actionName === "increment" && index < count - 1) onMove(1);
+  };
+  const orderTestKey = day.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "untitled";
+
+  return (
+    <Animated.View
+      testID={`program-builder-day-${index + 1}`}
+      onLayout={(event) => { rowStride.value = event.nativeEvent.layout.height + DAY_GAP; }}
+      layout={isDragging ? undefined : LinearTransition.duration(reduceMotion ? 0 : MOVE_DURATION_MS).reduceMotion(ReduceMotion.System)}
+      style={[
+        styles.dayCard,
+        { backgroundColor: colors.inputBackground },
+        isDragging && styles.draggingCard,
+        animatedStyle,
+      ]}
+    >
+      <View testID={`program-day-order-${orderTestKey}-${index + 1}`} collapsable={false} pointerEvents="none" style={StyleSheet.absoluteFill} />
+      <View style={styles.dayRow}>
+        <GestureDetector gesture={dragGesture}>
+          <Animated.View style={styles.handleContainer}>
+            <View
+              ref={handleRef}
+              testID={`program-day-handle-${index + 1}`}
+              accessible
+              accessibilityRole="adjustable"
+              accessibilityLabel={`Reorder ${day.title}, position ${index + 1} of ${count}`}
+              accessibilityValue={{ text: `Position ${index + 1} of ${count}` }}
+              accessibilityHint="Drag up or down, or use the move actions"
+              accessibilityActions={accessibilityActions}
+              onAccessibilityAction={onAccessibilityAction}
+              style={styles.handle}
+            >
+              <Ionicons name="reorder-three-outline" size={23} color={isDragging ? colors.primaryButton : colors.placeholder} />
+            </View>
+          </Animated.View>
+        </GestureDetector>
+        <Pressable testID={`program-builder-day-open-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Edit ${day.title}, position ${index + 1} of ${count}`} onPress={onOpen} style={styles.dayMain}>
+          <View style={[styles.dayNumber, { backgroundColor: "rgba(106,79,245,0.12)" }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "900" }}>{index + 1}</ThemedText></View>
+          <View style={styles.flex}><ThemedText numberOfLines={1} style={styles.dayName}>{day.title}</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{day.exercises.length} {day.exercises.length === 1 ? "exercise" : "exercises"}</ThemedText></View>
+          <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+        </Pressable>
+        <Pressable testID={`program-day-menu-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Options for ${day.title}`} accessibilityHint="Move or remove this workout day" onPress={onOptions} style={styles.menu}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, flex: { flex: 1 }, content: { padding: 22, paddingBottom: 52 }, label: { marginTop: 19, marginBottom: 8, fontSize: 15, fontWeight: "800" },
   input: { minHeight: 52, borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, fontSize: 16 }, description: { minHeight: 96, paddingTop: 14, textAlignVertical: "top" }, wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 15, alignItems: "center", justifyContent: "center" },
   daysTitle: { marginTop: 31, marginBottom: 12, flexDirection: "row", alignItems: "center" }, sectionTitle: { fontSize: 21, fontWeight: "900" }, helper: { marginTop: 3, fontSize: 12 }, addDay: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  dayCard: { borderWidth: 1, borderRadius: 19, marginBottom: 11, overflow: "hidden" }, dayMain: { minHeight: 75, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }, dayNumber: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" }, dayName: { fontSize: 16, fontWeight: "800" }, dayActions: { minHeight: 48, borderTopWidth: 1, flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 6 }, move: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  dayCard: { borderRadius: 19, marginBottom: 11 }, dayRow: { minHeight: 78, paddingHorizontal: 7, flexDirection: "row", alignItems: "center" }, draggingCard: { elevation: 9, shadowColor: "#000", shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.22, shadowRadius: 12 }, handleContainer: { width: 44, height: 44 }, handle: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, dayMain: { minHeight: 64, flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }, dayNumber: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" }, dayName: { fontSize: 16, fontWeight: "800" }, menu: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)" }, sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 }, sheetGrabber: { width: 38, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 18 }, sheetTitle: { fontSize: 21, fontWeight: "900", textAlign: "center" }, sheetMessage: { marginTop: 6, marginBottom: 18, paddingHorizontal: 12, textAlign: "center", lineHeight: 20 }, sheetAction: { minHeight: 54, borderTopWidth: 1, flexDirection: "row", alignItems: "center", gap: 13, paddingHorizontal: 10 }, sheetActionText: { fontSize: 16, fontWeight: "700" },
   error: { color: "#D92D20", marginTop: 12, lineHeight: 20 }, save: { minHeight: 56, marginTop: 22, borderRadius: 18, alignItems: "center", justifyContent: "center" }, saveText: { color: "#FFF", fontSize: 17, fontWeight: "900" },
 });
