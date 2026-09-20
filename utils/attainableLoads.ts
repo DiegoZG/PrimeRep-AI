@@ -6,6 +6,8 @@ import {
 } from "@/utils/weightUnits";
 
 type LoadReason = "increase" | "hold" | "deload" | "record";
+export type LoadDisplayMode = "compact" | "detailed";
+export const LOAD_DISPLAY_MODE: LoadDisplayMode = "compact";
 
 type LoadCandidate = {
   displayWeight: number;
@@ -26,6 +28,7 @@ type FriendlyLoadInput = {
   weightUnit: WeightUnit;
   dumbbellWeights: number[];
   plateWeights: number[];
+  displayMode?: LoadDisplayMode;
 };
 
 const LB_DUMBBELLS = [
@@ -43,6 +46,10 @@ const EPSILON = 0.01;
 
 function label(value: number, unit: WeightUnit) {
   return `${formatWeightInput(value)} ${unit.toLowerCase()}`;
+}
+
+function usesDetailedDisplay(input: FriendlyLoadInput) {
+  return (input.displayMode ?? LOAD_DISPLAY_MODE) === "detailed";
 }
 
 function uniquePositive(values: number[]) {
@@ -167,12 +174,9 @@ function machineLoad(input: FriendlyLoadInput): FriendlyLoad {
       : input.reason === "hold"
         ? Math.round(target / increment) * increment
         : target;
-  const isStack = input.equipmentIds.some(
-    (id) => id.includes("machine") || id.includes("cable"),
-  );
   return {
     workingWeightKg: toKg(displayWeight, input.weightUnit),
-    displayText: `${label(displayWeight, input.weightUnit)}${isStack ? " on the stack" : ""}`,
+    displayText: label(displayWeight, input.weightUnit),
     adjustmentNote: null,
   };
 }
@@ -200,7 +204,9 @@ export function resolveFriendlyLoad(input: FriendlyLoadInput): FriendlyLoad {
     const perHand = candidate?.displayWeight ?? target;
     return {
       workingWeightKg: toKg(perHand, input.weightUnit),
-      displayText: `2 × ${label(perHand, input.weightUnit)} (${label(perHand * 2, input.weightUnit)} total)`,
+      displayText: usesDetailedDisplay(input)
+        ? `2 × ${label(perHand, input.weightUnit)} (${label(perHand * 2, input.weightUnit)} total)`
+        : `${label(perHand * 2, input.weightUnit)} total`,
       adjustmentNote: limited
         ? "The next available dumbbell pair would be too large a jump, so stay with this pair for now."
         : null,
@@ -233,7 +239,9 @@ export function resolveFriendlyLoad(input: FriendlyLoadInput): FriendlyLoad {
       : "no plates";
     return {
       workingWeightKg: toKg(candidate.displayWeight, input.weightUnit),
-      displayText: `${label(candidate.displayWeight, input.weightUnit)} total — ${label(barWeight, input.weightUnit)} bar + ${side}`,
+      displayText: usesDetailedDisplay(input)
+        ? `${label(candidate.displayWeight, input.weightUnit)} total — ${label(barWeight, input.weightUnit)} bar + ${side}`
+        : label(candidate.displayWeight, input.weightUnit),
       adjustmentNote: limited
         ? "The next available plate setup would be too large a jump, so use the closest safer setup for now."
         : null,
@@ -268,7 +276,9 @@ export function resolveFriendlyLoad(input: FriendlyLoadInput): FriendlyLoad {
     const plates = candidate.platesPerSide ?? [];
     return {
       workingWeightKg: toKg(candidate.displayWeight, input.weightUnit),
-      displayText: `${label(candidate.displayWeight, input.weightUnit)} loaded — ${plates.map((plate) => formatWeightInput(plate)).join(" + ")} ${input.weightUnit.toLowerCase()} per side`,
+      displayText: usesDetailedDisplay(input)
+        ? `${label(candidate.displayWeight, input.weightUnit)} loaded — ${plates.map((plate) => formatWeightInput(plate)).join(" + ")} ${input.weightUnit.toLowerCase()} per side`
+        : label(candidate.displayWeight, input.weightUnit),
       adjustmentNote: limited
         ? "The next available plate setup would be too large a jump, so use the closest safer setup for now."
         : null,

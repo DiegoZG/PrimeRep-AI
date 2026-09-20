@@ -37,11 +37,14 @@ env:
 - scrollUntilVisible:
     element: "Move up on Dumbbell Shoulder Press"
     direction: DOWN
-- assertVisible: ".*2 × .* total.*"
+- assertVisible: ".*lb total.*"
+- scrollUntilVisible:
+    element: "Your next useful move"
+    direction: UP
 - scrollUntilVisible:
     element: "Move up on Front Squat"
-    direction: UP
-- assertVisible: ".*total — 45 lb bar.*"
+    direction: DOWN
+- assertVisible: "Your next Front Squat target is .* lb."
 - scrollUntilVisible:
     element:
       id: "coach-item-kind-personal_record"
@@ -76,9 +79,7 @@ env:
     element:
       id: "coach-item-dismiss-${CONSISTENCY_ID}"
     direction: DOWN
-- swipe:
-    direction: UP
-    duration: 300
+    centerElement: true
 - assertVisible:
     id: "coach-item-dismiss-${CONSISTENCY_ID}"
 - tapOn:
@@ -109,6 +110,9 @@ env:
     element:
       id: "coach-item-action-${PROGRESSION_ID}"
     direction: UP
+    centerElement: true
+- assertVisible:
+    id: "coach-item-action-${PROGRESSION_ID}"
 - tapOn:
     id: "coach-item-action-${PROGRESSION_ID}"
 - extendedWaitUntil:
