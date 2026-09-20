@@ -30,6 +30,10 @@ import {
   saveWeightUnit,
   WeightUnit,
 } from "@/utils/weightUnits";
+import {
+  ThemePreference,
+  useAppearance,
+} from "@/utils/appearanceContext";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -42,6 +46,12 @@ export default function SettingsScreen() {
     unregisterCurrentDevice,
     openSettings: openNotificationSettings,
   } = useContext(NotificationsContext);
+  const {
+    preference: themePreference,
+    isReady: isAppearanceReady,
+    isSaving: isSavingAppearance,
+    setPreference: setThemePreference,
+  } = useAppearance();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
@@ -227,6 +237,14 @@ export default function SettingsScreen() {
     setIsSavingUnit(false);
   }, [isUnitReady, weightUnit]);
 
+  const handleThemePreference = useCallback(async (preference: ThemePreference) => {
+    try {
+      await setThemePreference(preference);
+    } catch {
+      Alert.alert("Could Not Save Appearance", "Please try again.");
+    }
+  }, [setThemePreference]);
+
   const handleLogOut = useCallback(async () => {
     if (!token || isLoggingOut) return;
     setIsLoggingOut(true);
@@ -326,6 +344,42 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Appearance</ThemedText>
+        <View
+          accessibilityRole="radiogroup"
+          style={[
+            styles.card,
+            styles.sectionCard,
+            styles.preferenceControl,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          {(["system", "light", "dark"] as const).map((preference) => {
+            const selected = themePreference === preference;
+            const disabled = !isAppearanceReady || isSavingAppearance;
+            const label = preference.charAt(0).toUpperCase() + preference.slice(1);
+            return (
+              <Pressable
+                key={preference}
+                testID={`settings-appearance-${preference}`}
+                accessibilityRole="radio"
+                accessibilityLabel={`Use ${label.toLowerCase()} appearance`}
+                accessibilityState={{ checked: selected, disabled }}
+                onPress={() => void handleThemePreference(preference)}
+                disabled={disabled}
+                style={[
+                  styles.preferenceOption,
+                  selected && { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Units</ThemedText>
         <View
           style={[
@@ -683,6 +737,24 @@ const styles = StyleSheet.create({
   unitControl: {
     flexDirection: "row",
     padding: 4,
+  },
+  preferenceControl: {
+    flexDirection: "row",
+    padding: 4,
+  },
+  preferenceOption: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 11,
+  },
+  preferenceText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  selectedPreferenceText: {
+    color: "#fff",
   },
   unitOption: {
     flex: 1,

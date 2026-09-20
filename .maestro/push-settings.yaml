@@ -15,3 +15,11 @@ env:
 - assertVisible: "Push Notifications"
 - assertVisible:
     id: "settings-coach-notifications"
+- assertVisible:
+    id: "settings-appearance-system"
+- tapOn:
+    id: "settings-appearance-dark"
+- assertVisible:
+    id: "settings-appearance-dark"
+- tapOn:
+    id: "settings-appearance-system"
