@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Fonts } from "@/constants/theme";
 import type { CoachFeedItem, CoachFeedItemKind } from "@/interfaces/coach";
-import { formatWeightInput, fromKg, type WeightUnit } from "@/utils/weightUnits";
+import { resolveFriendlyLoad } from "@/utils/attainableLoads";
+import type { WeightUnit } from "@/utils/weightUnits";
 
 export interface CoachPalette {
   canvas: string;
@@ -74,6 +75,8 @@ type Props = {
   busy: boolean;
   isLast: boolean;
   weightUnit: WeightUnit | null;
+  dumbbellWeights: number[];
+  plateWeights: number[];
   onToggleDetail: () => void;
   onPrimaryAction: () => void;
   onDismiss: () => void;
@@ -86,18 +89,30 @@ export function CoachBriefingItem({
   busy,
   isLast,
   weightUnit,
+  dumbbellWeights,
+  plateWeights,
   onToggleDetail,
   onPrimaryAction,
   onDismiss,
 }: Props) {
   const presentation = KIND_PRESENTATION[item.kind] ?? UNKNOWN_PRESENTATION;
-  const weightLabel = item.weightData && weightUnit
-    ? `${formatWeightInput(fromKg(item.weightData.weightKg, weightUnit))} ${weightUnit.toLowerCase()}`
+  const friendlyLoad = item.weightData && weightUnit
+    ? resolveFriendlyLoad({
+        targetWeightKg: item.weightData.weightKg,
+        currentWeightKg: item.weightData.currentWeightKg,
+        reason: item.weightData.context === "record"
+          ? "record"
+          : item.weightData.recommendation ?? "hold",
+        equipmentIds: item.weightData.equipmentIds ?? [],
+        weightUnit,
+        dumbbellWeights,
+        plateWeights,
+      })
     : null;
-  const body = weightLabel && item.weightData
+  const body = friendlyLoad && item.weightData
     ? item.weightData.context === "target"
-      ? `Your next ${item.weightData.exerciseName} target is ${weightLabel}.`
-      : `You lifted ${weightLabel}—your heaviest logged set for this exercise.`
+      ? `Your next ${item.weightData.exerciseName} target is ${friendlyLoad.displayText}.`
+      : `You lifted ${friendlyLoad.displayText}—your heaviest logged set for this exercise.`
     : item.body;
   const hasDestination = item.target.type !== "none";
   const nodeStyle =
@@ -169,6 +184,14 @@ export function CoachBriefingItem({
         <ThemedText style={[styles.body, { color: palette.ink2 }]}>
           {body}
         </ThemedText>
+        {friendlyLoad?.adjustmentNote ? (
+          <ThemedText
+            testID={`coach-item-load-note-${item.id}`}
+            style={[styles.loadNote, { color: palette.ink3 }]}
+          >
+            {friendlyLoad.adjustmentNote}
+          </ThemedText>
+        ) : null}
 
         {expanded && item.detail ? (
           <View
@@ -326,6 +349,11 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 13.5,
     lineHeight: 20.25,
+    marginTop: 5,
+  },
+  loadNote: {
+    fontSize: 12.5,
+    lineHeight: 18,
     marginTop: 5,
   },
   detail: {

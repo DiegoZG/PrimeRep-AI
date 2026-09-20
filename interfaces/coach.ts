@@ -36,6 +36,9 @@ export interface CoachItemDetail {
     context: "target" | "record";
     exerciseName: string;
     weightKg: number;
+    currentWeightKg?: number | null;
+    recommendation?: "increase" | "hold" | "deload" | null;
+    equipmentIds: string[];
   } | null;
   isAiAssisted: boolean;
   readAt: string | null;

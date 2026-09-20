@@ -9,6 +9,7 @@ export interface WorkoutApiPrescription {
   repsMax?: number;
   restSeconds: number;
   suggestedWeightKg?: number | null;
+  suggestedPreviousWeightKg?: number | null;
   suggestedWeightReason?: "increase" | "hold" | "deload" | null;
 }
 
@@ -53,6 +54,7 @@ export interface Prescription {
   reps: string;
   restSeconds: number;
   suggestedWeightKg?: number;
+  suggestedPreviousWeightKg?: number;
   suggestedWeightReason?: "increase" | "hold" | "deload";
 }
 

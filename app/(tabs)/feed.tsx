@@ -18,6 +18,7 @@ import { listCompletedSessions } from "@/services/workoutLoggingService";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
 import { coachTargetHref } from "@/utils/coachNavigation";
+import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
 import { localDateIso } from "@/utils/localDate";
 import { loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
@@ -82,6 +83,7 @@ export default function CoachScreen() {
   const { token, user } = useContext(AuthContext);
   const { activeWorkout, refreshActiveWorkout } = useActiveWorkout();
   const { weekPlan, getSortedWorkouts, syncCurrentWeek } = useWorkoutWeek();
+  const equipmentWeights = useContext(EquipmentWeightsContext);
   const [ownedFeed, setOwnedFeed] = useState<OwnedFeed | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<{ ownerUserId: string; templateId: string | null } | null>(null);
   const [completedWorkoutIds, setCompletedWorkoutIds] = useState<OwnedCompletedWorkoutIds | null>(null);
@@ -499,7 +501,7 @@ export default function CoachScreen() {
       <FlatList
         data={response?.items ?? []}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={busyIds.has(item.id)} isLast={index === (response?.items.length ?? 0) - 1} weightUnit={weightUnit} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
+        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={busyIds.has(item.id)} isLast={index === (response?.items.length ?? 0) - 1} weightUnit={weightUnit} dumbbellWeights={equipmentWeights.dumbbellWeights} plateWeights={equipmentWeights.plateWeights} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
         ListHeaderComponent={header}
         ListFooterComponent={response?.hasMore || pageError ? <View style={styles.footer}>{pageError ? <ThemedText accessibilityRole="alert" style={[styles.pageError, { color: palette.error }]}>{pageError}</ThemedText> : null}<Pressable testID="coach-earlier-guidance" accessibilityRole="button" accessibilityLabel="Load earlier guidance" accessibilityState={{ disabled: loadingMore, busy: loadingMore }} disabled={loadingMore} onPress={() => void loadEarlier()} style={[styles.earlierButton, { borderColor: palette.separator, opacity: loadingMore ? 0.55 : 1 }]}><ThemedText style={[styles.earlierText, { color: palette.accent }]}>{loadingMore ? "Loading earlier guidance…" : "Earlier guidance"}</ThemedText></Pressable></View> : <View style={styles.bottomSpace} />}
         contentContainerStyle={styles.content}
