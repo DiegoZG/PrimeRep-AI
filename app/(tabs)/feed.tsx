@@ -10,7 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
-import type { CoachFeedItem, CoachFeedResponse, CoachNextAction, CoachTarget } from "@/interfaces/coach";
+import type { CoachFeedItem, CoachFeedResponse, CoachFeedView, CoachNextAction, CoachTarget } from "@/interfaces/coach";
 import type { WorkoutDay } from "@/interfaces/workouts";
 import { dismissCoachItem, getCoachFeed, markCoachItemRead } from "@/services/coachService";
 import { getActiveProgram } from "@/services/programService";
@@ -37,8 +37,14 @@ const PALETTES: Record<"light" | "dark", CoachPalette> = {
   },
 };
 
-type OwnedFeed = { ownerUserId: string; response: CoachFeedResponse };
+type OwnedFeed = { ownerUserId: string; view: CoachFeedView; response: CoachFeedResponse };
 type OwnedCompletedWorkoutIds = { ownerUserId: string; workoutDayIds: Set<string> };
+
+const VIEW_OPTIONS: { value: CoachFeedView; label: string }[] = [
+  { value: "now", label: "Now" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last7Days", label: "Last 7 days" },
+];
 
 function exerciseCount(workout: WorkoutDay | null) {
   return workout?.blocks.reduce((total, block) => total + block.items.length, 0) ?? 0;
@@ -85,6 +91,7 @@ export default function CoachScreen() {
   const { weekPlan, getSortedWorkouts, syncCurrentWeek } = useWorkoutWeek();
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const [ownedFeed, setOwnedFeed] = useState<OwnedFeed | null>(null);
+  const [selectedView, setSelectedView] = useState<CoachFeedView>("now");
   const [activeTemplate, setActiveTemplate] = useState<{ ownerUserId: string; templateId: string | null } | null>(null);
   const [completedWorkoutIds, setCompletedWorkoutIds] = useState<OwnedCompletedWorkoutIds | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -105,11 +112,17 @@ export default function CoachScreen() {
   const dismissMutationVersionsRef = useRef(new Map<string, number>());
   const ownedFeedRef = useRef<OwnedFeed | null>(ownedFeed);
   ownedFeedRef.current = ownedFeed;
+  const selectedViewRef = useRef<CoachFeedView>(selectedView);
+  selectedViewRef.current = selectedView;
   const accountRef = useRef(`${user?.id ?? "guest"}:${token ?? "anonymous"}`);
   accountRef.current = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
   const userId = user?.id ?? null;
   const accountKey = accountRef.current;
-  const response = ownedFeed?.ownerUserId === userId ? ownedFeed.response : null;
+  const response = ownedFeed?.ownerUserId === userId && ownedFeed.view === selectedView
+    ? ownedFeed.response
+    : null;
+  const isHistory = selectedView !== "now";
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   const animateChange = useCallback(() => {
     if (reduceMotion) return;
@@ -135,6 +148,8 @@ export default function CoachScreen() {
     readMutationVersionsRef.current.clear();
     dismissMutationVersionsRef.current.clear();
     setOwnedFeed(null);
+    selectedViewRef.current = "now";
+    setSelectedView("now");
     setActiveTemplate(null);
     setCompletedWorkoutIds(null);
     setInitialLoading(Boolean(token && userId));
@@ -147,24 +162,30 @@ export default function CoachScreen() {
     setBusyIds(new Set());
   }, [accountKey, token, userId]);
 
-  const loadFirstPage = useCallback(async (source: "focus" | "pull" | "retry") => {
+  const loadFirstPage = useCallback(async (
+    source: "focus" | "pull" | "retry" | "filter",
+    requestedView?: CoachFeedView,
+  ) => {
     if (!token || !userId) return null;
+    const feedView = requestedView ?? selectedViewRef.current;
     const requestId = ++firstRequestRef.current;
     pageRequestRef.current += 1;
     const requestAccount = accountKey;
     const currentOwnedFeed = ownedFeedRef.current;
-    const existing = currentOwnedFeed?.ownerUserId === userId ? currentOwnedFeed : null;
+    const existing = currentOwnedFeed?.ownerUserId === userId && currentOwnedFeed.view === feedView
+      ? currentOwnedFeed
+      : null;
     if (!existing) setInitialLoading(true);
     if (source === "pull") setRefreshing(true);
     setLoadingMore(false);
     setLoadError(null);
     setPageError(null);
     try {
-      const feed = await getCoachFeed(token, localDateIso());
+      const feed = await getCoachFeed(token, localDateIso(), { view: feedView, timeZone });
       if (firstRequestRef.current !== requestId || accountRef.current !== requestAccount) return null;
       animateChange();
       const previousCount = existing?.response.items.length ?? 0;
-      setOwnedFeed({ ownerUserId: userId, response: feed });
+      setOwnedFeed({ ownerUserId: userId, view: feedView, response: feed });
       if (source === "pull" && feed.items.length > previousCount) {
         const count = feed.items.length - previousCount;
         AccessibilityInfo.announceForAccessibility(`${count} new coach ${count === 1 ? "update" : "updates"} loaded.`);
@@ -180,7 +201,7 @@ export default function CoachScreen() {
         setRefreshing(false);
       }
     }
-  }, [accountKey, animateChange, token, userId]);
+  }, [accountKey, animateChange, timeZone, token, userId]);
 
   const loadActiveTemplate = useCallback(async () => {
     if (!token || !userId) return;
@@ -239,7 +260,7 @@ export default function CoachScreen() {
     setLoadingMore(true);
     setPageError(null);
     try {
-      const page = await getCoachFeed(token, localDateIso(), { cursor: response.nextCursor });
+      const page = await getCoachFeed(token, localDateIso(), { cursor: response.nextCursor, view: selectedView, timeZone });
       if (pageRequestRef.current !== requestId || accountRef.current !== requestAccount) return;
       const current = ownedFeedRef.current?.ownerUserId === userId
         ? ownedFeedRef.current.response
@@ -247,14 +268,14 @@ export default function CoachScreen() {
       const ids = new Set(current.items.map((item) => item.id));
       const additions = page.items.filter((item) => !ids.has(item.id));
       animateChange();
-      setOwnedFeed({ ownerUserId: userId, response: { ...current, items: [...current.items, ...additions], nextCursor: page.nextCursor, hasMore: page.hasMore, generatedAt: page.generatedAt } });
+      setOwnedFeed({ ownerUserId: userId, view: selectedView, response: { ...current, items: [...current.items, ...additions], nextCursor: page.nextCursor, hasMore: page.hasMore, generatedAt: page.generatedAt } });
       AccessibilityInfo.announceForAccessibility(`${additions.length} earlier ${additions.length === 1 ? "update" : "updates"} loaded.`);
     } catch {
       if (pageRequestRef.current === requestId && accountRef.current === requestAccount) setPageError("Earlier guidance couldn’t load. Try again.");
     } finally {
       if (pageRequestRef.current === requestId && accountRef.current === requestAccount) setLoadingMore(false);
     }
-  }, [accountKey, animateChange, loadingMore, response, token, userId]);
+  }, [accountKey, animateChange, loadingMore, response, selectedView, timeZone, token, userId]);
 
   const markRead = useCallback((item: CoachFeedItem, reason: "expanded" | "primaryAction") => {
     if (!token || !userId || item.readAt || readMutationVersionsRef.current.has(item.id)) return;
@@ -329,8 +350,8 @@ export default function CoachScreen() {
       if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
       return next;
     });
-    if (willExpand) markRead(item, "expanded");
-  }, [animateChange, expandedIds, markRead]);
+    if (willExpand && !isHistory) markRead(item, "expanded");
+  }, [animateChange, expandedIds, isHistory, markRead]);
 
   const handleItemAction = useCallback((item: CoachFeedItem) => {
     markRead(item, "primaryAction");
@@ -426,7 +447,7 @@ export default function CoachScreen() {
   const newCount = response?.items.filter((item) => !item.readAt).length ?? 0;
   const showActiveHero = Boolean(activeWorkout || displayedAction?.type === "active_workout");
   const showCaughtUp = !activeWorkout && (displayedAction?.type === "caught_up" || (response?.items.length === 0 && displayedAction?.type === "planned_workout" && Boolean(plannedWorkout?.date && plannedWorkout.date > localDateIso())));
-  const hasFallbackTraining = Boolean(activeWorkout || fallbackAction);
+  const hasFallbackTraining = !isHistory && Boolean(activeWorkout || fallbackAction);
   const showFullInitialError = Boolean(loadError && !response && !hasFallbackTraining);
 
   const openHero = useCallback(() => {
@@ -438,6 +459,22 @@ export default function CoachScreen() {
   const openProgram = useCallback(() => {
     if (heroTemplateId) router.push({ pathname: "/programs/[templateId]", params: { templateId: heroTemplateId } });
   }, [heroTemplateId, router]);
+
+  const selectView = useCallback((view: CoachFeedView) => {
+    if (view === selectedView) return;
+    animateChange();
+    selectedViewRef.current = view;
+    setSelectedView(view);
+    setInitialLoading(true);
+    setRefreshing(false);
+    setLoadingMore(false);
+    setLoadError(null);
+    setPageError(null);
+    setMutationError(null);
+    setExpandedIds(new Set());
+    setBusyIds(new Set());
+    void loadFirstPage("filter", view);
+  }, [animateChange, loadFirstPage, selectedView]);
 
   const header = (
     <View>
@@ -454,7 +491,32 @@ export default function CoachScreen() {
         <ThemedText style={[styles.pullHint, { color: palette.ink3 }]}>{refreshing ? "Refreshing…" : "Pull to refresh"}</ThemedText>
       </View>
 
-      {showActiveHero ? (
+      <View
+        testID="coach-view-filter"
+        accessibilityLabel="Coach timeline period"
+        style={[styles.viewFilter, { backgroundColor: palette.surface, borderColor: palette.separator }]}
+      >
+        {VIEW_OPTIONS.map((option) => {
+          const selected = selectedView === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              testID={`coach-view-${option.value}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${option.label.toLowerCase()} Coach guidance`}
+              accessibilityState={{ selected }}
+              onPress={() => selectView(option.value)}
+              style={[styles.viewOption, selected && { backgroundColor: palette.accentSoft }]}
+            >
+              <ThemedText style={[styles.viewOptionText, { color: selected ? palette.accent : palette.ink2 }]}>
+                {option.label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {!isHistory && showActiveHero ? (
         <View testID="coach-hero-active" style={styles.hero}>
           <SectionRule title="WORKOUT IN PROGRESS" palette={palette} />
           <ThemedText style={[styles.heroTitle, { color: palette.ink }]}>{activeWorkout?.title ?? displayedAction?.title}</ThemedText>
@@ -466,7 +528,7 @@ export default function CoachScreen() {
             {heroTemplateId ? <Pressable testID="coach-view-program" accessibilityRole="button" accessibilityLabel="View active program" onPress={openProgram} style={[styles.heroSecondary, { borderColor: palette.separator }]}><ThemedText style={[styles.heroSecondaryText, { color: palette.accent }]}>View program</ThemedText></Pressable> : null}
           </View>
         </View>
-      ) : showCaughtUp ? (
+      ) : !isHistory && showCaughtUp ? (
         <View testID="coach-hero-caught-up" style={styles.hero}>
           <SectionRule title="CAUGHT UP" palette={palette} />
           <ThemedText style={[styles.caughtUpTitle, { color: palette.ink }]}>You’re caught up</ThemedText>
@@ -476,7 +538,7 @@ export default function CoachScreen() {
             <Pressable testID="coach-preview-workout" accessibilityRole="button" accessibilityLabel={`Preview ${plannedWorkout.title}`} onPress={openHero} style={[styles.previewButton, { borderColor: palette.separator }]}><ThemedText style={[styles.previewText, { color: palette.accent }]}>Preview</ThemedText></Pressable>
           </View> : null}
         </View>
-      ) : displayedAction && displayedAction.type !== "caught_up" ? (
+      ) : !isHistory && displayedAction && displayedAction.type !== "caught_up" ? (
         <View testID="coach-hero-next" style={styles.hero}>
           <SectionRule title="NEXT MOVE" palette={palette} />
           <ThemedText style={[styles.heroTitle, { color: palette.ink }]}>{displayedAction.title}</ThemedText>
@@ -489,10 +551,17 @@ export default function CoachScreen() {
         </View>
       ) : null}
 
-      {showFullInitialError ? <View testID="coach-initial-error" accessibilityRole="alert" style={styles.fullError}><Ionicons name="cloud-offline-outline" size={28} color={palette.error} /><ThemedText style={[styles.fullErrorTitle, { color: palette.ink }]}>Coach guidance is unavailable</ThemedText><ThemedText style={[styles.fullErrorBody, { color: palette.ink2 }]}>We couldn’t load guidance or confirm an unfinished workout. Check your connection and try again.</ThemedText><Pressable testID="coach-retry" accessibilityRole="button" accessibilityLabel="Try loading coach updates again" onPress={() => void loadFirstPage("retry")} style={[styles.tryAgain, { borderColor: palette.error }]}><ThemedText style={[styles.tryAgainText, { color: palette.error }]}>Try again</ThemedText></Pressable></View> : loadError ? <View testID="coach-inline-error" accessibilityRole="alert" style={[styles.errorBanner, { backgroundColor: palette.errorSoft }]}><Ionicons name="alert-circle-outline" size={18} color={palette.error} /><View style={styles.errorCopy}><ThemedText style={[styles.errorTitle, { color: palette.ink }]}>Coach updates couldn’t be refreshed.</ThemedText><ThemedText style={[styles.errorBody, { color: palette.ink2 }]}>{response ? "Showing guidance from your last successful refresh." : activeWorkout ? "Your active workout is still available above." : "Your next confirmed unfinished workout is still available above."}</ThemedText></View><Pressable testID="coach-retry" accessibilityRole="button" accessibilityLabel="Try loading coach updates again" onPress={() => void loadFirstPage("retry")} style={[styles.tryAgain, { borderColor: palette.error }]}><ThemedText style={[styles.tryAgainText, { color: palette.error }]}>Try again</ThemedText></Pressable></View> : null}
-      {mutationError ? <View testID="coach-mutation-error" accessibilityRole="alert" style={styles.mutationErrorRow}><ThemedText style={[styles.mutationErrorText, { color: palette.error }]}>{mutationError}</ThemedText><Pressable accessibilityRole="button" accessibilityLabel="Dismiss error message" onPress={() => setMutationError(null)} style={styles.closeError}><Ionicons name="close" size={18} color={palette.error} /></Pressable></View> : null}
+      {showFullInitialError ? <View testID="coach-initial-error" accessibilityRole="alert" style={styles.fullError}><Ionicons name="cloud-offline-outline" size={28} color={palette.error} /><ThemedText style={[styles.fullErrorTitle, { color: palette.ink }]}>{isHistory ? "Coach history is unavailable" : "Coach guidance is unavailable"}</ThemedText><ThemedText style={[styles.fullErrorBody, { color: palette.ink2 }]}>{isHistory ? "We couldn’t load guidance from this period. Check your connection and try again." : "We couldn’t load guidance or confirm an unfinished workout. Check your connection and try again."}</ThemedText><Pressable testID="coach-retry" accessibilityRole="button" accessibilityLabel="Try loading coach updates again" onPress={() => void loadFirstPage("retry")} style={[styles.tryAgain, { borderColor: palette.error }]}><ThemedText style={[styles.tryAgainText, { color: palette.error }]}>Try again</ThemedText></Pressable></View> : loadError ? <View testID="coach-inline-error" accessibilityRole="alert" style={[styles.errorBanner, { backgroundColor: palette.errorSoft }]}><Ionicons name="alert-circle-outline" size={18} color={palette.error} /><View style={styles.errorCopy}><ThemedText style={[styles.errorTitle, { color: palette.ink }]}>Coach updates couldn’t be refreshed.</ThemedText><ThemedText style={[styles.errorBody, { color: palette.ink2 }]}>{response ? "Showing guidance from your last successful refresh." : activeWorkout ? "Your active workout is still available above." : "Your next confirmed unfinished workout is still available above."}</ThemedText></View><Pressable testID="coach-retry" accessibilityRole="button" accessibilityLabel="Try loading coach updates again" onPress={() => void loadFirstPage("retry")} style={[styles.tryAgain, { borderColor: palette.error }]}><ThemedText style={[styles.tryAgainText, { color: palette.error }]}>Try again</ThemedText></Pressable></View> : null}
+      {!isHistory && mutationError ? <View testID="coach-mutation-error" accessibilityRole="alert" style={styles.mutationErrorRow}><ThemedText style={[styles.mutationErrorText, { color: palette.error }]}>{mutationError}</ThemedText><Pressable accessibilityRole="button" accessibilityLabel="Dismiss error message" onPress={() => setMutationError(null)} style={styles.closeError}><Ionicons name="close" size={18} color={palette.error} /></Pressable></View> : null}
       {initialLoading && !response ? <Skeleton palette={palette} /> : null}
-      {response?.items.length ? <SectionRule title="BRIEFING" trailing={newCount ? `${newCount} new` : undefined} palette={palette} /> : null}
+      {response?.items.length ? <SectionRule title={selectedView === "now" ? "BRIEFING" : selectedView === "yesterday" ? "YESTERDAY" : "PREVIOUS 7 DAYS"} trailing={!isHistory && newCount ? `${newCount} new` : undefined} palette={palette} /> : null}
+      {isHistory && response && response.items.length === 0 ? (
+        <View testID={`coach-history-empty-${selectedView}`} style={styles.historyEmpty}>
+          <Ionicons name="time-outline" size={24} color={palette.ink3} />
+          <ThemedText style={[styles.historyEmptyTitle, { color: palette.ink }]}>No guidance from this period</ThemedText>
+          <ThemedText style={[styles.historyEmptyBody, { color: palette.ink2 }]}>Your current coaching stays in Now. Completed workouts remain available in Workout History.</ThemedText>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -501,9 +570,9 @@ export default function CoachScreen() {
       <FlatList
         data={response?.items ?? []}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={busyIds.has(item.id)} isLast={index === (response?.items.length ?? 0) - 1} weightUnit={weightUnit} dumbbellWeights={equipmentWeights.dumbbellWeights} plateWeights={equipmentWeights.plateWeights} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
+        renderItem={({ item, index }) => <CoachBriefingItem item={item} palette={palette} expanded={expandedIds.has(item.id)} busy={!isHistory && busyIds.has(item.id)} historical={isHistory} isLast={index === (response?.items.length ?? 0) - 1} weightUnit={weightUnit} dumbbellWeights={equipmentWeights.dumbbellWeights} plateWeights={equipmentWeights.plateWeights} onToggleDetail={() => toggleDetail(item)} onPrimaryAction={() => handleItemAction(item)} onDismiss={() => confirmDismiss(item)} />}
         ListHeaderComponent={header}
-        ListFooterComponent={response?.hasMore || pageError ? <View style={styles.footer}>{pageError ? <ThemedText accessibilityRole="alert" style={[styles.pageError, { color: palette.error }]}>{pageError}</ThemedText> : null}<Pressable testID="coach-earlier-guidance" accessibilityRole="button" accessibilityLabel="Load earlier guidance" accessibilityState={{ disabled: loadingMore, busy: loadingMore }} disabled={loadingMore} onPress={() => void loadEarlier()} style={[styles.earlierButton, { borderColor: palette.separator, opacity: loadingMore ? 0.55 : 1 }]}><ThemedText style={[styles.earlierText, { color: palette.accent }]}>{loadingMore ? "Loading earlier guidance…" : "Earlier guidance"}</ThemedText></Pressable></View> : <View style={styles.bottomSpace} />}
+        ListFooterComponent={response?.hasMore || pageError ? <View style={styles.footer}>{pageError ? <ThemedText accessibilityRole="alert" style={[styles.pageError, { color: palette.error }]}>{pageError}</ThemedText> : null}<Pressable testID="coach-earlier-guidance" accessibilityRole="button" accessibilityLabel={isHistory ? "Load more guidance from this period" : "Load earlier guidance"} accessibilityState={{ disabled: loadingMore, busy: loadingMore }} disabled={loadingMore} onPress={() => void loadEarlier()} style={[styles.earlierButton, { borderColor: palette.separator, opacity: loadingMore ? 0.55 : 1 }]}><ThemedText style={[styles.earlierText, { color: palette.accent }]}>{loadingMore ? "Loading guidance…" : isHistory ? "More from this period" : "Earlier guidance"}</ThemedText></Pressable></View> : <View style={styles.bottomSpace} />}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
@@ -523,6 +592,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 2 },
   refreshButton: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   pullHint: { textAlign: "center", fontSize: 11, lineHeight: 15, marginTop: 16, marginBottom: 6 },
+  viewFilter: { flexDirection: "row", borderWidth: 1, borderRadius: 13, padding: 3, marginTop: 4, marginBottom: 22 },
+  viewOption: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
+  viewOptionText: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
   refreshCopy: { textAlign: "center", fontSize: 11, lineHeight: 15, marginBottom: 18 },
   sectionRule: { flexDirection: "row", alignItems: "center", minHeight: 24, marginTop: 2, marginBottom: 7, gap: 9 },
   sectionLabel: { fontFamily: Fonts.mono, fontSize: 9.5, lineHeight: 12, fontWeight: "700", letterSpacing: 0.85 },
@@ -565,6 +637,9 @@ const styles = StyleSheet.create({
   skeletonRail: { width: StyleSheet.hairlineWidth, flex: 1, marginTop: 4 },
   skeletonCopy: { flex: 1, marginLeft: 12, gap: 8, paddingBottom: 22 },
   skeletonLine: { borderRadius: 4 },
+  historyEmpty: { alignItems: "center", paddingHorizontal: 26, paddingVertical: 38 },
+  historyEmptyTitle: { fontSize: 18, lineHeight: 23, fontWeight: "700", marginTop: 10, textAlign: "center" },
+  historyEmptyBody: { fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 320, textAlign: "center" },
   footer: { alignItems: "center", paddingBottom: 28, paddingTop: 2 },
   pageError: { fontSize: 12, lineHeight: 17, marginBottom: 8 },
   earlierButton: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },

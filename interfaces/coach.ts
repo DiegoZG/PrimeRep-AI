@@ -65,6 +65,7 @@ export interface CoachPreferences {
 }
 
 export type CoachReadReason = "expanded" | "primaryAction";
+export type CoachFeedView = "now" | "yesterday" | "last7Days";
 
 const FEED_ITEM_KINDS: ReadonlySet<string> = new Set([
   "progression",

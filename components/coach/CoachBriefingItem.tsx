@@ -77,6 +77,7 @@ type Props = {
   weightUnit: WeightUnit | null;
   dumbbellWeights: number[];
   plateWeights: number[];
+  historical?: boolean;
   onToggleDetail: () => void;
   onPrimaryAction: () => void;
   onDismiss: () => void;
@@ -91,6 +92,7 @@ export function CoachBriefingItem({
   weightUnit,
   dumbbellWeights,
   plateWeights,
+  historical = false,
   onToggleDetail,
   onPrimaryAction,
   onDismiss,
@@ -114,7 +116,7 @@ export function CoachBriefingItem({
       ? `Your next ${item.weightData.exerciseName} target is ${friendlyLoad.displayText}.`
       : `You lifted ${friendlyLoad.displayText}—your heaviest logged set for this exercise.`
     : item.body;
-  const hasDestination = item.target.type !== "none";
+  const hasDestination = !historical && item.target.type !== "none";
   const nodeStyle =
     presentation.node === "action"
       ? { backgroundColor: palette.accent, borderColor: palette.accent }
@@ -159,14 +161,14 @@ export function CoachBriefingItem({
           <ThemedText style={[styles.meta, { color: palette.ink3 }]}>
             {timeLabel(item.createdAt)}
           </ThemedText>
-          {!item.readAt ? (
+          {!historical ? !item.readAt ? (
             <ThemedText
               testID={`coach-item-new-${item.id}`}
               style={[styles.newLabel, { color: palette.accent }]}
             >
               NEW
             </ThemedText>
-          ) : <View testID={`coach-item-read-${item.id}`} style={styles.stateMarker} />}
+          ) : <View testID={`coach-item-read-${item.id}`} style={styles.stateMarker} /> : null}
           {item.isAiAssisted ? (
             <ThemedText
               testID={`coach-item-ai-${item.id}`}
@@ -240,18 +242,20 @@ export function CoachBriefingItem({
             </Pressable>
           ) : null}
         </View>
-        <Pressable
-          testID={`coach-item-dismiss-${item.id}`}
-          accessibilityRole="button"
-          accessibilityLabel={`Dismiss ${presentation.label.toLowerCase()} item: ${item.title}`}
-          accessibilityState={{ disabled: busy }}
-          disabled={busy}
-          hitSlop={8}
-          onPress={onDismiss}
-          style={styles.overflow}
-        >
-          <Ionicons name="ellipsis-horizontal" size={18} color={palette.ink3} />
-        </Pressable>
+        {!historical ? (
+          <Pressable
+            testID={`coach-item-dismiss-${item.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Dismiss ${presentation.label.toLowerCase()} item: ${item.title}`}
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            hitSlop={8}
+            onPress={onDismiss}
+            style={styles.overflow}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={palette.ink3} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

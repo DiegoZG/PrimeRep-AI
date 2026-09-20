@@ -1,5 +1,6 @@
 import type {
   CoachFeedResponse,
+  CoachFeedView,
   CoachItemDetail,
   CoachPreferences,
   CoachReadReason,
@@ -10,11 +11,13 @@ import { requestJson } from "@/services/httpClient";
 export async function getCoachFeed(
   token: string,
   localDate: string,
-  options: { cursor?: string; limit?: number } = {},
+  options: { cursor?: string; limit?: number; view?: CoachFeedView; timeZone?: string } = {},
 ) {
   const params = new URLSearchParams({
     localDate,
     limit: String(options.limit ?? 20),
+    view: options.view ?? "now",
+    timeZone: options.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
   });
   if (options.cursor) params.set("cursor", options.cursor);
   const response = await requestJson<Omit<CoachFeedResponse, "items"> & { items: CoachItemDetail[] }>(`/v1/coach/feed?${params.toString()}`, {

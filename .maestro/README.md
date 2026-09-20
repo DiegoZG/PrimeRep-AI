@@ -173,6 +173,7 @@ Elements with `testID` props added for Maestro targeting:
 | `coach-hero-active` / `coach-hero-next` / `coach-hero-caught-up` | hero state | identifies the canonical primary Coach state |
 | `coach-refresh` / `coach-retry` | `Pressable` | refreshes the first page or retries a recoverable request failure |
 | `coach-refreshing` / `coach-feed-ready` | state marker | distinguishes an in-flight refresh from a settled canonical page |
+| `coach-view-now` / `coach-view-yesterday` / `coach-view-last7Days` | period filter | switches between actionable guidance and read-only recent history |
 | `coach-initial-error` / `coach-inline-error` | error state | distinguishes a full unavailable state from retained-content failure |
 | `coach-item-{itemId}` | rail item | identifies one persisted guidance item |
 | `coach-item-action-{itemId}` | `Pressable` | marks guidance read through primary action and opens its allowlisted target |

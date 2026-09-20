@@ -30,3 +30,30 @@ env:
     visible:
       id: "coach-feed-ready"
     timeout: 15000
+
+- assertVisible:
+    id: "coach-view-now"
+- assertVisible:
+    id: "coach-view-yesterday"
+- assertVisible:
+    id: "coach-view-last7Days"
+- tapOn:
+    id: "coach-view-yesterday"
+- extendedWaitUntil:
+    visible:
+      id: "coach-feed-ready"
+    timeout: 15000
+- assertNotVisible:
+    id: "coach-hero-.*"
+- tapOn:
+    id: "coach-view-last7Days"
+- extendedWaitUntil:
+    visible:
+      id: "coach-feed-ready"
+    timeout: 15000
+- tapOn:
+    id: "coach-view-now"
+- extendedWaitUntil:
+    visible:
+      id: "coach-feed-ready"
+    timeout: 15000
