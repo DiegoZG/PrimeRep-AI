@@ -1,0 +1,32 @@
+# Part 7 Coach feed smoke coverage. Data-dependent behavior has a separate,
+# hard-assertion fixture flow under .maestro/seeded/.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+- tapOn:
+    id: "tab-coach"
+- extendedWaitUntil:
+    visible:
+      id: "coach-screen"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: "coach-hero-.*"
+    timeout: 15000
+
+- tapOn:
+    id: "coach-refresh"
+- extendedWaitUntil:
+    notVisible:
+      id: "coach-refreshing"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: "coach-feed-ready"
+    timeout: 15000
