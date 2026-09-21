@@ -83,6 +83,30 @@ verify the compiled API address before running. SDK 54 development virtual-env
 resolution ignored the shell override during this verification, so the successful
 web interaction pass used a production export built with those environment values.
 Do not change the application's normal `.env` to work around a fixture setup.
+For the iOS simulator, run an isolated Expo Go server without development-mode
+environment resolution, then open its explicit URL:
+
+```bash
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://127.0.0.1:8001 npx expo start --go --localhost --port 8083 --no-dev --minify --clear
+xcrun simctl openurl booted exp://127.0.0.1:8083
+```
+
+Use `-e EXPO_URL=exp://127.0.0.1:8083` for Maestro with this server. Keep the
+fixture API and synthetic video server running while testing.
+For browser testing, omit `--dev` when exporting; SDK 54's development
+`expo/virtual/env` imports `.env` even with `EXPO_NO_DOTENV=1` and overrides
+the fixture API URL. Use a production export:
+
+```bash
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://127.0.0.1:8001 npx expo export --platform web --clear --output-dir /private/tmp/primerep-part75-web
+```
+
+Serve extensionless Expo routes from the exported HTML files, allow the test
+site's origin on the fixture API, and serve the synthetic MP4 with appropriate
+video CORS and byte-range headers. A same-origin test proxy can instead use
+`EXPO_PUBLIC_API_URL=/api` and forward `/api/*` to the isolated backend. That
+relative URL is for browser exports only. Verify login, exercise detail, and
+actual playback in the browser; a successful `curl` login alone is insufficient.
 Exercise media uses `exercise-watch-demo`, `exercise-video-player`,
 `exercise-video-loading`, `exercise-video-error`, and `exercise-video-retry`.
 Category and picker pagination use `category-exercise-load-more` and
