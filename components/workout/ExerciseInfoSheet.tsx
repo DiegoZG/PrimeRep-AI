@@ -9,7 +9,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
@@ -55,6 +55,7 @@ export function ExerciseInfoSheet({
   keyRef.current = key;
   const [owner, setOwner] = useState("");
   const isBeginner = useIsBeginner();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let cancelled = false;
@@ -99,17 +100,17 @@ export function ExerciseInfoSheet({
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
           onPress={onClose}
         >
-          {/* The height cap belongs here rather than on the sheet itself: a
-              percentage resolves only against a parent with a definite height,
-              which the full-screen overlay has and a content-sized view does not. */}
-          <Pressable style={{ maxHeight: "85%" }} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={{ flex: 1, marginTop: insets.top + 8 }}
+            onPress={(e) => e.stopPropagation()}
+          >
             <SafeAreaView
               edges={["bottom"]}
               style={{
                 backgroundColor: colors.background,
+                flex: 1,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                flexShrink: 1,
               }}
             >
               {/* Drag handle */}
@@ -141,13 +142,19 @@ export function ExerciseInfoSheet({
                 >
                   {exerciseName}
                 </ThemedText>
-                <Pressable testID="player-info-sheet-close" accessibilityRole="button" accessibilityLabel="Close exercise information" onPress={onClose} hitSlop={10}>
+                <Pressable
+                  testID="player-info-sheet-close"
+                  accessibilityRole="button"
+                  accessibilityLabel="Close exercise information"
+                  onPress={onClose}
+                  style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+                >
                   <Ionicons name="close" size={22} color={colors.text} />
                 </Pressable>
               </View>
 
               <ScrollView
-                style={{ paddingHorizontal: 20, flexShrink: 1 }}
+                style={{ paddingHorizontal: 20, flex: 1 }}
                 contentContainerStyle={{ paddingBottom: 32 }}
                 keyboardShouldPersistTaps="handled"
               >
