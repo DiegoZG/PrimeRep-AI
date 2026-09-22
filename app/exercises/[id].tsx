@@ -5,7 +5,6 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from "rea
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -142,18 +141,6 @@ export default function ExerciseDetailScreen() {
   };
 
   // Open demo video link
-  const handleWatchDemo = async () => {
-    if (!exercise?.demoVideoUrl) return;
-
-    try {
-      const canOpen = await Linking.canOpenURL(exercise.demoVideoUrl);
-      if (!canOpen) throw new Error("Unsupported demo URL");
-      await Linking.openURL(exercise.demoVideoUrl);
-    } catch {
-      Alert.alert("Demo Unavailable", "This exercise video could not be opened. Use the written instructions for now.");
-    }
-  };
-
   const handleArchiveCustom = () => {
     if (!token || !exercise?.isEditable || customActionBusy) return;
     Alert.alert("Archive exercise?", "It stays in completed workouts but can’t be added to new programs.", [
@@ -282,6 +269,7 @@ export default function ExerciseDetailScreen() {
           <ExerciseMedia
             imageUrl={exercise.imageUrl}
             demoVideoUrl={exercise.demoVideoUrl}
+            media={exercise.media}
             exerciseName={exercise.name}
             colors={colors}
           />
@@ -413,25 +401,7 @@ export default function ExerciseDetailScreen() {
               ) : null}
           </View>
 
-          {/* Demo Video Button */}
-          {exercise.demoVideoUrl && (
-            <View style={styles.section}>
-              <Pressable
-                testID="exercise-watch-demo"
-                accessibilityRole="button"
-                accessibilityLabel={`Watch ${exercise.name} demo video`}
-                onPress={handleWatchDemo}
-                style={[
-                  styles.demoButton,
-                  { backgroundColor: colors.primaryButton },
-                ]}
-              >
-                <Ionicons name="play-circle" size={24} color="#FFFFFF" />
-                <Text style={styles.demoButtonText}>Watch Demo Video</Text>
-              </Pressable>
-            </View>
-          )}
-
+          {exercise.structuredContent?.cues.length ? <ContentSection title="Form cues" content={exercise.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" /> : null}
           {/* Beginner Notes — prominent for beginners */}
           {isBeginner && exercise.beginnerNotes && (
             <ContentSection

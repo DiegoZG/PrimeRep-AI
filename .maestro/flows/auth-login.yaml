@@ -13,7 +13,8 @@ appId: host.exp.Exponent
 # Only run the login sequence if we're not already on the main app
 - runFlow:
     when:
-      notVisible: "This Week"
+      notVisible:
+        id: tab-home
     commands:
       # On the first onboarding screen there's a "Log in" link — tap it
       - tapOn:
@@ -46,5 +47,6 @@ appId: host.exp.Exponent
 
       # Wait for the main app to load
       - extendedWaitUntil:
-          visible: "This Week"
+          visible:
+            id: tab-home
           timeout: 15000

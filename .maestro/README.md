@@ -58,6 +58,65 @@ maestro test --debug .maestro/smoke-home.yaml
 maestro studio
 ```
 
+### Exercise content foundation
+
+`npm run test:exercise-foundation` runs behavioral regressions for 250-result
+pagination, delayed account/query responses, independent search offsets,
+append/refresh retries, content adapters, single-implement loads, and video
+lifecycle/error handling. It uses React's test renderer; native playback still
+requires simulator/device checks.
+
+`.maestro/seeded/exercise-foundation.yaml` requires a disposable catalog with
+250 `Foundation Fixture 001`–`Foundation Fixture 250` exercises. Entry 201 must
+have a synthetic playable-media descriptor. It verifies the fifth search page and inline
+playback; do not seed these records into a user's normal database. Override
+`LOGIN_EMAIL`, `LOGIN_PASSWORD`, `SEARCH_QUERY`, and `LAST_PAGE_EXERCISE` as needed.
+The backend's `scripts/seed_exercise_foundation_e2e.py` provides these fixtures:
+it requires `APP_ENV=test` and a database named `primerep_part75_ui_*`, rejects
+the normal application database, and never creates trainer/publication reviews.
+Run Alembic on that disposable database first, then run the script with
+`--video-url http://127.0.0.1:8765/demo.mp4` pointing to a locally served synthetic
+clip. The login is `exercise-foundation@example.com` / `StrongPass123` (test only).
+Pass `-e EXPO_URL=exp://127.0.0.1:8082` to Maestro for a separate Metro server.
+Start isolated builds with `EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://127.0.0.1:8001`;
+verify the compiled API address before running. SDK 54 development virtual-env
+resolution ignored the shell override during this verification, so the successful
+web interaction pass used a production export built with those environment values.
+Do not change the application's normal `.env` to work around a fixture setup.
+For the iOS simulator, run an isolated Expo Go server without development-mode
+environment resolution, then open its explicit URL:
+
+```bash
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://127.0.0.1:8001 npx expo start --go --localhost --port 8083 --no-dev --minify --clear
+xcrun simctl openurl booted exp://127.0.0.1:8083
+```
+
+Use `-e EXPO_URL=exp://127.0.0.1:8083` for Maestro with this server. Keep the
+fixture API and synthetic video server running while testing.
+For browser testing, omit `--dev` when exporting; SDK 54's development
+`expo/virtual/env` imports `.env` even with `EXPO_NO_DOTENV=1` and overrides
+the fixture API URL. Use a production export:
+
+```bash
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_URL=http://127.0.0.1:8001 npx expo export --platform web --clear --output-dir /private/tmp/primerep-part75-web
+```
+
+Serve extensionless Expo routes from the exported HTML files, allow the test
+site's origin on the fixture API, and serve the synthetic MP4 with appropriate
+video CORS and byte-range headers. A same-origin test proxy can instead use
+`EXPO_PUBLIC_API_URL=/api` and forward `/api/*` to the isolated backend. That
+relative URL is for browser exports only. Verify login, exercise detail, and
+actual playback in the browser; a successful `curl` login alone is insufficient.
+Exercise media uses `exercise-watch-demo`, `exercise-video-player`,
+`exercise-video-loading`, `exercise-video-error`, and `exercise-video-retry`.
+Category and picker pagination use `category-exercise-load-more` and
+`program-exercise-load-more`; combined search has independent
+`explore-programs-load-more` and `explore-exercises-load-more` controls.
+
+Manually verify native fullscreen, app-background pause, dismissing the workout
+information sheet, and both themes on iOS and Android. A custom development
+build must be rebuilt after adding `expo-video`; Expo Go must match SDK 54.
+
 ### Coach fixture flows
 
 The deterministic Coach suite lives under `.maestro/seeded/` so the standard

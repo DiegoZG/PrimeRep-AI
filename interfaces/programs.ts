@@ -92,6 +92,8 @@ export interface ProgramFilters {
 export interface ExploreSearchResponse {
   programs: ProgramSummary[];
   exercises: Exercise[];
+  program_pagination?: import("@/interfaces/exercises/types").CatalogPagination;
+  exercise_pagination?: import("@/interfaces/exercises/types").CatalogPagination;
 }
 
 export interface ProgramSubstitution {

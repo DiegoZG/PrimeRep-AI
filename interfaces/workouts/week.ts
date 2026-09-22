@@ -5,7 +5,7 @@ import type { WorkoutBlock } from "./types";
 // =============================================================================
 
 export interface WorkoutDayApiExercise {
-  id: number;
+  id: string;
   name: string;
   exerciseType: string;
   primaryMuscle: string;
@@ -13,6 +13,7 @@ export interface WorkoutDayApiExercise {
   imageUrl: string | null;
   demoVideoUrl: string | null;
   requiredEquipmentIds: string[];
+  loadProfile?: import("@/interfaces/exercises/types").ExerciseLoadProfile | null;
 }
 
 export interface WorkoutDayApiItem {

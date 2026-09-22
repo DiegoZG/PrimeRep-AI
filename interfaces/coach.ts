@@ -39,6 +39,7 @@ export interface CoachItemDetail {
     currentWeightKg?: number | null;
     recommendation?: "increase" | "hold" | "deload" | null;
     equipmentIds: string[];
+    loadProfile?: import("@/interfaces/exercises/types").ExerciseLoadProfile | null;
   } | null;
   isAiAssisted: boolean;
   readAt: string | null;

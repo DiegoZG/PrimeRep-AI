@@ -106,6 +106,7 @@ export function CoachBriefingItem({
           ? "record"
           : item.weightData.recommendation ?? "hold",
         equipmentIds: item.weightData.equipmentIds ?? [],
+        loadProfile: item.weightData.loadProfile,
         weightUnit,
         dumbbellWeights,
         plateWeights,

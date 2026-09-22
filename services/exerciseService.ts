@@ -44,6 +44,10 @@ export function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
     equipmentIds: apiItem.equipmentIds ?? apiItem.required_equipment_ids,
     source,
     isEditable: apiItem.isEditable ?? apiItem.is_editable,
+    contentVersion: apiItem.content_version,
+    trackingMode: apiItem.tracking_mode,
+    movementPattern: apiItem.movement_pattern,
+    loadProfile: apiItem.load_profile,
   };
 }
 
@@ -51,7 +55,7 @@ export function mapApiItemToExercise(apiItem: ExerciseApiItem): Exercise {
  * Maps backend ExerciseDetailApiResponse to frontend ExerciseDetail model
  * Backend returns snake_case fields
  */
-function mapApiDetailToExerciseDetail(
+export function mapApiDetailToExerciseDetail(
   apiDetail: ExerciseDetailApiResponse
 ): ExerciseDetail {
   return {
@@ -64,14 +68,18 @@ function mapApiDetailToExerciseDetail(
     demoVideoUrl: apiDetail.demoVideoUrl ?? apiDetail.demo_video_url ?? undefined,
     equipmentIds:
       apiDetail.requiredEquipmentIds ?? apiDetail.equipmentIds ?? apiDetail.required_equipment_ids ?? apiDetail.equipment_ids ?? [],
-    howTo: apiDetail.how_to || undefined,
-    whyItWorks: apiDetail.why_it_works || undefined,
-    commonMistakes: apiDetail.common_mistakes || undefined,
-    beginnerNotes: apiDetail.beginner_notes || undefined,
+    howTo: apiDetail.structured_content?.steps.map((step, index) => `${index + 1}. ${step}`).join("\n\n") || apiDetail.how_to || apiDetail.instructions || undefined,
+    whyItWorks: apiDetail.structured_content?.benefits || apiDetail.why_it_works || undefined,
+    commonMistakes: apiDetail.structured_content?.mistakes.join("\n\n") || apiDetail.common_mistakes || undefined,
+    beginnerNotes: apiDetail.structured_content?.beginner_guidance || apiDetail.beginner_notes || undefined,
     isFavorited: apiDetail.isFavorited ?? apiDetail.is_favorited ?? false,
     source: apiDetail.source === "custom" || apiDetail.source === "user" ? "custom" : "seed",
     isEditable: apiDetail.isEditable ?? apiDetail.is_editable,
     instructions: apiDetail.instructions ?? undefined,
+    contentVersion: apiDetail.content_version,
+    structuredContent: apiDetail.structured_content,
+    loadProfile: apiDetail.load_profile,
+    media: apiDetail.media,
   };
 }
 
@@ -83,6 +91,10 @@ export async function getExercises(
   params?: GetExercisesParams,
   token?: string | null
 ): Promise<Exercise[]> {
+  return (await getExercisePage(params, token)).items;
+}
+
+export async function getExercisePage(params?: GetExercisesParams, token?: string | null) {
   const queryString = buildExerciseQueryString(params);
   const data = await requestJson<ExerciseApiResponse>(
     `/v1/exercises${queryString}`,
@@ -91,9 +103,17 @@ export async function getExercises(
       token,
     }
   );
-  return (data.items || [])
+  const items = (data.items || [])
     .filter((item) => item.is_active !== false)
     .map(mapApiItemToExercise);
+  return {
+    items,
+    limit: data.limit ?? params?.limit ?? 50,
+    offset: data.offset ?? params?.offset ?? 0,
+    total: data.total,
+    has_more: data.has_more ?? ((data.items || []).length === (params?.limit ?? 50)),
+    catalog_version: data.catalog_version,
+  };
 }
 
 /**

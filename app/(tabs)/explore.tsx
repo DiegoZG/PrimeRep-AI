@@ -13,15 +13,16 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Exercise } from "@/interfaces/exercises";
-import type { ActiveProgram, ActiveProgramState, ExploreSearchResponse, ProgramSummary } from "@/interfaces/programs";
+import type { ActiveProgram, ActiveProgramState, ProgramSummary } from "@/interfaces/programs";
 import { favoriteExercise, getExercises, getFavoriteExerciseItems, unfavoriteExercise } from "@/services/exerciseService";
-import { getActiveProgram, getRecommendedPrograms, listPrograms, searchExplore } from "@/services/programService";
+import { getActiveProgram, getRecommendedPrograms, listPrograms } from "@/services/programService";
+import { useExploreSearchPages } from "@/hooks/use-explore-search-pages";
+import { CatalogPageFooter } from "@/components/exercises/CatalogPageFooter";
 import { AuthContext } from "@/utils/authContext";
 import { useProgramDraft } from "@/utils/programDraftContext";
 import { todayIso } from "@/utils/programDisplay";
 
 type SearchScope = "all" | "programs" | "exercises";
-const EMPTY_SEARCH: ExploreSearchResponse = { programs: [], exercises: [] };
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -46,10 +47,7 @@ export default function ExploreScreen() {
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
-  const [searchResults, setSearchResults] = useState<ExploreSearchResponse>(EMPTY_SEARCH);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchRevision, setSearchRevision] = useState(0);
+  const { result: searchResults, loading: searching, loadingMore: searchingMore, error: searchError, load: loadSearch } = useExploreSearchPages(token, accountKey, debouncedSearch, scope);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
@@ -63,11 +61,8 @@ export default function ExploreScreen() {
     setContentOwnerKey(null);
     setExercises([]);
     setFavoriteIds(new Set());
-    setSearchResults(EMPTY_SEARCH);
     setSearchText("");
     setDebouncedSearch("");
-    setSearching(false);
-    setSearchError(null);
     setError(null);
     setIsLoading(Boolean(token));
   }, [accountKey, token]);
@@ -116,30 +111,6 @@ export default function ExploreScreen() {
     void loadExplore();
     return () => { requestIdRef.current += 1; };
   }, [loadExplore]));
-
-  useEffect(() => {
-    let active = true;
-    const query = debouncedSearch.trim();
-    if (!token || query.length < 2) {
-      setSearchResults(EMPTY_SEARCH);
-      setSearchError(null);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    setSearchError(null);
-    const searchAccount = accountKey;
-    searchExplore(token, query, scope)
-      .then((result) => { if (active && accountKeyRef.current === searchAccount) setSearchResults(result); })
-      .catch((searchFailure) => {
-        if (!active || accountKeyRef.current !== searchAccount) return;
-        console.warn("Explore search couldn't load", searchFailure);
-        setSearchResults(EMPTY_SEARCH);
-        setSearchError("Search couldn’t load. Try again.");
-      })
-      .finally(() => { if (active && accountKeyRef.current === searchAccount) setSearching(false); });
-    return () => { active = false; };
-  }, [accountKey, debouncedSearch, scope, searchRevision, token]);
 
   const openProgram = useCallback((programId: string) => router.push({ pathname: "/programs/[templateId]", params: { templateId: programId } }), [router]);
   const openExercise = useCallback((exerciseId: string) => router.push({ pathname: "/exercises/[id]", params: { id: exerciseId } }), [router]);
@@ -203,18 +174,20 @@ export default function ExploreScreen() {
           </Pressable>
         ))}
       </View>
-      {searching ? <ScreenState colors={colors} kind="loading" title="Searching…" testID="explore-search-loading" /> : searchError ? (
-        <ScreenState colors={colors} kind="error" title="Search unavailable" message={searchError} actionLabel="Retry" onAction={() => setSearchRevision((value) => value + 1)} testID="explore-search-error" />
+      {searching ? <ScreenState colors={colors} kind="loading" title="Searching…" testID="explore-search-loading" /> : searchError && !searchResults.programs.length && !searchResults.exercises.length ? (
+        <ScreenState colors={colors} kind="error" title="Search unavailable" message={searchError} actionLabel="Retry" onAction={() => void loadSearch()} testID="explore-search-error" />
       ) : (
         <>
           {(scope === "all" || scope === "programs") && searchResults.programs.length > 0 ? <SectionTitle title="Programs" /> : null}
           {(scope === "all" || scope === "programs") && searchResults.programs.map((program) => <View key={program.id} style={styles.resultSpacing}><ProgramCard compact program={{ ...program, isActive: activePrograms.current?.templateId === program.id, isScheduled: activePrograms.scheduled?.templateId === program.id }} onPress={() => openProgram(program.id)} /></View>)}
+          {(scope === "all" || scope === "programs") && searchResults.program_pagination?.has_more ? <CatalogPageFooter colors={colors} loading={searchingMore} error={searchError} hasMore onLoad={() => void loadSearch("programs")} testID="explore-programs-load-more" /> : null}
           {(scope === "all" || scope === "exercises") && searchResults.exercises.length > 0 ? <SectionTitle title="Exercises" /> : null}
           {(scope === "all" || scope === "exercises") && searchResults.exercises.map((exercise) => (
             <View key={exercise.id} style={styles.resultSpacing}>
               <ExerciseRow {...exercise} canFavorite isFavorite={favoriteIds.has(exercise.id)} isFavoriteDisabled={favoriteBusy.has(exercise.id)} onToggleFavorite={toggleFavorite} onPress={() => openExercise(exercise.id)} />
             </View>
           ))}
+          {(scope === "all" || scope === "exercises") && searchResults.exercise_pagination?.has_more ? <CatalogPageFooter colors={colors} loading={searchingMore} error={searchError} hasMore onLoad={() => void loadSearch("exercises")} testID="explore-exercises-load-more" /> : null}
           {searchResults.programs.length === 0 && searchResults.exercises.length === 0 ? <ScreenState colors={colors} kind="empty" title="No matches" message="Try a different program or exercise name." testID="explore-search-empty" /> : null}
         </>
       )}

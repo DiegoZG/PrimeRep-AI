@@ -392,6 +392,7 @@ export default function ActiveWorkoutScreen() {
               currentWeightKg: item.prescription.suggestedPreviousWeightKg,
               reason: item.prescription.suggestedWeightReason ?? "hold",
               equipmentIds: item.exercise.requiredEquipmentIds,
+              loadProfile: item.exercise.loadProfile,
               weightUnit,
               dumbbellWeights: equipmentWeights.dumbbellWeights,
               plateWeights: equipmentWeights.plateWeights,
@@ -500,7 +501,7 @@ export default function ActiveWorkoutScreen() {
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
   const currentEquipmentIds = currentItem?.exercise.requiredEquipmentIds ?? [];
-  const weightColumnLabel = currentEquipmentIds.includes("dumbbells")
+  const weightColumnLabel = currentItem?.exercise.loadProfile?.implement_count === 1 ? "Weight" : currentEquipmentIds.includes("dumbbells")
     ? "Weight each"
     : currentEquipmentIds.includes("olympic_barbell")
       ? "Total weight"
@@ -513,6 +514,7 @@ export default function ActiveWorkoutScreen() {
       currentWeightKg: currentItem.prescription.suggestedPreviousWeightKg,
       reason: currentItem.prescription.suggestedWeightReason ?? "hold",
       equipmentIds: currentItem.exercise.requiredEquipmentIds,
+      loadProfile: currentItem.exercise.loadProfile,
       weightUnit,
       dumbbellWeights: equipmentWeights.dumbbellWeights,
       plateWeights: equipmentWeights.plateWeights,

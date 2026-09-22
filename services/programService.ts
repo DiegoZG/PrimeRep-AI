@@ -165,8 +165,9 @@ export function searchExplore(
   token: string,
   query: string,
   scope: "all" | "programs" | "exercises" = "all",
+  pages: { programOffset?: number; exerciseOffset?: number } = {},
 ) {
-  const params = `query=${encodeURIComponent(query.trim())}&scope=${scope}`;
+  const params = `query=${encodeURIComponent(query.trim())}&scope=${scope}&limit=50&programOffset=${pages.programOffset ?? 0}&exerciseOffset=${pages.exerciseOffset ?? 0}`;
   return requestJson<ExploreSearchResponse>(`/v1/explore/search?${params}`, {
     method: "GET",
     token,
