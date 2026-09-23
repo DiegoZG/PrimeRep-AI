@@ -29,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-image-picker", { "photosPermission": "PrimeRep uses your selected photo for your private profile.", "cameraPermission": false, "microphonePermission": false }],
       "expo-notifications",
       [
         "expo-splash-screen",

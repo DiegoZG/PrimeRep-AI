@@ -618,6 +618,17 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Help & Data</ThemedText>
+        <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+          <Pressable testID="settings-help" style={styles.navigationRow} onPress={() => router.push("/settings/help" as Href)} accessibilityRole="button" accessibilityLabel="Help and Support">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Help & Support</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
+          <Pressable testID="settings-export" style={styles.navigationRow} onPress={() => router.push("/settings/export" as Href)} accessibilityRole="button" accessibilityLabel="Download my data">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Download my data</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+        </View>
+
         {/* AI Features section */}
         {isPremium ? <>
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>

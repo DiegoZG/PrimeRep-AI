@@ -1,0 +1,162 @@
+# Requires the isolated Part 8 API/database and synthetic profile fixture.
+# Stops before editing if another account is signed in.
+# Native photo selection, email drafts, and final share/save completion are manual.
+appId: host.exp.Exponent
+tags:
+  - part8
+  - seeded
+env:
+  LOGIN_EMAIL: primerep-profile-fixture@example.com
+  LOGIN_PASSWORD: StrongPass123
+  EXPO_URL: exp://127.0.0.1:8084
+---
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+- tapOn:
+    id: tab-profile
+- extendedWaitUntil:
+    visible:
+      id: profile-edit
+    timeout: 15000
+- assertVisible: ${LOGIN_EMAIL}
+- tapOn:
+    id: profile-edit
+- extendedWaitUntil:
+    visible:
+      id: profile-preferred-name
+    timeout: 15000
+- tapOn:
+    id: profile-preferred-name
+- eraseText: 50
+- inputText: Profile E2E
+- hideKeyboard
+- tapOn:
+    id: profile-save
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: profile-edit
+    timeout: 15000
+- assertVisible: Profile E2E Fixture
+- tapOn:
+    id: profile-edit
+- extendedWaitUntil:
+    visible:
+      id: profile-preferred-name
+    timeout: 15000
+- assertVisible:
+    id: profile-preferred-name
+    text: Profile E2E
+- tapOn:
+    id: profile-preferred-name
+- eraseText: 50
+- inputText: Discarded Change
+- hideKeyboard
+- tapOn:
+    id: profile-page-back
+- extendedWaitUntil:
+    visible: "Discard changes\\?"
+    timeout: 5000
+- tapOn: Keep editing
+- assertVisible:
+    id: profile-preferred-name
+    text: Discarded Change
+- tapOn:
+    id: profile-page-back
+- extendedWaitUntil:
+    visible: "Discard changes\\?"
+    timeout: 5000
+- tapOn: Discard
+- extendedWaitUntil:
+    visible:
+      id: profile-edit
+    timeout: 10000
+- assertVisible: Profile E2E Fixture
+- tapOn:
+    id: profile-edit
+- extendedWaitUntil:
+    visible:
+      id: profile-preferred-name
+    timeout: 10000
+- tapOn:
+    id: profile-preferred-name
+- eraseText: 50
+- inputText: Profile
+- hideKeyboard
+- tapOn:
+    id: profile-save
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: profile-edit
+    timeout: 15000
+- assertVisible: Profile Fixture
+- scrollUntilVisible:
+    element:
+      id: profile-achievements
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: profile-achievements
+- extendedWaitUntil:
+    visible:
+      id: achievement-workouts-1
+    timeout: 15000
+- assertVisible:
+    id: achievements-screen
+- scrollUntilVisible:
+    element:
+      id: achievement-workouts-10
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: achievement-workouts-10
+- takeScreenshot: part8-achievements
+- tapOn:
+    id: profile-page-back
+- scrollUntilVisible:
+    element:
+      id: profile-settings-button
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: profile-settings-button
+- scrollUntilVisible:
+    element:
+      id: settings-help
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: settings-help
+- extendedWaitUntil:
+    visible:
+      id: help-screen
+    timeout: 10000
+- tapOn:
+    id: help-faq-workouts
+- assertVisible: "During a workout, use Edit or Remove.*"
+- takeScreenshot: part8-help
+- tapOn:
+    id: profile-page-back
+- scrollUntilVisible:
+    element:
+      id: settings-export
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: settings-export
+- extendedWaitUntil:
+    visible:
+      id: export-screen
+    timeout: 10000
+- assertVisible:
+    id: export-screen
+- scrollUntilVisible:
+    element:
+      id: export-create
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: export-create
+    enabled: true
+- takeScreenshot: part8-export-explanation
