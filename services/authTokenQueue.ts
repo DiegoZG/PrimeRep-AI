@@ -22,7 +22,7 @@ export function clearSessionTokens(isCurrent: () => boolean) {
 
 export function captureAndClearSessionTokens() {
   return serialize(async () => {
-    const refresh = await getRefreshToken();
+    const refresh = await getRefreshToken().catch(() => null);
     await clearTokens();
     return refresh;
   });

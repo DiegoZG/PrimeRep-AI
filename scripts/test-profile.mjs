@@ -84,6 +84,19 @@ test("serialized token writes cannot let delayed account A overwrite account B",
   assert.equal(refresh, null); assert.equal(access, null);
 });
 
+test("logout still clears credentials when reading the stored refresh token fails", async () => {
+  let cleared = false;
+  let failClear = false;
+  const queue = load("services/authTokenQueue.ts", { "./tokenStorage": {
+    getRefreshToken: async () => { throw new Error("Keychain read failed"); },
+    clearTokens: async () => { if (failClear) throw new Error("Keychain clear failed"); cleared = true; },
+  } });
+  assert.equal(await queue.captureAndClearSessionTokens(), null);
+  assert.equal(cleared, true);
+  failClear = true;
+  await assert.rejects(queue.captureAndClearSessionTokens(), /Keychain clear failed/);
+});
+
 test("stale profile results never appear after account switches, including A to B to A", async () => {
   const scope = load("services/accountScope.ts");
   const AuthContext = React.createContext(null);
