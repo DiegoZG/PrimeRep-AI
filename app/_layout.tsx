@@ -26,6 +26,7 @@ import { getCoachItem, markCoachItemRead } from "@/services/coachService";
 import { HttpError } from "@/services/httpClient";
 import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
+import { ProfileProvider } from "@/utils/profileContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -387,6 +388,10 @@ function RootLayoutNav() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/help" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/export" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/achievements" options={{ headerShown: false }} />
           <Stack.Screen
             name="settings/training-preferences"
             options={{ headerShown: false }}
@@ -423,6 +428,7 @@ function ThemedRootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthProvider>
+          <ProfileProvider>
           <NotificationsProvider>
             <OnboardingProvider>
               <EquipmentWeightsProvider>
@@ -438,6 +444,7 @@ function ThemedRootLayout() {
               </EquipmentWeightsProvider>
             </OnboardingProvider>
           </NotificationsProvider>
+          </ProfileProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

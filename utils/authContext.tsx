@@ -6,17 +6,18 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 
 import * as authService from "@/services/authService";
 import {
-  clearTokens,
   getAccessToken,
   getRefreshToken,
-  setAccessToken,
-  setRefreshToken,
 } from "@/services/tokenStorage";
 import * as userService from "@/services/userService";
+import { accountRequestGuard, invalidateAccountRequests } from "@/services/accountScope";
+import { cleanupPrivateFiles } from "@/services/privateFiles";
+import { captureAndClearSessionTokens, clearSessionTokens, persistSessionTokens, waitForTokenWrites } from "@/services/authTokenQueue";
 
 export type AuthUser = userService.UserResponse;
 
@@ -42,6 +43,7 @@ type AuthContextValue = {
   logOut: (options?: { forceLocal?: boolean }) => Promise<void>;
 
   refreshUser: () => Promise<void>;
+  acceptProfileIdentity: (profile: Pick<AuthUser, "id" | "preferred_name" | "last_name" | "updated_at">) => void;
   retryBootstrap: () => Promise<void>;
   updateCoachPreference: (enabled: boolean) => Promise<void>;
 };
@@ -59,6 +61,7 @@ type Action =
   | { type: "BOOTSTRAP_ERROR"; error: Exclude<BootstrapError, null> }
   | { type: "AUTH_SUCCESS"; token: string; user: AuthUser }
   | { type: "SET_USER"; user: AuthUser }
+  | { type: "SET_PROFILE_IDENTITY"; profile: Pick<AuthUser, "id" | "preferred_name" | "last_name" | "updated_at"> }
   | { type: "LOGOUT" };
 
 function reducer(state: AuthState, action: Action): AuthState {
@@ -92,6 +95,9 @@ function reducer(state: AuthState, action: Action): AuthState {
     case "SET_USER":
       return { ...state, user: action.user };
 
+    case "SET_PROFILE_IDENTITY":
+      return state.user?.id === action.profile.id ? { ...state, user: { ...state.user, ...action.profile } } : state;
+
     case "LOGOUT":
       return {
         isBootstrapping: false,
@@ -116,6 +122,7 @@ export const AuthContext = createContext<AuthContextValue>({
   signUp: async () => {},
   logOut: async () => {},
   refreshUser: async () => {},
+  acceptProfileIdentity: () => {},
   retryBootstrap: async () => {},
   updateCoachPreference: async () => {},
 });
@@ -145,17 +152,18 @@ function classifyBootstrapError(err: any): Exclude<BootstrapError, null> {
  */
 class RefreshTokenPersistenceError extends Error {}
 
-async function refreshAccessToken(refreshToken: string): Promise<string> {
+async function refreshAccessToken(refreshToken: string, isCurrent: () => boolean): Promise<string> {
   const res = await authService.refresh({ refresh_token: refreshToken });
+  if (!isCurrent()) throw new Error("Account changed");
   // A rotated refresh token must be durable before we accept its access token.
   try {
-    await setRefreshToken(res.refresh_token);
+    await persistSessionTokens(res.access_token, res.refresh_token, isCurrent);
   } catch (error) {
     throw new RefreshTokenPersistenceError("Could not persist rotated refresh token", {
       cause: error,
     });
   }
-  await setAccessToken(res.access_token);
+  if (!isCurrent()) throw new Error("Account changed");
   return res.access_token;
 }
 
@@ -170,14 +178,16 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
  * - If refresh 401 => tokens invalid => clear + logged out
  * - If network/server issues => do NOT clear tokens (allow retry)
  */
-async function ensureValidSession(): Promise<
+async function ensureValidSession(isCurrent: () => boolean): Promise<
   | { kind: "ok"; accessToken: string; user: AuthUser }
   | { kind: "logged_out" }
   | { kind: "error"; error: Exclude<BootstrapError, null> }
 > {
+  await waitForTokenWrites();
   const refreshToken = await getRefreshToken();
+  if (!isCurrent()) return { kind: "logged_out" };
   if (!refreshToken) {
-    await clearTokens();
+    await clearSessionTokens(isCurrent);
     return { kind: "logged_out" };
   }
 
@@ -200,13 +210,14 @@ async function ensureValidSession(): Promise<
 
   // 2) Access token missing or rejected (401) => refresh flow
   try {
-    const newAccessToken = await refreshAccessToken(refreshToken);
+    const newAccessToken = await refreshAccessToken(refreshToken, isCurrent);
     const user = await fetchMe(newAccessToken);
     return { kind: "ok", accessToken: newAccessToken, user };
   } catch (err: any) {
+    if (!isCurrent()) return { kind: "logged_out" };
     if (err instanceof RefreshTokenPersistenceError) {
       try {
-        await clearTokens();
+        await clearSessionTokens(isCurrent);
       } finally {
         return { kind: "logged_out" };
       }
@@ -215,7 +226,7 @@ async function ensureValidSession(): Promise<
 
     // If refresh token is invalid, clear tokens and force logout
     if (status === 401) {
-      await clearTokens();
+      await clearSessionTokens(isCurrent);
       return { kind: "logged_out" };
     }
 
@@ -226,12 +237,16 @@ async function ensureValidSession(): Promise<
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const userRequest = useRef(0);
 
   const bootstrap = useCallback(async () => {
+    invalidateAccountRequests();
+    const isCurrent = accountRequestGuard();
     dispatch({ type: "BOOTSTRAP_START" });
 
     try {
-      const result = await ensureValidSession();
+      const result = await ensureValidSession(isCurrent);
+      if (!isCurrent()) return;
 
       if (result.kind === "ok") {
         dispatch({
@@ -250,33 +265,48 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       dispatch({ type: "BOOTSTRAP_ERROR", error: result.error });
     } catch (err: any) {
+      if (!isCurrent()) return;
       // If something truly unexpected happened, keep tokens and allow retry.
       dispatch({ type: "BOOTSTRAP_ERROR", error: classifyBootstrapError(err) });
     }
   }, []);
 
   useEffect(() => {
+    void cleanupPrivateFiles().catch(() => {});
     bootstrap();
   }, [bootstrap]);
 
   const isLoggedIn = !!state.token && !!state.user;
   const hasCompletedOnboarding = state.user?.has_completed_onboarding ?? false;
 
+  const acceptProfileIdentity = useCallback((profile: Pick<AuthUser, "id" | "preferred_name" | "last_name" | "updated_at">) => {
+    userRequest.current += 1;
+    dispatch({ type: "SET_PROFILE_IDENTITY", profile: { id: profile.id, preferred_name: profile.preferred_name, last_name: profile.last_name, updated_at: profile.updated_at } });
+  }, []);
+
   const refreshUser = useCallback(async () => {
     if (!state.token) return;
+    const guard = accountRequestGuard();
+    const attempt = ++userRequest.current;
+    const isCurrent = () => guard() && attempt === userRequest.current;
+    const owner = state.user?.id;
 
     try {
       const me = await fetchMe(state.token);
+      if (!isCurrent() || me.id !== owner) return;
       dispatch({ type: "SET_USER", user: me });
     } catch (err: any) {
+      if (!isCurrent()) return;
       const status = getStatus(err);
 
       // Only 401 should trigger refresh logic
       if (status !== 401) return;
 
-      const result = await ensureValidSession();
+      const result = await ensureValidSession(isCurrent);
+      if (!isCurrent()) return;
 
       if (result.kind === "ok") {
+        if (result.user.id !== owner) return;
         dispatch({
           type: "AUTH_SUCCESS",
           token: result.accessToken,
@@ -293,60 +323,62 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // If it's network/server error, we keep tokens and do nothing (user can retry)
       // Error is already handled by ensureValidSession, no need to surface it here
     }
-  }, [state.token]);
+  }, [state.token, state.user?.id]);
 
   const logIn = useCallback(async (payload: authService.LoginPayload) => {
+    invalidateAccountRequests();
+    const isCurrent = accountRequestGuard();
     const res = await authService.login(payload);
-    await Promise.all([
-      setAccessToken(res.access_token),
-      setRefreshToken(res.refresh_token),
-    ]);
+    if (!isCurrent()) return;
+    await persistSessionTokens(res.access_token, res.refresh_token, isCurrent);
+    if (!isCurrent()) return;
 
     const me = await fetchMe(res.access_token);
+    if (!isCurrent()) return;
     dispatch({ type: "AUTH_SUCCESS", token: res.access_token, user: me });
   }, []);
 
   const signUp = useCallback(async (payload: authService.SignUpPayload) => {
+    invalidateAccountRequests();
+    const isCurrent = accountRequestGuard();
     const res = await authService.signup(payload);
-    await Promise.all([
-      setAccessToken(res.access_token),
-      setRefreshToken(res.refresh_token),
-    ]);
+    if (!isCurrent()) return;
+    await persistSessionTokens(res.access_token, res.refresh_token, isCurrent);
+    if (!isCurrent()) return;
 
     const me = await fetchMe(res.access_token);
+    if (!isCurrent()) return;
     dispatch({ type: "AUTH_SUCCESS", token: res.access_token, user: me });
   }, []);
 
   const logOut = useCallback(async (options?: { forceLocal?: boolean }) => {
-    if (options?.forceLocal) {
-      try {
-        await clearTokens();
-      } finally {
-        dispatch({ type: "LOGOUT" });
-      }
-      return;
-    }
+    invalidateAccountRequests();
+    const capturedCredentials = captureAndClearSessionTokens();
+    dispatch({ type: "LOGOUT" });
+    void cleanupPrivateFiles().catch(() => {});
+    const refreshToken = await capturedCredentials;
+    if (options?.forceLocal) return;
 
     try {
-      const refreshToken = await getRefreshToken();
       if (refreshToken) {
         await authService.logout({ refresh_token: refreshToken });
       }
     } catch {
       // Logout must remain usable while offline; server revocation is best effort.
-    } finally {
-      await clearTokens();
-      dispatch({ type: "LOGOUT" });
     }
   }, []);
 
   const updateCoachPreference = useCallback(
     async (enabled: boolean) => {
       if (!state.token) return;
+      const guard = accountRequestGuard();
+      const attempt = ++userRequest.current;
+      const isCurrent = () => guard() && attempt === userRequest.current;
       const updated = await userService.updateCoachPreference(state.token, enabled);
+      if (!isCurrent() || updated.id !== state.user?.id) return;
       dispatch({ type: "SET_USER", user: updated });
     },
-    [state.token]
+    [state.token, state.user?.id]
   );
 
   const value = useMemo<AuthContextValue>(
@@ -361,6 +393,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signUp,
       logOut,
       refreshUser,
+      acceptProfileIdentity,
       retryBootstrap: bootstrap,
       updateCoachPreference,
     }),
@@ -375,6 +408,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signUp,
       logOut,
       refreshUser,
+      acceptProfileIdentity,
       bootstrap,
       updateCoachPreference,
     ]

@@ -48,8 +48,8 @@ uvicorn app.main:app --reload
 # Single flow
 maestro test .maestro/smoke-home.yaml
 
-# Standard flows (fixture-specific Coach flows are run separately)
-maestro test .maestro/*.yaml
+# Standard flows (fixture-specific flows are run separately)
+maestro test --exclude-tags seeded .maestro/*.yaml
 
 # Debug mode (step through interactively)
 maestro test --debug .maestro/smoke-home.yaml
@@ -57,6 +57,28 @@ maestro test --debug .maestro/smoke-home.yaml
 # Interactive UI builder
 maestro studio
 ```
+
+### Part 8: profile, support, and export
+
+Use the isolated Part 8 database and API described in
+[the Part 8 test guide](../docs/part8-profile-support-export.md). Seed it with the
+backend's `scripts/seed_profile_e2e.py` (`APP_ENV=test` and a database named
+`primerep_part8_ui_*` are required). This creates
+`primerep-profile-fixture@example.com` / `StrongPass123`, with 12 completed
+workouts and four consecutive active weeks. The flow asserts the fixture email
+before changing profile fields; sign out first if a different user is active.
+
+```sh
+maestro test -e EXPO_URL=exp://127.0.0.1:8084 .maestro/part8-profile-support-export.yaml
+```
+
+This flow checks name save/persistence, unsaved-change confirmation/discard,
+achievement navigation, Help/FAQ navigation, and the export explanation. It
+restores the fixture preferred name to `Profile`. Shared auth helpers adapt to
+logged-in or logged-out state; state waits use `extendedWaitUntil` rather than
+fixed sleeps. Native photo pickers, final ZIP share/save completion, mail apps,
+platform permission failures, and delayed cross-account requests require the
+manual checks in the guide. Valid YAML alone does not establish device coverage.
 
 ### Exercise content foundation
 
@@ -189,6 +211,7 @@ must retain the native response until a later successful or terminal lookup.
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
 | Coach Feed Error | `seeded/coach-feed-error.yaml` | Recoverable full initial error and Retry against the documented failing-feed fixture |
 | Push Settings | `push-settings.yaml` | Native OS notification control plus app-owned Coach notification preference |
+| Profile, Support, Export (seeded) | `part8-profile-support-export.yaml` | Fixture identity guard, profile save/discard, achievements, Help/FAQ, and export explanation |
 
 ---
 

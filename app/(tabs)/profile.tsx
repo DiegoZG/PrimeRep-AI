@@ -1,613 +1,77 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
+import React, { useCallback, useContext, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, View, useWindowDimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ThemedText } from "@/components/themed-text";
+import { ScreenState } from "@/components/screen-state";
+import { AchievementRow, ProfileAvatar, profileStyles as styles } from "@/components/profile-ui";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountResource } from "@/hooks/use-account-resource";
+import { getAchievements } from "@/services/profileService";
+import { accountRequestGuard } from "@/services/accountScope";
+import { getStats, listCompletedSessions } from "@/services/workoutLoggingService";
 import { AuthContext } from "@/utils/authContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
-import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useProfile } from "@/utils/profileContext";
+import { formatWeightInput, fromKg, loadWeightUnit, toKg, type WeightUnit } from "@/utils/weightUnits";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Colors, Fonts } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useCompletedSessionDates } from "@/hooks/use-completed-session-dates";
-import { useStats } from "@/hooks/use-stats";
-import { getOnboardingMe } from "@/services/onboardingService";
-import {
-  fromKg,
-  loadWeightUnit,
-  toKg,
-  type WeightUnit,
-} from "@/utils/weightUnits";
-import { localDateIso } from "@/utils/localDate";
-import { Ionicons } from "@expo/vector-icons";
+async function loadDashboard(token: string) {
+  const [achievements, stats, history] = await Promise.allSettled([getAchievements(token), getStats(token), listCompletedSessions(token, 3)]);
+  return { achievements: achievements.status === "fulfilled" ? achievements.value : null, stats: stats.status === "fulfilled" ? stats.value : null, history: history.status === "fulfilled" ? history.value.items : null, incomplete: [achievements, stats, history].some((result) => result.status === "rejected") };
+}
 
-/** Columns in the activity heatmap. Rows are the seven weekdays. */
-const ACTIVITY_WEEKS = 7;
-const ACTIVITY_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const ProfileScreen = () => {
-  const { logOut, user, token } = useContext(AuthContext);
-  const { unregisterCurrentDevice } = useContext(NotificationsContext);
+export default function ProfileScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
-  const { stats } = useStats();
-  const completedDates = useCompletedSessionDates();
-
-  // One display unit for the whole screen, shared with the workout player, so
-  // body weight and total volume can't disagree about units.
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>("LB");
-  const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadPreferences() {
-      const unit = await loadWeightUnit();
-      if (!cancelled) setWeightUnit(unit);
-    }
-    loadPreferences();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const { isLoggedIn } = useContext(AuthContext);
-  useEffect(() => {
-    let cancelled = false;
-    async function loadBodyWeight() {
-      if (!isLoggedIn || !token) return;
-      try {
-        const data = await getOnboardingMe(token);
-        if (!cancelled && typeof data.weight === "number") {
-          setBodyWeightKg(toKg(data.weight, data.weightUnit ?? "LB"));
-        }
-      } catch (err) {
-        console.warn("Failed to load body weight from onboarding:", err);
-      }
-    }
-    loadBodyWeight();
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn, token]);
-
-  // Format join date
-  const joinYear = useMemo(() => {
-    if (user?.created_at) {
-      return new Date(user.created_at).getFullYear();
-    }
-    return new Date().getFullYear();
-  }, [user?.created_at]);
-
-  // Get user initials for avatar
-  const initials = useMemo(() => {
-    if (user?.preferred_name) {
-      const names = user.preferred_name.split(" ");
-      if (names.length >= 2) {
-        return `${names[0][0]}${names[1][0]}`.toUpperCase();
-      }
-      return user.preferred_name[0].toUpperCase();
-    }
-    return "U";
-  }, [user?.preferred_name]);
-
-  const unitLabel = weightUnit === "KG" ? "kg" : "lbs";
-  const streakLabel = stats ? String(stats.streak) : "—";
-  const workoutCount = stats?.totalCompleted ?? 0;
-
-  const bodyWeightLabel =
-    bodyWeightKg === null
-      ? "—"
-      : `${Math.round(fromKg(bodyWeightKg, weightUnit))} ${unitLabel}`;
-
-  const totalVolumeLabel = stats
-    ? `${Math.round(
-        fromKg(stats.totalVolumeKg, weightUnit)
-      ).toLocaleString()} ${unitLabel}`
-    : "—";
-
-  // Columns run oldest to newest, ending with the current week; rows are Mon-Sun.
-  const activityRows = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const mondayOffset = (today.getDay() + 6) % 7;
-    const firstMonday = new Date(today);
-    firstMonday.setDate(today.getDate() - mondayOffset - (ACTIVITY_WEEKS - 1) * 7);
-
-    return ACTIVITY_DAY_LABELS.map((label, dayIndex) => ({
-      label,
-      cells: Array.from({ length: ACTIVITY_WEEKS }, (_, weekIndex) => {
-        const cellDate = new Date(firstMonday);
-        cellDate.setDate(firstMonday.getDate() + weekIndex * 7 + dayIndex);
-        const iso = localDateIso(cellDate);
-        return {
-          iso,
-          isActive: completedDates.has(iso),
-          isFuture: cellDate > today,
-        };
-      }),
-    }));
-  }, [completedDates]);
-
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Profile
-          </ThemedText>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            style={styles.settingsButton}
-            testID="profile-settings-button"
-            accessibilityRole="button"
-            accessibilityLabel="Open Settings"
-          >
-            <Ionicons name="settings-outline" size={24} color={colors.text} />
-          </Pressable>
+  const colors = Colors[useColorScheme() ?? "light"];
+  const { logOut, token } = useContext(AuthContext);
+  const { unregisterCurrentDevice } = useContext(NotificationsContext);
+  const { profile, avatar, loading, error, refresh, avatarError, retryAvatar } = useProfile();
+  const dashboard = useAccountResource(loadDashboard);
+  const { fontScale } = useWindowDimensions();
+  const [unit, setUnit] = useState<WeightUnit>("LB");
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void refresh();
+    void loadWeightUnit().then((value) => { if (active) setUnit(value); });
+    return () => { active = false; };
+  }, [refresh]));
+  const data = dashboard.data;
+  const achievements = data?.achievements;
+  const fullName = [profile?.preferred_name, profile?.last_name].filter(Boolean).join(" ");
+  const earned = achievements?.items.filter((item) => item.earned_at).sort((a, b) => (b.earned_at ?? "").localeCompare(a.earned_at ?? "")) ?? [];
+  const next = achievements?.items.find((item) => !item.earned_at) ?? null;
+  const preview = [...earned.slice(0, 2), ...(next ? [next] : [])];
+  const refreshAll = async (showIndicator = false) => {
+    const current = accountRequestGuard();
+    if (showIndicator) setRefreshing(true);
+    try { await Promise.all([refresh(), dashboard.refresh()]); }
+    finally { if (current()) setRefreshing(false); }
+  };
+  const edit = () => router.push("/profile/edit" as Href);
+  return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }} testID="profile-screen">
+    <ScrollView contentContainerStyle={[styles.pageContent, { gap: 0, paddingTop: 8 }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshAll(true)} tintColor={colors.primaryButton} />}>
+      <View style={[styles.sectionHeader, { marginBottom: 18 }]}><ThemedText accessibilityRole="header" style={{ fontSize: 34, lineHeight: 43, fontWeight: "800" }}>Profile</ThemedText><Pressable accessibilityRole="button" accessibilityLabel="Open Settings" testID="profile-settings-button" onPress={() => router.push("/settings")} style={styles.iconButton}><Ionicons name="settings-outline" size={25} color={colors.text} /></Pressable></View>
+      {!profile ? <ScreenState colors={colors} kind={loading ? "loading" : "error"} title={loading ? "Loading your profile" : "Profile couldn’t load"} message={error ?? undefined} actionLabel={loading ? undefined : "Retry"} onAction={() => void refreshAll()} testID="profile-load-state" /> : <>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingBottom: 22 }}><ProfileAvatar uri={avatar} name={fullName} /><View style={{ flex: 1, gap: 4 }}><ThemedText style={{ fontSize: 22, lineHeight: 29, fontWeight: "700" }}>{fullName}</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 14, lineHeight: 20 }}>{profile.email}</ThemedText><Pressable onPress={edit} testID="profile-edit" accessibilityRole="button" accessibilityLabel="Edit Profile" style={[styles.link, { alignSelf: "flex-start" }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Edit Profile</ThemedText></Pressable></View></View>
+        {avatarError ? <Pressable onPress={() => void retryAvatar()} accessibilityRole="button" accessibilityLabel="Retry loading profile photo" style={styles.link}><ThemedText style={{ color: colors.primaryButton }}>Photo couldn’t load. Retry</ThemedText></Pressable> : null}
+        {error || data?.incomplete || dashboard.error ? <View style={{ gap: 8, marginBottom: 16 }}><ThemedText accessibilityRole="alert" style={styles.error}>{error ?? "Some training details couldn’t load."}</ThemedText><Pressable testID="profile-retry" accessibilityRole="button" accessibilityLabel="Retry profile details" style={styles.link} onPress={() => void refreshAll()}><ThemedText style={{ color: colors.primaryButton }}>Retry</ThemedText></Pressable></View> : null}
+        <View style={[styles.section, { borderColor: colors.inputBorder, flexDirection: fontScale > 1.3 ? "column" : "row", justifyContent: "space-between" }]}>
+          {[{ label: "Workouts", value: achievements?.total_completed ?? data?.stats?.totalCompleted }, { label: "Active weeks", value: achievements?.current_active_weeks }, { label: "PRs this week", value: data?.stats?.prsThisWeek }].map((metric) => <View key={metric.label} style={{ flex: 1, alignItems: fontScale > 1.3 ? "flex-start" : "center", gap: 3 }} accessibilityLabel={`${metric.value ?? "Unavailable"} ${metric.label}`}><ThemedText style={{ fontSize: 26, lineHeight: 34, fontWeight: "700" }}>{metric.value ?? "—"}</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 12, lineHeight: 18 }}>{metric.label}</ThemedText></View>)}
         </View>
-
-        {/* Profile Card */}
-        <ThemedView
-          style={[
-            styles.profileCard,
-            { backgroundColor: colors.inputBackground },
-          ]}
-        >
-          <View style={styles.profileContent}>
-            {/* Avatar */}
-            <View style={styles.avatarContainer} accessibilityLabel={`${user?.preferred_name || "User"} profile initials`}>
-              <View
-                style={[
-                  styles.avatar,
-                  { backgroundColor: colors.primaryButton },
-                ]}
-              >
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-            </View>
-
-            {/* Name and Info */}
-            <View style={styles.profileInfo}>
-              <ThemedText type="title" style={styles.profileName}>
-                {user?.preferred_name || "User"}
-              </ThemedText>
-              <ThemedText type="default" style={styles.profileSubtext}>
-                Joined {joinYear} • {workoutCount} Workout
-                {workoutCount !== 1 ? "s" : ""}
-              </ThemedText>
-            </View>
-          </View>
-        </ThemedView>
-
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          {/* Streak Card */}
-          <ThemedView
-            style={[
-              styles.statCard,
-              styles.streakCard,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            <View style={styles.streakCircle}>
-              <Text style={[styles.streakNumber, { color: colors.text }]}>
-                {streakLabel}
-              </Text>
-              <View
-                style={[
-                  styles.streakDot,
-                  { backgroundColor: colors.electricBlue },
-                ]}
-              />
-            </View>
-            <ThemedText type="default" style={styles.statLabel}>
-              STREAK
-            </ThemedText>
-          </ThemedView>
-
-          {/* Weight Card */}
-          <ThemedView
-            style={[
-              styles.statCard,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            <ThemedText type="default" style={styles.statLabel}>
-              WEIGHT
-            </ThemedText>
-            <View style={styles.weightRow}>
-              <Text style={[styles.weightValue, { color: colors.text }]}>
-                {bodyWeightLabel}
-              </Text>
-              <Ionicons
-                name="bar-chart-outline"
-                size={16}
-                color={colors.placeholder}
-              />
-            </View>
-          </ThemedView>
+        <View style={[styles.section, { borderColor: colors.inputBorder }]}><View style={styles.sectionHeader}><ThemedText style={styles.heading}>Training rhythm</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 13 }}>Last 12 weeks</ThemedText></View>
+          {achievements ? <><View style={{ flexDirection: "row", gap: 6 }}>{achievements.weekly_activity.map((week) => <View key={week.week_start} style={{ flex: 1, gap: 6, alignItems: "center" }} accessible accessibilityLabel={`Week of ${week.week_start}: ${week.completed_workouts} completed workouts${week.is_current ? ", this week" : ""}`}><View style={{ width: "100%", height: 27, borderRadius: 5, borderWidth: week.is_current ? 2 : 0, borderColor: colors.primaryButton, backgroundColor: week.completed_workouts ? colors.primaryButton : colors.inputBorder }} /></View>)}</View><ThemedText style={{ color: colors.icon, fontSize: 12, lineHeight: 18 }}>Purple: a completed workout · Outline: this week</ThemedText></> : <ThemedText style={{ color: colors.icon }}>Your training rhythm will appear here.</ThemedText>}
         </View>
-
-        {/* Activity Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="title" style={styles.sectionTitle}>
-              Activity
-            </ThemedText>
-            <View
-              style={[
-                styles.yearSelector,
-                { backgroundColor: colors.inputBackground },
-              ]}
-            >
-              <Text style={[styles.yearText, { color: colors.text }]}>
-                Last {ACTIVITY_WEEKS} weeks
-              </Text>
-            </View>
-          </View>
-
-          {/* Activity Grid */}
-          <View
-            testID="profile-activity-grid"
-            style={[
-              styles.activityGrid,
-              {
-                backgroundColor:
-                  colorScheme === "dark"
-                    ? "rgba(255, 255, 255, 0.03)"
-                    : "rgba(0, 0, 0, 0.02)",
-              },
-            ]}
-          >
-            {activityRows.map((row) => (
-              <View key={row.label} style={styles.gridRow}>
-                <Text style={[styles.gridLabel, { color: colors.placeholder }]}>
-                  {row.label}
-                </Text>
-                <View style={styles.gridRowCells}>
-                  {row.cells.map((cell) => (
-                    <View
-                      key={cell.iso}
-                      accessibilityLabel={
-                        cell.isActive
-                          ? `Workout completed on ${cell.iso}`
-                          : `No workout on ${cell.iso}`
-                      }
-                      style={[
-                        styles.gridCell,
-                        {
-                          backgroundColor: cell.isActive
-                            ? colors.electricBlue
-                            : colors.inputBorder,
-                          // Days that haven't happened yet read as absence of
-                          // data, not as a missed session.
-                          opacity: cell.isFuture ? 0.35 : 1,
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Total Volume */}
-          <View style={styles.volumeContainer}>
-            <ThemedText type="default" style={styles.volumeLabel}>
-              TOTAL VOLUME
-            </ThemedText>
-            <View style={styles.volumeRow}>
-              <Text style={[styles.volumeValue, { color: colors.text }]}>
-                {totalVolumeLabel}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <Pressable
-          testID="profile-workout-history"
-          accessibilityRole="button"
-          accessibilityLabel="Open Workout History"
-          onPress={() => router.push("/workout/history")}
-          style={[styles.supportCard, styles.historyCard, { backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }]}
-        >
-          <Ionicons name="time-outline" size={24} color={colors.primaryButton} />
-          <View style={styles.supportTextContainer}>
-            <Text style={[styles.supportTitle, { color: colors.text }]}>Workout History</Text>
-            <Text style={[styles.supportSubtitle, { color: colors.placeholder }]}>Review and correct completed workouts</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
-        </Pressable>
-
-        {/* Sign Out Button (hidden in design but keeping for functionality) */}
-        <Pressable
-          onPress={() => {
-            if (!token || isLoggingOut) return;
-            setIsLoggingOut(true);
-            void (async () => {
-              await unregisterCurrentDevice(token).catch(() => {});
-              await logOut();
-            })().finally(() => {
-              setIsLoggingOut(false);
-            });
-          }}
-          disabled={isLoggingOut}
-          accessibilityRole="button"
-          accessibilityLabel={isLoggingOut ? "Logging out" : "Sign out"}
-          accessibilityState={{ disabled: isLoggingOut, busy: isLoggingOut }}
-          style={[
-            styles.signOutButton,
-            { backgroundColor: colors.inputBackground },
-          ]}
-        >
-          <ThemedText type="default" style={styles.signOutText}>
-            {isLoggingOut ? "Signing Out…" : "Sign Out"}
-          </ThemedText>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  settingsButton: {
-    padding: 4,
-  },
-  profileCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  profileContent: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-  },
-  avatarContainer: {
-    position: "relative",
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    fontFamily: Fonts.sans,
-  },
-  profileInfo: {
-    flex: 1,
-    gap: 8,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  profileSubtext: {
-    fontSize: 14,
-    opacity: 0.7,
-    fontFamily: Fonts.sans,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  streakCard: {
-    gap: 8,
-  },
-  streakCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  streakNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  streakDot: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    opacity: 0.7,
-    fontFamily: Fonts.sans,
-    textTransform: "uppercase",
-  },
-  weightRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-  },
-  weightValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  supportCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  historyCard: {
-    alignSelf: "stretch",
-    marginTop: 24,
-  },
-  supportTextContainer: {
-    flex: 1,
-    gap: 2,
-  },
-  supportTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    fontFamily: Fonts.sans,
-  },
-  supportSubtitle: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: "#FFFFFF",
-    opacity: 0.9,
-    fontFamily: Fonts.sans,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: Fonts.sans,
-  },
-  yearSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  yearText: {
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  activityGrid: {
-    gap: 10,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.02)",
-  },
-  gridRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    height: 16,
-  },
-  gridLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-    width: 36,
-    opacity: 0.6,
-  },
-  gridRowCells: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 5,
-    alignItems: "center",
-  },
-  gridCell: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-  },
-  volumeContainer: {
-    gap: 6,
-    marginTop: 4,
-  },
-  volumeLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    opacity: 0.6,
-    fontFamily: Fonts.sans,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  volumeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  volumeValue: {
-    fontSize: 24,
-    fontWeight: "800",
-    fontFamily: Fonts.sans,
-    letterSpacing: -0.5,
-  },
-  signOutButton: {
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  signOutText: {
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-});
-
-export default ProfileScreen;
+        <View style={[styles.section, { borderColor: colors.inputBorder }]}><View style={styles.sectionHeader}><ThemedText style={styles.heading}>Body stats</ThemedText><Pressable onPress={edit} testID="profile-edit-body" accessibilityRole="button" accessibilityLabel="Edit body statistics" style={styles.link}><ThemedText style={{ color: colors.primaryButton }}>Edit</ThemedText></Pressable></View><View style={{ flexDirection: fontScale > 1.3 ? "column" : "row", gap: 18 }}>{[{ label: "Weight", value: profile.weight === null ? "—" : `${formatWeightInput(fromKg(toKg(profile.weight, profile.weight_unit), unit))} ${unit.toLowerCase()}` }, { label: "Age", value: profile.age ?? "—" }, { label: "Gender", value: profile.gender ?? "—" }].map((field) => <View key={field.label} style={{ flex: 1, gap: 5 }}><ThemedText style={{ fontWeight: "700" }}>{field.value}</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 13 }}>{field.label}</ThemedText></View>)}</View></View>
+        <View style={[styles.section, { borderColor: colors.inputBorder }]}><View style={styles.sectionHeader}><ThemedText style={styles.heading}>Achievements</ThemedText><Pressable onPress={() => router.push("/profile/achievements" as Href)} testID="profile-achievements" accessibilityRole="button" accessibilityLabel="View all achievements" style={styles.link}><ThemedText style={{ color: colors.primaryButton }}>View all</ThemedText></Pressable></View>{preview.map((item) => <AchievementRow key={item.id} item={item} />)}{achievements?.total_completed === 0 ? <ThemedText style={{ color: colors.icon }}>Your first milestone is ahead. Complete one workout to begin.</ThemedText> : null}</View>
+        <View style={[styles.section, { borderColor: colors.inputBorder }]}><View style={styles.sectionHeader}><ThemedText style={styles.heading}>Recent training</ThemedText><Pressable onPress={() => router.push("/workout/history")} testID="profile-workout-history" accessibilityRole="button" accessibilityLabel="View Workout History" style={styles.link}><ThemedText style={{ color: colors.primaryButton }}>View all</ThemedText></Pressable></View>{data?.history?.map((session) => <Pressable key={session.id} testID={`profile-session-${session.id}`} onPress={() => router.push({ pathname: "/workout/history/[sessionId]", params: { sessionId: session.id } })} accessibilityRole="button" accessibilityLabel={`Open ${session.title}`} style={{ flexDirection: "row", gap: 12, alignItems: "center", minHeight: 66 }}><Ionicons name="barbell-outline" size={25} color={colors.icon} /><View style={{ flex: 1 }}><ThemedText style={{ fontWeight: "600" }}>{session.title}</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 13, lineHeight: 20 }}>{session.completedAt ? new Date(session.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : session.workoutDate} · {session.setCount} sets</ThemedText></View><Ionicons name="chevron-forward" size={18} color={colors.icon} /></Pressable>)}{data?.history?.length === 0 ? <ScreenState colors={colors} kind="empty" title="No completed workouts yet" message="Finish your first workout to see it here." actionLabel="View your workouts" onAction={() => router.push("/(tabs)")} /> : null}</View>
+        {data?.stats ? <ThemedText style={{ color: colors.icon, fontSize: 13, paddingBottom: 20 }}>Total volume: {Math.round(fromKg(data.stats.totalVolumeKg, unit)).toLocaleString()} {unit.toLowerCase()}</ThemedText> : null}
+        <Pressable testID="profile-logout" accessibilityRole="button" accessibilityLabel="Log out" disabled={loggingOut} accessibilityState={{ disabled: loggingOut, busy: loggingOut }} style={[styles.button, { borderWidth: 1, borderColor: colors.inputBorder, opacity: loggingOut ? 0.5 : 1 }]} onPress={async () => { setLoggingOut(true); setLogoutError(false); try { if (token) await unregisterCurrentDevice(token).catch(() => {}); await logOut(); } catch { setLogoutError(true); } finally { setLoggingOut(false); } }}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>{loggingOut ? "Logging out…" : "Log out"}</ThemedText></Pressable>{logoutError ? <ThemedText accessibilityRole="alert" style={styles.error}>Couldn’t log out. Please try again.</ThemedText> : null}
+      </>}
+    </ScrollView>
+  </SafeAreaView>;
+}
