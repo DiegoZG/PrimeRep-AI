@@ -59,7 +59,7 @@ export async function exportAccount(token: string, owner: string, unit: WeightUn
     clearTimeout(timeout);
     if (!isCurrent()) return;
     if (!response) throw new Error("Your download was interrupted. Please try again.");
-    if (response.status !== 200) throw new HttpError(response.status === 429 ? "You can create three exports per hour. Please try again later." : "Your archive could not be created. Please try again.", response.status);
+    if (response.status !== 200) throw new HttpError(response.status === 429 ? "You’ve reached the hourly export limit. Please try again later." : "Your archive could not be created. Please try again.", response.status);
     await Sharing.shareAsync(uri, { mimeType: "application/zip", UTI: "public.zip-archive", dialogTitle: "Save your PrimeRep data" });
   } finally {
     pending.delete(cancel);
