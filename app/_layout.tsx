@@ -77,6 +77,7 @@ function RootLayoutNav() {
     isLoggedIn,
     hasCompletedOnboarding,
     bootstrapError,
+    offlineSession,
     token,
     user,
   } = useContext(AuthContext);
@@ -269,14 +270,14 @@ function RootLayoutNav() {
   useEffect(() => {
     if (
       isBootstrapping ||
-      bootstrapError ||
+      (bootstrapError && !offlineSession) ||
       !isLoggedIn ||
       !hasCompletedOnboarding ||
-      !token ||
+      (!token && !offlineSession) ||
       !user ||
-      pendingCoachNotification ||
-      notificationBlockedIdentityRef.current === "*" ||
-      notificationBlockedIdentityRef.current === authIdentity ||
+      (!offlineSession && pendingCoachNotification) ||
+      (!offlineSession && notificationBlockedIdentityRef.current === "*") ||
+      (!offlineSession && notificationBlockedIdentityRef.current === authIdentity) ||
       attemptedResumeForIdentity.current === authIdentity ||
       segments.join("/").includes("active") ||
       segments.join("/").includes("reset-password") ||
@@ -294,7 +295,7 @@ function RootLayoutNav() {
       // The server wins when it is reachable. A locally-created, unsynced
       // session remains resumable while offline.
       const [serverActive, localActive] = await Promise.all([
-        getActiveSession(token).catch(() => null),
+        token ? getActiveSession(token).catch(() => null) : Promise.resolve(null),
         loadActiveWorkout(user.id).catch(() => null),
       ]);
       const sessionId = serverActive?.id ?? localActive?.serverSessionId;
@@ -310,6 +311,7 @@ function RootLayoutNav() {
     authIdentity,
     isBootstrapping,
     bootstrapError,
+    offlineSession,
     isLoggedIn,
     hasCompletedOnboarding,
     token,
@@ -325,7 +327,7 @@ function RootLayoutNav() {
   }
 
   // Show offline screen if there's a bootstrap error (tokens still valid, just can't connect)
-  if (bootstrapError && !isPublicRecoveryRoute) {
+  if (bootstrapError && !offlineSession && !isPublicRecoveryRoute) {
     return <OfflineScreen />;
   }
 
@@ -416,6 +418,11 @@ function RootLayoutNav() {
         <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
       </Stack>
+      {offlineSession && !routePath.includes("workout/active") && !isPublicRecoveryRoute ? (
+        <View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}>
+          <OfflineScreen />
+        </View>
+      ) : null}
       <StatusBar style="auto" />
     </>
   );

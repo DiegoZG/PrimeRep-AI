@@ -1,0 +1,33 @@
+# Native release/development build only. Before running, sign in online,
+# start a workout, confirm at least one set, then disconnect the simulator.
+# Keep the backend unreachable through this flow. Reconnect afterward and
+# verify exactly one canonical server session with every saved mutation.
+appId: com.diegozegarra.primerep
+---
+- stopApp
+- launchApp
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: player-finish
+    timeout: 30000
+- tapOn:
+    id: player-finish
+- tapOn: "Finish"
+- extendedWaitUntil:
+    visible: "Saved on this device — finish when online."
+    timeout: 10000
+- takeScreenshot: offline-finish-queued
+- stopApp
+- launchApp
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: player-finish
+    timeout: 30000
+- assertVisible: "Saved on this device — finish when online."
+- takeScreenshot: offline-finish-after-cold-start

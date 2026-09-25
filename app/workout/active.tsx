@@ -615,6 +615,8 @@ export default function ActiveWorkoutScreen() {
         const restoredSets = mergePersistedSets(prescribedSetStates(exercises), saved.sets);
         setSets(serverActive ? mergeServerLogs(restoredSets, serverActive.setLogs, weightUnit, serverActive.deletedSetLogs ?? []) : restoredSets);
         setOperations(reconciledOperations);
+        const queuedCompletion = reconciledOperations.find((operation) => operation.type === "complete");
+        if (queuedCompletion) setFinishStatus(queuedCompletion.status === "failed" ? "failed" : "pendingOffline");
       }
       if (!cancelled) setIsRestoring(false);
     }
@@ -873,7 +875,7 @@ export default function ActiveWorkoutScreen() {
 
   const confirmSet = useCallback(
     async (setNumber: number) => {
-      if (!token || !currentItem) return;
+      if (!currentItem) return;
       const exerciseId = currentItem.exercise.id;
 
       const currentSets = setsRef.current;
@@ -972,7 +974,7 @@ export default function ActiveWorkoutScreen() {
         .then(() => void replayPendingWrites())
         .catch(() => setStorageError(true));
     },
-    [token, currentItem, currentExerciseIndex, weightUnit, persistConfirmedMutation, replayPendingWrites]
+    [currentItem, currentExerciseIndex, weightUnit, persistConfirmedMutation, replayPendingWrites]
   );
 
   const beginSetEdit = useCallback((setNumber: number) => {
@@ -1118,7 +1120,7 @@ export default function ActiveWorkoutScreen() {
   // ── Complete workout ───────────────────────────────────────────────────────
 
   const finishWorkout = useCallback(async (retry = false) => {
-    if (!token || !user || !workout || isFinishingRef.current) return;
+    if (!user || !workout || isFinishingRef.current) return;
     isFinishingRef.current = true;
     setFinishStatus("syncing");
     try {
@@ -1146,6 +1148,10 @@ export default function ActiveWorkoutScreen() {
       setSets(queued.sets);
       setOperations(queued.operations);
       setWorkoutNote(queued.workoutNote ?? null);
+      if (!token) {
+        setFinishStatus("pendingOffline");
+        return;
+      }
       const result = await replayPendingWorkoutOperations(token, user.id);
       const completeOperation = result.workout?.operations.find((operation) => operation.type === "complete");
       if (result.completed || (result.workout && !completeOperation)) {

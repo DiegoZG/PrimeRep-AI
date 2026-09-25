@@ -1,4 +1,5 @@
-import { clearTokens, getRefreshToken, setAccessToken, setRefreshToken } from "./tokenStorage";
+import { clearCachedUser, clearTokens, getRefreshToken, setAccessToken, setCachedUser, setRefreshToken } from "./tokenStorage";
+import type { UserResponse } from "./userService";
 
 let writes: Promise<unknown> = Promise.resolve();
 
@@ -18,6 +19,14 @@ export function persistSessionTokens(access: string, refresh: string, isCurrent:
 
 export function clearSessionTokens(isCurrent: () => boolean) {
   return serialize(async () => { if (isCurrent()) await clearTokens(); });
+}
+
+export function cacheSessionUser(user: UserResponse, isCurrent: () => boolean) {
+  return serialize(async () => { if (isCurrent()) await setCachedUser(user); });
+}
+
+export function clearCachedSessionUser(isCurrent: () => boolean) {
+  return serialize(async () => { if (isCurrent()) await clearCachedUser(); });
 }
 
 export function captureAndClearSessionTokens() {

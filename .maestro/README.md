@@ -58,6 +58,17 @@ maestro test --debug .maestro/smoke-home.yaml
 maestro studio
 ```
 
+### Part 9: native offline cold start
+
+Use a native build, not Expo web. Sign in online, start a workout, confirm at
+least one set, then disconnect the simulator/device before running
+`maestro test .maestro/offline-workout-cold-start.yaml`. The flow force-stops
+and relaunches twice, verifies the same workout opens offline, and queues
+completion without claiming server confirmation. Reconnect afterward and
+verify the workout finishes once on the server with its sets and notes. Repeat
+manually on iOS and Android with timeout, backgrounding, account switch, and
+expired-auth conditions; the YAML does not toggle the network for you.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
