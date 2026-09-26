@@ -165,8 +165,8 @@ test("web archive from a previous account never triggers a download", async () =
 
 test("an old refreshUser cannot overwrite a newly saved canonical name", async () => {
   const scope = load("services/accountScope.ts");
-  let access = null, refresh = null;
-  const store = { getAccessToken: async () => access, getRefreshToken: async () => refresh, setAccessToken: async (value) => { access = value; }, setRefreshToken: async (value) => { refresh = value; }, clearTokens: async () => { access = refresh = null; } };
+  let access = null, refresh = null, cached = null;
+  const store = { getAccessToken: async () => access, getRefreshToken: async () => refresh, getCachedUser: async () => cached, setAccessToken: async (value) => { access = value; }, setRefreshToken: async (value) => { refresh = value; }, setCachedUser: async (value) => { cached = value; }, clearCachedUser: async () => { cached = null; }, clearTokens: async () => { access = refresh = cached = null; } };
   const queue = load("services/authTokenQueue.ts", { "./tokenStorage": store });
   const stale = deferred();
   let hold = false;
@@ -237,8 +237,8 @@ test("new native export waits for old-account file cleanup and removes its own a
 
 for (const failedSwitch of [true, false]) test(`pending logout clears A locally before ${failedSwitch ? "failed" : "successful"} login B`, async () => {
   const scope = load("services/accountScope.ts");
-  let access = null, refresh = null;
-  const store = { getAccessToken: async () => access, getRefreshToken: async () => refresh, setAccessToken: async (value) => { access = value; }, setRefreshToken: async (value) => { refresh = value; }, clearTokens: async () => { access = refresh = null; } };
+  let access = null, refresh = null, cached = null;
+  const store = { getAccessToken: async () => access, getRefreshToken: async () => refresh, getCachedUser: async () => cached, setAccessToken: async (value) => { access = value; }, setRefreshToken: async (value) => { refresh = value; }, setCachedUser: async (value) => { cached = value; }, clearCachedUser: async () => { cached = null; }, clearTokens: async () => { access = refresh = cached = null; } };
   const queue = load("services/authTokenQueue.ts", { "./tokenStorage": store });
   const revocation = deferred();
   let revoked = null;
@@ -270,5 +270,64 @@ for (const failedSwitch of [true, false]) test(`pending logout clears A locally 
   assert.equal(access, failedSwitch ? null : "b");
   await act(async () => { await value.retryBootstrap(); });
   assert.equal(value.user?.id ?? null, failedSwitch ? null : "b");
+  await act(async () => { tree.unmount(); });
+});
+
+test("offline bootstrap restores only the cached signed-in account and logout removes it", async () => {
+  const scope = load("services/accountScope.ts");
+  let access = "a-access", refresh = "a-refresh", cached = { ...profile, id: "a", has_completed_onboarding: true };
+  const store = {
+    getAccessToken: async () => access, getRefreshToken: async () => refresh, getCachedUser: async () => cached,
+    setAccessToken: async (value) => { access = value; }, setRefreshToken: async (value) => { refresh = value; },
+    setCachedUser: async (value) => { cached = value; }, clearCachedUser: async () => { cached = null; },
+    clearTokens: async () => { access = refresh = cached = null; },
+  };
+  const queue = load("services/authTokenQueue.ts", { "./tokenStorage": store });
+  const auth = load("utils/authContext.tsx", {
+    "@/services/authService": { logout: async () => {} },
+    "@/services/tokenStorage": store,
+    "@/services/userService": { getMe: async () => { throw new Error("Failed to fetch"); } },
+    "@/services/accountScope": scope,
+    "@/services/authTokenQueue": queue,
+    "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+  });
+  let value, tree;
+  function Read() { value = React.useContext(auth.AuthContext); return null; }
+  await act(async () => { tree = create(React.createElement(auth.AuthProvider, null, React.createElement(Read))); });
+  assert.equal(value.offlineSession, true);
+  assert.equal(value.user?.id, "a");
+  assert.equal(value.token, null);
+  await act(async () => { await value.logOut({ forceLocal: true }); });
+  assert.equal(cached, null);
+  await act(async () => { tree.unmount(); });
+  await act(async () => { tree = create(React.createElement(auth.AuthProvider, null, React.createElement(Read))); });
+  assert.equal(value.isLoggedIn, false);
+  await act(async () => { tree.unmount(); });
+});
+
+test("offline workout session retries authentication when connectivity returns", async () => {
+  const scope = load("services/accountScope.ts");
+  const cached = { ...profile, has_completed_onboarding: true };
+  let online = false, scheduledRetry;
+  const store = {
+    getAccessToken: async () => "a-access", getRefreshToken: async () => "a-refresh", getCachedUser: async () => cached,
+    setAccessToken: async () => {}, setRefreshToken: async () => {}, setCachedUser: async () => {},
+    clearCachedUser: async () => {}, clearTokens: async () => {},
+  };
+  const queue = load("services/authTokenQueue.ts", { "./tokenStorage": store });
+  const auth = load("utils/authContext.tsx", {
+    "@/services/authService": {}, "@/services/tokenStorage": store,
+    "@/services/userService": { getMe: async () => { if (!online) throw new Error("offline"); return cached; } },
+    "@/services/accountScope": scope, "@/services/authTokenQueue": queue,
+    "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+  }, { setTimeout: (callback) => { scheduledRetry = callback; return 1; }, clearTimeout: () => {} });
+  let value, tree;
+  function Read() { value = React.useContext(auth.AuthContext); return null; }
+  await act(async () => { tree = create(React.createElement(auth.AuthProvider, null, React.createElement(Read))); });
+  assert.equal(value.offlineSession, true);
+  online = true;
+  await act(async () => { await scheduledRetry(); });
+  assert.equal(value.offlineSession, false);
+  assert.equal(value.token, "a-access");
   await act(async () => { tree.unmount(); });
 });

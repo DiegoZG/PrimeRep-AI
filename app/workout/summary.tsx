@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useContext, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,22 +29,26 @@ function StatCard({ icon, label, value, colors }: { icon: keyof typeof Ionicons.
 
 export default function WorkoutSummaryScreen() {
   const router = useRouter();
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const colors = Colors[useColorScheme() ?? "light"];
-  const [session, setSession] = useState<SessionResponse | null>(null);
+  const [ownedSession, setOwnedSession] = useState<{ ownerId: string; sessionId: string; value: SessionResponse } | null>(null);
   const [unit, setUnit] = useState<WeightUnit>("LB");
   const [error, setError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const session = ownedSession && ownedSession.ownerId === user?.id && ownedSession.sessionId === sessionId ? ownedSession.value : null;
 
-  useEffect(() => { void loadWeightUnit().then(setUnit); }, []);
-  useEffect(() => {
-    if (!token || !sessionId) { setError(true); return; }
+  useFocusEffect(useCallback(() => {
+    if (!token || !user?.id || !sessionId) { setError(true); return; }
     let cancelled = false;
+    setError(false);
+    setRefreshing(true);
+    void loadWeightUnit().then((value) => { if (!cancelled) setUnit(value); });
     void getSession(token, sessionId).then((result) => {
-      if (!cancelled) setSession(result);
-    }).catch(() => { if (!cancelled) setError(true); });
+      if (!cancelled) setOwnedSession({ ownerId: user.id, sessionId, value: result });
+    }).catch(() => { if (!cancelled) setError(true); }).finally(() => { if (!cancelled) setRefreshing(false); });
     return () => { cancelled = true; };
-  }, [token, sessionId]);
+  }, [token, user?.id, sessionId]));
 
   const exerciseNames = useMemo(() => new Map(
     (session?.workoutSnapshot?.exerciseBlocks ?? [])
@@ -83,6 +87,7 @@ export default function WorkoutSummaryScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40, flexGrow: 1 }}>
+        {refreshing ? <ThemedText accessibilityLiveRegion="polite" style={{ color: colors.placeholder, textAlign: "center" }}>Refreshing workout…</ThemedText> : error ? <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/workout/history/[sessionId]", params: { sessionId: session.id } })}><ThemedText style={{ color: "#DC2626", textAlign: "center" }}>Couldn’t refresh totals. Review the saved workout.</ThemedText></Pressable> : null}
         <View style={{ alignItems: "center", marginTop: 12, marginBottom: 32 }}>
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: `${colors.primaryButton}18`, alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Ionicons name="checkmark-circle" size={40} color={colors.primaryButton} /></View>
           <ThemedText type="title" style={{ fontSize: 26, textAlign: "center" }}>Workout Complete!</ThemedText>
@@ -104,9 +109,9 @@ export default function WorkoutSummaryScreen() {
           ) : logsByExercise.map(([exerciseId, logs]) => (
             <View key={exerciseId} testID={`summary-exercise-${exerciseId}`} style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }}>
               <ThemedText type="defaultSemiBold">{exerciseNames.get(String(exerciseId)) ?? exerciseId}</ThemedText>
-              {logs.map((set, index) => {
+              {logs.map((set) => {
                 const displayWeight = set.weightKg == null ? "Bodyweight" : `${formatWeightInput(fromKg(set.weightKg, unit))} ${unit.toLowerCase()}`;
-                return <ThemedText key={set.id} style={{ color: colors.placeholder, marginTop: 6 }}>Set {index + 1}: {displayWeight} × {set.reps}</ThemedText>;
+                return <ThemedText key={set.id} style={{ color: colors.placeholder, marginTop: 6 }}>Set {set.setNumber}: {displayWeight} × {set.reps}</ThemedText>;
               })}
             </View>
           ))}

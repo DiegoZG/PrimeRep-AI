@@ -124,10 +124,10 @@ env:
     id: "player-finish"
 
 - extendedWaitUntil:
-    visible: "Finish Workout?"
+    visible: "Finish workout?"
     timeout: 5000
 
-- tapOn: "Finish"
+- tapOn: "Finish anyway"
 
 # =============================================
 # STEP 8: VERIFY SUMMARY SCREEN

@@ -12,12 +12,13 @@ import React, {
 import * as authService from "@/services/authService";
 import {
   getAccessToken,
+  getCachedUser,
   getRefreshToken,
 } from "@/services/tokenStorage";
 import * as userService from "@/services/userService";
 import { accountRequestGuard, invalidateAccountRequests } from "@/services/accountScope";
 import { cleanupPrivateFiles } from "@/services/privateFiles";
-import { captureAndClearSessionTokens, clearSessionTokens, persistSessionTokens, waitForTokenWrites } from "@/services/authTokenQueue";
+import { cacheSessionUser, captureAndClearSessionTokens, clearCachedSessionUser, clearSessionTokens, persistSessionTokens, waitForTokenWrites } from "@/services/authTokenQueue";
 
 export type AuthUser = userService.UserResponse;
 
@@ -28,6 +29,7 @@ type AuthState = {
   token: string | null; // access token
   user: AuthUser | null;
   bootstrapError: BootstrapError;
+  offlineSession: boolean;
 };
 
 type AuthContextValue = {
@@ -37,6 +39,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   hasCompletedOnboarding: boolean;
   bootstrapError: BootstrapError;
+  offlineSession: boolean;
 
   logIn: (payload: authService.LoginPayload) => Promise<void>;
   signUp: (payload: authService.SignUpPayload) => Promise<void>;
@@ -53,12 +56,14 @@ const initialState: AuthState = {
   token: null,
   user: null,
   bootstrapError: null,
+  offlineSession: false,
 };
 
 type Action =
   | { type: "BOOTSTRAP_START" }
   | { type: "BOOTSTRAP_LOGGED_OUT" }
   | { type: "BOOTSTRAP_ERROR"; error: Exclude<BootstrapError, null> }
+  | { type: "BOOTSTRAP_OFFLINE"; user: AuthUser; error: Exclude<BootstrapError, null> }
   | { type: "AUTH_SUCCESS"; token: string; user: AuthUser }
   | { type: "SET_USER"; user: AuthUser }
   | { type: "SET_PROFILE_IDENTITY"; profile: Pick<AuthUser, "id" | "preferred_name" | "last_name" | "updated_at"> }
@@ -67,7 +72,7 @@ type Action =
 function reducer(state: AuthState, action: Action): AuthState {
   switch (action.type) {
     case "BOOTSTRAP_START":
-      return { ...state, isBootstrapping: true, bootstrapError: null };
+      return { ...state, isBootstrapping: !state.offlineSession, bootstrapError: null };
 
     case "BOOTSTRAP_LOGGED_OUT":
       return {
@@ -75,6 +80,7 @@ function reducer(state: AuthState, action: Action): AuthState {
         token: null,
         user: null,
         bootstrapError: null,
+        offlineSession: false,
       };
 
     case "BOOTSTRAP_ERROR":
@@ -84,12 +90,23 @@ function reducer(state: AuthState, action: Action): AuthState {
         bootstrapError: action.error,
       };
 
+    case "BOOTSTRAP_OFFLINE":
+      return {
+        ...state,
+        isBootstrapping: false,
+        token: null,
+        user: action.user,
+        bootstrapError: action.error,
+        offlineSession: true,
+      };
+
     case "AUTH_SUCCESS":
       return {
         isBootstrapping: false,
         token: action.token,
         user: action.user,
         bootstrapError: null,
+        offlineSession: false,
       };
 
     case "SET_USER":
@@ -104,6 +121,7 @@ function reducer(state: AuthState, action: Action): AuthState {
         token: null,
         user: null,
         bootstrapError: null,
+        offlineSession: false,
       };
 
     default:
@@ -118,6 +136,7 @@ export const AuthContext = createContext<AuthContextValue>({
   user: null,
   hasCompletedOnboarding: false,
   bootstrapError: null,
+  offlineSession: false,
   logIn: async () => {},
   signUp: async () => {},
   logOut: async () => {},
@@ -249,6 +268,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!isCurrent()) return;
 
       if (result.kind === "ok") {
+        await cacheSessionUser(result.user, isCurrent).catch(() => {});
+        if (!isCurrent()) return;
         dispatch({
           type: "AUTH_SUCCESS",
           token: result.accessToken,
@@ -263,7 +284,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      dispatch({ type: "BOOTSTRAP_ERROR", error: result.error });
+      const cached = result.error === "network" ? await getCachedUser().catch(() => null) : null;
+      const refreshToken = cached ? await getRefreshToken().catch(() => null) : null;
+      if (!isCurrent()) return;
+      dispatch(cached && refreshToken
+        ? { type: "BOOTSTRAP_OFFLINE", user: cached, error: result.error }
+        : { type: "BOOTSTRAP_ERROR", error: result.error });
     } catch (err: any) {
       if (!isCurrent()) return;
       // If something truly unexpected happened, keep tokens and allow retry.
@@ -276,7 +302,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     bootstrap();
   }, [bootstrap]);
 
-  const isLoggedIn = !!state.token && !!state.user;
+  useEffect(() => {
+    if (!state.offlineSession) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const retry = async () => {
+      await bootstrap();
+      if (!cancelled) timer = setTimeout(retry, 15_000);
+    };
+    timer = setTimeout(retry, 15_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [state.offlineSession, bootstrap]);
+
+  const isLoggedIn = !!state.user && (!!state.token || state.offlineSession);
   const hasCompletedOnboarding = state.user?.has_completed_onboarding ?? false;
 
   const acceptProfileIdentity = useCallback((profile: Pick<AuthUser, "id" | "preferred_name" | "last_name" | "updated_at">) => {
@@ -294,6 +335,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       const me = await fetchMe(state.token);
       if (!isCurrent() || me.id !== owner) return;
+      await cacheSessionUser(me, isCurrent).catch(() => {});
+      if (!isCurrent()) return;
       dispatch({ type: "SET_USER", user: me });
     } catch (err: any) {
       if (!isCurrent()) return;
@@ -307,6 +350,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       if (result.kind === "ok") {
         if (result.user.id !== owner) return;
+        await cacheSessionUser(result.user, isCurrent).catch(() => {});
+        if (!isCurrent()) return;
         dispatch({
           type: "AUTH_SUCCESS",
           token: result.accessToken,
@@ -330,10 +375,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const isCurrent = accountRequestGuard();
     const res = await authService.login(payload);
     if (!isCurrent()) return;
+    await clearCachedSessionUser(isCurrent);
     await persistSessionTokens(res.access_token, res.refresh_token, isCurrent);
     if (!isCurrent()) return;
 
     const me = await fetchMe(res.access_token);
+    if (!isCurrent()) return;
+    await cacheSessionUser(me, isCurrent).catch(() => {});
     if (!isCurrent()) return;
     dispatch({ type: "AUTH_SUCCESS", token: res.access_token, user: me });
   }, []);
@@ -343,10 +391,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const isCurrent = accountRequestGuard();
     const res = await authService.signup(payload);
     if (!isCurrent()) return;
+    await clearCachedSessionUser(isCurrent);
     await persistSessionTokens(res.access_token, res.refresh_token, isCurrent);
     if (!isCurrent()) return;
 
     const me = await fetchMe(res.access_token);
+    if (!isCurrent()) return;
+    await cacheSessionUser(me, isCurrent).catch(() => {});
     if (!isCurrent()) return;
     dispatch({ type: "AUTH_SUCCESS", token: res.access_token, user: me });
   }, []);
@@ -389,6 +440,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user: state.user,
       hasCompletedOnboarding,
       bootstrapError: state.bootstrapError,
+      offlineSession: state.offlineSession,
       logIn,
       signUp,
       logOut,
@@ -402,6 +454,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       state.token,
       state.user,
       state.bootstrapError,
+      state.offlineSession,
       isLoggedIn,
       hasCompletedOnboarding,
       logIn,

@@ -58,6 +58,17 @@ maestro test --debug .maestro/smoke-home.yaml
 maestro studio
 ```
 
+### Part 9: native offline cold start
+
+Use a native build, not Expo web. Sign in online, start a workout, confirm at
+least one set, then disconnect the simulator/device before running
+`maestro test .maestro/offline-workout-cold-start.yaml`. The flow force-stops
+and relaunches twice, verifies the same workout opens offline, and queues
+completion without claiming server confirmation. Reconnect afterward and
+verify the workout finishes once on the server with its sets and notes. Repeat
+manually on iOS and Android with timeout, backgrounding, account switch, and
+expired-auth conditions; the YAML does not toggle the network for you.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
@@ -204,6 +215,7 @@ must retain the native response until a later successful or terminal lookup.
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
 | Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, then save a workout note |
+| Workout Correction | `workout-correction.yaml` | Finish with zero sets → add a planned set in history → verify refreshed summary |
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
