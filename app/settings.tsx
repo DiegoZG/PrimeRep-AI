@@ -605,6 +605,17 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Health</ThemedText>
+        <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+          <Pressable testID="settings-health" style={styles.navigationRow} onPress={() => router.push("/settings/health" as Href)} accessibilityRole="button" accessibilityLabel="Health connections" accessibilityHint="View Apple Health and Health Connect availability">
+            <View style={styles.rowContent}>
+              <ThemedText style={styles.rowTitle}>Health connections</ThemedText>
+              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>Steps, sleep, and workout export</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          </Pressable>
+        </View>
+
         <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Legal</ThemedText>
         <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Pressable testID="settings-terms" style={styles.navigationRow} onPress={() => router.push("/legal/terms" as Href)} accessibilityRole="button" accessibilityLabel="Terms of Service">
