@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, {
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -32,11 +33,21 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useStats } from "@/hooks/use-stats";
+import { useAccountResource } from "@/hooks/use-account-resource";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
+import type { CoachFeedItem, CoachNextAction } from "@/interfaces/coach";
 import type { WorkoutDay } from "@/interfaces/workouts";
+import { accountRequestGuard } from "@/services/accountScope";
+import { getCoachFeed, markCoachItemRead } from "@/services/coachService";
+import { getAchievements } from "@/services/profileService";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { AuthContext } from "@/utils/authContext";
+import { coachItemPresentation } from "@/utils/coachItemBody";
+import { coachTargetHref } from "@/utils/coachNavigation";
+import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
+import { fourWeekActivity, homeWorkoutState, selectHomeCoachItem } from "@/utils/homeDashboard";
 import { localDateIso } from "@/utils/localDate";
+import { loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
 import { CARD_GAP, CARD_WIDTH, styles } from "@/styles/home.styles";
 
@@ -57,13 +68,38 @@ const CARD_GRADIENTS: [string, string][] = [
   ["#FF9500", "#e68600"], // Orange
 ];
 
+async function loadHomeCoachAction(token: string): Promise<CoachNextAction> {
+  const page = await getCoachFeed(token, localDateIso(), { view: "now", limit: 50 });
+  return page.nextAction;
+}
+
+async function loadHomeCoachItem(token: string): Promise<CoachFeedItem | null> {
+  let cursor: string | undefined;
+  do {
+    const page = await getCoachFeed(token, localDateIso(), { view: "now", limit: 50, cursor });
+    const item = selectHomeCoachItem(page.items);
+    if (item) return item;
+    cursor = page.hasMore && page.nextCursor ? page.nextCursor : undefined;
+  } while (cursor);
+  return null;
+}
+
 const Home = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { token, user } = useContext(AuthContext);
+  const equipmentWeights = useContext(EquipmentWeightsContext);
   const { activeWorkout, refreshActiveWorkout } = useActiveWorkout();
-  const { stats } = useStats();
+  const { stats, refresh: refreshStats } = useStats();
+  const coachAction = useAccountResource(loadHomeCoachAction);
+  const coachCard = useAccountResource(loadHomeCoachItem);
+  const achievements = useAccountResource(getAchievements);
+  const refreshCoachAction = coachAction.refresh;
+  const refreshCoachCard = coachCard.refresh;
+  const refreshAchievements = achievements.refresh;
+  const [weightUnitState, setWeightUnitState] = useState<{ userId: string; unit: WeightUnit } | null>(null);
+  const weightUnit = weightUnitState && weightUnitState.userId === user?.id ? weightUnitState.unit : null;
   const flatListRef = useRef<FlatList>(null);
 
   // Store refs for overflow buttons to measure their positions
@@ -77,7 +113,6 @@ const Home = () => {
     error,
     refreshWeek,
     getSortedWorkouts,
-    getHighlightedWorkout,
     getExerciseCount,
     syncCurrentWeek,
   } = useWorkoutWeek();
@@ -96,11 +131,19 @@ const Home = () => {
 
   const [todayIso, setTodayIso] = useState(localDateIso);
 
-  // Get sorted workouts and highlighted workout
   const sortedWorkouts = useMemo(() => getSortedWorkouts(), [getSortedWorkouts]);
+  const nextAction = coachAction.loading || coachAction.error ? null : coachAction.data;
+  const completedCount = achievements.data?.total_completed ?? stats?.totalCompleted ?? null;
+  const workoutState = homeWorkoutState(Boolean(activeWorkout), nextAction, completedCount);
+  const coachItem = coachCard.loading || coachCard.error ? null : coachCard.data;
+  const trendWeeks = achievements.data ? fourWeekActivity(achievements.data) : [];
+  const trendMaximum = Math.max(1, ...trendWeeks.map((week) => week.completed_workouts));
+  const plannedTarget = nextAction?.type === "planned_workout" && nextAction.target.type === "planned_workout"
+    ? nextAction.target
+    : null;
   const highlightedWorkout = useMemo(
-    () => getHighlightedWorkout(todayIso),
-    [getHighlightedWorkout, todayIso]
+    () => plannedTarget ? sortedWorkouts.find((workout) => workout.workoutDayId === plannedTarget.workoutDayId) ?? null : null,
+    [plannedTarget, sortedWorkouts]
   );
   const activeWorkoutTitle = activeWorkout?.title ?? "";
   const activeWorkoutTotalSets = activeWorkout?.totalSets ?? 0;
@@ -126,6 +169,21 @@ const Home = () => {
     }, [token, isLoading, error, weekPlan, refreshWeek, refreshActiveWorkout, syncCurrentWeek])
   );
 
+  useFocusEffect(useCallback(() => {
+    let current = true;
+    void loadWeightUnit().then((unit) => {
+      if (current && user?.id) setWeightUnitState({ userId: user.id, unit });
+    });
+    return () => { current = false; };
+  }, [user?.id]));
+
+  useEffect(() => {
+    if (weekPlan?.weekStart && token) {
+      void refreshCoachAction();
+      void refreshCoachCard();
+    }
+  }, [weekPlan?.weekStart, token, refreshCoachAction, refreshCoachCard]);
+
   const scrollToIndex = useCallback((index: number, viewPosition = 0.1) => {
     setTimeout(() => {
       flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition });
@@ -147,9 +205,41 @@ const Home = () => {
   // Handle pull-to-refresh (uses local state, not global isLoading)
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refreshWeek({ force: false });
-    setIsRefreshing(false);
-  }, [refreshWeek]);
+    try {
+      await refreshWeek({ force: false });
+      await Promise.allSettled([
+        refreshActiveWorkout(),
+        refreshStats(),
+        refreshCoachAction(),
+        refreshCoachCard(),
+        refreshAchievements(),
+      ]);
+      setTodayIso(localDateIso());
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshWeek, refreshActiveWorkout, refreshStats, refreshCoachAction, refreshCoachCard, refreshAchievements]);
+
+  const openCoachItem = useCallback((item: CoachFeedItem) => {
+    const href = coachTargetHref(item.target);
+    if (!href) return;
+    if (token) {
+      const sameAccount = accountRequestGuard();
+      void markCoachItemRead(token, item.id, "primaryAction")
+        .then(() => { if (sameAccount()) void refreshCoachCard(); })
+        .catch(() => {});
+    }
+    router.push(href);
+  }, [token, router, refreshCoachCard]);
+
+  const openNextAction = useCallback(() => {
+    if (activeWorkout) {
+      router.push({ pathname: "/workout/active", params: activeWorkout.sessionId ? { sessionId: activeWorkout.sessionId } : { workoutDayId: activeWorkout.workoutDayId } });
+      return;
+    }
+    const href = coachTargetHref(nextAction?.target);
+    if (href) router.push(href);
+  }, [activeWorkout, nextAction, router]);
 
   // Navigate to workout day detail
   const handleWorkoutPress = useCallback(
@@ -453,22 +543,6 @@ const Home = () => {
               {user?.preferred_name || "Athlete"}
             </ThemedText>
           </View>
-          <Pressable
-            testID="home-open-coach"
-            accessibilityRole="button"
-            accessibilityLabel="Open Coach"
-            onPress={() => router.push("/(tabs)/feed")}
-            style={[
-              styles.notificationButton,
-              { backgroundColor: colors.inputBackground },
-            ]}
-          >
-            <Ionicons
-              name="sparkles-outline"
-              size={22}
-              color={colors.text}
-            />
-          </Pressable>
         </View>
 
         {activeWorkout ? (
@@ -476,20 +550,70 @@ const Home = () => {
             testID="home-resume-workout"
             accessibilityRole="button"
             accessibilityLabel={`Resume ${activeWorkoutTitle}`}
-            onPress={() => router.push({ pathname: "/workout/active", params: activeWorkout.sessionId ? { sessionId: activeWorkout.sessionId } : { workoutDayId: activeWorkout.workoutDayId } })}
-            style={{ marginHorizontal: 20, marginBottom: 6, padding: 16, borderRadius: 18, backgroundColor: colors.primaryButton, flexDirection: "row", alignItems: "center", gap: 12 }}
+            onPress={openNextAction}
+            style={[styles.primaryAction, { backgroundColor: colors.primaryButton }]}
           >
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.electricBlue, borderWidth: 2, borderColor: "#FFFFFF" }} />
+            <View style={[styles.liveDot, { backgroundColor: colors.electricBlue }]} />
             <View style={{ flex: 1 }}>
-              <ThemedText style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "700" }}>Workout in progress</ThemedText>
-              <ThemedText style={{ color: "#FFFFFF", fontSize: 20, fontWeight: "700", marginTop: 2 }} numberOfLines={1}>{activeWorkoutTitle}</ThemedText>
-              <ThemedText style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 3 }}>
+              <ThemedText style={styles.primaryEyebrow}>Workout in progress</ThemedText>
+              <ThemedText style={styles.primaryTitle} numberOfLines={1}>{activeWorkoutTitle}</ThemedText>
+              <ThemedText style={styles.primaryBody}>
                 {activeWorkout.completedSets}{activeWorkoutTotalSets > 0 ? `/${activeWorkoutTotalSets}` : ""} sets completed
               </ThemedText>
             </View>
             <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
           </Pressable>
-        ) : null}
+        ) : coachAction.loading ? (
+          <View testID="home-next-loading" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
+            <ActivityIndicator color={colors.primaryButton} />
+            <ThemedText style={{ color: colors.icon }}>Checking your next workout…</ThemedText>
+          </View>
+        ) : coachAction.error ? (
+          <View testID="home-next-error" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
+            <ThemedText style={styles.quietActionTitle}>Next workout unavailable</ThemedText>
+            <ThemedText style={{ color: colors.icon }}>Browse your week below, or retry to confirm what’s next.</ThemedText>
+            <Pressable testID="home-next-retry" accessibilityRole="button" accessibilityLabel="Retry next workout guidance" onPress={() => void refreshCoachAction()} style={styles.compactAction}>
+              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry guidance</ThemedText>
+            </Pressable>
+          </View>
+        ) : workoutState === "planned" || workoutState === "resume" ? (
+          <Pressable
+            testID="home-next-workout"
+            accessibilityRole="button"
+            accessibilityLabel={`${completedCount === 0 ? "Start your first workout" : "Open next workout"}: ${nextAction?.title ?? "Workout"}`}
+            onPress={openNextAction}
+            style={[styles.primaryAction, { backgroundColor: colors.primaryButton }]}
+          >
+            <Ionicons name="barbell-outline" size={22} color="#FFFFFF" />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.primaryEyebrow}>{completedCount === 0 ? "Your first workout" : workoutState === "resume" ? "Workout in progress" : "Up next"}</ThemedText>
+              <ThemedText style={styles.primaryTitle} numberOfLines={2}>{nextAction?.title}</ThemedText>
+              <ThemedText style={styles.primaryBody} numberOfLines={2}>{nextAction?.body}</ThemedText>
+            </View>
+            <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
+          </Pressable>
+        ) : workoutState === "first" ? (
+          <View testID="home-first-workout" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
+            <ThemedText style={styles.quietActionTitle}>Your first workout starts here</ThemedText>
+            <ThemedText style={{ color: colors.icon }}>Choose a program to put a workout on your calendar.</ThemedText>
+            <Pressable testID="home-find-program" accessibilityRole="button" onPress={() => router.push("/programs")} style={styles.compactAction}>
+              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Browse programs</ThemedText>
+            </Pressable>
+          </View>
+        ) : workoutState === "complete" ? (
+          <View testID="home-week-complete" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
+            <ThemedText style={styles.quietActionTitle}>Your week is complete</ThemedText>
+            <ThemedText style={{ color: colors.icon }}>No unfinished workout is scheduled next. Your training history is ready whenever you are.</ThemedText>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/workout/history")} style={styles.compactAction}>
+              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>View history</ThemedText>
+            </Pressable>
+          </View>
+        ) : (
+          <View testID="home-next-unavailable" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
+            <ThemedText style={styles.quietActionTitle}>No next workout confirmed</ThemedText>
+            <ThemedText style={{ color: colors.icon }}>Browse this week while we check your training history.</ThemedText>
+          </View>
+        )}
 
         {/* This Week Section */}
         <View style={styles.section}>
@@ -678,6 +802,94 @@ const Home = () => {
               </View>
             </View>
           </AnimatedCard>
+        </View>
+
+        <View style={styles.sectionPadded}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>Coach</ThemedText>
+          </View>
+          {coachCard.loading ? (
+            <View testID="home-coach-loading" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
+              <ActivityIndicator color={colors.primaryButton} />
+              <ThemedText style={{ color: colors.icon }}>Loading guidance…</ThemedText>
+            </View>
+          ) : coachCard.error ? (
+            <View testID="home-coach-error" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
+              <ThemedText style={{ color: colors.icon, flex: 1 }}>Coach guidance is unavailable.</ThemedText>
+              <Pressable testID="home-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach guidance" onPress={() => void refreshCoachCard()} style={styles.compactAction}>
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText>
+              </Pressable>
+            </View>
+          ) : coachItem ? (
+            <Pressable
+              testID="home-coach-action"
+              accessibilityRole="button"
+              accessibilityLabel={`Open Coach action: ${coachItem.title}`}
+              onPress={() => openCoachItem(coachItem)}
+              style={[styles.coachPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+            >
+              <View style={[styles.coachStripe, { backgroundColor: colors.electricBlue }]} />
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[styles.panelLabel, { color: colors.primaryButton }]}>For your next move</ThemedText>
+                <ThemedText style={styles.coachTitle} numberOfLines={2}>{coachItem.title}</ThemedText>
+                <ThemedText style={[styles.coachBody, { color: colors.icon }]} numberOfLines={2}>
+                  {coachItem.weightData && !weightUnit
+                    ? "Preparing your target…"
+                    : coachItemPresentation(coachItem, weightUnit, equipmentWeights.dumbbellWeights, equipmentWeights.plateWeights).body}
+                </ThemedText>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color={colors.primaryButton} />
+            </Pressable>
+          ) : (
+            <ThemedText testID="home-coach-empty" style={[styles.emptyLine, { color: colors.icon }]}>No unread Coach actions right now.</ThemedText>
+          )}
+        </View>
+
+        <View style={styles.sectionPadded}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>Last four weeks</ThemedText>
+            <Pressable testID="home-trend-history" accessibilityRole="button" accessibilityLabel="View workout history" onPress={() => router.push("/workout/history")} style={styles.compactAction}>
+              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>History</ThemedText>
+            </Pressable>
+          </View>
+          {achievements.loading ? (
+            <View testID="home-trend-loading" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
+              <ActivityIndicator color={colors.primaryButton} />
+              <ThemedText style={{ color: colors.icon }}>Loading training trend…</ThemedText>
+            </View>
+          ) : achievements.error ? (
+            <View testID="home-trend-error" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
+              <ThemedText style={{ color: colors.icon, flex: 1 }}>Training trend is unavailable.</ThemedText>
+              <Pressable testID="home-trend-retry" accessibilityRole="button" accessibilityLabel="Retry training trend" onPress={() => void refreshAchievements()} style={styles.compactAction}>
+                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText>
+              </Pressable>
+            </View>
+          ) : achievements.data?.total_completed === 0 ? (
+            <View testID="home-trend-first-workout" style={[styles.trendPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+              <ThemedText style={styles.quietActionTitle}>Your first workout starts the trend</ThemedText>
+              <ThemedText style={{ color: colors.icon }}>Finish a session to see your weekly rhythm here.</ThemedText>
+            </View>
+          ) : achievements.data ? (
+            <View testID="home-four-week-trend" style={[styles.trendPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+              <View style={styles.trendBars}>
+                {trendWeeks.map((week) => {
+                  const label = week.is_current ? "This week" : new Date(`${week.week_start}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  return (
+                    <View key={week.week_start} testID={`home-trend-week-${week.week_start}`} accessible accessibilityLabel={`${label}: ${week.completed_workouts} completed ${week.completed_workouts === 1 ? "workout" : "workouts"}${week.is_current ? ", week in progress" : ""}`} style={styles.trendColumn}>
+                      <ThemedText style={styles.trendCount}>{week.completed_workouts}</ThemedText>
+                      <View style={[styles.trendTrack, { backgroundColor: colors.inputBorder }]}>
+                        <View style={[styles.trendFill, { height: week.completed_workouts === 0 ? 0 : Math.max(6, 64 * week.completed_workouts / trendMaximum), backgroundColor: week.is_current ? colors.electricBlue : colors.primaryButton }]} />
+                      </View>
+                      <ThemedText style={[styles.trendWeekLabel, { color: colors.icon }]} numberOfLines={1}>{label}</ThemedText>
+                    </View>
+                  );
+                })}
+              </View>
+              <ThemedText style={[styles.trendFootnote, { color: colors.icon }]}>Completed workouts · current week is still in progress</ThemedText>
+            </View>
+          ) : (
+            <ThemedText testID="home-trend-empty" style={[styles.emptyLine, { color: colors.icon }]}>Training history will appear here after your first workout.</ThemedText>
+          )}
         </View>
       </ScrollView>
 

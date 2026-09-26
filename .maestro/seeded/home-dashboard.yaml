@@ -1,0 +1,63 @@
+# Home dashboard integration against the local Coach fixture.
+# Seed with: APP_ENV=local PYTHONPATH=. .venv/bin/python scripts/seed_coach_e2e_fixture.py
+# Sign out first if Expo Go is already authenticated as another account.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: coach-fixture@example.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: ../flows/launch-app.yaml
+- runFlow: ../flows/auth-login.yaml
+
+- tapOn:
+    id: "tab-home"
+- extendedWaitUntil:
+    visible:
+      id: "home-next-workout"
+    timeout: 30000
+- assertNotVisible:
+    id: "home-open-coach"
+- takeScreenshot: home-next-workout
+
+- tapOn:
+    id: "home-next-workout"
+- extendedWaitUntil:
+    visible:
+      id: "start-workout-button"
+    timeout: 15000
+- tapOn: "Back from workout details"
+
+- scrollUntilVisible:
+    element:
+      id: "home-coach-action"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "home-coach-action"
+- extendedWaitUntil:
+    visible:
+      id: "activation-weekday-0"
+    timeout: 15000
+- tapOn: "Back from Use this program"
+
+- scrollUntilVisible:
+    element:
+      id: "home-four-week-trend"
+    direction: DOWN
+    centerElement: true
+- assertVisible: "This week: .* completed workouts, week in progress"
+- assertVisible: "Completed workouts · current week is still in progress"
+- takeScreenshot: home-four-week-trend
+
+- scrollUntilVisible:
+    element:
+      id: "home-trend-history"
+    direction: UP
+- tapOn:
+    id: "home-trend-history"
+- extendedWaitUntil:
+    visible:
+      id: "history-session-.*"
+    timeout: 15000
+- assertVisible: "Workout History"

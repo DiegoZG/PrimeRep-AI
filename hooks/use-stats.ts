@@ -1,8 +1,5 @@
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useContext, useState } from "react";
-
+import { useAccountResource } from "@/hooks/use-account-resource";
 import { getStats, type StatsResponse } from "@/services/workoutLoggingService";
-import { AuthContext } from "@/utils/authContext";
 
 interface UseStatsResult {
   stats: StatsResponse | null;
@@ -18,34 +15,11 @@ interface UseStatsResult {
  * streak and completed count, and those screens are what the user lands back on.
  */
 export function useStats(): UseStatsResult {
-  const { token, isLoggedIn } = useContext(AuthContext);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!isLoggedIn || !token) {
-      setStats(null);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      setStats(await getStats(token));
-    } catch (err) {
-      console.warn("Failed to load workout stats:", err);
-      setError("Couldn't load your stats.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoggedIn, token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
-  );
-
-  return { stats, isLoading, error, refresh };
+  const resource = useAccountResource(getStats);
+  return {
+    stats: resource.data,
+    isLoading: resource.loading,
+    error: resource.error ? "Couldn't load your stats." : null,
+    refresh: resource.refresh,
+  };
 }
