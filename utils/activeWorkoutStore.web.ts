@@ -15,7 +15,7 @@ import {
   updateWorkoutNote,
 } from "@/services/workoutLoggingService";
 import type { SessionResponse } from "@/services/workoutLoggingService";
-import type { LocalActiveWorkout, PendingWorkoutOperation, SequencedWorkoutOperation } from "./activeWorkoutStore.native";
+import type { ContinueWorkoutLoggingResult, LocalActiveWorkout, PendingWorkoutOperation, QueueWorkoutCompletionResult, SequencedWorkoutOperation } from "./activeWorkoutStore.native";
 
 export type { LocalActiveWorkout, PendingWorkoutOperation, SyncState } from "./activeWorkoutStore.native";
 
@@ -23,6 +23,7 @@ const keyFor = (userId: string) => `primerep.web.active-workout.${userId}`;
 const terminalKeyFor = (userId: string) => `primerep.web.terminal-workouts.${userId}`;
 let writeQueue = Promise.resolve();
 let replayQueue = Promise.resolve();
+let lastCompletedReplay: { userId: string; clientSessionId: string; serverSessionId: string | null } | null = null;
 const MAX_TERMINAL_WORKOUTS_PER_USER = 100;
 
 type TerminalWorkout = { clientSessionId: string; serverSessionId: string | null; completedAt?: number };
@@ -44,10 +45,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
   const normalizedOperations = normalizeOperationSequences(
     recoverMissingSetOperations(workout.sets, workout.operations)
   );
-  if (normalizedOperations.some((operation, index) => operation.sequence !== workout.operations[index]?.sequence)) {
-    workout.operations = normalizedOperations;
-    await AsyncStorage.setItem(keyFor(userId), JSON.stringify(workout));
-  }
+  workout.operations = normalizedOperations;
   return workout;
 }
 
@@ -58,6 +56,8 @@ export function saveActiveWorkout(workout: LocalActiveWorkout): Promise<void> {
   const task = writeQueue.then(async () => {
     const terminal = await terminalWorkouts(workout.userId);
     if (terminal.some((entry) => entry.clientSessionId === workout.clientSessionId || (workout.serverSessionId != null && entry.serverSessionId === workout.serverSessionId))) return;
+    const raw = await AsyncStorage.getItem(keyFor(workout.userId));
+    if (raw && (JSON.parse(raw) as LocalActiveWorkout).revision >= workout.revision) return;
     await AsyncStorage.setItem(keyFor(workout.userId), JSON.stringify(workout));
   });
   writeQueue = task.catch(() => undefined);
@@ -92,7 +92,11 @@ function recoverMissingSetOperations(
       payload: { exerciseId: set.exerciseId, setNumber: set.setNumber, reps, weightKg: set.weightKg ?? undefined },
     }];
   });
-  return [...operations, ...recovered];
+  return [
+    ...operations.filter((operation) => operation.type !== "complete"),
+    ...recovered,
+    ...operations.filter((operation) => operation.type === "complete"),
+  ].map((operation, index) => ({ ...operation, sequence: index + 1 }));
 }
 
 function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incoming: LocalActiveWorkout, retry: boolean): LocalActiveWorkout {
@@ -156,15 +160,44 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
   };
 }
 
-export async function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = false): Promise<LocalActiveWorkout> {
-  const task = writeQueue.then(async () => {
+export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = false): Promise<QueueWorkoutCompletionResult> {
+  const task = writeQueue.then(async (): Promise<QueueWorkoutCompletionResult> => {
+    const terminal = (await terminalWorkouts(incoming.userId)).find((entry) =>
+      entry.clientSessionId === incoming.clientSessionId
+      || (incoming.serverSessionId != null && entry.serverSessionId === incoming.serverSessionId)
+    );
+    if (terminal) return { status: "terminal", serverSessionId: terminal.serverSessionId };
     const raw = await AsyncStorage.getItem(keyFor(incoming.userId));
     const durable = raw ? JSON.parse(raw) as LocalActiveWorkout : null;
     const queued = mergeWorkoutForCompletion(durable, incoming, retry);
     await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(queued));
-    return queued;
+    return { status: "queued", workout: queued };
   });
   writeQueue = task.then(() => undefined, () => undefined);
+  return task;
+}
+
+/** Waits for any replay attempt, then removes an unsent finish before logging resumes. */
+export function continueWorkoutLogging(userId: string, clientSessionId: string): Promise<ContinueWorkoutLoggingResult> {
+  const task = replayQueue.then(() => {
+    const write = writeQueue.then(async (): Promise<ContinueWorkoutLoggingResult> => {
+      if (lastCompletedReplay?.userId === userId && lastCompletedReplay.clientSessionId === clientSessionId) {
+        return { status: "completed", serverSessionId: lastCompletedReplay.serverSessionId };
+      }
+      const raw = await AsyncStorage.getItem(keyFor(userId));
+      if (!raw) return { status: "missing" };
+      const durable = JSON.parse(raw) as LocalActiveWorkout;
+      if (durable.clientSessionId !== clientSessionId) return { status: "missing" };
+      const operations = durable.operations.filter((operation) => operation.type !== "complete");
+      if (operations.length === durable.operations.length) return { status: "active", workout: durable };
+      const resumed = { ...durable, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
+      await AsyncStorage.setItem(keyFor(userId), JSON.stringify(resumed));
+      return { status: "active", workout: resumed };
+    });
+    writeQueue = write.then(() => undefined, () => undefined);
+    return write;
+  });
+  replayQueue = task.then(() => undefined, () => undefined);
   return task;
 }
 
@@ -361,7 +394,18 @@ async function replay(token: string, userId: string) {
 }
 
 export function replayPendingWorkoutOperations(token: string, userId: string) {
-  const task = replayQueue.then(() => replay(token, userId), () => replay(token, userId));
+  const run = async () => {
+    const result = await replay(token, userId);
+    if (result.completed && result.workout) {
+      lastCompletedReplay = {
+        userId,
+        clientSessionId: result.workout.clientSessionId,
+        serverSessionId: result.workout.serverSessionId,
+      };
+    }
+    return result;
+  };
+  const task = replayQueue.then(run, run);
   replayQueue = task.then(() => undefined, () => undefined);
   return task;
 }

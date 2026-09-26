@@ -215,6 +215,7 @@ must retain the native response until a later successful or terminal lookup.
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
 | Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, then save a workout note |
+| Workout Correction | `workout-correction.yaml` | Finish with zero sets → add a planned set in history → verify refreshed summary |
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |

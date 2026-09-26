@@ -31,6 +31,7 @@ import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
 import {
   clearActiveWorkout,
+  continueWorkoutLogging,
   createClientId,
   loadActiveWorkout,
   queueWorkoutCompletion,
@@ -289,6 +290,7 @@ export default function ActiveWorkoutScreen() {
   const [isExiting, setIsExiting] = useState(false);
   const isTerminalRef = useRef(false);
   const isFinishingRef = useRef(false);
+  const isContinuingRef = useRef(false);
   const workoutRevisionRef = useRef(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -665,6 +667,7 @@ export default function ActiveWorkoutScreen() {
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
       if (!result.workout) return;
+      if (isContinuingRef.current && !result.completed && !result.abandoned) return;
       const operationIdsAtStart = new Set(result.startedOperationIds);
       workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
       setSessionId(result.workout.serverSessionId);
@@ -1124,7 +1127,7 @@ export default function ActiveWorkoutScreen() {
     isFinishingRef.current = true;
     setFinishStatus("syncing");
     try {
-      const queued = await queueWorkoutCompletion({
+      const completion = await queueWorkoutCompletion({
         userId: user.id,
         workoutDayId: workout.workoutDayId,
         workoutDate: workout.date,
@@ -1144,6 +1147,22 @@ export default function ActiveWorkoutScreen() {
         exerciseNotes,
         revision: ++workoutRevisionRef.current,
       }, retry);
+      if (completion.status === "terminal") {
+        const terminalSessionId = completion.serverSessionId ?? sessionId;
+        isTerminalRef.current = true;
+        markWorkoutTerminal();
+        if (terminalSessionId && token) {
+          const canonical = await getSession(token, terminalSessionId).catch(() => null);
+          if (canonical?.status === "completed") {
+            setSessionId(terminalSessionId);
+            setDidComplete(true);
+            return;
+          }
+        }
+        router.replace("/(tabs)");
+        return;
+      }
+      const queued = completion.workout;
       workoutRevisionRef.current = Math.max(workoutRevisionRef.current, queued.revision);
       setSets(queued.sets);
       setOperations(queued.operations);
@@ -1172,16 +1191,55 @@ export default function ActiveWorkoutScreen() {
     } finally {
       isFinishingRef.current = false;
     }
-  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets, workoutNote, exerciseFeedback, exerciseNotes, markWorkoutTerminal]);
+  }, [token, user, workout, operations, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, sets, workoutNote, exerciseFeedback, exerciseNotes, markWorkoutTerminal, router]);
+
+  const continueLogging = useCallback(async () => {
+    if (!user || isFinishingRef.current || finishStatus === "idle") return;
+    isFinishingRef.current = true;
+    isContinuingRef.current = true;
+    setFinishStatus("syncing");
+    try {
+      const result = await continueWorkoutLogging(user.id, clientSessionId);
+      if (result.status === "completed") {
+        const completedSessionId = result.serverSessionId ?? sessionId;
+        if (!completedSessionId) throw new Error("Completed session has no identifier");
+        setSessionId(completedSessionId);
+        isTerminalRef.current = true;
+        await clearActiveWorkout(user.id);
+        markWorkoutTerminal();
+        setDidComplete(true);
+        return;
+      }
+      if (result.status === "missing") throw new Error("Saved workout is unavailable");
+      if (isTerminalRef.current) return;
+      workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
+      setsRef.current = result.workout.sets;
+      operationsRef.current = result.workout.operations;
+      setSessionId(result.workout.serverSessionId);
+      setSets(result.workout.sets);
+      setOperations(result.workout.operations);
+      setFinishStatus("idle");
+      setPersistedRevision((revision) => revision + 1);
+    } catch {
+      setFinishStatus("pendingOffline");
+      Alert.alert("Couldn’t continue logging", "Your saved workout is still safe. Try again.");
+    } finally {
+      isContinuingRef.current = false;
+      isFinishingRef.current = false;
+    }
+  }, [user, finishStatus, clientSessionId, sessionId, markWorkoutTerminal]);
 
   const handleComplete = useCallback(() => {
     if (confirmedCount === 0) {
       Alert.alert("No sets logged", "Log at least one set before finishing.");
       return;
     }
-    Alert.alert("Finish Workout?", `You completed ${confirmedCount} of ${totalSets} sets.`, [
-      { text: "Keep Going", style: "cancel" },
-      { text: "Finish", onPress: () => void finishWorkout() },
+    const unloggedCount = Math.max(0, totalSets - confirmedCount);
+    Alert.alert("Finish workout?", unloggedCount > 0
+      ? `${confirmedCount} of ${totalSets} sets logged. ${unloggedCount} ${unloggedCount === 1 ? "set will" : "sets will"} remain unlogged. You can add them later in Review or correct workout.`
+      : `All ${totalSets} sets are logged.`, [
+      { text: "Keep logging", style: "cancel" },
+      { text: unloggedCount > 0 ? "Finish anyway" : "Finish", onPress: () => void finishWorkout() },
     ]);
   }, [confirmedCount, totalSets, finishWorkout]);
 
@@ -1391,6 +1449,12 @@ export default function ActiveWorkoutScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 140 }}
         keyboardShouldPersistTaps="handled"
       >
+        {finishStatus !== "idle" ? (
+          <ThemedText style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>
+            To change sets or notes, choose Continue logging below.
+          </ThemedText>
+        ) : null}
+        <View pointerEvents={finishStatus === "idle" ? "auto" : "none"} accessibilityElementsHidden={finishStatus !== "idle"}>
         {storageError ? (
           <ThemedText style={{ color: "#D14343", fontSize: 13, marginBottom: 12 }}>
             Your latest change could not be saved on this device. Try again before leaving this workout.
@@ -1651,6 +1715,7 @@ export default function ActiveWorkoutScreen() {
             )}
           </>
         ) : null}
+        </View>
       </ScrollView>
 
       {/* Finish button */}
@@ -1678,6 +1743,18 @@ export default function ActiveWorkoutScreen() {
                   ? "Your sets are still saving — finish will resume automatically."
                   : "Saved on this device — finish when online."}
           </ThemedText>
+        ) : null}
+        {finishStatus === "pendingOffline" || finishStatus === "pendingSets" || finishStatus === "failed" ? (
+          <Pressable
+            testID="player-continue-logging"
+            accessibilityRole="button"
+            onPress={() => void continueLogging()}
+            style={{ paddingVertical: 12, alignItems: "center" }}
+          >
+            <ThemedText type="defaultSemiBold" style={{ color: colors.primaryButton }}>
+              Continue logging
+            </ThemedText>
+          </Pressable>
         ) : null}
         <Pressable
           testID="player-finish"

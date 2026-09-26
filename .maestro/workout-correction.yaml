@@ -1,0 +1,68 @@
+# Completed-workout correction: a planned exercise with no logs remains editable.
+# Requires an authenticated test account with an unfinished current-week workout
+# and no active workout. Run against the local backend used by the simulator.
+
+appId: host.exp.Exponent
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-app.yaml
+- runFlow: flows/auth-login.yaml
+
+- extendedWaitUntil:
+    visible:
+      id: "workout-card"
+    timeout: 10000
+- tapOn:
+    id: "workout-card"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "start-workout-button"
+    timeout: 10000
+- tapOn:
+    id: "start-workout-button"
+- extendedWaitUntil:
+    visible:
+      id: "player-finish"
+    timeout: 15000
+- tapOn:
+    id: "player-finish"
+- extendedWaitUntil:
+    visible: "Finish workout?"
+    timeout: 5000
+- tapOn: "Finish anyway"
+
+- extendedWaitUntil:
+    visible:
+      id: "summary-empty-sets"
+    timeout: 15000
+- tapOn:
+    id: "summary-detail-.*"
+- extendedWaitUntil:
+    visible:
+      id: "history-add-set-.*"
+    timeout: 10000
+- assertVisible: "No sets logged yet."
+- tapOn:
+    id: "history-add-set-.*"
+    index: 0
+- tapOn:
+    id: "history-add-reps-.*"
+- inputText: "10"
+- hideKeyboard
+- tapOn:
+    id: "history-save-added-set-.*"
+- extendedWaitUntil:
+    visible: "Set 1: Bodyweight × 10"
+    timeout: 10000
+- tapOn:
+    id: "history-back"
+- extendedWaitUntil:
+    visible:
+      id: "summary-exercise-.*"
+    timeout: 10000
+- assertNotVisible:
+    id: "summary-empty-sets"
+- assertVisible: "Set 1: Bodyweight × 10"
