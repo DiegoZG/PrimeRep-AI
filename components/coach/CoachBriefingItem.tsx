@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Fonts } from "@/constants/theme";
 import type { CoachFeedItem, CoachFeedItemKind } from "@/interfaces/coach";
-import { resolveFriendlyLoad } from "@/utils/attainableLoads";
+import { coachItemPresentation } from "@/utils/coachItemBody";
 import type { WeightUnit } from "@/utils/weightUnits";
 
 export interface CoachPalette {
@@ -98,25 +98,7 @@ export function CoachBriefingItem({
   onDismiss,
 }: Props) {
   const presentation = KIND_PRESENTATION[item.kind] ?? UNKNOWN_PRESENTATION;
-  const friendlyLoad = item.weightData && weightUnit
-    ? resolveFriendlyLoad({
-        targetWeightKg: item.weightData.weightKg,
-        currentWeightKg: item.weightData.currentWeightKg,
-        reason: item.weightData.context === "record"
-          ? "record"
-          : item.weightData.recommendation ?? "hold",
-        equipmentIds: item.weightData.equipmentIds ?? [],
-        loadProfile: item.weightData.loadProfile,
-        weightUnit,
-        dumbbellWeights,
-        plateWeights,
-      })
-    : null;
-  const body = friendlyLoad && item.weightData
-    ? item.weightData.context === "target"
-      ? `Your next ${item.weightData.exerciseName} target is ${friendlyLoad.displayText}.`
-      : `You lifted ${friendlyLoad.displayText}—your heaviest logged set for this exercise.`
-    : item.body;
+  const { body, adjustmentNote } = coachItemPresentation(item, weightUnit, dumbbellWeights, plateWeights);
   const hasDestination = !historical && item.target.type !== "none";
   const nodeStyle =
     presentation.node === "action"
@@ -187,12 +169,12 @@ export function CoachBriefingItem({
         <ThemedText style={[styles.body, { color: palette.ink2 }]}>
           {body}
         </ThemedText>
-        {friendlyLoad?.adjustmentNote ? (
+        {adjustmentNote ? (
           <ThemedText
             testID={`coach-item-load-note-${item.id}`}
             style={[styles.loadNote, { color: palette.ink3 }]}
           >
-            {friendlyLoad.adjustmentNote}
+            {adjustmentNote}
           </ThemedText>
         ) : null}
 

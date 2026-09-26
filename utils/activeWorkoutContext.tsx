@@ -46,10 +46,27 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       return;
     }
     const requestUserId = user.id;
-    const [serverActive, localActive] = await Promise.all([
-      getActiveSession(token).catch(() => null),
-      loadActiveWorkout(user.id).catch(() => null),
-    ]);
+    const serverActiveRequest = getActiveSession(token).catch(() => null);
+    const localActive = await loadActiveWorkout(user.id).catch(() => null);
+    if (version !== requestVersion.current) return;
+    if (localActive) {
+      setActiveState({
+        ownerUserId: requestUserId,
+        workout: {
+          sessionId: localActive.serverSessionId,
+          workoutDayId: localActive.workoutDayId,
+          dayType: localActive.dayType,
+          title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
+          totalSets: localActive.workoutSnapshot?.blocks.reduce(
+            (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
+            0
+          ) ?? 0,
+          startedAt: localActive.startedAt,
+          completedSets: localActive.sets.filter((set) => set.confirmed && !set.deleted).length,
+        },
+      });
+    }
+    const serverActive = await serverActiveRequest;
     if (version !== requestVersion.current) return;
     if (serverActive) {
       const matchingLocal = localActive && (
@@ -93,21 +110,6 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           return;
         }
       }
-      setActiveState({
-        ownerUserId: requestUserId,
-        workout: {
-          sessionId: localActive.serverSessionId,
-          workoutDayId: localActive.workoutDayId,
-          dayType: localActive.dayType,
-          title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
-          totalSets: localActive.workoutSnapshot?.blocks.reduce(
-            (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
-            0
-          ) ?? 0,
-          startedAt: localActive.startedAt,
-          completedSets: localActive.sets.filter((set) => set.confirmed && !set.deleted).length,
-        },
-      });
       return;
     }
     setActiveState({ ownerUserId: requestUserId, workout: null });

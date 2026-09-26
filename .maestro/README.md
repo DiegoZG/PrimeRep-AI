@@ -175,6 +175,14 @@ The fixture provides `coach-fixture@example.com` with password
 - Coach preferences enabled at `08:00` in the fixture timezone. OS permission
   must separately be granted to the simulator development build.
 
+The same account also supports the Home dashboard flow. After seeding, run
+`maestro test .maestro/seeded/home-dashboard.yaml` to verify its next-workout
+action, one unread Coach action and destination, four-week trend, and history
+link. Sign out first if the simulator is authenticated as another user; the
+adaptive login flow does not replace an existing session. Other Home states
+(offline resume, first workout, week complete, and independent API failures)
+are covered by focused logic tests or manual scenarios, not this seeded flow.
+
 Run it explicitly with `maestro test .maestro/seeded/coach-feed.yaml`. Override
 any fixture value without editing YAML, for example:
 
@@ -221,6 +229,7 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
+| Home Dashboard (seeded) | `seeded/home-dashboard.yaml` | Confirmed next workout, unread Coach action/deep link, four-week trend, and history navigation |
 | Coach Feed Error | `seeded/coach-feed-error.yaml` | Recoverable full initial error and Retry against the documented failing-feed fixture |
 | Push Settings | `push-settings.yaml` | Native OS notification control plus app-owned Coach notification preference |
 | Profile, Support, Export (seeded) | `part8-profile-support-export.yaml` | Fixture identity guard, profile save/discard, achievements, Help/FAQ, and export explanation |
@@ -259,7 +268,9 @@ Elements with `testID` props added for Maestro targeting:
 | `forgot-password-link` | `Pressable` | opens password-reset request from Login |
 | `password-reset-request-submit` | `AnimatedButton` | submits the generic reset request |
 | `password-reset-confirm-submit` | `AnimatedButton` | submits a new password from a reset link |
-| `home-open-coach` | `Pressable` | opens the Coach tab from Home |
+| `home-next-workout` | `Pressable` | opens the next confirmed unfinished workout from Home |
+| `home-coach-action` | `Pressable` | opens the highest-priority unread Coach action |
+| `home-four-week-trend` | `View` | shows completed-workout counts for four weeks |
 | `home-share-workout` | `Pressable` | verifies Home exposes native sharing without automating a share destination |
 | `coach-screen` | `SafeAreaView` | confirms the private Coach briefing is open |
 | `coach-resume-workout` | `Pressable` | resumes an active workout from Coach |

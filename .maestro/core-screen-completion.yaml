@@ -41,10 +41,10 @@ env:
 
 - extendedWaitUntil:
     visible:
-      id: "home-open-coach"
+      id: "tab-coach"
     timeout: 15000
 - tapOn:
-    id: "home-open-coach"
+    id: "tab-coach"
 - assertVisible: "Coach"
 - assertVisible:
     id: "tab-coach"
