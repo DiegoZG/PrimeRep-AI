@@ -11,11 +11,12 @@
 - Show correction weights in the selected LB/KG unit while preserving kilograms in storage. Refresh the summary after corrections, and fence workout detail/summary responses to the current account and session.
 - Explain unlogged sets before finishing. While a finish is saved locally but unconfirmed, offer **Continue logging** and keep new sets ahead of completion in the durable replay queue on native and web. If completion has already reached the server, open the completed-workout editor instead.
 - Add a focused Maestro flow for the zero-set correction path and refreshed summary.
+- Reconcile queued set slots against the saved session once during offline-finish replay. Matching sets are acknowledged without repeated duplicate POSTs; a different saved value remains a visible conflict instead of being overwritten.
 
 ## Verification
 
 - Profile/auth unit tests: **18 passed**; exercise-foundation tests: **11 passed**.
-- Offline completion/replay tests: **4 passed**.
+- Offline completion/replay tests: **8 passed**, including duplicate-slot burst and conflicting-value regressions.
 - Expo lint, UI-action audit, web export with a preview HTTPS API URL, and Maestro YAML syntax passed.
 - Typecheck still reports only the two pre-existing `AnimatedCard` `TimingConfig.delay` errors; no new type errors.
 - `git diff --check` passed.

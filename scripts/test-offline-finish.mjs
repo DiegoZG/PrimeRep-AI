@@ -16,6 +16,12 @@ function deferred() {
 }
 
 function harness(gateCompletion = null) {
+  class HttpError extends Error {
+    constructor(message, status) {
+      super(message);
+      this.status = status;
+    }
+  }
   const items = new Map();
   const storage = {
     getItem: async (key) => items.get(key) ?? null,
@@ -24,11 +30,18 @@ function harness(gateCompletion = null) {
   };
   const firstLog = { id: "log-1", exerciseId: "squat", setNumber: 1, reps: 8, weightKg: 40, version: 1 };
   const session = { id: "session-1", status: "in_progress", setLogs: [firstLog] };
-  const calls = { logSet: [], complete: 0 };
+  const calls = { logSet: [], getSession: 0, conflicts: 0, complete: 0 };
   const service = {
-    getSession: async () => ({ ...session, setLogs: [...session.setLogs] }),
+    getSession: async () => {
+      calls.getSession += 1;
+      return { ...session, setLogs: [...session.setLogs] };
+    },
     logSet: async (_token, _sessionId, exerciseId, setNumber, reps, weightKg, operationId) => {
       calls.logSet.push(operationId);
+      if (session.setLogs.some((set) => set.exerciseId === exerciseId && set.setNumber === setNumber)) {
+        calls.conflicts += 1;
+        throw new HttpError("That set number already exists for this exercise.", 409);
+      }
       const logged = { id: `log-${setNumber}`, exerciseId, setNumber, reps, weightKg: weightKg ?? null, version: 1 };
       session.setLogs.push(logged);
       return logged;
@@ -49,7 +62,7 @@ function harness(gateCompletion = null) {
     const fallback = createRequire(filename);
     const mocks = {
       "@react-native-async-storage/async-storage": { __esModule: true, default: storage },
-      "@/services/httpClient": { HttpError: class HttpError extends Error {} },
+      "@/services/httpClient": { HttpError },
       "@/services/workoutLoggingService": service,
     };
     const require = (name) => mocks[name] ?? fallback(name);
@@ -63,7 +76,7 @@ function harness(gateCompletion = null) {
     sets: [{ exerciseId: "squat", setNumber: 1, reps: "8", weight: "40", weightKg: 40, confirmed: true, deleted: false, logId: "log-1", syncStatus: "synced", syncing: false }],
     operations: [],
   });
-  return { load, baseWorkout, calls, items };
+  return { load, baseWorkout, calls, items, session };
 }
 
 test("a cold-start continuation cancels finish and preserves new sets before the next finish", async () => {
@@ -146,4 +159,77 @@ test("Retry Finish cannot recreate a workout after terminal clearing", async () 
   assert.equal(outcome.serverSessionId, "session-1");
   assert.equal(await store.loadActiveWorkout("user-1"), null);
   assert.equal(fixture.calls.complete, 1);
+});
+
+test("offline finish reconciles saved set slots in one fetch without a conflict burst", async () => {
+  const fixture = harness();
+  const store = fixture.load();
+  const workout = fixture.baseWorkout();
+  for (let setNumber = 2; setNumber <= 10; setNumber += 1) {
+    fixture.session.setLogs.push({ id: `log-${setNumber}`, exerciseId: "squat", setNumber, reps: 8, weightKg: 40, version: 1 });
+    workout.sets.push({ ...workout.sets[0], setNumber, logId: null, syncStatus: "pending" });
+    workout.operations.push({ id: `queued-${setNumber}`, type: "set", status: "pending", payload: { exerciseId: "squat", setNumber, reps: 8, weightKg: 40 } });
+  }
+  await store.saveActiveWorkout(workout);
+  await store.queueWorkoutCompletion(workout);
+
+  const result = await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.equal(result.completed, true);
+  assert.equal(fixture.calls.logSet.length, 0);
+  assert.equal(fixture.calls.conflicts, 0);
+  assert.equal(fixture.calls.getSession, 2);
+  assert.equal(result.workout.sets.filter((set) => set.confirmed && set.logId).length, 10);
+});
+
+test("duplicate queued operations for a new slot post only once", async () => {
+  const fixture = harness();
+  const store = fixture.load();
+  const workout = fixture.baseWorkout();
+  workout.sets.push({ ...workout.sets[0], setNumber: 2, logId: null, syncStatus: "pending" });
+  workout.operations.push(
+    { id: "queued-first", type: "set", status: "pending", payload: { exerciseId: "squat", setNumber: 2, reps: 8, weightKg: 40 } },
+    { id: "queued-second", type: "set", status: "pending", payload: { exerciseId: "squat", setNumber: 2, reps: 8, weightKg: 40 } }
+  );
+  await store.saveActiveWorkout(workout);
+
+  const result = await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.equal(result.workout.operations.length, 0);
+  assert.deepEqual(fixture.calls.logSet, ["queued-first"]);
+  assert.equal(fixture.calls.conflicts, 0);
+  assert.equal(result.workout.sets.find((set) => set.setNumber === 2).logId, "log-2");
+});
+
+test("one late duplicate POST reconciles and is not retried", async () => {
+  const fixture = harness();
+  const store = fixture.load();
+  const workout = fixture.baseWorkout();
+  workout.sets.push({ ...workout.sets[0], setNumber: 2, logId: null, syncStatus: "pending" });
+  workout.operations.push({ id: "queued-late", type: "set", status: "pending", payload: { exerciseId: "squat", setNumber: 2, reps: 8, weightKg: 40 } });
+  fixture.session.setLogs.push({ id: "log-2", exerciseId: "squat", setNumber: 2, reps: 8, weightKg: 40, version: 1 });
+  await store.saveActiveWorkout(workout);
+
+  const first = await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.equal(first.workout.operations.length, 0);
+  assert.equal(first.workout.sets.find((set) => set.setNumber === 2).logId, "log-2");
+  await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.deepEqual(fixture.calls.logSet, ["queued-late"]);
+  assert.equal(fixture.calls.conflicts, 1);
+  assert.equal(fixture.calls.getSession, 1);
+});
+
+test("a different saved value remains a failed conflict without repeated POSTs", async () => {
+  const fixture = harness();
+  const store = fixture.load();
+  const workout = fixture.baseWorkout();
+  workout.sets.push({ ...workout.sets[0], setNumber: 2, reps: "10", logId: null, syncStatus: "pending" });
+  workout.operations.push({ id: "queued-different", type: "set", status: "pending", payload: { exerciseId: "squat", setNumber: 2, reps: 10, weightKg: 40 } });
+  fixture.session.setLogs.push({ id: "log-2", exerciseId: "squat", setNumber: 2, reps: 8, weightKg: 40, version: 1 });
+  await store.saveActiveWorkout(workout);
+
+  const first = await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.equal(first.workout.operations[0].status, "failed");
+  assert.equal(fixture.calls.logSet.length, 1);
+  assert.equal(fixture.calls.conflicts, 1);
+  await store.replayPendingWorkoutOperations("token", "user-1");
+  assert.equal(fixture.calls.logSet.length, 1);
 });

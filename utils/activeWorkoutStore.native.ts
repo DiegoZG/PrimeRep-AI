@@ -551,6 +551,23 @@ async function replayPendingWorkoutOperationsInternal(
     operation.status === "retrying" ? { ...operation, status: "pending" as const } : operation
   ).sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER)) as SequencedWorkoutOperation[];
   const startedOperationIds = operations.map((operation) => operation.id);
+  const shouldReconcileSetsBeforeReplay = operations.some((operation) => operation.type === "complete")
+    || operations.filter((operation) => operation.type === "set").length > 1
+    || operations.some((operation) => operation.type === "set" && (operation.attempts ?? 0) > 0);
+  let canonicalSets = new Map<string, SessionResponse["setLogs"][number]>();
+  let canonicalSetsLoaded = false;
+  const refreshCanonicalSets = async () => {
+    const session = await getSession(token, workout.serverSessionId!);
+    canonicalSets = new Map(session.setLogs.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
+    canonicalSetsLoaded = true;
+  };
+  const acceptSetLog = (setLog: SessionResponse["setLogs"][number]) => {
+    workout.sets = workout.sets.map((set) =>
+      set.exerciseId === setLog.exerciseId && set.setNumber === setLog.setNumber
+        ? { ...set, reps: String(setLog.reps), weightKg: setLog.weightKg, syncing: false, syncStatus: "synced", logId: setLog.id, version: setLog.version }
+        : set
+    );
+  };
   const now = Date.now();
   for (let index = 0; index < operations.length; index += 1) {
     const operation = operations[index];
@@ -586,6 +603,15 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
+        if (shouldReconcileSetsBeforeReplay && !canonicalSetsLoaded) await refreshCanonicalSets();
+        const existing = canonicalSets.get(`${operation.payload.exerciseId}:${operation.payload.setNumber}`);
+        if (existing) {
+          if (existing.reps !== operation.payload.reps || existing.weightKg !== (operation.payload.weightKg ?? null)) {
+            throw new HttpError("That set number already exists for this exercise.", 409);
+          }
+          acceptSetLog(existing);
+          continue;
+        }
         const logged = await logSet(
           token,
           workout.serverSessionId,
@@ -595,11 +621,8 @@ async function replayPendingWorkoutOperationsInternal(
           operation.payload.weightKg,
           operation.id
         );
-        workout.sets = workout.sets.map((set) =>
-          set.exerciseId === operation.payload.exerciseId && set.setNumber === operation.payload.setNumber
-            ? { ...set, weightKg: logged.weightKg, syncing: false, syncStatus: "synced", logId: logged.id, version: logged.version }
-            : set
-        );
+        canonicalSets.set(`${logged.exerciseId}:${logged.setNumber}`, logged);
+        acceptSetLog(logged);
       } else if (operation.type === "update_set") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
@@ -697,20 +720,11 @@ async function replayPendingWorkoutOperationsInternal(
         workout.serverSessionId
       ) {
         try {
-          const canonical = await getSession(token, workout.serverSessionId);
-          const existing = canonical.setLogs.find(
-            (set) =>
-              set.exerciseId === operation.payload.exerciseId &&
-              set.setNumber === operation.payload.setNumber &&
-              set.reps === operation.payload.reps &&
-              set.weightKg === (operation.payload.weightKg ?? null)
-          );
-          if (existing) {
-            workout.sets = workout.sets.map((set) =>
-              set.exerciseId === existing.exerciseId && set.setNumber === existing.setNumber
-                ? { ...set, reps: String(existing.reps), weightKg: existing.weightKg, syncing: false, syncStatus: "synced", logId: existing.id, version: existing.version }
-                : set
-            );
+          const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
+          if (!canonicalSets.has(key)) await refreshCanonicalSets();
+          const existing = canonicalSets.get(key);
+          if (existing && existing.reps === operation.payload.reps && existing.weightKg === (operation.payload.weightKg ?? null)) {
+            acceptSetLog(existing);
             continue;
           }
         } catch {
