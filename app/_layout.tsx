@@ -28,6 +28,7 @@ import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
 import { ProfileProvider } from "@/utils/profileContext";
 import { HealthReadSync } from "@/utils/healthReadSync";
+import { HealthExportSync } from "@/utils/healthExportSync";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -437,6 +438,7 @@ function ThemedRootLayout() {
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthProvider>
           <HealthReadSync />
+          <HealthExportSync />
           <ProfileProvider>
           <NotificationsProvider>
             <OnboardingProvider>

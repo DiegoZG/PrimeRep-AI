@@ -17,6 +17,7 @@
     "validate:support-release": "node scripts/validate-support-release.mjs",
     "test:profile": "node --test scripts/test-profile.mjs",
     "test:health-ui": "node --test scripts/test-health-ui.mjs",
+    "test:health-read-sync": "node --test scripts/test-health-read-sync.mjs",
     "test:apple-health-adapter": "node --test scripts/test-apple-health-adapter.mjs",
     "eas-build-post-install": "node scripts/eas-build-post-install.mjs"
   },

@@ -21,6 +21,7 @@ function load(relative, mocks = {}) {
   return module.exports;
 }
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+const quietExportStatus = { subscribeHealthExportSyncStatus: (_userId, listener) => { listener(null); return () => {}; }, setHealthExportSyncStatus() {} };
 
 test('Coach health guidance has a valid Settings destination', () => {
   const nav = load('utils/coachNavigation.ts');
@@ -73,8 +74,10 @@ test('Health screen keeps all controls disabled and fences delayed account respo
     '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
     '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
     '@/services/healthService': { getHealthState },
-    '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available' } },
+    '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'unknown' }) } },
     '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+    '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, confirmHealthExportOptIn: async () => ({ server: 1, local: 1 }), reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+    '@/services/health/exportStatus': quietExportStatus,
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
@@ -129,9 +132,11 @@ test('Health connection remains visible after first sync fails and rapid taps do
       disconnectHealthSource: async () => { disconnections += 1; },
     },
     '@/services/health/appleHealthAdapter': { appleHealthAdapter: {
-      availability: async () => 'available', requestReadPermission: async () => { permissionRequests += 1; },
+      availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'unknown' }), requestReadPermission: async () => { permissionRequests += 1; },
     } },
     '@/services/health/readSync': { syncAppleHealthRead: async () => { throw new Error('temporary sync failure'); } },
+    '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+    '@/services/health/exportStatus': quietExportStatus,
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
@@ -183,20 +188,76 @@ test('Saved Apple Health sources can be disconnected even when collection or Hea
         getHealthState: async () => ({ collectionAvailable, sources: saved ? [{ source: 'apple_health', readEnabled: true, exportEnabled: false, connectionRevision: 1, lastSuccessfulSyncAt: null }] : [], primarySource: saved ? 'apple_health' : null, coachEnabled: false, days: [] }),
         disconnectHealthSource: async () => { disconnects += 1; saved = false; },
       },
-      '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => nativeAvailability } },
+      '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => nativeAvailability, getPermissions: async () => ({ writeWorkout: 'unknown' }) } },
       '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+      '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+      '@/services/health/exportStatus': quietExportStatus,
       '@/services/httpClient': { HttpError: Error },
       '@/utils/authContext': { AuthContext },
     });
     let tree;
     await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'A', user: { id: 'A' } } }, React.createElement(HealthScreen))); });
     assert.equal(tree.root.findByProps({ testID: 'health-release-status' }).findAllByType('ThemedText')[0].props.children, 'Apple Health connection saved');
-    assert.equal(tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' }).props.disabled, true);
+    assert.equal(tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' }).props.disabled, false);
     assert.equal(tree.root.findByProps({ testID: 'health-sync-now' }).props.accessibilityState.disabled, true);
     assert.equal(tree.root.findByProps({ testID: 'health-disconnect' }).props.accessibilityState.disabled, false);
     await act(async () => { tree.root.findByProps({ testID: 'health-disconnect' }).props.onPress(); await new Promise(setImmediate); });
     assert.equal(disconnects, 1);
     assert.equal(tree.root.findByProps({ testID: 'health-disconnect' }).props.accessibilityState.disabled, true);
+    await act(async () => { tree.unmount(); });
+  }
+});
+
+test('read and workout export can be withdrawn separately while collection or HealthKit is unavailable', async () => {
+  for (const { collectionAvailable, nativeAvailability } of [
+    { collectionAvailable: false, nativeAvailability: 'available' },
+    { collectionAvailable: true, nativeAvailability: 'unsupported' },
+  ]) {
+    const AuthContext = React.createContext(null);
+    let source = { source: 'apple_health', readEnabled: true, exportEnabled: true, connectionRevision: 1, exportEnabledAt: '2026-10-01T12:00:00Z' };
+    const mutations = [];
+    let permissionRequests = 0;
+    const { default: HealthScreen } = load('app/settings/health.tsx', {
+      react: React,
+      '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      'expo-router': { useRouter: () => ({ back() {} }) },
+      'react-native': { Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) }, Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View', StyleSheet: { hairlineWidth: 1, create: (styles) => styles } },
+      'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+      '@/components/themed-text': { ThemedText: 'ThemedText' },
+      '@/components/screen-state': { ScreenState: 'ScreenState' },
+      '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: false },
+      '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
+      '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
+      '@/services/healthService': {
+        getHealthState: async () => ({ collectionAvailable, sources: source ? [source] : [], primarySource: 'apple_health', coachEnabled: false, days: [] }),
+        setAppleHealthSource: async (_token, readEnabled, exportEnabled, revision) => {
+          mutations.push([readEnabled, exportEnabled, revision]);
+          source = { ...source, readEnabled, exportEnabled, connectionRevision: source.connectionRevision + 1, exportEnabledAt: exportEnabled ? source.exportEnabledAt : null };
+          return source;
+        },
+        disconnectHealthSource: async (_token, revision) => { mutations.push(['disconnect', revision]); source = null; },
+      },
+      '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => nativeAvailability, getPermissions: async () => ({ writeWorkout: 'unknown' }), requestReadPermission: async () => { permissionRequests += 1; }, requestWritePermission: async () => { permissionRequests += 1; } } },
+      '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+      '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+      '@/services/health/exportStatus': quietExportStatus,
+      '@/services/httpClient': { HttpError: Error },
+      '@/utils/authContext': { AuthContext },
+    });
+    let tree;
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(HealthScreen))); });
+    const read = () => tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' });
+    const exportWorkouts = () => tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' });
+    assert.equal(read().props.disabled, false);
+    assert.equal(exportWorkouts().props.disabled, false);
+    await act(async () => { read().props.onValueChange(); await new Promise(setImmediate); });
+    assert.deepEqual(mutations, [[false, true, 1]]);
+    assert.equal(read().props.value, false);
+    assert.equal(exportWorkouts().props.value, true);
+    await act(async () => { exportWorkouts().props.onValueChange(); await new Promise(setImmediate); });
+    assert.deepEqual(mutations, [[false, true, 1], ['disconnect', 2]]);
+    assert.equal(exportWorkouts().props.value, false);
+    assert.equal(permissionRequests, 0);
     await act(async () => { tree.unmount(); });
   }
 });
@@ -222,6 +283,8 @@ test('Opening iOS settings cannot display an error after an account switch', asy
     '@/services/healthService': { getHealthState: async () => ({ collectionAvailable: false, sources: [], primarySource: null, coachEnabled: false, days: [] }) },
     '@/services/health/appleHealthAdapter': { appleHealthAdapter: { openAppSettings: () => opened.promise } },
     '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+    '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+    '@/services/health/exportStatus': quietExportStatus,
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
@@ -239,6 +302,7 @@ test('Health read sync uploads a 30-day nullable window and rejects stale revisi
   let upload;
   const adapter = {
     availability: async () => 'available',
+    getPermissions: async () => ({ writeWorkout: 'unknown' }),
     readDailySummaries: async (_start, end, timeZone) => [
       { localDate: end, timeZone, steps: 925, asleepMinutes: null },
     ],
@@ -269,14 +333,199 @@ test('Health read sync uploads a 30-day nullable window and rejects stale revisi
   await assert.rejects(conflictingSync('user-token', connection, () => true), { status: 409 });
 });
 
-test('Health screen does not expose workout writing and gates read actions on server availability', () => {
+test('Health screen gates read and workout export actions on server availability', () => {
   const source = readFileSync(path.join(root, 'app/settings/health.tsx'), 'utf8');
   assert.match(source, /getHealthState\(token\)/);
   assert.match(source, /collectionAvailable/);
   assert.match(source, /requestReadPermission\(/);
-  for (const forbidden of ['requestWritePermission(', 'writeWorkout(', 'uploadHealthDays(']) {
+  assert.match(source, /requestWritePermission\(/);
+  assert.match(source, /'health-export-toggle', exportEnabled, canConnect \|\| exportEnabled, toggleExport/);
+  for (const forbidden of ['writeWorkout(', 'uploadHealthDays(']) {
     assert.equal(source.includes(forbidden), false);
   }
+});
+
+test('Health export failures stay account-scoped and a successful retry clears them', async () => {
+  const AuthContext = React.createContext(null);
+  const exportStatus = load('services/health/exportStatus.ts');
+  let attempts = 0;
+  const { default: HealthScreen } = load('app/settings/health.tsx', {
+    react: React,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    'expo-router': { useRouter: () => ({ back() {} }) },
+    'react-native': {
+      Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) },
+      Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View',
+      StyleSheet: { hairlineWidth: 1, create: (styles) => styles },
+    },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    '@/components/themed-text': { ThemedText: 'ThemedText' },
+    '@/components/screen-state': { ScreenState: 'ScreenState' },
+    '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: false },
+    '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
+    '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
+    '@/services/healthService': { getHealthState: async () => ({ collectionAvailable: true, sources: [], primarySource: null, coachEnabled: false, days: [] }) },
+    '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'unknown' }) } },
+    '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+    '@/services/health/exportSync': { reconcileAppleHealthExport: async (_token, userId) => { attempts += 1; exportStatus.setHealthExportSyncStatus(userId, null); } },
+    '@/services/health/exportStatus': exportStatus,
+    '@/services/httpClient': { HttpError: Error },
+    '@/utils/authContext': { AuthContext },
+  });
+  const render = (userId) => React.createElement(AuthContext.Provider, { value: { token: userId, user: { id: userId } } }, React.createElement(HealthScreen));
+  let tree;
+  await act(async () => { tree = create(render('A')); });
+  await act(async () => { exportStatus.setHealthExportSyncStatus('A', 'retry'); });
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-sync-error' }).length, 1);
+  await act(async () => { tree.update(render('B')); });
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-sync-error' }).length, 0);
+  await act(async () => { exportStatus.setHealthExportSyncStatus('B', 'export-off-pending'); });
+  assert.match(tree.root.findByProps({ testID: 'health-export-sync-error' }).findAllByType('ThemedText')[0].props.children, /server/);
+  assert.equal(tree.root.findByProps({ testID: 'health-export-retry' }).props.accessibilityLabel, 'Retry stopping Apple Health export');
+  await act(async () => { exportStatus.setHealthExportSyncStatus('B', 'disconnect-pending'); });
+  assert.equal(tree.root.findByProps({ testID: 'health-export-retry' }).props.accessibilityLabel, 'Retry disconnecting Apple Health');
+  await act(async () => { exportStatus.setHealthExportSyncStatus('B', 'connection-changed'); });
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-connection-changed' }).length, 1);
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-retry' }).length, 0);
+  await act(async () => { tree.update(render('A')); });
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-sync-error' }).length, 1);
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-connection-changed' }).length, 0);
+  await act(async () => { tree.root.findByProps({ testID: 'health-export-retry' }).props.onPress(); await new Promise(setImmediate); });
+  assert.equal(attempts, 1);
+  assert.equal(tree.root.findAllByProps({ testID: 'health-export-sync-error' }).length, 0);
+  await act(async () => { tree.unmount(); });
+});
+
+test('offline export withdrawal and disconnect show durable pending revocation immediately', async () => {
+  for (const action of ['export-off', 'disconnect']) {
+    const AuthContext = React.createContext(null);
+    const exportStatus = load('services/health/exportStatus.ts');
+    const source = { source: 'apple_health', readEnabled: true, exportEnabled: true, connectionRevision: 4, exportEnabledAt: '2026-10-01T12:00:00Z', connectedAt: '2026-10-01T12:00:00Z', lastSuccessfulSyncAt: null };
+    let reads = 0;
+    let pending = null;
+    const { default: HealthScreen } = load('app/settings/health.tsx', {
+      react: React,
+      '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      'expo-router': { useRouter: () => ({ back() {} }) },
+      'react-native': {
+        Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) },
+        Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View',
+        StyleSheet: { hairlineWidth: 1, create: (styles) => styles },
+      },
+      'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+      '@/components/themed-text': { ThemedText: 'ThemedText' },
+      '@/components/screen-state': { ScreenState: 'ScreenState' },
+      '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: false },
+      '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
+      '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
+      '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'granted' }) } },
+      '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+      '@/services/health/exportSync': {
+        requestHealthExportStop: async (_userId, reason, connectionRevision, exportEnabledAt) => { pending = { reason, connectionRevision, exportEnabledAt }; },
+        getHealthExportStop: async () => pending,
+        waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {},
+        reconcileAppleHealthExport: async () => { throw new Error('offline'); },
+      },
+      '@/services/health/exportStatus': exportStatus,
+      '@/services/healthService': {
+        getHealthState: async () => { reads += 1; if (reads > 1) throw new Error('offline'); return { collectionAvailable: true, sources: [source], sourceRevisions: { apple_health: 4 }, primarySource: 'apple_health', coachEnabled: false, days: [] }; },
+        setAppleHealthSource: async () => { throw new Error('offline'); },
+        disconnectHealthSource: async () => { throw new Error('offline'); },
+      },
+      '@/services/httpClient': { HttpError: class HttpError extends Error {} },
+      '@/utils/authContext': { AuthContext },
+    });
+    let tree;
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(HealthScreen))); });
+    await act(async () => {
+      if (action === 'export-off') tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' }).props.onValueChange();
+      else tree.root.findByProps({ testID: 'health-disconnect' }).props.onPress();
+      await new Promise(setImmediate);
+    });
+    assert.equal(pending.reason, action);
+    assert.equal(exportStatus.getHealthExportSyncStatus('user'), action === 'export-off' ? 'export-off-pending' : 'disconnect-pending');
+    assert.match(tree.root.findByProps({ testID: 'health-export-sync-error' }).findAllByType('ThemedText')[0].props.children, /server has not confirmed/);
+    assert.equal(tree.root.findAllByProps({ testID: 'health-action-error' }).length, 0);
+    assert.equal(tree.root.findByProps({ testID: 'health-export-retry' }).props.accessibilityLabel, action === 'export-off' ? 'Retry stopping Apple Health export' : 'Retry disconnecting Apple Health');
+    await act(async () => { tree.unmount(); });
+  }
+});
+
+test('workout export requires explicit iOS write permission and preserves independent read choice', async () => {
+  const AuthContext = React.createContext(null);
+  let source = null;
+  let permission = 'denied';
+  let permissionRequests = 0;
+  let failedEnable = false;
+  let prepared = 0;
+  let discarded = 0;
+  let confirmed = 0;
+  const mutations = [];
+  let foreground;
+  const screen = load('app/settings/health.tsx', {
+    react: React,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    'expo-router': { useRouter: () => ({ back() {} }) },
+    'react-native': {
+      Platform: { OS: 'ios' }, AppState: { addEventListener: (_event, handler) => { foreground = handler; return { remove() {} }; } },
+      Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View',
+      StyleSheet: { hairlineWidth: 1, create: (styles) => styles },
+    },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    '@/components/themed-text': { ThemedText: 'ThemedText' },
+    '@/components/screen-state': { ScreenState: 'ScreenState' },
+    '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: false },
+    '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
+    '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
+    '@/services/health/appleHealthAdapter': { appleHealthAdapter: {
+      availability: async () => 'available',
+      getPermissions: async () => ({ writeWorkout: permission }),
+      requestWritePermission: async () => { permissionRequests += 1; return { writeWorkout: permission }; },
+    } },
+    '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+    '@/services/health/exportSync': { disableHealthExport: async () => { discarded += 1; }, prepareHealthExport: async () => { prepared += 1; }, confirmHealthExportOptIn: async () => { confirmed += 1; return { server: 1, local: 1 }; }, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+    '@/services/health/exportStatus': quietExportStatus,
+    '@/services/healthService': {
+      getHealthState: async () => ({ collectionAvailable: true, sources: source ? [source] : [], primarySource: null, coachEnabled: false, days: [] }),
+      setAppleHealthSource: async (_token, readEnabled, exportEnabled) => {
+        if (failedEnable) { const error = new Error('conflict'); error.status = 409; throw error; }
+        mutations.push([readEnabled, exportEnabled]);
+        source = { source: 'apple_health', readEnabled, exportEnabled, connectionRevision: mutations.length, connectedAt: '2026-10-01T12:00:00Z', exportEnabledAt: exportEnabled ? '2026-10-01T12:00:00Z' : null };
+        return source;
+      },
+      disconnectHealthSource: async () => { source = null; },
+    },
+    '@/services/httpClient': { HttpError: Error },
+    '@/utils/authContext': { AuthContext },
+  });
+  let tree;
+  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(screen.default))); });
+  const toggle = () => tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' });
+  assert.equal(toggle().props.disabled, false);
+  await act(async () => { toggle().props.onValueChange(); await new Promise(setImmediate); });
+  assert.equal(permissionRequests, 1);
+  assert.equal(mutations.length, 0);
+  assert.equal(toggle().props.value, false);
+  permission = 'granted';
+  failedEnable = true;
+  await act(async () => { toggle().props.onValueChange(); await new Promise(setImmediate); });
+  assert.equal(prepared, 1);
+  assert.equal(discarded, 1);
+  assert.equal(confirmed, 0);
+  assert.equal(toggle().props.value, false);
+  assert.match(tree.root.findByProps({ testID: 'health-action-error' }).props.children, /connection changed/i);
+  failedEnable = false;
+  await act(async () => { toggle().props.onValueChange(); await new Promise(setImmediate); });
+  assert.deepEqual(mutations, [[false, true]]);
+  assert.equal(prepared, 2);
+  assert.equal(confirmed, 1);
+  assert.equal(toggle().props.value, true);
+  permission = 'denied';
+  await act(async () => { foreground('active'); await new Promise(setImmediate); });
+  assert.match(tree.root.findByProps({ testID: 'health-export-permission-warning' }).props.children, /paused/);
+  await act(async () => { toggle().props.onValueChange(); await new Promise(setImmediate); });
+  assert.equal(toggle().props.value, false);
+  await act(async () => { tree.unmount(); });
 });
 
 test('Apple Health bridge route is hidden when the developer gate is off', async () => {

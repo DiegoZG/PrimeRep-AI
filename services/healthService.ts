@@ -5,9 +5,9 @@ export function getHealthState(token: string) {
   return requestJson<HealthState>('/v1/users/me/health', { token });
 }
 
-export function setAppleHealthSource(token: string, readEnabled: boolean, exportEnabled = false) {
+export function setAppleHealthSource(token: string, readEnabled: boolean, exportEnabled = false, expectedConnectionRevision?: number) {
   return requestJson<HealthConnection>('/v1/users/me/health/sources', {
-    token, method: 'POST', body: { source: 'apple_health', readEnabled, exportEnabled },
+    token, method: 'POST', body: { source: 'apple_health', readEnabled, exportEnabled, expectedConnectionRevision },
   });
 }
 
@@ -26,6 +26,7 @@ export function uploadHealthDays(token: string, connectionRevision: number, days
   });
 }
 
-export function disconnectHealthSource(token: string) {
-  return requestJson<null>('/v1/users/me/health/sources/apple_health', { token, method: 'DELETE' });
+export function disconnectHealthSource(token: string, expectedConnectionRevision?: number) {
+  const query = expectedConnectionRevision == null ? '' : `?expectedConnectionRevision=${expectedConnectionRevision}`;
+  return requestJson<null>(`/v1/users/me/health/sources/apple_health${query}`, { token, method: 'DELETE' });
 }

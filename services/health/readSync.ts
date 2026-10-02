@@ -29,6 +29,8 @@ export async function syncAppleHealthRead(token: string, connection: HealthConne
     localDate, timeZone: window.timeZone, steps: null, asleepMinutes: null,
   }));
   if (!isCurrent()) return false;
+  const hasData = days.some((day) => day.steps !== null || day.asleepMinutes !== null);
+  if (!hasData) return false;
   await uploadHealthDays(token, connection.connectionRevision, days, window.timeZone, window.startDate, window.endDate);
-  return days.some((day) => day.steps !== null || day.asleepMinutes !== null);
+  return true;
 }

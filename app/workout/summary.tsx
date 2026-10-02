@@ -8,6 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getSession, type SessionResponse } from "@/services/workoutLoggingService";
+import { reconcileAppleHealthExport } from "@/services/health/exportSync";
 import { AuthContext } from "@/utils/authContext";
 import { formatWeightInput, fromKg, loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
@@ -46,6 +47,7 @@ export default function WorkoutSummaryScreen() {
     void loadWeightUnit().then((value) => { if (!cancelled) setUnit(value); });
     void getSession(token, sessionId).then((result) => {
       if (!cancelled) setOwnedSession({ ownerId: user.id, sessionId, value: result });
+      if (!cancelled && result.status === 'completed') void reconcileAppleHealthExport(token, user.id, () => !cancelled).catch(() => undefined);
     }).catch(() => { if (!cancelled) setError(true); }).finally(() => { if (!cancelled) setRefreshing(false); });
     return () => { cancelled = true; };
   }, [token, user?.id, sessionId]));

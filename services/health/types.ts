@@ -39,6 +39,7 @@ export type HealthConnection = {
   connectionRevision: number;
   readEnabled: boolean;
   exportEnabled: boolean;
+  exportEnabledAt: string | null;
   connectedAt: string;
   lastSuccessfulSyncAt: string | null;
 };
@@ -46,6 +47,7 @@ export type HealthConnection = {
 export type HealthState = {
   collectionAvailable: boolean;
   sources: HealthConnection[];
+  sourceRevisions: Partial<Record<HealthSourceName, number>>;
   primarySource: HealthSourceName | null;
   coachEnabled: boolean;
   days: (HealthDailySummary & { source: HealthSourceName })[];

@@ -11,6 +11,8 @@ import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { appleHealthAdapter } from '@/services/health/appleHealthAdapter';
 import { syncAppleHealthRead } from '@/services/health/readSync';
+import { confirmHealthExportOptIn, disableHealthExport, getHealthExportStop, pauseHealthExport, prepareHealthExport, reconcileAppleHealthExport, requestHealthExportStop, resumeHealthExport, waitForHealthExportIdle } from '@/services/health/exportSync';
+import { setHealthExportSyncStatus, subscribeHealthExportSyncStatus, type HealthExportSyncStatus } from '@/services/health/exportStatus';
 import { HttpError } from '@/services/httpClient';
 import { disconnectHealthSource, getHealthState, setAppleHealthSource, setHealthPreferences } from '@/services/healthService';
 import type { HealthState, HealthSourceName } from '@/services/health/types';
@@ -42,6 +44,15 @@ export default function HealthSettingsScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unsupported'>('checking');
+  const [workoutWriteAccess, setWorkoutWriteAccess] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [exportStatus, setExportStatus] = useState<{ userId: string; status: HealthExportSyncStatus } | null>(null);
+  const [exportRetryOwner, setExportRetryOwner] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+    return subscribeHealthExportSyncStatus(userId, (status) => setExportStatus({ userId, status }));
+  }, [user?.id]);
 
   useEffect(() => {
     if (actionInFlightRef.current && actionOwnerRef.current === accountKey) return;
@@ -87,11 +98,14 @@ export default function HealthSettingsScreen() {
     let current = true;
     void appleHealthAdapter.availability().then((value) => {
       if (current) setAvailability(value === 'available' ? 'available' : 'unsupported');
+      if (value === 'available') void appleHealthAdapter.getPermissions().then((permissions) => {
+        if (current) setWorkoutWriteAccess(permissions.writeWorkout);
+      }).catch(() => { if (current) setWorkoutWriteAccess('unknown'); });
     }).catch(() => {
       if (current) setAvailability('unsupported');
     });
     return () => { current = false; };
-  }, [accountKey, ownerKey, state?.collectionAvailable]);
+  }, [accountKey, ownerKey, state?.collectionAvailable, revision]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
@@ -106,14 +120,29 @@ export default function HealthSettingsScreen() {
   const source = Platform.OS === 'ios' ? 'apple_health' : Platform.OS === 'android' ? 'health_connect' : null;
   const sourceName = source ? SOURCE_NAMES[source] : 'Apple Health and Health Connect';
   const connected = source ? visibleState?.sources.find((item) => item.source === source) : visibleState?.sources[0];
+  const expectedRevision = connected?.connectionRevision ?? visibleState?.sourceRevisions?.apple_health ?? 0;
 
   const canConnect = Platform.OS === 'ios' && visibleState?.collectionAvailable === true && availability === 'available';
   const readEnabled = Boolean(connected?.readEnabled);
+  const exportEnabled = Boolean(connected?.exportEnabled);
   const primarySelected = visibleState?.primarySource === 'apple_health';
+  const visibleExportStatus = exportStatus && exportStatus.userId === user?.id ? exportStatus.status : null;
+  const exportRetrying = exportRetryOwner === accountKey;
+  const exportStopPending = visibleExportStatus === 'export-off-pending' || visibleExportStatus === 'disconnect-pending';
+
+  const retryExport = () => {
+    if (!token || !user?.id || exportRetrying) return;
+    const owner = accountKey;
+    setExportRetryOwner(owner);
+    void reconcileAppleHealthExport(token, user.id, () => accountKeyRef.current === owner)
+      .catch(() => undefined)
+      .finally(() => setExportRetryOwner((current) => current === owner ? null : current));
+  };
 
   const runAction = async (name: string, action: (isCurrent: () => boolean) => Promise<string | null>) => {
     const canDisconnect = name === 'disconnect' && connected?.source === 'apple_health';
-    if ((!canConnect && !canDisconnect) || !token || !user?.id || actionInFlightRef.current) return;
+    const canWithdraw = connected?.source === 'apple_health' && ((name === 'read-off' && readEnabled) || (name === 'export-off' && exportEnabled));
+    if ((!canConnect && !canDisconnect && !canWithdraw) || !token || !user?.id || actionInFlightRef.current) return;
     actionInFlightRef.current = true;
     actionOwnerRef.current = accountKey;
     requestRef.current += 1;
@@ -129,9 +158,23 @@ export default function HealthSettingsScreen() {
       const refreshed = await getHealthState(token);
       if (!isCurrent()) return;
       setState(refreshed);
+      if (name === 'export-off' || name === 'disconnect') {
+        resumeHealthExport(user.id);
+        void reconcileAppleHealthExport(token, user.id, isCurrent).catch(() => undefined);
+      }
       setNotice(message);
     } catch (caught) {
       if (!isCurrent()) return;
+      let durableStop: Awaited<ReturnType<typeof getHealthExportStop>> = null;
+      if (name === 'export-off' || name === 'disconnect') {
+        try { durableStop = await getHealthExportStop(user.id); } catch {}
+        if (!isCurrent()) return;
+        if (durableStop) {
+          setHealthExportSyncStatus(user.id, caught instanceof HttpError && caught.status === 409
+            ? 'connection-changed'
+            : durableStop.reason === 'disconnect' ? 'disconnect-pending' : 'export-off-pending');
+        }
+      }
       let refreshed: HealthState | null = null;
       try {
         refreshed = await getHealthState(token);
@@ -145,16 +188,21 @@ export default function HealthSettingsScreen() {
       }
       if (!isCurrent()) return;
       const wasConnected = refreshed?.sources.some((item) => item.source === 'apple_health' && item.readEnabled);
-      setActionError(
+      if (durableStop && refreshed) {
+        resumeHealthExport(user.id);
+        void reconcileAppleHealthExport(token, user.id, isCurrent).catch(() => undefined);
+      }
+      setActionError(durableStop && !(caught instanceof HttpError && caught.status === 409) ? null :
         name === 'connect' && wasConnected
           ? 'Apple Health is connected, but its first sync failed. Tap Sync now to retry.'
           : caught instanceof HttpError && caught.status === 409
             ? 'This connection changed while syncing. Refresh its status and try again.'
             : refreshed === null
               ? 'The action may have completed, but its status could not be confirmed. Retry loading connection status.'
-              : caught instanceof Error ? caught.message : 'Health action failed. Please retry.',
+            : caught instanceof Error ? caught.message : 'Health action failed. Please retry.',
       );
     } finally {
+      if ((name === 'export-off' || name === 'disconnect') && user?.id) resumeHealthExport(user.id);
       if (isCurrent()) {
         actionInFlightRef.current = false;
         actionOwnerRef.current = null;
@@ -165,13 +213,13 @@ export default function HealthSettingsScreen() {
 
   const toggleRead = () => void runAction(readEnabled ? 'read-off' : 'connect', async (isCurrent) => {
     if (readEnabled) {
-      if (connected?.exportEnabled) await setAppleHealthSource(token!, false, true);
-      else await disconnectHealthSource(token!);
+      if (connected?.exportEnabled) await setAppleHealthSource(token!, false, true, expectedRevision);
+      else await disconnectHealthSource(token!, expectedRevision || undefined);
       return 'Apple Health daily summaries were removed from PrimeRep. Your Apple Health records remain on your phone.';
     }
     await appleHealthAdapter.requestReadPermission();
     if (!isCurrent()) return null;
-    const connection = await setAppleHealthSource(token!, true, connected?.exportEnabled ?? false);
+    const connection = await setAppleHealthSource(token!, true, connected?.exportEnabled ?? false, expectedRevision);
     if (!isCurrent()) return null;
     if (!visibleState?.primarySource) await setHealthPreferences(token!, 'apple_health', false);
     if (!isCurrent()) return null;
@@ -182,8 +230,41 @@ export default function HealthSettingsScreen() {
       : 'Apple Health is connected, but no step or sleep data was returned. Apple does not reveal read-access status; check access in the Health app.';
   });
 
+  const toggleExport = () => void runAction(exportEnabled ? 'export-off' : 'export-on', async (isCurrent) => {
+    if (exportEnabled) {
+      pauseHealthExport(user!.id);
+      await requestHealthExportStop(user!.id, 'export-off', expectedRevision, connected?.exportEnabledAt ?? null);
+      await waitForHealthExportIdle();
+      if (readEnabled) await setAppleHealthSource(token!, true, false, expectedRevision);
+      else await disconnectHealthSource(token!, expectedRevision || undefined);
+      return 'New workouts will no longer be saved to Apple Health. Previously exported workouts remain there.';
+    }
+    const permission = await appleHealthAdapter.requestWritePermission();
+    if (!isCurrent()) return null;
+    if (permission.writeWorkout !== 'granted') throw new Error('Allow workout write access in iOS settings before enabling export.');
+    await prepareHealthExport(user!.id);
+    try {
+      const connection = await setAppleHealthSource(token!, readEnabled, true, expectedRevision);
+      if (!isCurrent()) {
+        await disableHealthExport(user!.id);
+        return null;
+      }
+      if (!(await confirmHealthExportOptIn(user!.id, connection))) throw new Error('Workout export consent could not be confirmed. Refresh connection status and try again.');
+    } catch (error) {
+      await disableHealthExport(user!.id);
+      throw error;
+    }
+    if (!isCurrent()) return null;
+    resumeHealthExport(user!.id);
+    void reconcileAppleHealthExport(token!, user!.id, isCurrent).catch(() => undefined);
+    return 'Newly completed PrimeRep workouts will be saved to Apple Health after they sync to PrimeRep.';
+  });
+
   const disconnect = () => void runAction('disconnect', async () => {
-    await disconnectHealthSource(token!);
+    pauseHealthExport(user!.id);
+    await requestHealthExportStop(user!.id, 'disconnect', expectedRevision, connected?.exportEnabledAt ?? null);
+    await waitForHealthExportIdle();
+    await disconnectHealthSource(token!, connected?.connectionRevision);
     return 'Apple Health was disconnected from PrimeRep. Your Apple Health records remain on your phone.';
   });
 
@@ -271,12 +352,22 @@ export default function HealthSettingsScreen() {
         ) : null}
 
         {actionError ? <ThemedText testID="health-action-error" accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>{actionError}</ThemedText> : null}
+        {visibleExportStatus === 'retry' || exportStopPending ? (
+          <View testID="health-export-sync-error" style={styles.exportIssue}>
+            <ThemedText accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>{visibleExportStatus === 'export-off-pending' ? 'The PrimeRep server has not confirmed that Apple Health workout export stopped. This device will not export more workouts. Retry when online.' : visibleExportStatus === 'disconnect-pending' ? 'The PrimeRep server has not confirmed that Apple Health was disconnected. This device will not export more workouts. Retry when online.' : 'Apple Health sync could not finish. Your workout remains saved in PrimeRep. Retry when your connection or Health access is available.'}</ThemedText>
+            <Pressable testID="health-export-retry" onPress={retryExport} disabled={exportRetrying} accessibilityRole="button" accessibilityLabel={visibleExportStatus === 'export-off-pending' ? 'Retry stopping Apple Health export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnecting Apple Health' : 'Retry Apple Health sync'} accessibilityState={{ disabled: exportRetrying }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
+              <ThemedText style={{ color: colors.primaryButton }}>{exportRetrying ? 'Retrying…' : visibleExportStatus === 'export-off-pending' ? 'Retry stopping export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnect' : 'Retry Apple Health sync'}</ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
+        {visibleExportStatus === 'connection-changed' ? <ThemedText testID="health-export-connection-changed" accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>This Apple Health connection changed on another device. Workout export is paused here. Review your Save PrimeRep workouts choice above; turn it off before opting in again if you want this device to export.</ThemedText> : null}
+        {exportEnabled && workoutWriteAccess === 'denied' ? <ThemedText testID="health-export-permission-warning" accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>Workout export is paused because Apple Health write access is off. Restore workout access in iOS Health settings to resume.</ThemedText> : null}
         {notice ? <ThemedText testID="health-action-notice" accessibilityLiveRegion="polite" style={styles.body}>{notice}</ThemedText> : null}
 
         <ThemedText style={styles.sectionTitle}>Your choices</ThemedText>
         <View style={[styles.settingsGroup, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          {settingRow('Read steps and sleep', 'Import recent daily totals from Apple Health.', 'health-read-toggle', readEnabled, canConnect, toggleRead)}
-          {settingRow('Save PrimeRep workouts', 'Export of newly completed workouts is coming next.', 'health-export-toggle', false, false)}
+          {settingRow('Read steps and sleep', 'Import recent daily totals from Apple Health.', 'health-read-toggle', readEnabled, canConnect || readEnabled, toggleRead)}
+          {settingRow('Save PrimeRep workouts', 'Export newly completed workouts after PrimeRep confirms them. Existing Apple Health workouts stay there if you disconnect.', 'health-export-toggle', exportEnabled, canConnect || exportEnabled, toggleExport)}
           {settingRow('Use summaries in Coach', 'Optional, rules-based context; never changes your plan.', 'health-coach-toggle', Boolean(readEnabled && visibleState?.coachEnabled), Boolean(canConnect && readEnabled && primarySelected), toggleCoach)}
         </View>
 
@@ -328,6 +419,7 @@ const styles = StyleSheet.create({
   status: { borderWidth: 1, borderRadius: 22, padding: 22, gap: 12 },
   statusIcon: { width: 52, height: 52, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   statusTitle: { fontFamily: Fonts.sans, fontSize: 23, lineHeight: 30, fontWeight: '700' },
+  exportIssue: { gap: 12, alignItems: 'flex-start' },
   body: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 23 },
   connectionStatus: { gap: 6 },
   sectionTitle: { fontFamily: Fonts.sans, fontSize: 18, lineHeight: 24, fontWeight: '700' },

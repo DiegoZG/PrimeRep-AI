@@ -20,6 +20,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext } from "@/utils/authContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
 import { deleteAccount } from "@/services/userService";
+import { pauseHealthExport, resumeHealthExport, waitForHealthExportIdle } from "@/services/health/exportSync";
+import { clearHealthExportAccount } from "@/utils/healthExportAccountCleanup";
 import {
   getCoachPreferences,
   updateCoachPreferences,
@@ -257,7 +259,8 @@ export default function SettingsScreen() {
   }, [isLoggingOut, logOut, token, unregisterCurrentDevice]);
 
   const confirmDeleteAccount = useCallback(() => {
-    if (isDeleting || !token) return;
+    if (isDeleting || !token || !user?.id) return;
+    const deletingUserId = user.id;
     Alert.alert(
       "Delete Account?",
       "This permanently deletes your account and workout data. This action cannot be undone.",
@@ -270,10 +273,23 @@ export default function SettingsScreen() {
             if (deletingRef.current) return;
             deletingRef.current = true;
             setIsDeleting(true);
+            pauseHealthExport(deletingUserId);
             try {
               await deleteAccount(token);
             } catch {
+              resumeHealthExport(deletingUserId);
               Alert.alert("Could Not Delete Account", "Please try again.");
+              deletingRef.current = false;
+              setIsDeleting(false);
+              return;
+            }
+            try {
+              await waitForHealthExportIdle();
+              await clearHealthExportAccount(deletingUserId);
+            } catch {
+              console.warn("Account deleted, but local Health export cleanup was incomplete.");
+            }
+            if (!settingsAccountRef.current.startsWith(`${deletingUserId}:`)) {
               deletingRef.current = false;
               setIsDeleting(false);
               return;
@@ -287,7 +303,7 @@ export default function SettingsScreen() {
         },
       ]
     );
-  }, [isDeleting, logOut, token]);
+  }, [isDeleting, logOut, token, user?.id]);
 
   const handleToggle = useCallback(
     async (value: boolean) => {
