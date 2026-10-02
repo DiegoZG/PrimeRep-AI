@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { appleHealthAdapter } from '@/services/health/appleHealthAdapter';
 import { syncAppleHealthRead } from '@/services/health/readSync';
 import { getHealthState } from '@/services/healthService';
+import { PRIVACY_VERSION } from '@/constants/legal';
 import { AuthContext } from '@/utils/authContext';
 
 const SIX_HOURS = 6 * 60 * 60 * 1000;
@@ -12,7 +13,7 @@ export function HealthReadSync() {
   const { token, user, isLoggedIn } = useContext(AuthContext);
 
   useEffect(() => {
-    if (Platform.OS !== 'ios' || !isLoggedIn || !token || !user?.id) return;
+    if (Platform.OS !== 'ios' || !isLoggedIn || !token || !user?.id || user.privacy_accepted_version !== PRIVACY_VERSION) return;
     let current = true;
     let busy = false;
     const run = async () => {
@@ -41,7 +42,7 @@ export function HealthReadSync() {
       current = false;
       subscription.remove();
     };
-  }, [isLoggedIn, token, user?.id]);
+  }, [isLoggedIn, token, user?.id, user?.privacy_accepted_version]);
 
   return null;
 }

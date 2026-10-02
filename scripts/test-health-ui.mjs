@@ -15,13 +15,18 @@ function load(relative, mocks = {}) {
   const filename = path.join(root, relative);
   const module = { exports: {} };
   const fallback = createRequire(filename);
-  const require = (name) => name in mocks ? mocks[name] : fallback(name);
+  const sharedMocks = {
+    '@/constants/legal': { PRIVACY_VERSION: '2026-10-02', TERMS_VERSION: '2026-09-12' },
+    '@/services/userService': { acceptCurrentLegal: async () => ({}) },
+  };
+  const require = (name) => name in mocks ? mocks[name] : name in sharedMocks ? sharedMocks[name] : fallback(name);
   const output = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, require, setTimeout, clearTimeout, console }, { filename });
   return module.exports;
 }
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const quietExportStatus = { subscribeHealthExportSyncStatus: (_userId, listener) => { listener(null); return () => {}; }, setHealthExportSyncStatus() {} };
+const acceptedUser = (id) => ({ id, privacy_accepted_version: '2026-10-02' });
 
 test('Coach health guidance has a valid Settings destination', () => {
   const nav = load('utils/coachNavigation.ts');
@@ -81,7 +86,7 @@ test('Health screen keeps all controls disabled and fences delayed account respo
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
-  const render = (id) => React.createElement(AuthContext.Provider, { value: { token: id, user: { id } } }, React.createElement(HealthScreen));
+  const render = (id) => React.createElement(AuthContext.Provider, { value: { token: id, user: acceptedUser(id) } }, React.createElement(HealthScreen));
   let tree;
   await act(async () => { tree = create(render('A')); });
   assert.equal(calls[0].token, 'A');
@@ -98,6 +103,53 @@ test('Health screen keeps all controls disabled and fences delayed account respo
     assert.equal(tree.root.findByProps({ testID: id }).props.accessibilityState.disabled, true);
   }
   assert.equal(tree.root.findByProps({ testID: 'health-open-health-app-settings' }).props.accessibilityState.disabled, false);
+  await act(async () => { tree.unmount(); });
+});
+
+test('Updated privacy acceptance gates Health controls until the account is refreshed', async () => {
+  const AuthContext = React.createContext(null);
+  const accepted = [];
+  let policyOpened = false;
+  const { default: HealthScreen } = load('app/settings/health.tsx', {
+    react: React,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    'expo-router': { useRouter: () => ({ back() {}, push: (path) => { policyOpened = path === '/legal/privacy'; } }) },
+    'react-native': {
+      Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) },
+      Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View',
+      StyleSheet: { hairlineWidth: 1, create: (styles) => styles },
+    },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    '@/components/themed-text': { ThemedText: 'ThemedText' },
+    '@/components/screen-state': { ScreenState: 'ScreenState' },
+    '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: false },
+    '@/constants/theme': { Colors: { dark: { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' } }, Fonts: { sans: 'system-ui' } },
+    '@/hooks/use-color-scheme': { useColorScheme: () => 'dark' },
+    '@/services/healthService': { getHealthState: async () => ({ collectionAvailable: true, sources: [], primarySource: null, coachEnabled: false, days: [] }) },
+    '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'unknown' }) } },
+    '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+    '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+    '@/services/health/exportStatus': quietExportStatus,
+    '@/services/httpClient': { HttpError: Error },
+    '@/services/userService': { acceptCurrentLegal: async (...args) => { accepted.push(args); } },
+    '@/utils/authContext': { AuthContext },
+  });
+  function Holder() {
+    const [user, setUser] = React.useState({ id: 'A', privacy_accepted_version: '2026-09-12' });
+    return React.createElement(AuthContext.Provider, { value: { token: 'token-A', user, refreshUser: async () => setUser(acceptedUser('A')) } }, React.createElement(HealthScreen));
+  }
+  let tree;
+  await act(async () => { tree = create(React.createElement(Holder)); });
+  assert.equal(tree.root.findAllByProps({ testID: 'health-privacy-acceptance' }).length, 1);
+  assert.equal(tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' }).props.disabled, true);
+  assert.equal(tree.root.findByProps({ testID: 'health-privacy-accept' }).props.disabled, true);
+  await act(async () => { tree.root.findByProps({ testID: 'health-privacy-open' }).props.onPress(); });
+  assert.equal(policyOpened, true);
+  await act(async () => { tree.root.findByProps({ testID: 'health-privacy-checkbox' }).props.onPress(); });
+  await act(async () => { tree.root.findByProps({ testID: 'health-privacy-accept' }).props.onPress(); await new Promise(setImmediate); });
+  assert.deepEqual(accepted, [['token-A', '2026-09-12', '2026-10-02']]);
+  assert.equal(tree.root.findAllByProps({ testID: 'health-privacy-acceptance' }).length, 0);
+  assert.equal(tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' }).props.disabled, false);
   await act(async () => { tree.unmount(); });
 });
 
@@ -141,7 +193,7 @@ test('Health connection remains visible after first sync fails and rapid taps do
     '@/utils/authContext': { AuthContext },
   });
   let tree;
-  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'A', user: { id: 'A' } } }, React.createElement(HealthScreen))); });
+  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'A', user: acceptedUser('A') } }, React.createElement(HealthScreen))); });
   const readSwitch = () => tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' });
   assert.equal(readSwitch().props.value, false);
   await act(async () => {
@@ -196,7 +248,7 @@ test('Saved Apple Health sources can be disconnected even when collection or Hea
       '@/utils/authContext': { AuthContext },
     });
     let tree;
-    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'A', user: { id: 'A' } } }, React.createElement(HealthScreen))); });
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'A', user: acceptedUser('A') } }, React.createElement(HealthScreen))); });
     assert.equal(tree.root.findByProps({ testID: 'health-release-status' }).findAllByType('ThemedText')[0].props.children, 'Apple Health connection saved');
     assert.equal(tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' }).props.disabled, false);
     assert.equal(tree.root.findByProps({ testID: 'health-sync-now' }).props.accessibilityState.disabled, true);
@@ -245,7 +297,7 @@ test('read and workout export can be withdrawn separately while collection or He
       '@/utils/authContext': { AuthContext },
     });
     let tree;
-    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(HealthScreen))); });
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: acceptedUser('user') } }, React.createElement(HealthScreen))); });
     const read = () => tree.root.findByProps({ accessibilityLabel: 'Read steps and sleep' });
     const exportWorkouts = () => tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' });
     assert.equal(read().props.disabled, false);
@@ -288,7 +340,7 @@ test('Opening iOS settings cannot display an error after an account switch', asy
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
-  const render = (id) => React.createElement(AuthContext.Provider, { value: { token: id, user: { id } } }, React.createElement(HealthScreen));
+  const render = (id) => React.createElement(AuthContext.Provider, { value: { token: id, user: acceptedUser(id) } }, React.createElement(HealthScreen));
   let tree;
   await act(async () => { tree = create(render('A')); });
   await act(async () => { tree.root.findByProps({ testID: 'health-open-health-app-settings' }).props.onPress(); tree.update(render('B')); });
@@ -372,7 +424,7 @@ test('Health export failures stay account-scoped and a successful retry clears t
     '@/services/httpClient': { HttpError: Error },
     '@/utils/authContext': { AuthContext },
   });
-  const render = (userId) => React.createElement(AuthContext.Provider, { value: { token: userId, user: { id: userId } } }, React.createElement(HealthScreen));
+  const render = (userId) => React.createElement(AuthContext.Provider, { value: { token: userId, user: acceptedUser(userId) } }, React.createElement(HealthScreen));
   let tree;
   await act(async () => { tree = create(render('A')); });
   await act(async () => { exportStatus.setHealthExportSyncStatus('A', 'retry'); });
@@ -436,7 +488,7 @@ test('offline export withdrawal and disconnect show durable pending revocation i
       '@/utils/authContext': { AuthContext },
     });
     let tree;
-    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(HealthScreen))); });
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: acceptedUser('user') } }, React.createElement(HealthScreen))); });
     await act(async () => {
       if (action === 'export-off') tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' }).props.onValueChange();
       else tree.root.findByProps({ testID: 'health-disconnect' }).props.onPress();
@@ -499,7 +551,7 @@ test('workout export requires explicit iOS write permission and preserves indepe
     '@/utils/authContext': { AuthContext },
   });
   let tree;
-  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: { id: 'user' } } }, React.createElement(screen.default))); });
+  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token', user: acceptedUser('user') } }, React.createElement(screen.default))); });
   const toggle = () => tree.root.findByProps({ accessibilityLabel: 'Save PrimeRep workouts' });
   assert.equal(toggle().props.disabled, false);
   await act(async () => { toggle().props.onValueChange(); await new Promise(setImmediate); });

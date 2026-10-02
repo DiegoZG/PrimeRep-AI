@@ -1,6 +1,6 @@
 # Part 10 privacy policy draft
 
-Diego approved the wording below on 2026-10-02. This is a version-controlled draft, **not** the currently published or in-app policy. Before publication, confirm the privacy contact address, verify the production 90-day purge schedule, review the final text, and publish it at a stable public URL. A custom domain is not required. Keep Health collection disabled until the matching app/backend policy versions and renewed acceptance are ready.
+Diego approved the wording below on 2026-10-02. It is now shown in the app with privacy contact `diego.zegarra78@gmail.com`, which can be changed later. It is **not publicly published**. Before enabling Health collection, verify the production 90-day purge schedule, publish this policy at a stable public URL, and complete platform disclosures. A custom domain is not required. The app and backend use matching policy versions and offer renewed acceptance to existing users; Health collection remains disabled.
 
 ## PrimeRep Privacy Policy — approved draft wording
 
@@ -26,4 +26,4 @@ Push notifications are optional. PrimeRep stores a device token when needed to d
 
 ### Your choices and deletion
 
-You can manage Health connections, notifications, and training preferences; download your data; or delete your account in Settings. Account deletion removes PrimeRep’s account-linked data, including stored Health connections and summaries, through the service’s deletion process. It cannot remove records previously written to Apple Health. Privacy questions can be sent to **[confirm the real contact email]**.
+You can manage Health connections, notifications, and training preferences; download your data; or delete your account in Settings. Account deletion removes PrimeRep’s account-linked data, including stored Health connections and summaries, through the service’s deletion process. It cannot remove records previously written to Apple Health. Privacy questions can be sent to **diego.zegarra78@gmail.com**.

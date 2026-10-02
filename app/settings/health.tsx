@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ScreenState } from '@/components/screen-state';
 import { HEALTH_BRIDGE_TEST_ENABLED } from '@/config/healthBridgeTest';
+import { PRIVACY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { appleHealthAdapter } from '@/services/health/appleHealthAdapter';
@@ -17,6 +18,7 @@ import { HttpError } from '@/services/httpClient';
 import { disconnectHealthSource, getHealthState, setAppleHealthSource, setHealthPreferences } from '@/services/healthService';
 import type { HealthState, HealthSourceName } from '@/services/health/types';
 import { AuthContext } from '@/utils/authContext';
+import { acceptCurrentLegal } from '@/services/userService';
 
 const SOURCE_NAMES: Record<HealthSourceName, string> = {
   apple_health: 'Apple Health',
@@ -25,7 +27,7 @@ const SOURCE_NAMES: Record<HealthSourceName, string> = {
 
 export default function HealthSettingsScreen() {
   const router = useRouter();
-  const { user, token } = useContext(AuthContext);
+  const { user, token, refreshUser } = useContext(AuthContext);
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
   const accountKey = `${user?.id ?? 'guest'}:${token ?? 'anonymous'}`;
@@ -47,6 +49,8 @@ export default function HealthSettingsScreen() {
   const [workoutWriteAccess, setWorkoutWriteAccess] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [exportStatus, setExportStatus] = useState<{ userId: string; status: HealthExportSyncStatus } | null>(null);
   const [exportRetryOwner, setExportRetryOwner] = useState<string | null>(null);
+  const [policyChecked, setPolicyChecked] = useState(false);
+  const [policyBusy, setPolicyBusy] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -91,6 +95,8 @@ export default function HealthSettingsScreen() {
     setBusy(null);
     setActionError(null);
     setNotice(null);
+    setPolicyChecked(false);
+    setPolicyBusy(false);
   }, [accountKey]);
 
   useEffect(() => {
@@ -121,14 +127,35 @@ export default function HealthSettingsScreen() {
   const sourceName = source ? SOURCE_NAMES[source] : 'Apple Health and Health Connect';
   const connected = source ? visibleState?.sources.find((item) => item.source === source) : visibleState?.sources[0];
   const expectedRevision = connected?.connectionRevision ?? visibleState?.sourceRevisions?.apple_health ?? 0;
+  const privacyRequired = Platform.OS === 'ios' && Boolean(user && user.privacy_accepted_version !== PRIVACY_VERSION);
 
-  const canConnect = Platform.OS === 'ios' && visibleState?.collectionAvailable === true && availability === 'available';
+  const canConnect = Platform.OS === 'ios' && !privacyRequired && visibleState?.collectionAvailable === true && availability === 'available';
   const readEnabled = Boolean(connected?.readEnabled);
   const exportEnabled = Boolean(connected?.exportEnabled);
   const primarySelected = visibleState?.primarySource === 'apple_health';
   const visibleExportStatus = exportStatus && exportStatus.userId === user?.id ? exportStatus.status : null;
   const exportRetrying = exportRetryOwner === accountKey;
   const exportStopPending = visibleExportStatus === 'export-off-pending' || visibleExportStatus === 'disconnect-pending';
+
+  const acceptPolicy = async () => {
+    if (!policyChecked || policyBusy || !token || !user?.id) return;
+    const owner = accountKey;
+    setPolicyBusy(true);
+    setActionError(null);
+    try {
+      await acceptCurrentLegal(token, TERMS_VERSION, PRIVACY_VERSION);
+      if (accountKeyRef.current !== owner) return;
+      await refreshUser();
+      if (accountKeyRef.current !== owner) return;
+      setPolicyChecked(false);
+      setRevision((value) => value + 1);
+      setNotice('Updated Privacy Policy accepted. Health choices remain subject to availability and release approval.');
+    } catch {
+      if (accountKeyRef.current === owner) setActionError('Your acceptance could not be saved. Check your connection and try again.');
+    } finally {
+      if (accountKeyRef.current === owner) setPolicyBusy(false);
+    }
+  };
 
   const retryExport = () => {
     if (!token || !user?.id || exportRetrying) return;
@@ -333,6 +360,23 @@ export default function HealthSettingsScreen() {
                 : `PrimeRep is preparing ${sourceName} support. No steps, sleep, or workouts are read or written by this screen.`}
           </ThemedText>
         </View>
+        {privacyRequired ? (
+          <View testID="health-privacy-acceptance" style={[styles.status, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+            <Ionicons name="shield-checkmark-outline" size={25} color={colors.primaryButton} />
+            <ThemedText style={styles.sectionTitle}>Review the updated Privacy Policy</ThemedText>
+            <ThemedText style={[styles.body, { color: colors.icon }]}>It explains optional Apple Health steps, sleep, and workout export. Accepting the policy does not itself enable Health collection.</ThemedText>
+            <Pressable testID="health-privacy-open" accessibilityRole="link" accessibilityLabel="Read updated Privacy Policy" onPress={() => router.push('/legal/privacy')} style={styles.policyAction}>
+              <ThemedText style={[styles.settingTitle, { color: colors.primaryButton }]}>Read Privacy Policy</ThemedText>
+            </Pressable>
+            <Pressable testID="health-privacy-checkbox" accessibilityRole="checkbox" accessibilityState={{ checked: policyChecked }} onPress={() => setPolicyChecked((value) => !value)} style={styles.policyCheck}>
+              <Ionicons name={policyChecked ? 'checkbox' : 'square-outline'} size={24} color={colors.primaryButton} />
+              <ThemedText style={[styles.body, styles.policyCheckText]}>I have read and accept the updated Privacy Policy.</ThemedText>
+            </Pressable>
+            <Pressable testID="health-privacy-accept" accessibilityRole="button" accessibilityState={{ disabled: !policyChecked || policyBusy }} disabled={!policyChecked || policyBusy} onPress={() => void acceptPolicy()} style={[styles.policyAccept, { backgroundColor: colors.primaryButton, opacity: !policyChecked || policyBusy ? 0.5 : 1 }]}>
+              <ThemedText style={styles.policyAcceptText}>{policyBusy ? 'Saving…' : 'Accept updated policy'}</ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
 
         {isLoading ? (
           <ScreenState colors={colors} kind="loading" title="Checking connection status…" testID="health-state-loading" />
@@ -437,4 +481,9 @@ const styles = StyleSheet.create({
   disabledAction: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 },
   disabledActionText: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 21, fontWeight: '600' },
   privacy: { fontFamily: Fonts.sans, fontSize: 14, lineHeight: 21 },
+  policyAction: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center' },
+  policyCheck: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  policyCheckText: { flex: 1 },
+  policyAccept: { minHeight: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  policyAcceptText: { fontFamily: Fonts.sans, fontSize: 16, lineHeight: 22, fontWeight: '700', color: '#FFFFFF' },
 });

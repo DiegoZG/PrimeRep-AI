@@ -8,6 +8,8 @@ export interface UserResponse {
   has_completed_onboarding: boolean;
   subscription_tier: "free" | "premium";
   coach_insights_enabled: boolean;
+  terms_accepted_version?: string | null;
+  privacy_accepted_version?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +18,14 @@ export function getMe(token: string) {
   return requestJson<UserResponse>("/v1/users/me", {
     method: "GET",
     token,
+  });
+}
+
+export function acceptCurrentLegal(token: string, termsVersion: string, privacyVersion: string) {
+  return requestJson<UserResponse>("/v1/users/me/legal-acceptance", {
+    method: "PUT",
+    token,
+    body: { accepted: true, termsVersion, privacyVersion },
   });
 }
 
