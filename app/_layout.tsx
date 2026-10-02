@@ -27,6 +27,7 @@ import { HttpError } from "@/services/httpClient";
 import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
 import { ProfileProvider } from "@/utils/profileContext";
+import { HealthReadSync } from "@/utils/healthReadSync";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -435,6 +436,7 @@ function ThemedRootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthProvider>
+          <HealthReadSync />
           <ProfileProvider>
           <NotificationsProvider>
             <OnboardingProvider>

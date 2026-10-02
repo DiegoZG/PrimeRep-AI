@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, View } from 'react-native';
+import { AppState, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +9,10 @@ import { ScreenState } from '@/components/screen-state';
 import { HEALTH_BRIDGE_TEST_ENABLED } from '@/config/healthBridgeTest';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getHealthState } from '@/services/healthService';
+import { appleHealthAdapter } from '@/services/health/appleHealthAdapter';
+import { syncAppleHealthRead } from '@/services/health/readSync';
+import { HttpError } from '@/services/httpClient';
+import { disconnectHealthSource, getHealthState, setAppleHealthSource, setHealthPreferences } from '@/services/healthService';
 import type { HealthState, HealthSourceName } from '@/services/health/types';
 import { AuthContext } from '@/utils/authContext';
 
@@ -27,13 +30,21 @@ export default function HealthSettingsScreen() {
   const accountKeyRef = useRef(accountKey);
   accountKeyRef.current = accountKey;
   const requestRef = useRef(0);
+  const actionRef = useRef(0);
+  const actionInFlightRef = useRef(false);
+  const actionOwnerRef = useRef<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [ownerKey, setOwnerKey] = useState<string | null>(null);
   const [state, setState] = useState<HealthState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<'checking' | 'available' | 'unsupported'>('checking');
 
   useEffect(() => {
+    if (actionInFlightRef.current && actionOwnerRef.current === accountKey) return;
     const requestId = ++requestRef.current;
     const requestAccount = accountKey;
     setOwnerKey(requestAccount);
@@ -62,6 +73,33 @@ export default function HealthSettingsScreen() {
     };
   }, [accountKey, revision, token, user?.id]);
 
+  useEffect(() => {
+    actionRef.current += 1;
+    actionInFlightRef.current = false;
+    actionOwnerRef.current = null;
+    setBusy(null);
+    setActionError(null);
+    setNotice(null);
+  }, [accountKey]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !state?.collectionAvailable || ownerKey !== accountKey) return;
+    let current = true;
+    void appleHealthAdapter.availability().then((value) => {
+      if (current) setAvailability(value === 'available' ? 'available' : 'unsupported');
+    }).catch(() => {
+      if (current) setAvailability('unsupported');
+    });
+    return () => { current = false; };
+  }, [accountKey, ownerKey, state?.collectionAvailable]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && !actionInFlightRef.current) setRevision((value) => value + 1);
+    });
+    return () => subscription.remove();
+  }, []);
+
   const visibleState = ownerKey === accountKey ? state : null;
   const visibleError = ownerKey === accountKey ? error : null;
   const isLoading = ownerKey !== accountKey || loading;
@@ -69,14 +107,120 @@ export default function HealthSettingsScreen() {
   const sourceName = source ? SOURCE_NAMES[source] : 'Apple Health and Health Connect';
   const connected = source ? visibleState?.sources.find((item) => item.source === source) : visibleState?.sources[0];
 
-  const settingRow = (label: string, detail: string, testID: string) => (
-    <View testID={testID} accessibilityLabel={`${label}. Unavailable until health connections are enabled.`} style={[styles.settingRow, styles.settingToggleRow, { borderColor: colors.inputBorder }]}>
+  const canConnect = Platform.OS === 'ios' && visibleState?.collectionAvailable === true && availability === 'available';
+  const readEnabled = Boolean(connected?.readEnabled);
+  const primarySelected = visibleState?.primarySource === 'apple_health';
+
+  const runAction = async (name: string, action: (isCurrent: () => boolean) => Promise<string | null>) => {
+    const canDisconnect = name === 'disconnect' && connected?.source === 'apple_health';
+    if ((!canConnect && !canDisconnect) || !token || !user?.id || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
+    actionOwnerRef.current = accountKey;
+    requestRef.current += 1;
+    const actionId = ++actionRef.current;
+    const owner = accountKey;
+    const isCurrent = () => actionRef.current === actionId && accountKeyRef.current === owner;
+    setBusy(name);
+    setActionError(null);
+    setNotice(null);
+    try {
+      const message = await action(isCurrent);
+      if (!isCurrent()) return;
+      const refreshed = await getHealthState(token);
+      if (!isCurrent()) return;
+      setState(refreshed);
+      setNotice(message);
+    } catch (caught) {
+      if (!isCurrent()) return;
+      let refreshed: HealthState | null = null;
+      try {
+        refreshed = await getHealthState(token);
+        if (!isCurrent()) return;
+        setState(refreshed);
+        setError(null);
+      } catch {
+        if (!isCurrent()) return;
+        setState(null);
+        setError('Connection status could not load. Check your connection and retry.');
+      }
+      if (!isCurrent()) return;
+      const wasConnected = refreshed?.sources.some((item) => item.source === 'apple_health' && item.readEnabled);
+      setActionError(
+        name === 'connect' && wasConnected
+          ? 'Apple Health is connected, but its first sync failed. Tap Sync now to retry.'
+          : caught instanceof HttpError && caught.status === 409
+            ? 'This connection changed while syncing. Refresh its status and try again.'
+            : refreshed === null
+              ? 'The action may have completed, but its status could not be confirmed. Retry loading connection status.'
+              : caught instanceof Error ? caught.message : 'Health action failed. Please retry.',
+      );
+    } finally {
+      if (isCurrent()) {
+        actionInFlightRef.current = false;
+        actionOwnerRef.current = null;
+        setBusy(null);
+      }
+    }
+  };
+
+  const toggleRead = () => void runAction(readEnabled ? 'read-off' : 'connect', async (isCurrent) => {
+    if (readEnabled) {
+      if (connected?.exportEnabled) await setAppleHealthSource(token!, false, true);
+      else await disconnectHealthSource(token!);
+      return 'Apple Health daily summaries were removed from PrimeRep. Your Apple Health records remain on your phone.';
+    }
+    await appleHealthAdapter.requestReadPermission();
+    if (!isCurrent()) return null;
+    const connection = await setAppleHealthSource(token!, true, connected?.exportEnabled ?? false);
+    if (!isCurrent()) return null;
+    if (!visibleState?.primarySource) await setHealthPreferences(token!, 'apple_health', false);
+    if (!isCurrent()) return null;
+    const hasData = await syncAppleHealthRead(token!, connection, isCurrent);
+    if (!isCurrent()) return null;
+    return hasData
+      ? 'Apple Health is connected and recent daily summaries were synced.'
+      : 'Apple Health is connected, but no step or sleep data was returned. Apple does not reveal read-access status; check access in the Health app.';
+  });
+
+  const disconnect = () => void runAction('disconnect', async () => {
+    await disconnectHealthSource(token!);
+    return 'Apple Health was disconnected from PrimeRep. Your Apple Health records remain on your phone.';
+  });
+
+  const syncNow = () => void runAction('sync', async (isCurrent) => {
+    if (!connected?.readEnabled) return null;
+    const hasData = await syncAppleHealthRead(token!, connected, isCurrent);
+    if (!isCurrent()) return null;
+    return hasData
+      ? 'Recent daily summaries synced.'
+      : 'Sync completed, but no step or sleep data was returned. Check access in the Health app.';
+  });
+
+  const toggleCoach = () => void runAction('coach', async (isCurrent) => {
+    await setHealthPreferences(token!, 'apple_health', !visibleState?.coachEnabled);
+    return isCurrent() ? (!visibleState?.coachEnabled ? 'Coach can now use daily summaries for rules-based context.' : 'Coach will no longer use your health summaries.') : null;
+  });
+
+  const selectPrimary = () => void runAction('primary', async (isCurrent) => {
+    await setHealthPreferences(token!, 'apple_health', Boolean(visibleState?.coachEnabled));
+    return isCurrent() ? 'Apple Health is your primary source.' : null;
+  });
+
+  const openSettings = () => {
+    const owner = accountKey;
+    void appleHealthAdapter.openAppSettings().catch(() => {
+      if (accountKeyRef.current === owner) setActionError('Could not open iOS app settings. You can manage read access in the Health app.');
+    });
+  };
+
+  const settingRow = (label: string, detail: string, testID: string, value: boolean, enabled: boolean, onChange?: () => void) => (
+    <View testID={testID} style={[styles.settingRow, styles.settingToggleRow, { borderColor: colors.inputBorder }]}>
       <View style={styles.settingText}>
         <ThemedText style={styles.settingTitle}>{label}</ThemedText>
         <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>{detail}</ThemedText>
       </View>
       <View style={styles.settingSwitch}>
-        <Switch value={false} disabled accessibilityLabel={`${label}, unavailable`} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor={colors.placeholder} />
+        <Switch value={value} disabled={!enabled || Boolean(busy)} onValueChange={onChange} accessibilityLabel={label} accessibilityState={{ disabled: !enabled || Boolean(busy) }} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor={value ? colors.primaryButton : colors.placeholder} />
       </View>
     </View>
   );
@@ -95,8 +239,18 @@ export default function HealthSettingsScreen() {
           <View style={[styles.statusIcon, { backgroundColor: `${colors.primaryButton}20` }]}>
             <Ionicons name="heart-outline" size={27} color={colors.primaryButton} />
           </View>
-          <ThemedText style={styles.statusTitle}>Health connections are not available yet</ThemedText>
-          <ThemedText style={[styles.body, { color: colors.icon }]}>PrimeRep is preparing {sourceName} support. No steps, sleep, or workouts are read or written by this screen.</ThemedText>
+          <ThemedText style={styles.statusTitle}>{connected ? 'Apple Health connection saved' : canConnect ? 'Connect Apple Health' : 'Health connections are not available yet'}</ThemedText>
+          <ThemedText style={[styles.body, { color: colors.icon }]}>
+            {connected
+              ? canConnect
+                ? 'Your PrimeRep connection is saved. Apple Health read access is managed in iOS and cannot be confirmed here.'
+                : 'Your PrimeRep connection is saved, but syncing and new connections are unavailable right now. You can still disconnect it.'
+              : canConnect
+              ? 'Choose what to share. PrimeRep reads daily steps and sleep only after you opt in; your workout plan never changes automatically.'
+              : visibleState?.collectionAvailable && Platform.OS === 'ios' && availability === 'unsupported'
+                ? 'Apple Health is unavailable in this build or on this device.'
+                : `PrimeRep is preparing ${sourceName} support. No steps, sleep, or workouts are read or written by this screen.`}
+          </ThemedText>
         </View>
 
         {isLoading ? (
@@ -112,35 +266,49 @@ export default function HealthSettingsScreen() {
                 : source ? `No ${sourceName} connection is saved in your PrimeRep account.` : 'No health connection is saved in your PrimeRep account.'}
             </ThemedText>
             {connected?.lastSuccessfulSyncAt ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Last PrimeRep sync: {new Date(connected.lastSuccessfulSyncAt).toLocaleString()}</ThemedText> : null}
+            {connected?.readEnabled ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Apple does not reveal read permission status. Missing data can mean no records or access was not granted.</ThemedText> : null}
           </View>
         ) : null}
 
-        <ThemedText style={styles.sectionTitle}>When available</ThemedText>
+        {actionError ? <ThemedText testID="health-action-error" accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>{actionError}</ThemedText> : null}
+        {notice ? <ThemedText testID="health-action-notice" accessibilityLiveRegion="polite" style={styles.body}>{notice}</ThemedText> : null}
+
+        <ThemedText style={styles.sectionTitle}>Your choices</ThemedText>
         <View style={[styles.settingsGroup, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          {settingRow('Read steps and sleep', 'Import recent daily totals from your health app.', 'health-read-toggle')}
-          {settingRow('Save PrimeRep workouts', 'Export only newly completed workouts after you opt in.', 'health-export-toggle')}
-          {settingRow('Use summaries in Coach', 'Optional, rules-based context; never changes your plan.', 'health-coach-toggle')}
+          {settingRow('Read steps and sleep', 'Import recent daily totals from Apple Health.', 'health-read-toggle', readEnabled, canConnect, toggleRead)}
+          {settingRow('Save PrimeRep workouts', 'Export of newly completed workouts is coming next.', 'health-export-toggle', false, false)}
+          {settingRow('Use summaries in Coach', 'Optional, rules-based context; never changes your plan.', 'health-coach-toggle', Boolean(readEnabled && visibleState?.coachEnabled), Boolean(canConnect && readEnabled && primarySelected), toggleCoach)}
         </View>
 
         <View style={[styles.settingsGroup, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <View testID="health-primary-source" style={[styles.settingRow, { borderColor: colors.inputBorder }]}>
             <View style={styles.settingText}>
               <ThemedText style={styles.settingTitle}>Primary source</ThemedText>
-              <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>Choose which source Coach uses if you connect more than one.</ThemedText>
+              <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>Only the selected source is used for Coach context.</ThemedText>
             </View>
-            <ThemedText style={[styles.unavailable, { color: colors.icon }]}>Unavailable</ThemedText>
+            {primarySelected ? (
+              <ThemedText style={[styles.unavailable, { color: colors.icon }]}>Apple Health selected</ThemedText>
+            ) : (
+              <Pressable onPress={selectPrimary} disabled={!canConnect || !connected?.readEnabled || Boolean(busy)} accessibilityRole="button" accessibilityLabel="Select Apple Health as primary source" accessibilityState={{ disabled: !canConnect || !connected?.readEnabled || Boolean(busy) }} style={styles.primaryButton}>
+                <ThemedText style={{ color: colors.primaryButton }}>Select Apple Health</ThemedText>
+              </Pressable>
+            )}
           </View>
           <View style={styles.actions}>
-            {['Sync now', 'Disconnect', 'Open health app settings'].map((label) => (
-              <View key={label} testID={`health-${label.toLowerCase().replaceAll(' ', '-')}`} accessibilityRole="button" accessibilityState={{ disabled: true }} accessibilityLabel={`${label}, unavailable`} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-                <ThemedText style={[styles.disabledActionText, { color: colors.icon }]}>{label}</ThemedText>
-              </View>
-            ))}
+            <Pressable onPress={syncNow} disabled={!canConnect || !readEnabled || Boolean(busy)} testID="health-sync-now" accessibilityRole="button" accessibilityState={{ disabled: !canConnect || !readEnabled || Boolean(busy) }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
+              <ThemedText style={[styles.disabledActionText, { color: canConnect && readEnabled ? colors.primaryButton : colors.icon }]}>{busy === 'sync' ? 'Syncing…' : 'Sync now'}</ThemedText>
+            </Pressable>
+            <Pressable onPress={disconnect} disabled={connected?.source !== 'apple_health' || Boolean(busy)} testID="health-disconnect" accessibilityRole="button" accessibilityState={{ disabled: connected?.source !== 'apple_health' || Boolean(busy) }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
+              <ThemedText style={[styles.disabledActionText, { color: connected?.source === 'apple_health' ? colors.primaryButton : colors.icon }]}>Disconnect</ThemedText>
+            </Pressable>
+            <Pressable onPress={openSettings} disabled={Platform.OS !== 'ios'} testID="health-open-health-app-settings" accessibilityRole="button" accessibilityState={{ disabled: Platform.OS !== 'ios' }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
+              <ThemedText style={[styles.disabledActionText, { color: Platform.OS === 'ios' ? colors.primaryButton : colors.icon }]}>Open iOS app settings</ThemedText>
+            </Pressable>
           </View>
         </View>
 
-        <ThemedText style={[styles.privacy, { color: colors.icon }]}>When enabled, the first import will cover 30 days and PrimeRep will keep daily summaries for up to 90 days. Disconnecting will remove that source’s summaries from PrimeRep, but workouts already saved to Apple Health or Health Connect will remain there. You can manage them in the health app.</ThemedText>
-        <ThemedText style={[styles.privacy, { color: colors.icon }]}>Health access requires a supported native build, verified permissions, and updated privacy disclosures. This preview cannot connect or sync, and cannot determine whether phone access was denied or revoked.</ThemedText>
+        <ThemedText style={[styles.privacy, { color: colors.icon }]}>When enabled, the first import covers 30 days. PrimeRep retains daily summaries for up to 90 days. Disconnect removes this source’s summaries from PrimeRep, but does not delete records in Apple Health.</ThemedText>
+        <ThemedText style={[styles.privacy, { color: colors.icon }]}>Apple does not tell apps whether read access was granted or revoked. To review steps and sleep access, open the Health app’s Apps section and select PrimeRep. Health collection stays disabled until the privacy and platform release gates are approved.</ThemedText>
         {HEALTH_BRIDGE_TEST_ENABLED ? (
           <Pressable testID="health-bridge-test-link" accessibilityRole="button" accessibilityLabel="Open Apple Health bridge test" onPress={() => router.push('/settings/health-bridge-test')} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
             <ThemedText style={[styles.disabledActionText, { color: colors.primaryButton }]}>Open developer bridge test</ThemedText>
@@ -172,6 +340,7 @@ const styles = StyleSheet.create({
   settingTitle: { fontFamily: Fonts.sans, fontSize: 16, lineHeight: 22, fontWeight: '600' },
   settingDetail: { fontFamily: Fonts.sans, fontSize: 13, lineHeight: 19 },
   unavailable: { fontFamily: Fonts.sans, fontSize: 12, lineHeight: 18 },
+  primaryButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
   actions: { paddingVertical: 16, gap: 10 },
   disabledAction: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 },
   disabledActionText: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 21, fontWeight: '600' },
