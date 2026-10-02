@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ScreenState } from '@/components/screen-state';
+import { HEALTH_BRIDGE_TEST_ENABLED } from '@/config/healthBridgeTest';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getHealthState } from '@/services/healthService';
@@ -138,6 +139,11 @@ export default function HealthSettingsScreen() {
 
         <ThemedText style={[styles.privacy, { color: colors.icon }]}>When enabled, the first import will cover 30 days and PrimeRep will keep daily summaries for up to 90 days. Disconnecting will remove that source’s summaries from PrimeRep, but workouts already saved to Apple Health or Health Connect will remain there. You can manage them in the health app.</ThemedText>
         <ThemedText style={[styles.privacy, { color: colors.icon }]}>Health access requires a supported native build, verified permissions, and updated privacy disclosures. This preview cannot connect or sync, and cannot determine whether phone access was denied or revoked.</ThemedText>
+        {HEALTH_BRIDGE_TEST_ENABLED ? (
+          <Pressable testID="health-bridge-test-link" accessibilityRole="button" accessibilityLabel="Open Apple Health bridge test" onPress={() => router.push('/settings/health-bridge-test')} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
+            <ThemedText style={[styles.disabledActionText, { color: colors.primaryButton }]}>Open developer bridge test</ThemedText>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

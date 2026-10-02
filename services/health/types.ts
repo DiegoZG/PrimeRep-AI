@@ -29,7 +29,7 @@ export type HealthAdapter = {
   requestWritePermission(): Promise<HealthPermissionState>;
   readDailySummaries(startDate: string, endDate: string, timeZone: string): Promise<HealthDailySummary[]>;
   writeWorkout(workout: HealthWorkoutExport): Promise<void>;
-  openSettings(): Promise<void>;
+  openAppSettings(): Promise<void>;
 };
 
 export type HealthSourceName = 'apple_health' | 'health_connect';
