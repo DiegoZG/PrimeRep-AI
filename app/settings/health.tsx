@@ -70,12 +70,14 @@ export default function HealthSettingsScreen() {
   const connected = source ? visibleState?.sources.find((item) => item.source === source) : visibleState?.sources[0];
 
   const settingRow = (label: string, detail: string, testID: string) => (
-    <View testID={testID} accessibilityLabel={`${label}. Unavailable until health connections are enabled.`} style={[styles.settingRow, { borderColor: colors.inputBorder }]}>
+    <View testID={testID} accessibilityLabel={`${label}. Unavailable until health connections are enabled.`} style={[styles.settingRow, styles.settingToggleRow, { borderColor: colors.inputBorder }]}>
       <View style={styles.settingText}>
         <ThemedText style={styles.settingTitle}>{label}</ThemedText>
         <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>{detail}</ThemedText>
       </View>
-      <Switch value={false} disabled accessibilityLabel={`${label}, unavailable`} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor={colors.placeholder} />
+      <View style={styles.settingSwitch}>
+        <Switch value={false} disabled accessibilityLabel={`${label}, unavailable`} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor={colors.placeholder} />
+      </View>
     </View>
   );
 
@@ -164,7 +166,9 @@ const styles = StyleSheet.create({
   caption: { fontFamily: Fonts.sans, fontSize: 13, lineHeight: 19 },
   settingsGroup: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16 },
   settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 82, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  settingToggleRow: { alignItems: 'flex-start' },
   settingText: { flex: 1, paddingVertical: 14, gap: 4 },
+  settingSwitch: { paddingTop: 10, alignItems: 'center', justifyContent: 'flex-start' },
   settingTitle: { fontFamily: Fonts.sans, fontSize: 16, lineHeight: 22, fontWeight: '600' },
   settingDetail: { fontFamily: Fonts.sans, fontSize: 13, lineHeight: 19 },
   unavailable: { fontFamily: Fonts.sans, fontSize: 12, lineHeight: 18 },
