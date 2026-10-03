@@ -1,8 +1,8 @@
-# Part 10 privacy policy draft
+# Part 10 approved privacy policy
 
-Diego approved the wording below on 2026-10-02. It is now shown in the app with privacy contact `diego.zegarra78@gmail.com`, which can be changed later. It is **not publicly published**. Before enabling Health collection, verify the production 90-day purge schedule, publish this policy at a stable public URL, and complete platform disclosures. A custom domain is not required. The app and backend use matching policy versions and offer renewed acceptance to existing users; Health collection remains disabled.
+Diego approved the wording below on 2026-10-02. It is shown in the app and [published publicly](https://diegozg.github.io/primerep-legal/) with privacy contact `diego.zegarra78@gmail.com`, which can be changed later. Before enabling Health collection, verify the production 90-day purge schedule and complete platform disclosures. A custom domain is not required. The app and backend use matching policy versions and offer renewed acceptance to existing users; Health collection remains disabled.
 
-## PrimeRep Privacy Policy — approved draft wording
+## PrimeRep Privacy Policy — approved wording
 
 ### Information we process
 
