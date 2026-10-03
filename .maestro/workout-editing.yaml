@@ -63,5 +63,21 @@ env:
       id: "player-workout-note-input"
     timeout: 3000
 - inputText: "Maestro correction note"
+- assertVisible:
+    id: "player-save-note"
 - tapOn:
     id: "player-save-note"
+
+- tapOn:
+    id: "player-workout-note"
+- tapOn:
+    id: "player-workout-note-input"
+- inputText: " unsaved"
+- assertVisible:
+    id: "player-dismiss-note-keyboard"
+- tapOn:
+    id: "player-dismiss-note-keyboard"
+- assertVisible:
+    id: "player-cancel-note"
+- tapOn:
+    id: "player-cancel-note"
