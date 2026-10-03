@@ -222,7 +222,7 @@ must retain the native response until a later successful or terminal lookup.
 | Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles, resolved equipment, and truthful demo status |
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
-| Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, dismiss the note keyboard, then save the note |
+| Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, save a note, then dismiss the keyboard via the backdrop |
 | Workout Correction | `workout-correction.yaml` | Finish with zero sets → add a planned set in history → verify refreshed summary |
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
