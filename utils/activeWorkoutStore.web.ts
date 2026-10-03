@@ -67,7 +67,10 @@ export function saveActiveWorkout(workout: LocalActiveWorkout): Promise<void> {
     const terminal = await terminalWorkouts(workout.userId);
     if (terminal.some((entry) => entry.clientSessionId === workout.clientSessionId || (workout.serverSessionId != null && entry.serverSessionId === workout.serverSessionId))) return;
     const raw = await AsyncStorage.getItem(keyFor(workout.userId));
-    if (raw && (JSON.parse(raw) as LocalActiveWorkout).revision >= workout.revision) return;
+    if (raw) {
+      const saved = JSON.parse(raw) as LocalActiveWorkout;
+      if (saved.revision >= workout.revision || (saved.operations.some((operation) => operation.type === "complete") && workout.finishedAt == null)) return;
+    }
     await AsyncStorage.setItem(keyFor(workout.userId), JSON.stringify(workout));
   });
   writeQueue = task.catch(() => undefined);

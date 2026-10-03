@@ -286,7 +286,7 @@ export async function healthExportCandidates(userId: string, since: number): Pro
   return candidates;
 }
 
-async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalActiveWorkout): Promise<void> {
+async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalActiveWorkout, allowFinishReset = false): Promise<void> {
   workout.operations = normalizeOperationSequences(
     recoverMissingSetOperations(workout.sets, workout.operations)
   );
@@ -298,6 +298,13 @@ async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalAct
       [workout.userId, workout.clientSessionId, workout.serverSessionId]
     );
     if (terminal) return;
+    if (!allowFinishReset && workout.finishedAt == null) {
+      const queuedFinish = await db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM workout_pending_operations WHERE user_id = ? AND type = 'complete' LIMIT 1",
+        [workout.userId]
+      );
+      if (queuedFinish) return;
+    }
     const result = await db.runAsync(
       `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, finished_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot, workout_note, exercise_feedback, exercise_notes, revision)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -482,7 +489,7 @@ export function continueWorkoutLogging(userId: string, clientSessionId: string):
     const operations = durable.operations.filter((operation) => operation.type !== "complete");
     if (operations.length === durable.operations.length) return { status: "active", workout: durable };
     const resumed = { ...durable, finishedAt: null, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
-    await persistActiveWorkout(await database(), resumed);
+    await persistActiveWorkout(await database(), resumed, true);
     return { status: "active", workout: resumed };
   }));
   replayQueue = task.then(() => undefined, () => undefined);

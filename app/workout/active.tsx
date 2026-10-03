@@ -630,7 +630,7 @@ export default function ActiveWorkoutScreen() {
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
   useEffect(() => {
-    if (isTerminalRef.current || isFinishingRef.current || isRestoring || !user || !workout || sets.length === 0) return;
+    if (isTerminalRef.current || isFinishingRef.current || finishStatus !== "idle" || isRestoring || !user || !workout || sets.length === 0) return;
     if (replayInFlightRef.current) {
       deferredPersistenceRef.current = true;
       return;
@@ -660,7 +660,7 @@ export default function ActiveWorkoutScreen() {
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
     }).catch(() => setStorageError(true));
-  }, [isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
+  }, [finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
 
   const replayPendingWrites = useCallback(async () => {
     if (!token || !user || replayInFlightRef.current) return;
