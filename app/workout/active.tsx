@@ -3,8 +3,8 @@ import { Audio } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
 import { ExerciseListSheet } from "@/components/workout/ExerciseListSheet";
@@ -206,6 +206,7 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -1086,6 +1087,11 @@ export default function ActiveWorkoutScreen() {
     setNoteEditorVisible(true);
   }, [currentItem, exerciseNotes]);
 
+  const closeNoteEditor = useCallback(() => {
+    Keyboard.dismiss();
+    setNoteEditorVisible(false);
+  }, []);
+
   const saveNote = useCallback(() => {
     const note = noteDraft.trim() || null;
     if (noteEditorTarget === "workout") {
@@ -1100,8 +1106,8 @@ export default function ActiveWorkoutScreen() {
         id: createClientId(), type: "update_exercise_note", status: "pending", payload: { exerciseId, note },
       }]);
     }
-    setNoteEditorVisible(false);
-  }, [noteDraft, noteEditorTarget, currentItem]);
+    closeNoteEditor();
+  }, [noteDraft, noteEditorTarget, currentItem, closeNoteEditor]);
 
   const openFeedbackEditor = useCallback(() => {
     if (!currentItem) return;
@@ -1808,25 +1814,41 @@ export default function ActiveWorkoutScreen() {
         onClose={() => setInfoSheetVisible(false)}
       />
 
-      <Modal transparent visible={noteEditorVisible} animationType="fade" onRequestClose={() => setNoteEditorVisible(false)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "#00000066" }}>
-          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
-            <ThemedText type="title" style={{ fontSize: 21 }}>{noteEditorTarget === "workout" ? "Workout note" : "Exercise note"}</ThemedText>
-            <TextInput
-              testID={noteEditorTarget === "workout" ? "player-workout-note-input" : `player-exercise-note-input-${currentItem?.exercise.id ?? ""}`}
-              value={noteDraft}
-              onChangeText={setNoteDraft}
-              placeholder="Add a note"
-              placeholderTextColor={colors.placeholder}
-              multiline
-              style={{ minHeight: 110, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, color: colors.text, padding: 12, textAlignVertical: "top" }}
+      <Modal transparent visible={noteEditorVisible} animationType="fade" onRequestClose={closeNoteEditor}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : Platform.OS === "android" ? "height" : undefined}
+        >
+          <View style={{ flex: 1, backgroundColor: "#00000066" }}>
+            <Pressable
+              testID="player-note-backdrop"
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss keyboard"
+              onPress={Keyboard.dismiss}
+              style={{ flex: 1 }}
             />
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 18 }}>
-              <Pressable onPress={() => setNoteEditorVisible(false)}><ThemedText style={{ color: colors.placeholder, fontWeight: "700" }}>Cancel</ThemedText></Pressable>
-              <Pressable testID="player-save-note" onPress={saveNote}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText></Pressable>
+            <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 16, paddingBottom: Math.max(insets.bottom, 20), gap: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Pressable testID="player-cancel-note" accessibilityRole="button" onPress={closeNoteEditor} style={{ minWidth: 72, minHeight: 44, justifyContent: "center" }}>
+                  <ThemedText style={{ color: colors.primaryButton }}>Cancel</ThemedText>
+                </Pressable>
+                <ThemedText type="title" style={{ flex: 1, fontSize: 20, textAlign: "center" }}>{noteEditorTarget === "workout" ? "Workout note" : "Exercise note"}</ThemedText>
+                <Pressable testID="player-save-note" accessibilityRole="button" onPress={saveNote} style={{ minWidth: 72, minHeight: 44, justifyContent: "center", alignItems: "flex-end" }}>
+                  <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText>
+                </Pressable>
+              </View>
+              <TextInput
+                testID={noteEditorTarget === "workout" ? "player-workout-note-input" : `player-exercise-note-input-${currentItem?.exercise.id ?? ""}`}
+                value={noteDraft}
+                onChangeText={setNoteDraft}
+                placeholder="Add a note"
+                placeholderTextColor={colors.placeholder}
+                multiline
+                style={{ minHeight: 110, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, color: colors.text, padding: 12, textAlignVertical: "top" }}
+              />
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal transparent visible={feedbackEditorVisible} animationType="fade" onRequestClose={() => setFeedbackEditorVisible(false)}>
