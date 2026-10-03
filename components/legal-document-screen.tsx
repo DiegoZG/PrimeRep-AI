@@ -9,12 +9,13 @@ import { LEGAL_RELEASE, type LegalSection } from "@/constants/legal";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-export function LegalDocumentScreen({ title, version, lastUpdated, sections, testID }: {
+export function LegalDocumentScreen({ title, version, lastUpdated, sections, testID, draftNotice }: {
   title: string;
   version: string;
   lastUpdated: string;
   sections: LegalSection[];
   testID: string;
+  draftNotice?: string;
 }) {
   const router = useRouter();
   const colors = Colors[useColorScheme() ?? "light"];
@@ -32,7 +33,7 @@ export function LegalDocumentScreen({ title, version, lastUpdated, sections, tes
         {LEGAL_RELEASE.status !== "approved" ? (
           <View style={[styles.notice, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
             <Ionicons name="document-text-outline" size={20} color={colors.primaryButton} />
-            <ThemedText style={[styles.noticeText, { color: colors.placeholder }]}>Draft prepared for legal review before release.</ThemedText>
+            <ThemedText style={[styles.noticeText, { color: colors.placeholder }]}>{draftNotice ?? 'Draft prepared for legal review before release.'}</ThemedText>
           </View>
         ) : null}
         {sections.map((section) => (

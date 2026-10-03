@@ -23,7 +23,7 @@ export function isCoachTarget(target: unknown): target is CoachTarget {
       return isNonEmptyString(candidate.activationId) &&
         (candidate.templateId == null || isNonEmptyString(candidate.templateId));
     case "settings":
-      return candidate.section === "notifications" || candidate.section === "training_preferences";
+      return candidate.section === "notifications" || candidate.section === "training_preferences" || candidate.section === "health";
     default:
       return false;
   }
@@ -67,9 +67,9 @@ export function coachTargetHref(target: unknown): Href | null {
           }
         : "/programs";
     case "settings":
-      return target.section === "training_preferences"
-        ? "/settings/training-preferences"
-        : "/settings";
+      if (target.section === "training_preferences") return "/settings/training-preferences";
+      if (target.section === "health") return "/settings/health" as Href;
+      return "/settings";
     case "none":
       return null;
   }

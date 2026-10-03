@@ -40,6 +40,7 @@ const KIND_PRESENTATION: Record<
   personal_record: { label: "PROGRESS", node: "progress", action: "View workout" },
   consistency: { label: "PROGRESS", node: "progress", action: "View history" },
   program_review: { label: "PROGRAM", node: "program", action: "Review program" },
+  health_context: { label: "GUIDANCE", node: "guidance", action: "Health settings" },
 };
 
 const UNKNOWN_PRESENTATION = {
@@ -47,6 +48,25 @@ const UNKNOWN_PRESENTATION = {
   node: "program" as const,
   action: "Open",
 };
+
+function actionLabel(item: CoachFeedItem, fallback: string) {
+  if (item.kind !== "health_context") return fallback;
+  switch (item.target.type) {
+    case "settings":
+      return item.target.section === "health" ? "Health settings" : "Open settings";
+    case "active_workout":
+    case "planned_workout":
+      return "Open workout";
+    case "completed_session":
+      return "View workout";
+    case "program_detail":
+      return "View program";
+    case "program_review":
+      return "Review program";
+    case "none":
+      return fallback;
+  }
+}
 
 function timeLabel(iso: string) {
   const date = new Date(iso);
@@ -98,6 +118,7 @@ export function CoachBriefingItem({
   onDismiss,
 }: Props) {
   const presentation = KIND_PRESENTATION[item.kind] ?? UNKNOWN_PRESENTATION;
+  const primaryActionLabel = actionLabel(item, presentation.action);
   const { body, adjustmentNote } = coachItemPresentation(item, weightUnit, dumbbellWeights, plateWeights);
   const hasDestination = !historical && item.target.type !== "none";
   const nodeStyle =
@@ -195,7 +216,7 @@ export function CoachBriefingItem({
             <Pressable
               testID={`coach-item-action-${item.id}`}
               accessibilityRole="button"
-              accessibilityLabel={`${presentation.action}: ${item.title}`}
+              accessibilityLabel={`${primaryActionLabel}: ${item.title}`}
               accessibilityState={{ disabled: busy, busy }}
               disabled={busy}
               onPress={onPrimaryAction}
@@ -205,7 +226,7 @@ export function CoachBriefingItem({
               ]}
             >
               <ThemedText style={[styles.primaryActionText, { color: palette.accent }]}>
-                {presentation.action}
+                {primaryActionLabel}
               </ThemedText>
             </Pressable>
           ) : null}

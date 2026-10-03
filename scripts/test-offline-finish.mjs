@@ -161,6 +161,30 @@ test("Retry Finish cannot recreate a workout after terminal clearing", async () 
   assert.equal(fixture.calls.complete, 1);
 });
 
+test("web terminal workout history stays capped at 100 records", async () => {
+  const fixture = harness();
+  const key = "primerep.web.terminal-workouts.user-1";
+  const terminal = Array.from({ length: 101 }, (_, index) => ({
+    clientSessionId: `client-${index}`,
+    serverSessionId: `session-${index}`,
+    startedAt: 1,
+    finishedAt: 2,
+  }));
+  fixture.items.set(key, JSON.stringify(terminal));
+  const store = fixture.load();
+  const candidates = await store.healthExportCandidates("user-1", 0);
+  assert.equal(candidates.length, 100);
+  assert.equal(candidates[0].sessionId, "session-1");
+
+  const workout = { ...fixture.baseWorkout(), clientSessionId: "client-101", serverSessionId: "session-101" };
+  await store.saveActiveWorkout(workout);
+  await store.clearActiveWorkout("user-1");
+  const saved = JSON.parse(fixture.items.get(key));
+  assert.equal(saved.length, 100);
+  assert.equal(saved[0].clientSessionId, "client-2");
+  assert.equal(saved.at(-1).clientSessionId, "client-101");
+});
+
 test("offline finish reconciles saved set slots in one fetch without a conflict burst", async () => {
   const fixture = harness();
   const store = fixture.load();

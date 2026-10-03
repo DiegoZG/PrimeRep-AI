@@ -15,7 +15,7 @@ import {
   updateWorkoutNote,
 } from "@/services/workoutLoggingService";
 import type { SessionResponse } from "@/services/workoutLoggingService";
-import type { ContinueWorkoutLoggingResult, LocalActiveWorkout, PendingWorkoutOperation, QueueWorkoutCompletionResult, SequencedWorkoutOperation } from "./activeWorkoutStore.native";
+import type { ContinueWorkoutLoggingResult, HealthExportCandidate, LocalActiveWorkout, PendingWorkoutOperation, QueueWorkoutCompletionResult, SequencedWorkoutOperation } from "./activeWorkoutStore.native";
 
 export type { LocalActiveWorkout, PendingWorkoutOperation, SyncState } from "./activeWorkoutStore.native";
 
@@ -25,8 +25,7 @@ let writeQueue = Promise.resolve();
 let replayQueue = Promise.resolve();
 let lastCompletedReplay: { userId: string; clientSessionId: string; serverSessionId: string | null } | null = null;
 const MAX_TERMINAL_WORKOUTS_PER_USER = 100;
-
-type TerminalWorkout = { clientSessionId: string; serverSessionId: string | null; completedAt?: number };
+type TerminalWorkout = { clientSessionId: string; serverSessionId: string | null; completedAt?: number; startedAt?: number; finishedAt?: number | null };
 
 async function terminalWorkouts(userId: string): Promise<TerminalWorkout[]> {
   const raw = await AsyncStorage.getItem(terminalKeyFor(userId));
@@ -47,6 +46,17 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
   );
   workout.operations = normalizedOperations;
   return workout;
+}
+
+export async function healthExportCandidates(userId: string, since: number): Promise<HealthExportCandidate[]> {
+  const terminal = await terminalWorkouts(userId);
+  const active = await loadActiveWorkout(userId);
+  const candidates = terminal.filter((entry) => entry.serverSessionId && entry.startedAt != null && entry.finishedAt != null && entry.finishedAt >= since)
+    .map((entry) => ({ sessionId: entry.serverSessionId!, startedAt: entry.startedAt!, finishedAt: entry.finishedAt! }));
+  if (active?.serverSessionId && active.finishedAt != null && active.finishedAt >= since) {
+    candidates.push({ sessionId: active.serverSessionId, startedAt: active.startedAt, finishedAt: active.finishedAt });
+  }
+  return candidates;
 }
 
 export function saveActiveWorkout(workout: LocalActiveWorkout): Promise<void> {
@@ -111,6 +121,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     const complete = incomingOperations.find((operation) => operation.type === "complete");
     return {
       ...incoming,
+      finishedAt: incoming.finishedAt ?? Date.now(),
       operations: normalizeOperationSequences([
         ...operations,
         { ...(complete ?? { id: createClientId(), type: "complete", status: "pending", payload: {} }), status: "pending", nextAttemptAt: undefined } as SequencedWorkoutOperation,
@@ -147,6 +158,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     clientSessionId: incoming.clientSessionId,
     serverSessionId: persisted.serverSessionId ?? incoming.serverSessionId,
     startedAt: incoming.startedAt,
+    finishedAt: persisted.finishedAt ?? incoming.finishedAt ?? Date.now(),
     currentExerciseIndex: incoming.currentExerciseIndex,
     restEndsAt: incoming.restEndsAt,
     restTotalSeconds: incoming.restTotalSeconds,
@@ -190,7 +202,7 @@ export function continueWorkoutLogging(userId: string, clientSessionId: string):
       if (durable.clientSessionId !== clientSessionId) return { status: "missing" };
       const operations = durable.operations.filter((operation) => operation.type !== "complete");
       if (operations.length === durable.operations.length) return { status: "active", workout: durable };
-      const resumed = { ...durable, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
+      const resumed = { ...durable, finishedAt: null, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
       await AsyncStorage.setItem(keyFor(userId), JSON.stringify(resumed));
       return { status: "active", workout: resumed };
     });
@@ -208,14 +220,16 @@ export function clearActiveWorkout(userId: string): Promise<void> {
       const workout = JSON.parse(raw) as LocalActiveWorkout;
       const terminal = await terminalWorkouts(userId);
       if (!terminal.some((entry) => entry.clientSessionId === workout.clientSessionId)) {
-        const boundedTerminal = [...terminal, {
+        const completedTerminal = [...terminal, {
           clientSessionId: workout.clientSessionId,
           serverSessionId: workout.serverSessionId,
           completedAt: Date.now(),
+          startedAt: workout.startedAt,
+          finishedAt: workout.finishedAt,
         }].slice(-MAX_TERMINAL_WORKOUTS_PER_USER);
         await AsyncStorage.setItem(
           terminalKeyFor(userId),
-          JSON.stringify(boundedTerminal)
+          JSON.stringify(completedTerminal)
         );
       }
     }

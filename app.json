@@ -14,6 +14,11 @@
     },
     "android": {
       "package": "com.diegozegarra.primerep",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.WRITE_EXERCISE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -44,7 +49,24 @@
         }
       ],
       "expo-sqlite",
-      "expo-video"
+      "expo-video",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "PrimeRep reads your steps and sleep to offer optional, private workout context.",
+          "NSHealthUpdateUsageDescription": "PrimeRep saves workouts you complete in the app to Apple Health when you choose to export them.",
+          "background": false
+        }
+      ],
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

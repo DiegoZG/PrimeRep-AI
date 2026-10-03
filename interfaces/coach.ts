@@ -4,7 +4,8 @@ export type CoachFeedItemKind =
   | "missed_workout"
   | "personal_record"
   | "consistency"
-  | "program_review";
+  | "program_review"
+  | "health_context";
 
 export type CoachItemDetailKind = CoachFeedItemKind | "upcoming_workout";
 
@@ -15,7 +16,7 @@ export type CoachTarget =
   | { type: "completed_session"; sessionId: string }
   | { type: "program_detail"; templateId: string }
   | { type: "program_review"; activationId: string; templateId?: string | null }
-  | { type: "settings"; section: "notifications" | "training_preferences" };
+  | { type: "settings"; section: "notifications" | "training_preferences" | "health" };
 
 export interface CoachNextAction {
   type: "active_workout" | "planned_workout" | "caught_up";
@@ -75,6 +76,7 @@ const FEED_ITEM_KINDS: ReadonlySet<string> = new Set([
   "personal_record",
   "consistency",
   "program_review",
+  "health_context",
 ]);
 
 export function isCoachFeedItem(item: CoachItemDetail): item is CoachFeedItem {

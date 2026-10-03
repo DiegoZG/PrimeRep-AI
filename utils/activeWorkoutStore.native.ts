@@ -101,6 +101,7 @@ export interface LocalActiveWorkout {
   clientSessionId: string;
   serverSessionId: string | null;
   startedAt: number;
+  finishedAt?: number | null;
   currentExerciseIndex: number;
   restEndsAt: number | null;
   restTotalSeconds: number;
@@ -117,7 +118,7 @@ let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 let replayQueue: Promise<void> = Promise.resolve();
 let lastCompletedReplay: { userId: string; clientSessionId: string; serverSessionId: string | null } | null = null;
-const MAX_TERMINAL_WORKOUTS_PER_USER = 100;
+export type HealthExportCandidate = { sessionId: string; startedAt: number; finishedAt: number };
 
 function serializeWrite<T>(write: () => Promise<T>): Promise<T> {
   const next = writeQueue.then(write, write);
@@ -140,6 +141,7 @@ function database(): Promise<SQLite.SQLiteDatabase> {
           client_session_id TEXT NOT NULL,
           server_session_id TEXT,
           started_at INTEGER NOT NULL,
+          finished_at INTEGER,
           current_exercise_index INTEGER NOT NULL DEFAULT 0,
           rest_ends_at INTEGER,
           rest_total_seconds INTEGER NOT NULL DEFAULT 0,
@@ -173,6 +175,8 @@ function database(): Promise<SQLite.SQLiteDatabase> {
           client_session_id TEXT NOT NULL,
           server_session_id TEXT,
           completed_at INTEGER NOT NULL,
+          started_at INTEGER,
+          finished_at INTEGER,
           PRIMARY KEY (user_id, client_session_id)
         );
       `);
@@ -185,6 +189,9 @@ function database(): Promise<SQLite.SQLiteDatabase> {
         "ALTER TABLE active_workouts ADD COLUMN workout_note TEXT",
         "ALTER TABLE active_workouts ADD COLUMN exercise_feedback TEXT",
         "ALTER TABLE active_workouts ADD COLUMN exercise_notes TEXT",
+        "ALTER TABLE active_workouts ADD COLUMN finished_at INTEGER",
+        "ALTER TABLE terminal_workout_sessions ADD COLUMN started_at INTEGER",
+        "ALTER TABLE terminal_workout_sessions ADD COLUMN finished_at INTEGER",
       ]) {
         try {
           await db.execAsync(statement);
@@ -226,7 +233,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
   const db = await database();
   const workout = await db.getFirstAsync<{
     workout_day_id: string; workout_date: string; day_type: string; client_session_id: string;
-    server_session_id: string | null; started_at: number; current_exercise_index: number;
+    server_session_id: string | null; started_at: number; finished_at: number | null; current_exercise_index: number;
     rest_ends_at: number | null; rest_total_seconds: number; rest_context: string | null; workout_snapshot: string | null;
     workout_note: string | null; exercise_feedback: string | null; exercise_notes: string | null; revision: number;
   }>("SELECT * FROM active_workouts WHERE user_id = ?", [userId]);
@@ -250,6 +257,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     clientSessionId: workout.client_session_id,
     serverSessionId: workout.server_session_id,
     startedAt: workout.started_at,
+    finishedAt: workout.finished_at,
     currentExerciseIndex: workout.current_exercise_index,
     restEndsAt: workout.rest_ends_at,
     restTotalSeconds: workout.rest_total_seconds,
@@ -261,6 +269,21 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     exerciseFeedback: workout.exercise_feedback ? JSON.parse(workout.exercise_feedback) : {},
     exerciseNotes: workout.exercise_notes ? JSON.parse(workout.exercise_notes) : {},
   };
+}
+
+export async function healthExportCandidates(userId: string, since: number): Promise<HealthExportCandidate[]> {
+  const db = await database();
+  const terminal = await db.getAllAsync<{ server_session_id: string; started_at: number; finished_at: number }>(
+    `SELECT server_session_id, started_at, finished_at FROM terminal_workout_sessions
+     WHERE user_id = ? AND server_session_id IS NOT NULL AND finished_at >= ?
+     ORDER BY finished_at ASC`, [userId, since]
+  );
+  const active = await loadActiveWorkout(userId);
+  const candidates = terminal.map((row) => ({ sessionId: row.server_session_id, startedAt: row.started_at, finishedAt: row.finished_at }));
+  if (active?.serverSessionId && active.finishedAt != null && active.finishedAt >= since) {
+    candidates.push({ sessionId: active.serverSessionId, startedAt: active.startedAt, finishedAt: active.finishedAt });
+  }
+  return candidates;
 }
 
 async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalActiveWorkout): Promise<void> {
@@ -276,11 +299,11 @@ async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalAct
     );
     if (terminal) return;
     const result = await db.runAsync(
-      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot, workout_note, exercise_feedback, exercise_notes, revision)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, workout_snapshot=excluded.workout_snapshot, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context, workout_note=excluded.workout_note, exercise_feedback=excluded.exercise_feedback, exercise_notes=excluded.exercise_notes, revision=excluded.revision
+      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, finished_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot, workout_note, exercise_feedback, exercise_notes, revision)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, workout_snapshot=excluded.workout_snapshot, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, finished_at=excluded.finished_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context, workout_note=excluded.workout_note, exercise_feedback=excluded.exercise_feedback, exercise_notes=excluded.exercise_notes, revision=excluded.revision
        WHERE active_workouts.revision < excluded.revision`,
-      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null, workout.workoutSnapshot ? JSON.stringify(workout.workoutSnapshot) : null, workout.workoutNote ?? null, JSON.stringify(workout.exerciseFeedback ?? {}), JSON.stringify(workout.exerciseNotes ?? {}), workout.revision]
+      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.finishedAt ?? null, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null, workout.workoutSnapshot ? JSON.stringify(workout.workoutSnapshot) : null, workout.workoutNote ?? null, JSON.stringify(workout.exerciseFeedback ?? {}), JSON.stringify(workout.exerciseNotes ?? {}), workout.revision]
     );
     if (result.changes === 0) return;
     await db.runAsync("DELETE FROM workout_set_drafts WHERE user_id = ?", [workout.userId]);
@@ -354,6 +377,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     const complete = incomingOperations.find((operation) => operation.type === "complete");
     return {
       ...incoming,
+      finishedAt: incoming.finishedAt ?? Date.now(),
       operations: normalizeOperationSequences([
         ...operations,
         { ...(complete ?? { id: createClientId(), type: "complete", status: "pending", payload: {} }), status: "pending", nextAttemptAt: undefined } as SequencedWorkoutOperation,
@@ -406,6 +430,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     clientSessionId: incoming.clientSessionId,
     serverSessionId: persisted.serverSessionId ?? incoming.serverSessionId,
     startedAt: incoming.startedAt,
+    finishedAt: persisted.finishedAt ?? incoming.finishedAt ?? Date.now(),
     currentExerciseIndex: incoming.currentExerciseIndex,
     restEndsAt: incoming.restEndsAt,
     restTotalSeconds: incoming.restTotalSeconds,
@@ -456,7 +481,7 @@ export function continueWorkoutLogging(userId: string, clientSessionId: string):
     if (!durable || durable.clientSessionId !== clientSessionId) return { status: "missing" };
     const operations = durable.operations.filter((operation) => operation.type !== "complete");
     if (operations.length === durable.operations.length) return { status: "active", workout: durable };
-    const resumed = { ...durable, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
+    const resumed = { ...durable, finishedAt: null, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
     await persistActiveWorkout(await database(), resumed);
     return { status: "active", workout: resumed };
   }));
@@ -468,24 +493,14 @@ export async function clearActiveWorkout(userId: string): Promise<void> {
   return serializeWrite(async () => {
     const db = await database();
     await db.withTransactionAsync(async () => {
-    const active = await db.getFirstAsync<{ client_session_id: string; server_session_id: string | null }>(
-      "SELECT client_session_id, server_session_id FROM active_workouts WHERE user_id = ?",
+    const active = await db.getFirstAsync<{ client_session_id: string; server_session_id: string | null; started_at: number; finished_at: number | null }>(
+      "SELECT client_session_id, server_session_id, started_at, finished_at FROM active_workouts WHERE user_id = ?",
       [userId]
     );
     if (active) {
       await db.runAsync(
-        "INSERT OR IGNORE INTO terminal_workout_sessions (user_id, client_session_id, server_session_id, completed_at) VALUES (?, ?, ?, ?)",
-        [userId, active.client_session_id, active.server_session_id, Date.now()]
-      );
-      await db.runAsync(
-        `DELETE FROM terminal_workout_sessions
-         WHERE user_id = ? AND client_session_id NOT IN (
-           SELECT client_session_id FROM terminal_workout_sessions
-           WHERE user_id = ?
-           ORDER BY completed_at DESC
-           LIMIT ?
-         )`,
-        [userId, userId, MAX_TERMINAL_WORKOUTS_PER_USER]
+        "INSERT OR IGNORE INTO terminal_workout_sessions (user_id, client_session_id, server_session_id, completed_at, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [userId, active.client_session_id, active.server_session_id, Date.now(), active.started_at, active.finished_at]
       );
     }
     await db.runAsync("DELETE FROM active_workouts WHERE user_id = ?", [userId]);
