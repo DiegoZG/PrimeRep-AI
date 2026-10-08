@@ -110,6 +110,22 @@ test("a cold-start continuation cancels finish and preserves new sets before the
   assert.equal(fixture.calls.complete, 1);
 });
 
+test("a stale web autosave cannot erase a queued offline finish", async () => {
+  const fixture = harness();
+  const store = fixture.load();
+  const initial = fixture.baseWorkout();
+  await store.saveActiveWorkout(initial);
+  const queued = await store.queueWorkoutCompletion(initial);
+  const finishedAt = queued.workout.finishedAt;
+  await store.saveActiveWorkout({ ...initial, revision: queued.workout.revision + 1 });
+
+  const afterRestart = fixture.load();
+  const saved = await afterRestart.loadActiveWorkout(initial.userId);
+  assert.equal(saved.finishedAt, finishedAt);
+  assert.ok(saved.operations.some((operation) => operation.type === "complete"));
+  assert.equal((await afterRestart.healthExportCandidates(initial.userId, 0))[0].finishedAt, finishedAt);
+});
+
 test("continue waits for an in-flight completion and reports the completed session", async () => {
   const gate = deferred();
   const fixture = harness(gate);
