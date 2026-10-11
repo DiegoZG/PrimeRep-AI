@@ -22,22 +22,22 @@ Original iPhone SE (375-point) screenshots from the existing local account. Tap 
 
 ### After · Light
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-top.png" alt="Refined Settings preferences in light mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-top.png" alt="Refined Settings preferences in light mode" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-actions.png" alt="Refined Settings destinations and account actions in light mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-actions.png" alt="Refined Settings destinations and account actions in light mode" width="320" /></a>
 
 ### After · Dark
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-top.png" alt="Refined Settings preferences in dark mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-top.png" alt="Refined Settings preferences in dark mode" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-actions.png" alt="Refined Settings destinations and account actions in dark mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-actions.png" alt="Refined Settings destinations and account actions in dark mode" width="320" /></a>
 
 <details>
 <summary>Before · Light and dark</summary>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-light-top.png" alt="Original Settings preferences in light mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-light-top.png" alt="Original Settings preferences in light mode" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-dark-top.png" alt="Original Settings preferences in dark mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-dark-top.png" alt="Original Settings preferences in dark mode" width="320" /></a>
 
 </details>
 
@@ -46,15 +46,15 @@ Original iPhone SE (375-point) screenshots from the existing local account. Tap 
 
 Before: Appearance controls collapse and Units extend beyond the card.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-light-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/before-light-max-top.png" alt="Original Settings at maximum text size" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-light-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/before-light-max-top.png" alt="Original Settings at maximum text size" width="320" /></a>
 
 After: scrollable title, stacked Appearance choices and readable, reachable Units. Native text remains uncapped; extremely large text can wrap long words.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-max-top.png" alt="Refined Settings at maximum text size in light mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-max-top.png" alt="Refined Settings at maximum text size in light mode" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-dark-max-top.png" alt="Refined Settings at maximum text size in dark mode" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-max-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-dark-max-top.png" alt="Refined Settings at maximum text size in dark mode" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-max-units.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-settings-refinement/docs/pr-screenshots/u07/after-light-max-units.png" alt="Refined Units controls at maximum text size" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-max-units.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/60ab8b20809e5bf9a0fdc270b8ce2bc4f9a44791/docs/pr-screenshots/u07/after-light-max-units.png" alt="Refined Units controls at maximum text size" width="320" /></a>
 
 </details>
 
