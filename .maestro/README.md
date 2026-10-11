@@ -184,6 +184,52 @@ normal text, light appearance, and Home. Initial baseline catalog requests faile
 but recovered on a text-size app reload without account or backend changes;
 the before/after images therefore do not imply a styling fix for that failure.
 
+### Completed-workout correction refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e CORRECTION_SESSION_ID=<existing-completed-session-id> .maestro/workout-correction-refinement.yaml`
+with an authenticated native app and the usual local backend, then repeat in
+dark appearance. Use a generic existing completed fixture with no private note
+or Health export opt-in; opening Summary retains its existing reconciliation
+callback. Never create or finish a workout to manufacture screenshots.
+
+This read-only flow opens Review or correct workout from Summary, captures the
+correction layout and note action, returns to refresh Summary, and uses Done to
+return Home with the existing active workout preserved. It never presses Save,
+Remove, Restore, or Undo, clears app data, changes authentication, or requests
+Health permissions. Inspect normal and maximum accessibility text in both
+themes, plus keyboard dismissal and local draft cancellation without saving.
+Physical-iPhone, VoiceOver, and live save/remove/restore acceptance remain
+manual unless separately recorded. The existing `workout-correction.yaml` is a
+different, mutating feature test and must not be used on preserved user data.
+
+`workout-correction-draft-cancel.yaml` additionally requires
+`CORRECTION_LOG_ID` for an existing logged set and `CORRECTION_EXERCISE_ID`
+for an exercise with an unused prescribed slot. It changes only local numeric
+drafts, dismisses the keyboard by tapping the header, checks drafts remain,
+then cancels Edit and Add after keyboard dismissal.
+It never calls any save/delete/restore action; do not confuse first-tap Cancel
+with verification of first-tap Save. Inspect screenshots after animations settle.
+
+U06 local acceptance passed the read-only layout/navigation flow in normal
+light and dark (2/2) on the isolated 375-point simulator, plus local Edit/Add
+draft-dismiss-and-cancel checks in both themes (2/2). After the final numeric
+target adjustment, separate Edit entry/header-dismiss/Cancel checks passed in
+both themes; native input interiors measure 46 points and Cancel measures 44.
+Maximum-text note layout and local note keyboard dismissal were inspected in
+both themes: the 68-point fixed Back header leaves a 579-point scroll viewport,
+and the full Save note action remains reachable. No Save action was pressed.
+
+An initial load failure recovered after an ordinary data-preserving app restart;
+this is not attributed to the styling change. Transient navigation/keyboard
+captures were replaced with settled originals. Maximum-text numeric-editor
+driver checks did not complete after bounded attempts and remain a live manual
+gap. A hidden Add Cancel tap during a stale-bounds attempt typed into the local
+draft; the final safe flow dismisses the keyboard before cancellation instead.
+Native first-tap Save, drag dismissal, physical-iPhone, VoiceOver, and live
+save/remove/restore behavior remain manual gaps. The simulator was restored to
+normal `large` text, light appearance, and Home; a read-only Resume/Keep active
+check confirmed the original Upper A still has 4/4 logged sets.
+
 ### Workout Summary refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
@@ -380,6 +426,8 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
 | Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
+| Workout Correction Refinement | `workout-correction-refinement.yaml` | Read-only existing completed correction layout, note action, Summary refresh, and Home with active workout preserved |
+| Workout Correction Draft Cancel | `workout-correction-draft-cancel.yaml` | Local Edit/Add drafts, outside-tap keyboard dismissal, and Cancel without saving |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
 | Home Dashboard (seeded) | `seeded/home-dashboard.yaml` | Confirmed next workout, unread Coach action/deep link, four-week trend, and history navigation |

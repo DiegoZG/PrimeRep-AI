@@ -1,0 +1,54 @@
+# Read-only layout checks for an existing generic completed workout.
+# Use an authenticated fixture with no private note or Health export opt-in.
+# Never saves/adds/removes/restores sets, changes stored notes, or resets auth.
+appId: com.diegozegarra.primerep
+tags:
+  - correction-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://workout/summary?sessionId=${CORRECTION_SESSION_ID}
+- extendedWaitUntil:
+    visible:
+      id: summary-header
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: summary-detail-${CORRECTION_SESSION_ID}
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: summary-detail-${CORRECTION_SESSION_ID}
+- extendedWaitUntil:
+    visible:
+      id: history-back
+    timeout: 15000
+- assertVisible: Completed workout
+- takeScreenshot: /private/tmp/u06-after-${APPEARANCE}-top
+- scrollUntilVisible:
+    element:
+      id: history-save-note
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: history-workout-note
+- takeScreenshot: /private/tmp/u06-after-${APPEARANCE}-actions
+- tapOn:
+    id: history-back
+- extendedWaitUntil:
+    visible:
+      id: summary-header
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: summary-done
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: summary-done
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000

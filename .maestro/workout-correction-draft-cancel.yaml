@@ -1,0 +1,55 @@
+# Only local drafts on an existing generic completed fixture; no API writes.
+# The fixture must have CORRECTION_LOG_ID and a missing prescribed slot for
+# CORRECTION_EXERCISE_ID. Never press Save/Remove/Restore/Undo in this flow.
+appId: com.diegozegarra.primerep
+tags:
+  - correction-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://workout/history/${CORRECTION_SESSION_ID}
+- extendedWaitUntil:
+    visible:
+      id: history-back
+    timeout: 15000
+- tapOn:
+    id: history-edit-set-${CORRECTION_LOG_ID}
+- tapOn:
+    id: history-edit-reps-${CORRECTION_LOG_ID}
+- eraseText
+- inputText: '11'
+- tapOn: Completed workout
+- assertVisible: '11'
+- assertVisible:
+    id: history-cancel-edit-${CORRECTION_LOG_ID}
+- takeScreenshot: /private/tmp/u06-after-${APPEARANCE}-edit
+- tapOn:
+    id: history-cancel-edit-${CORRECTION_LOG_ID}
+- assertVisible:
+    id: history-edit-set-${CORRECTION_LOG_ID}
+- scrollUntilVisible:
+    element:
+      id: history-add-set-${CORRECTION_EXERCISE_ID}
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: history-add-set-${CORRECTION_EXERCISE_ID}
+- tapOn:
+    id: history-add-reps-${CORRECTION_EXERCISE_ID}
+- inputText: '9'
+- tapOn: Completed workout
+- assertVisible: '9'
+- scrollUntilVisible:
+    element:
+      id: history-cancel-add-${CORRECTION_EXERCISE_ID}
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: /private/tmp/u06-after-${APPEARANCE}-add
+- tapOn:
+    id: history-cancel-add-${CORRECTION_EXERCISE_ID}
+- assertVisible:
+    id: history-add-set-${CORRECTION_EXERCISE_ID}
+- tapOn:
+    id: history-back
