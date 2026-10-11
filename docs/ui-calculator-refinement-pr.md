@@ -6,6 +6,29 @@ action. Apply now uses the existing purple primary color with white text
 (5.19:1); the estimate uses a neutral panel and primary text, and Calculate
 becomes a neutral secondary action once an estimate exists.
 
+## Screenshots
+
+After-only native iPhone SE simulator captures (375-point width, normal text).
+Each theme shows two separate scroll positions: the estimate, then the selected
+Apply action. These are original captures, not a stitched screen. Native BEFORE
+captures were not taken. Tap a preview to open its full-size image.
+
+### Light — estimate
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-result.png" alt="Calculator after refinement in light mode, estimate scroll position" width="320"></a>
+
+### Light — Apply action
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-apply.png" alt="Calculator after refinement in light mode, selected Apply action" width="320"></a>
+
+### Dark — estimate
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-result.png" alt="Calculator after refinement in dark mode, estimate scroll position" width="320"></a>
+
+### Dark — Apply action
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-apply.png" alt="Calculator after refinement in dark mode, selected Apply action" width="320"></a>
+
 ## Changes
 
 - Keep system typography and existing light/dark theme tokens; use readable
