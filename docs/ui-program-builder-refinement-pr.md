@@ -23,19 +23,19 @@ Original native screenshots at phone-friendly width, with the iPhone 16 Plus as 
 
 ### After — Light
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-setup.png" width="320" alt="Light Program builder after: readable fields and neutral goal choices" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-days.png" width="320" alt="Light Program builder after: neutral day numbers and Add, clear Create program action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-setup.png" width="320" alt="Light Program builder after: readable fields and neutral goal choices" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-days.png" width="320" alt="Light Program builder after: neutral day numbers and Add, clear Create program action" />
 
 ### After — Dark
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-setup.png" width="320" alt="Dark Program builder after: readable fields and quiet selected choices" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-days.png" width="320" alt="Dark Program builder after: restrained day controls and primary Create action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-setup.png" width="320" alt="Dark Program builder after: readable fields and quiet selected choices" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-days.png" width="320" alt="Dark Program builder after: restrained day controls and primary Create action" />
 
 <details>
 <summary>After — Options in both themes</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-options.png" width="320" alt="Light workout day options after: readable disabled boundary action and semantic red Remove" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-options.png" width="320" alt="Dark workout day options after: neutral movement and cancel actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-options.png" width="320" alt="Light workout day options after: readable disabled boundary action and semantic red Remove" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-options.png" width="320" alt="Dark workout day options after: neutral movement and cancel actions" />
 
 </details>
 
@@ -44,12 +44,12 @@ Original native screenshots at phone-friendly width, with the iPhone 16 Plus as 
 
 The previous builder used purple for selected choice text/tints, Add and day numbers, with lighter essential instructions. These are genuine baseline images; the fields are blank rather than the generic typed After draft.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-light-setup.png" width="320" alt="Light builder baseline with blank metadata fields" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-light-days.png" width="320" alt="Light builder baseline with purple Add and day numbers" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-light-options.png" width="320" alt="Light day options baseline" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-dark-setup.png" width="320" alt="Dark builder baseline with blank metadata fields" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-dark-days.png" width="320" alt="Dark builder baseline with purple choices and day controls" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-dark-options.png" width="320" alt="Dark day options baseline" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-light-setup.png" width="320" alt="Light builder baseline with blank metadata fields" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-light-days.png" width="320" alt="Light builder baseline with purple Add and day numbers" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-light-options.png" width="320" alt="Light day options baseline" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-dark-setup.png" width="320" alt="Dark builder baseline with blank metadata fields" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-dark-days.png" width="320" alt="Dark builder baseline with purple choices and day controls" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-dark-options.png" width="320" alt="Dark day options baseline" />
 
 </details>
 
@@ -58,21 +58,21 @@ The previous builder used purple for selected choice text/tints, Add and day num
 
 The old fixed header truncates the title. The new full title scrolls with the form, day names wrap above their controls, and the options sheet scrolls to Cancel. These are different scroll positions, not a claim that everything fits in one viewport. Extremely large native text can wrap a word mid-word; it is not capped to avoid that. In the options images, the heading is partly above the visible scroll area so the final Cancel action can be shown.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-light-max.png" width="320" alt="Light maximum-text baseline with a truncated fixed title" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-before-dark-max.png" width="320" alt="Dark maximum-text baseline with a truncated fixed title" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-max-hero.png" width="320" alt="Light maximum text after: full Build program title and weekly explanation scroll with the form" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-max-days.png" width="320" alt="Light maximum text after: full day name above contained drag and Options controls" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-light-max-options.png" width="320" alt="Light maximum text options scrolled to show the final Cancel action" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-max-hero.png" width="320" alt="Dark maximum text after: complete uncapped title in scrolling form" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-max-days.png" width="320" alt="Dark maximum text after: contained day numbering, full day name and separate action row" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-dark-max-options.png" width="320" alt="Dark maximum text options scrolled to show readable actions through Cancel" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-light-max.png" width="320" alt="Light maximum-text baseline with a truncated fixed title" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-before-dark-max.png" width="320" alt="Dark maximum-text baseline with a truncated fixed title" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-max-hero.png" width="320" alt="Light maximum text after: full Build program title and weekly explanation scroll with the form" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-max-days.png" width="320" alt="Light maximum text after: full day name above contained drag and Options controls" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-light-max-options.png" width="320" alt="Light maximum text options scrolled to show the final Cancel action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-max-hero.png" width="320" alt="Dark maximum text after: complete uncapped title in scrolling form" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-max-days.png" width="320" alt="Dark maximum text after: contained day numbering, full day name and separate action row" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-dark-max-options.png" width="320" alt="Dark maximum text options scrolled to show readable actions through Cancel" />
 
 </details>
 
 <details>
 <summary>Secondary small-screen check — iPhone SE</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/SCREENSHOT_COMMIT/docs/pr-screenshots/u11/u11-se-days.png" width="320" alt="Small-screen Light builder: contained day row and reachable Create program action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/95e50c66b4b1db49e824b7451e45456371f4ac0e/docs/pr-screenshots/u11/u11-se-days.png" width="320" alt="Small-screen Light builder: contained day row and reachable Create program action" />
 
 </details>
 
