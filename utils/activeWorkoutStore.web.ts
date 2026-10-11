@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { acknowledgeSetOperation, isAppliedSetOperation, mergeSetAcknowledgements, prepareSetEntries, resolveSetCorrection } from "./workoutSetEntries";
+import type { WeightUnit } from "./weightUnits";
 
 import { HttpError } from "@/services/httpClient";
 import {
@@ -133,16 +135,17 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     };
   }
   const persistedIds = new Set(persisted.operations.map((operation) => operation.id));
-  const incomingSetKeys = new Set(incoming.operations.map(operationSetKey).filter((key): key is string => key != null));
+  const incomingOperations = incoming.operations.filter((operation) => !isAppliedSetOperation(operation, persisted.sets));
+  const incomingSetKeys = new Set(incomingOperations.map(operationSetKey).filter((key): key is string => key != null));
   const incomingHasWorkoutNote = incoming.operations.some((operation) => operation.type === "update_workout_note");
   const operationsById = new Map(persisted.operations.map((operation) => [operation.id, operation]));
-  for (const operation of incoming.operations) if (!persistedIds.has(operation.id)) operationsById.set(operation.id, operation);
+  for (const operation of incomingOperations) if (!persistedIds.has(operation.id)) operationsById.set(operation.id, operation);
   const incomingSets = new Map(incoming.sets.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
   const mergedSets = persisted.sets.map((set) => {
     const key = `${set.exerciseId}:${set.setNumber}`;
     const incomingSet = incomingSets.get(key);
     if (!incomingSet) return set;
-    return incomingSetKeys.has(key) || (incomingSet.confirmed && !set.confirmed) || (incomingSet.deleted && !set.deleted) ? incomingSet : set;
+    return incomingSetKeys.has(key) || (incomingSet.confirmed && !set.confirmed) || (incomingSet.deleted && !set.deleted) ? mergeSetAcknowledgements(incomingSet, set) : set;
   });
   for (const [key, set] of incomingSets) if (!persisted.sets.some((current) => `${current.exerciseId}:${current.setNumber}` === key)) mergedSets.push(set);
   let operations = recoverMissingSetOperations(
@@ -176,19 +179,41 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
 }
 
 export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = false): Promise<QueueWorkoutCompletionResult> {
-  const task = writeQueue.then(async (): Promise<QueueWorkoutCompletionResult> => {
-    const terminal = (await terminalWorkouts(incoming.userId)).find((entry) =>
-      entry.clientSessionId === incoming.clientSessionId
-      || (incoming.serverSessionId != null && entry.serverSessionId === incoming.serverSessionId)
-    );
-    if (terminal) return { status: "terminal", serverSessionId: terminal.serverSessionId };
-    const raw = await AsyncStorage.getItem(keyFor(incoming.userId));
-    const durable = raw ? JSON.parse(raw) as LocalActiveWorkout : null;
-    const queued = mergeWorkoutForCompletion(durable, incoming, retry);
-    await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(queued));
-    return { status: "queued", workout: queued };
+  const task = replayQueue.then(() => {
+    const write = writeQueue.then(async (): Promise<QueueWorkoutCompletionResult> => {
+      const terminal = (await terminalWorkouts(incoming.userId)).find((entry) =>
+        entry.clientSessionId === incoming.clientSessionId
+        || (incoming.serverSessionId != null && entry.serverSessionId === incoming.serverSessionId)
+      );
+      if (terminal) return { status: "terminal", serverSessionId: terminal.serverSessionId };
+      const raw = await AsyncStorage.getItem(keyFor(incoming.userId));
+      const durable = raw ? JSON.parse(raw) as LocalActiveWorkout : null;
+      const queued = mergeWorkoutForCompletion(durable, incoming, retry);
+      await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(queued));
+      return { status: "queued", workout: queued };
+    });
+    writeQueue = write.then(() => undefined, () => undefined);
+    return write;
   });
-  writeQueue = task.then(() => undefined, () => undefined);
+  replayQueue = task.then(() => undefined, () => undefined);
+  return task;
+}
+
+export function saveWorkoutSetEntries(incoming: LocalActiveWorkout, keys: string[], unit: WeightUnit) {
+  const task = replayQueue.then(() => {
+    const write = writeQueue.then(async () => {
+      const durable = await loadActiveWorkout(incoming.userId);
+      if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.operations.some((operation) => operation.type === "complete")) {
+        throw new Error("Workout is no longer editable");
+      }
+      const result = prepareSetEntries(incoming, durable, keys, unit, createClientId);
+      if (result.savedCount > 0) await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(result.workout));
+      return result;
+    });
+    writeQueue = write.then(() => undefined, () => undefined);
+    return write;
+  });
+  replayQueue = task.then(() => undefined, () => undefined);
   return task;
 }
 
@@ -293,19 +318,25 @@ async function replay(token: string, userId: string) {
     canonicalSets = new Map(session.setLogs.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
     canonicalSetsLoaded = true;
   };
-  const acceptSetLog = (setLog: SessionResponse["setLogs"][number]) => {
+  const acceptSetLog = (setLog: SessionResponse["setLogs"][number], operationId: string) => {
     workout.sets = workout.sets.map((set) =>
       set.exerciseId === setLog.exerciseId && set.setNumber === setLog.setNumber
-        ? { ...set, reps: String(setLog.reps), weightKg: setLog.weightKg, logId: setLog.id, version: setLog.version, syncing: false, syncStatus: "synced" }
+        ? { ...acknowledgeSetOperation(set, operationId), reps: String(setLog.reps), weightKg: setLog.weightKg, logId: setLog.id, version: setLog.version, syncing: false, syncStatus: "synced" }
         : set
     );
   };
   for (let index = 0; index < operations.length; index += 1) {
-    const operation = operations[index];
+    let operation = operations[index];
     if (operation.status === "failed" || (operation.nextAttemptAt && operation.nextAttemptAt > Date.now())) {
       remaining.push(operation, ...operations.slice(index + 1));
       break;
     }
+    const resolved = resolveSetCorrection(operation, workout.sets);
+    if (!resolved) {
+      remaining.push(operation, ...operations.slice(index + 1));
+      break;
+    }
+    operation = resolved;
     const retrying = { ...operation, status: "retrying" as const, attempts: (operation.attempts ?? 0) + 1, nextAttemptAt: undefined } as PendingWorkoutOperation;
     workout.operations = [...remaining, retrying, ...operations.slice(index + 1)];
     workout.revision += 1;
@@ -325,20 +356,21 @@ async function replay(token: string, userId: string) {
           if (existing.reps !== operation.payload.reps || existing.weightKg !== (operation.payload.weightKg ?? null)) {
             throw new HttpError("That set number already exists for this exercise.", 409);
           }
-          acceptSetLog(existing);
+          acceptSetLog(existing, operation.id);
           continue;
         }
         const logged = await logSet(token, workout.serverSessionId, operation.payload.exerciseId, operation.payload.setNumber, operation.payload.reps, operation.payload.weightKg, operation.id);
         canonicalSets.set(`${logged.exerciseId}:${logged.setNumber}`, logged);
-        acceptSetLog(logged);
+        acceptSetLog(logged, operation.id);
       } else if (operation.type === "update_set") {
         const updated = await updateLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.payload.reps, operation.payload.weightKg, operation.payload.expectedVersion, operation.id);
-        workout.sets = workout.sets.map((set) => set.logId === updated.id ? { ...set, reps: String(updated.reps), weight: operation.payload.displayWeight, weightKg: updated.weightKg, version: updated.version, syncing: false, syncStatus: "synced" } : set);
+        workout.sets = workout.sets.map((set) => set.logId === updated.id ? { ...acknowledgeSetOperation(set, operation.id), reps: String(updated.reps), weight: operation.payload.displayWeight, weightKg: updated.weightKg, version: updated.version, syncing: false, syncStatus: "synced" } : set);
       } else if (operation.type === "delete_set") {
         await deleteLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
+        workout.sets = workout.sets.map((set) => set.logId === operation.payload.logId ? acknowledgeSetOperation(set, operation.id) : set);
       } else if (operation.type === "restore_set") {
         const restored = await restoreLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
-        workout.sets = workout.sets.map((set) => set.logId === restored.id ? { ...set, deleted: false, syncing: false, syncStatus: "synced" } : set);
+        workout.sets = workout.sets.map((set) => set.logId === restored.id ? { ...acknowledgeSetOperation(set, operation.id), deleted: false, syncing: false, syncStatus: "synced" } : set);
       } else if (operation.type === "update_workout_note") {
         const updated = await updateWorkoutNote(token, workout.serverSessionId, operation.payload.note, operation.id);
         workout.workoutNote = updated.workoutNote;
@@ -382,7 +414,7 @@ async function replay(token: string, userId: string) {
           if (!canonicalSets.has(key)) await refreshCanonicalSets();
           const existing = canonicalSets.get(key);
           if (existing && existing.reps === operation.payload.reps && existing.weightKg === (operation.payload.weightKg ?? null)) {
-            acceptSetLog(existing);
+            acceptSetLog(existing, operation.id);
             continue;
           }
         } catch {

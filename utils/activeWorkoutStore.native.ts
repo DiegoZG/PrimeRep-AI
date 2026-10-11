@@ -1,4 +1,6 @@
 import * as SQLite from "expo-sqlite";
+import { acknowledgeSetOperation, isAppliedSetOperation, mergeSetAcknowledgements, prepareSetEntries, resolveSetCorrection } from "./workoutSetEntries";
+import type { WeightUnit } from "./weightUnits";
 
 import type { SetState, WorkoutDay } from "@/interfaces/workouts";
 import { HttpError } from "@/services/httpClient";
@@ -53,6 +55,7 @@ export type PendingWorkoutOperation =
         previousReps: string;
         previousWeight: string;
         previousVersion: number;
+        resolveAfterPending?: boolean;
         conflict?: boolean;
       };
     }
@@ -62,7 +65,7 @@ export type PendingWorkoutOperation =
       status: SyncState;
       attempts?: number;
       nextAttemptAt?: number;
-      payload: { logId: string; exerciseId: string; setNumber: number };
+      payload: { logId: string; exerciseId: string; setNumber: number; resolveAfterPending?: boolean };
     }
   | {
       id: string;
@@ -394,9 +397,10 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
   }
 
   const persistedIds = new Set(persisted.operations.map((operation) => operation.id));
-  const incomingSetKeys = new Set(incoming.operations.map(operationSetKey).filter((key): key is string => key != null));
+  const incomingOperations = incoming.operations.filter((operation) => !isAppliedSetOperation(operation, persisted.sets));
+  const incomingSetKeys = new Set(incomingOperations.map(operationSetKey).filter((key): key is string => key != null));
   const incomingHasWorkoutNote = incoming.operations.some((operation) => operation.type === "update_workout_note");
-  const incomingOnlyOperations = incoming.operations.filter((operation) => !persistedIds.has(operation.id));
+  const incomingOnlyOperations = incomingOperations.filter((operation) => !persistedIds.has(operation.id));
   const operationsById = new Map(persisted.operations.map((operation) => [operation.id, operation]));
   for (const operation of incomingOnlyOperations) operationsById.set(operation.id, operation);
 
@@ -405,7 +409,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     const key = `${set.exerciseId}:${set.setNumber}`;
     const incomingSet = incomingSets.get(key);
     if (!incomingSet) return set;
-    if (incomingSetKeys.has(key) || (incomingSet.confirmed && !set.confirmed) || (incomingSet.deleted && !set.deleted)) return incomingSet;
+    if (incomingSetKeys.has(key) || (incomingSet.confirmed && !set.confirmed) || (incomingSet.deleted && !set.deleted)) return mergeSetAcknowledgements(incomingSet, set);
     return set;
   });
   for (const [key, set] of incomingSets) {
@@ -457,7 +461,7 @@ export type QueueWorkoutCompletionResult =
 
 /** Atomically merges the latest UI state with disk and appends completion after every mutation. */
 export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = false): Promise<QueueWorkoutCompletionResult> {
-  return serializeWrite(async (): Promise<QueueWorkoutCompletionResult> => {
+  const task = replayQueue.then(() => serializeWrite(async (): Promise<QueueWorkoutCompletionResult> => {
     const db = await database();
     const terminal = await db.getFirstAsync<{ server_session_id: string | null }>(
       `SELECT server_session_id FROM terminal_workout_sessions
@@ -470,7 +474,23 @@ export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = fal
     const next = mergeWorkoutForCompletion(durable, incoming, retry);
     await persistActiveWorkout(db, next);
     return { status: "queued", workout: next };
-  });
+  }));
+  replayQueue = task.then(() => undefined, () => undefined);
+  return task;
+}
+
+export function saveWorkoutSetEntries(incoming: LocalActiveWorkout, keys: string[], unit: WeightUnit) {
+  const task = replayQueue.then(() => serializeWrite(async () => {
+    const durable = await loadActiveWorkout(incoming.userId);
+    if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.operations.some((operation) => operation.type === "complete")) {
+      throw new Error("Workout is no longer editable");
+    }
+    const result = prepareSetEntries(incoming, durable, keys, unit, createClientId);
+    if (result.savedCount > 0) await persistActiveWorkout(await database(), result.workout);
+    return result;
+  }));
+  replayQueue = task.then(() => undefined, () => undefined);
+  return task;
 }
 
 export type ContinueWorkoutLoggingResult =
@@ -583,16 +603,16 @@ async function replayPendingWorkoutOperationsInternal(
     canonicalSets = new Map(session.setLogs.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
     canonicalSetsLoaded = true;
   };
-  const acceptSetLog = (setLog: SessionResponse["setLogs"][number]) => {
+  const acceptSetLog = (setLog: SessionResponse["setLogs"][number], operationId: string) => {
     workout.sets = workout.sets.map((set) =>
       set.exerciseId === setLog.exerciseId && set.setNumber === setLog.setNumber
-        ? { ...set, reps: String(setLog.reps), weightKg: setLog.weightKg, syncing: false, syncStatus: "synced", logId: setLog.id, version: setLog.version }
+        ? { ...acknowledgeSetOperation(set, operationId), reps: String(setLog.reps), weightKg: setLog.weightKg, syncing: false, syncStatus: "synced", logId: setLog.id, version: setLog.version }
         : set
     );
   };
   const now = Date.now();
   for (let index = 0; index < operations.length; index += 1) {
-    const operation = operations[index];
+    let operation = operations[index];
     if (operation.status === "failed") {
       remaining.push(operation);
       remaining.push(...operations.slice(index + 1));
@@ -603,6 +623,12 @@ async function replayPendingWorkoutOperationsInternal(
       remaining.push(...operations.slice(index + 1));
       break;
     }
+    const resolved = resolveSetCorrection(operation, workout.sets);
+    if (!resolved) {
+      remaining.push(operation, ...operations.slice(index + 1));
+      break;
+    }
+    operation = resolved;
     const retrying = { ...operation, status: "retrying" as const, attempts: (operation.attempts ?? 0) + 1, nextAttemptAt: undefined } as PendingWorkoutOperation;
     // Durably mark the operation before issuing a request. A process death at
     // any point can safely replay the same client identifier.
@@ -631,7 +657,7 @@ async function replayPendingWorkoutOperationsInternal(
           if (existing.reps !== operation.payload.reps || existing.weightKg !== (operation.payload.weightKg ?? null)) {
             throw new HttpError("That set number already exists for this exercise.", 409);
           }
-          acceptSetLog(existing);
+          acceptSetLog(existing, operation.id);
           continue;
         }
         const logged = await logSet(
@@ -644,7 +670,7 @@ async function replayPendingWorkoutOperationsInternal(
           operation.id
         );
         canonicalSets.set(`${logged.exerciseId}:${logged.setNumber}`, logged);
-        acceptSetLog(logged);
+        acceptSetLog(logged, operation.id);
       } else if (operation.type === "update_set") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
@@ -657,7 +683,7 @@ async function replayPendingWorkoutOperationsInternal(
         );
         workout.sets = workout.sets.map((set) =>
           set.logId === updated.id
-            ? { ...set, reps: String(updated.reps), weight: operation.payload.displayWeight, weightKg: updated.weightKg, syncing: false, syncStatus: "synced", version: updated.version }
+            ? { ...acknowledgeSetOperation(set, operation.id), reps: String(updated.reps), weight: operation.payload.displayWeight, weightKg: updated.weightKg, syncing: false, syncStatus: "synced", version: updated.version }
             : set
         );
       } else if (operation.type === "delete_set") {
@@ -667,6 +693,7 @@ async function replayPendingWorkoutOperationsInternal(
           break;
         }
         await deleteLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
+        workout.sets = workout.sets.map((set) => set.logId === operation.payload.logId ? acknowledgeSetOperation(set, operation.id) : set);
       } else if (operation.type === "restore_set") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
@@ -675,7 +702,7 @@ async function replayPendingWorkoutOperationsInternal(
         }
         const restored = await restoreLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
         workout.sets = workout.sets.map((set) =>
-          set.logId === restored.id ? { ...set, deleted: false, deletedLogId: null, syncing: false, syncStatus: "synced" } : set
+          set.logId === restored.id ? { ...acknowledgeSetOperation(set, operation.id), deleted: false, deletedLogId: null, syncing: false, syncStatus: "synced" } : set
         );
       } else if (operation.type === "update_workout_note") {
         if (!workout.serverSessionId) {
@@ -746,7 +773,7 @@ async function replayPendingWorkoutOperationsInternal(
           if (!canonicalSets.has(key)) await refreshCanonicalSets();
           const existing = canonicalSets.get(key);
           if (existing && existing.reps === operation.payload.reps && existing.weightKg === (operation.payload.weightKg ?? null)) {
-            acceptSetLog(existing);
+            acceptSetLog(existing, operation.id);
             continue;
           }
         } catch {

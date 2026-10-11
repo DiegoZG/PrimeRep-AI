@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 
 interface RestTimerProps {
@@ -14,6 +14,7 @@ interface RestTimerProps {
   onAdjust: (deltaSeconds: number) => void;
   onSkip: () => void;
   onExpire: () => void;
+  disabled?: boolean;
 }
 
 function formatCountdown(totalSeconds: number): string {
@@ -35,6 +36,7 @@ export function RestTimer({
   onAdjust,
   onSkip,
   onExpire,
+  disabled,
 }: RestTimerProps) {
   const [remainingMs, setRemainingMs] = useState(() =>
     Math.max(0, restEndsAt - Date.now())
@@ -79,14 +81,16 @@ export function RestTimer({
   return (
     <View
       style={{
-        borderRadius: 20,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.inputBorder,
         backgroundColor: colors.inputBackground,
-        padding: 20,
-        alignItems: "center",
+        padding: 12,
+        marginBottom: 16,
       }}
     >
+      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12 }}>
+      <View style={{ flex: 1, minWidth: 80 }}>
       <ThemedText
         style={{
           fontSize: 12,
@@ -103,54 +107,35 @@ export function RestTimer({
 
       <ThemedText
         style={{
-          fontSize: 56,
-          // ThemedText defaults to lineHeight 24 — must override or large
-          // digits get vertically clipped (only the bottom half shows).
-          lineHeight: 68,
+          fontSize: 28,
           fontWeight: "700",
           fontFamily: Fonts.sans,
           color: colors.text,
           fontVariant: ["tabular-nums"],
           includeFontPadding: false,
-          textAlign: "center",
+          textAlign: "left",
           width: "100%",
         }}
       >
         {formatCountdown(remainingSeconds)}
       </ThemedText>
-
-      {/* Progress bar */}
-      <View
-        style={{
-          width: "100%",
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: colors.inputBorder,
-          overflow: "hidden",
-          marginTop: 16,
-          marginBottom: 20,
-        }}
-      >
-        <View
-          style={{
-            width: `${progress * 100}%`,
-            height: 6,
-            backgroundColor: colors.primaryButton,
-          }}
-        />
       </View>
 
       {/* Adjust + skip controls */}
-      <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
+      <View style={{ flexDirection: "row", gap: 6 }}>
         <Pressable
           onPress={() => onAdjust(-15)}
+          disabled={disabled}
+          accessibilityState={{ disabled: Boolean(disabled) }}
+          accessibilityRole="button"
+          accessibilityLabel="Reduce rest by 15 seconds"
           style={{
-            flex: 1,
+            minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            paddingVertical: 12,
+            padding: 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -166,29 +151,39 @@ export function RestTimer({
         <Pressable
           testID="player-rest-skip"
           onPress={onSkip}
+          disabled={disabled}
+          accessibilityState={{ disabled: Boolean(disabled) }}
+          accessibilityRole="button"
+          accessibilityLabel="Skip rest"
           style={{
-            flex: 1,
+            minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
-            paddingVertical: 12,
+            padding: 8,
             borderRadius: 12,
-            backgroundColor: colors.primaryButton,
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.inputBorder,
           }}
         >
-          <ThemedText style={{ fontSize: 14, fontWeight: "600", fontFamily: Fonts.sans, color: "#FFFFFF" }}>
-            Skip Rest
+          <ThemedText style={{ fontSize: 14, fontWeight: "600", fontFamily: Fonts.sans }}>
+            Skip
           </ThemedText>
         </Pressable>
 
         <Pressable
           onPress={() => onAdjust(15)}
+          disabled={disabled}
+          accessibilityState={{ disabled: Boolean(disabled) }}
+          accessibilityRole="button"
+          accessibilityLabel="Extend rest by 15 seconds"
           style={{
-            flex: 1,
+            minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            paddingVertical: 12,
+            padding: 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -200,6 +195,10 @@ export function RestTimer({
             15s
           </ThemedText>
         </Pressable>
+      </View>
+      </View>
+      <View style={{ height: 3, borderRadius: 2, backgroundColor: colors.inputBorder, overflow: "hidden", marginTop: 10 }}>
+        <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: colors.primaryButton }} />
       </View>
     </View>
   );

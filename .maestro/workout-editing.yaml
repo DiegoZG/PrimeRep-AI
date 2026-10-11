@@ -37,8 +37,11 @@ env:
     id: "player-confirm-set-.*-1"
 
 - extendedWaitUntil:
-    visible: "Edit"
+    visible:
+      id: "player-set-menu-.*-1"
     timeout: 5000
+- tapOn:
+    id: "player-set-menu-.*-1"
 - tapOn: "Edit"
 - tapOn:
     id: "player-reps-input-.*-1"
@@ -48,8 +51,11 @@ env:
     id: "player-confirm-set-.*-1"
 
 - extendedWaitUntil:
-    visible: "Remove"
+    visible:
+      id: "player-set-menu-.*-1"
     timeout: 5000
+- tapOn:
+    id: "player-set-menu-.*-1"
 - tapOn: "Remove"
 - extendedWaitUntil:
     visible: "Undo"

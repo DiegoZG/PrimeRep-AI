@@ -21,6 +21,8 @@ export interface SetState {
   deletedLogId?: string | null;
   editing?: boolean;
   editDraft?: { reps: string; weight: string };
+  hasUnsavedInput?: boolean;
+  acknowledgedOperationIds?: string[];
   isAdded?: boolean;
 }
 

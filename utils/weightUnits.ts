@@ -41,10 +41,14 @@ export function convertWeightString(
   to: WeightUnit
 ): string {
   if (!value || from === to) return value;
-  const parsed = parseFloat(value);
-  if (isNaN(parsed)) return value;
+  const normalized = value.trim().replace(",", ".");
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return value;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return value;
   const asKg = toKg(parsed, from);
-  return formatWeightInput(fromKg(asKg, to));
+  const converted = fromKg(asKg, to);
+  if (!Number.isFinite(converted * 10)) return value;
+  return formatWeightInput(converted);
 }
 
 export async function loadWeightUnit(): Promise<WeightUnit> {

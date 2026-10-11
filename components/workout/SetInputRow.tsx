@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, TextInput, View } from "react-native";
+import React, { useState } from "react";
+import { Keyboard, Modal, Pressable, TextInput, View } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 import type { SetState } from "@/interfaces/workouts";
 import type { WeightUnit } from "@/utils/weightUnits";
@@ -12,218 +12,108 @@ interface SetInputRowProps {
   displaySetNumber?: number;
   colors: typeof Colors.light;
   weightUnit: WeightUnit;
-  /** e.g. "last time: 135lb × 8" — omitted when there's no history for this set. */
   lastTimeHint?: string;
-  /** "▲" | "—" | "▼" — driven by suggestedWeightReason; omit when no suggestion. */
   progressionTag?: string;
+  readOnly?: boolean;
+  issue?: string;
   onUpdate: (setNumber: number, field: "reps" | "weight", value: string) => void;
   onConfirm: (setNumber: number) => void;
   onEdit: (setNumber: number) => void;
   onRemove: (setNumber: number) => void;
   onRestore: (setNumber: number) => void;
+  onRetry: () => void;
 }
 
 export const SetInputRow = React.memo(function SetInputRow({
-  setRow,
-  displaySetNumber,
-  colors,
-  weightUnit,
-  lastTimeHint,
-  progressionTag,
-  onUpdate,
-  onConfirm,
-  onEdit,
-  onRemove,
-  onRestore,
+  setRow, displaySetNumber, colors, weightUnit, lastTimeHint, progressionTag, readOnly, issue,
+  onUpdate, onConfirm, onEdit, onRemove, onRestore, onRetry,
 }: SetInputRowProps) {
+  const [menuVisible, setMenuVisible] = useState(false);
   const { setNumber, reps, weight, confirmed, syncStatus, deleted, editing } = setRow;
-  const displayedReps = editing ? (setRow.editDraft?.reps ?? reps) : reps;
-  const displayedWeight = editing ? (setRow.editDraft?.weight ?? weight) : weight;
+  const number = displaySetNumber ?? setNumber;
+  const logged = confirmed && !editing;
+  const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
+  const editable = !readOnly && !logged;
+  const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
+  const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
+  const id = `${setRow.exerciseId}-${setNumber}`;
+  const status = unsaved ? "Unsaved" : editing ? "Editing" : logged
+    ? syncStatus === "failed" ? "Sync failed" : syncStatus !== "synced" ? "Saved · pending sync" : "Logged"
+    : weight || reps ? "Suggested · confirm when done" : "";
+  const inputStyle = {
+    minHeight: 44, flex: 1, borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
+    fontFamily: Fonts.sans, fontWeight: "600" as const, color: colors.text,
+    backgroundColor: logged ? "transparent" : colors.background,
+  };
 
-  if (deleted) {
-    return (
-      <View style={{ borderRadius: 14, borderWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <ThemedText style={{ color: colors.placeholder }}>Removed set</ThemedText>
-          <Pressable testID={`player-restore-set-${setRow.exerciseId}-${setNumber}`} onPress={() => onRestore(setNumber)}>
-            <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Undo</ThemedText>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
+  if (deleted) return (
+    <View style={{ borderBottomWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: 12, marginBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <ThemedText style={{ color: secondaryColor, fontSize: 13 }}>Set {number} removed</ThemedText>
+      <Pressable testID={`player-restore-set-${id}`} accessibilityRole="button" accessibilityLabel={`Undo removal of set ${number}`}
+        accessibilityState={{ disabled: Boolean(readOnly) }}
+        disabled={readOnly} onPress={() => onRestore(setNumber)} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 12 }}>
+        <ThemedText style={{ fontWeight: "600" }}>Undo</ThemedText>
+      </Pressable>
+    </View>
+  );
 
   return (
-    <View
-      style={{
-        borderRadius: 14,
-        backgroundColor: confirmed ? `${colors.primaryButton}10` : colors.inputBackground,
-        borderWidth: 1,
-        borderColor: confirmed ? "transparent" : colors.inputBorder,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginBottom: 10,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {/* Set number */}
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: confirmed ? colors.primaryButton : colors.background,
-            borderWidth: confirmed ? 0 : 1,
-            borderColor: colors.inputBorder,
-            marginRight: 10,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 14,
-              fontWeight: "700",
-              fontFamily: Fonts.sans,
-              color: confirmed ? "#FFFFFF" : colors.text,
-            }}
-          >
-            {displaySetNumber ?? setNumber}
-          </ThemedText>
+    <View testID={`player-set-row-${id}`} style={{ borderRadius: 12, backgroundColor: colors.inputBackground,
+      borderWidth: 1, borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
+      paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ width: 28, alignItems: "center", gap: 2 }}>
+          <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
+          {logged ? <Ionicons name="checkmark" size={15} color={successColor} accessibilityLabel={`Set ${number} logged`} /> : null}
         </View>
-
-        {/* Progression tag — ▲ increase, — hold, ▼ deload */}
-        {progressionTag != null ? (
-          <ThemedText
-            style={{
-              fontSize: 13,
-              fontFamily: Fonts.sans,
-              fontWeight: "700",
-              color: progressionTag === "—" ? colors.placeholder : colors.primaryButton,
-              marginRight: 8,
-              minWidth: 14,
-              textAlign: "center",
-            }}
-          >
-            {progressionTag}
-          </ThemedText>
-        ) : null}
-
-        {/* Weight input */}
-        <View style={{ flex: 1, paddingRight: 8 }}>
-          <TextInput
-            testID={`player-weight-input-${setRow.exerciseId}-${setNumber}`}
-            value={displayedWeight}
-            onChangeText={(v) => onUpdate(setNumber, "weight", v)}
-            placeholder={weightUnit.toLowerCase()}
-            placeholderTextColor={colors.placeholder}
-            keyboardType="decimal-pad"
-            editable={!confirmed || editing}
-            style={{
-              backgroundColor: confirmed ? "transparent" : colors.background,
-              borderWidth: confirmed ? 0 : 1,
-              borderColor: colors.inputBorder,
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              fontSize: 15,
-              fontFamily: Fonts.sans,
-              fontWeight: "600",
-              color: colors.text,
-              opacity: confirmed ? 0.6 : 1,
-            }}
-          />
-        </View>
-
-        <ThemedText style={{ color: colors.placeholder, marginRight: 8 }}>×</ThemedText>
-
-        {/* Reps input */}
-        <View style={{ flex: 1, paddingRight: 8 }}>
-          <TextInput
-            testID={`player-reps-input-${setRow.exerciseId}-${setNumber}`}
-            value={displayedReps}
-            onChangeText={(v) => onUpdate(setNumber, "reps", v)}
-            placeholder="reps"
-            placeholderTextColor={colors.placeholder}
-            keyboardType="number-pad"
-            editable={!confirmed || editing}
-            style={{
-              backgroundColor: confirmed ? "transparent" : colors.background,
-              borderWidth: confirmed ? 0 : 1,
-              borderColor: colors.inputBorder,
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              fontSize: 15,
-              fontFamily: Fonts.sans,
-              fontWeight: "600",
-              color: colors.text,
-              opacity: confirmed ? 0.6 : 1,
-            }}
-          />
-        </View>
-
-        {/* Confirm button */}
-        <Pressable
-          testID={`player-confirm-set-${setRow.exerciseId}-${setNumber}`}
-          accessibilityRole="button"
-          accessibilityLabel={`${editing ? "Save changes to" : "Confirm"} set ${setNumber}`}
-          accessibilityState={{ disabled: confirmed && !editing }}
-          onPress={() => onConfirm(setNumber)}
-          disabled={confirmed && !editing}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: confirmed && !editing ? colors.primaryButton : colors.background,
-            borderWidth: confirmed && !editing ? 0 : 1,
-            borderColor: colors.inputBorder,
-          }}
-        >
-          <Ionicons
-            name={confirmed && !editing ? "checkmark" : "checkmark-outline"}
-            size={20}
-            color={confirmed && !editing ? "#FFFFFF" : colors.placeholder}
-          />
+        <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
+          value={editing ? setRow.editDraft?.weight ?? weight : weight}
+          onChangeText={(value) => onUpdate(setNumber, "weight", value)} placeholder={weightUnit.toLowerCase()}
+          placeholderTextColor={secondaryColor} keyboardType="decimal-pad" editable={editable} style={inputStyle} />
+        <TextInput testID={`player-reps-input-${id}`} accessibilityLabel={`Set ${number} reps`}
+          value={editing ? setRow.editDraft?.reps ?? reps : reps}
+          onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
+          placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
+        <Pressable testID={logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
+          accessibilityLabel={logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
+          accessibilityState={{ disabled: Boolean(readOnly) }} disabled={readOnly}
+          onPress={() => { Keyboard.dismiss(); if (logged) setMenuVisible(true); else onConfirm(setNumber); }}
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
+            borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder }}>
+          <Ionicons name={logged ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
         </Pressable>
       </View>
+      {status ? <ThemedText testID={`player-set-status-${id}`} style={{ fontSize: 12, lineHeight: 18, marginLeft: 36, marginTop: 4,
+        color: issue || syncStatus === "failed" ? "#D14343" : logged && syncStatus === "synced" ? successColor : secondaryColor }}>{status}</ThemedText> : null}
+      {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
+      {syncStatus === "failed" ? <Pressable testID={`player-retry-set-${id}`} accessibilityRole="button" disabled={readOnly}
+        accessibilityState={{ disabled: Boolean(readOnly) }}
+        onPress={onRetry} style={{ minHeight: 44, marginLeft: 36, justifyContent: "center" }}>
+        <ThemedText style={{ fontSize: 13, fontWeight: "600" }}>Retry sync</ThemedText>
+      </Pressable> : null}
+      {!confirmed && lastTimeHint ? <ThemedText style={{ fontSize: 12, lineHeight: 18, color: secondaryColor, marginLeft: 36, marginTop: 2 }}>
+        Last time: {lastTimeHint}{progressionTag ? ` · ${progressionTag}` : ""}
+      </ThemedText> : null}
 
-      {confirmed && !editing ? (
-        <View style={{ flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 42 }}>
-          <Pressable
-            testID={`player-edit-set-${setRow.exerciseId}-${setNumber}`}
-            onPress={() => onEdit(setNumber)}
-            disabled={syncStatus === "failed"}
-            accessibilityState={{ disabled: syncStatus === "failed" }}
-          >
-            <ThemedText style={{ color: syncStatus === "failed" ? colors.placeholder : colors.primaryButton, fontWeight: "700", fontSize: 13 }}>Edit</ThemedText>
-          </Pressable>
-          <Pressable
-            testID={`player-remove-set-${setRow.exerciseId}-${setNumber}`}
-            onPress={() => onRemove(setNumber)}
-            disabled={syncStatus === "failed"}
-            accessibilityState={{ disabled: syncStatus === "failed" }}
-          >
-            <ThemedText style={{ color: syncStatus === "failed" ? colors.placeholder : "#D14343", fontWeight: "700", fontSize: 13 }}>Remove</ThemedText>
-          </Pressable>
+      <Modal visible={menuVisible} transparent animationType="none" onRequestClose={() => setMenuVisible(false)}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close set actions" onPress={() => setMenuVisible(false)}
+            style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.45)" }} />
+          <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 360, borderRadius: 18, padding: 16, backgroundColor: colors.background }}>
+            <ThemedText type="defaultSemiBold" style={{ marginBottom: 8 }}>Set {number}</ThemedText>
+            {(["Edit", "Remove"] as const).map((action) => <Pressable key={action} testID={`player-${action.toLowerCase()}-set-${id}`}
+              accessibilityRole="button" disabled={syncStatus === "failed"} accessibilityState={{ disabled: syncStatus === "failed" }}
+              onPress={() => { setMenuVisible(false); if (action === "Edit") onEdit(setNumber); else onRemove(setNumber); }}
+              style={{ minHeight: 48, justifyContent: "center" }}>
+              <ThemedText style={{ color: action === "Remove" ? "#D14343" : colors.text }}>{action}</ThemedText>
+            </Pressable>)}
+            <Pressable accessibilityRole="button" onPress={() => setMenuVisible(false)} style={{ minHeight: 48, justifyContent: "center" }}>
+              <ThemedText>Cancel</ThemedText>
+            </Pressable>
+          </View>
         </View>
-      ) : null}
-
-      {!confirmed && lastTimeHint ? (
-        <ThemedText
-          style={{
-            fontSize: 12,
-            color: colors.placeholder,
-            marginTop: 6,
-            marginLeft: 42,
-          }}
-        >
-          last time: {lastTimeHint}
-        </ThemedText>
-      ) : null}
+      </Modal>
     </View>
   );
 });
