@@ -127,6 +127,39 @@ and unclipped actions. Connected/unselected and unavailable states are also
 covered by `npm run test:health-ui`; physical-device switch appearance and
 VoiceOver require manual verification.
 
+### Training Preferences refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/training-preferences-refinement.yaml`
+with an already-authenticated native development app and the usual local backend.
+Repeat in dark appearance. This flow browses preferences and the equipment
+picker, searches only its temporary draft, verifies outside-tap and drag keyboard
+dismissal, and cancels with the keyboard open. It reopens the picker to verify
+the search reset, then returns Home. It never applies equipment, saves
+preferences, changes permissions, signs out, clears data, or modifies a workout.
+The existing fixture has zero selected equipment and catalog results for `bench`;
+use renderer tests or a separately approved fixture for other data states.
+
+Inspect maximum accessibility text separately after restarting the isolated app:
+titles should scroll within the screen width, Cancel/Done should remain reachable,
+and picker search, stacked tabs, and result rows should scroll without truncation.
+Extreme text may wrap long words mid-word. Wait for scroll animations and inspect
+current native bounds before diagnosing a missed selector tap. Picker draft
+changes are discarded with Cancel; leave preferences without saving. Restore
+the simulator's original appearance/text size and preserve any active workout.
+Native Save/Done, successful custom add/remove, physical-iPhone and VoiceOver
+checks remain manual. Renderer regressions cover persistence and custom actions.
+
+U08 final verification passed this flow in normal light and dark on a 375-point
+iPhone simulator. At maximum accessibility text, the focused search field ends
+at y407, immediately above the predictive keyboard beginning at y407; Cancel
+and Done remain intact as stacked full-width actions. First-tap Cancel with the
+keyboard open also passed. An earlier keyboard-avoidance implementation hid
+40 points of the field; native keyboard insets fixed that overlap. A separate
+maximum-text tab attempt was driver-limited: centering placed the tab beneath
+the fixed header and a tap hit Done, applying an unchanged empty draft locally.
+No preference Save or server mutation occurred. Final maximum-text result
+navigation and successful custom draft actions remain manual, not claimed passes.
+
 ### Settings refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/settings-refinement.yaml`
