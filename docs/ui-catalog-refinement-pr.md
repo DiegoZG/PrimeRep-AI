@@ -15,17 +15,17 @@ synthesized or stitched; they do not replace physical-iPhone or VoiceOver checks
 
 ### After — light and dark catalog
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-light.png" alt="After: light catalog with neutral scope controls and program cards" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-light.png" alt="After: light catalog with neutral scope controls and program cards" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-dark.png" alt="After: dark catalog with neutral scope controls and program cards" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-dark.png" alt="After: dark catalog with neutral scope controls and program cards" width="320" /></a>
 
 ### After — expanded filters
 
 Build muscle is selected in these separate scroll-position captures.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-light-filters.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-light-filters.png" alt="After: light filters with checked neutral selected chips" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-light-filters.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-light-filters.png" alt="After: light filters with checked neutral selected chips" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-dark-filters.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/after-dark-filters.png" alt="After: dark filters with checked neutral selected chips" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-dark-filters.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/after-dark-filters.png" alt="After: dark filters with checked neutral selected chips" width="320" /></a>
 
 <details>
 <summary>Before — original unavailable runtime state, not a same-data comparison</summary>
@@ -35,13 +35,13 @@ reload later restored the catalog without an authentication reset, backend fix
 or data mutation. These show the original controls/layout only; this styling PR
 does not claim to fix that error or compare identical result data.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-light-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-light-unavailable.png" alt="Before: light catalog unavailable state with original purple controls" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-light-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-light-unavailable.png" alt="Before: light catalog unavailable state with original purple controls" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-dark-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-dark-unavailable.png" alt="Before: dark catalog unavailable state with original purple controls" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-dark-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-dark-unavailable.png" alt="Before: dark catalog unavailable state with original purple controls" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-light-filters-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-light-filters-unavailable.png" alt="Before: light expanded filters while catalog is unavailable" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-light-filters-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-light-filters-unavailable.png" alt="Before: light expanded filters while catalog is unavailable" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-dark-filters-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-catalog-refinement/docs/pr-screenshots/u04/before-dark-filters-unavailable.png" alt="Before: dark expanded filters while catalog is unavailable" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-dark-filters-unavailable.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6d5ff53566de944d4cc1c53c3d3aa96c1cfa996b/docs/pr-screenshots/u04/before-dark-filters-unavailable.png" alt="Before: dark expanded filters while catalog is unavailable" width="320" /></a>
 
 </details>
 
