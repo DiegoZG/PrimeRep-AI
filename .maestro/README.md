@@ -69,6 +69,23 @@ verify the workout finishes once on the server with its sets and notes. Repeat
 manually on iOS and Android with timeout, backgrounding, account switch, and
 expired-auth conditions; the YAML does not toggle the network for you.
 
+### Onboarding calculator layout
+
+Manually open the empty one-rep max calculator from the strength-entry screen on
+a dedicated guest simulator, then run
+`maestro test -e UNIT=lb .maestro/onboarding-calculator-layout.yaml`.
+Use `-e UNIT=kg` when the existing onboarding unit is KG. The flow does not launch
+or clear the app, sign in, change units, or apply an estimate. It captures the
+empty form, keyboard, result, and Apply action, then cancels. Run at normal and
+maximum accessibility text size in light/dark mode on a small supported iPhone,
+restoring the original appearance/text size afterward. Inspect input visibility,
+wrapped labels/actions, and first-tap Calculate with the keyboard open.
+
+Apply/result transfer, invalid input, all three destinations, and LB/KG behavior
+also have focused coverage in `node --test scripts/test-calculator-ui.mjs`.
+Physical iPhone, VoiceOver entry/return focus, hardware keyboard, and the parent
+strength-entry display after Apply still require manual verification.
+
 ### Health connections layout
 
 `maestro test -e APPEARANCE=dark .maestro/health-settings-layout.yaml` inspects the native Health
@@ -236,6 +253,7 @@ must retain the native response until a later successful or terminal lookup.
 
 | Flow | File | Tests |
 |------|------|-------|
+| Onboarding calculator layout | `onboarding-calculator-layout.yaml` | Manual guest entry; empty form, keyboard, decimal estimate, selected Apply, Cancel without writes |
 | Smoke: Home | `smoke-home.yaml` | Auth resolves, tab bar visible, workout cards load |
 | Workout Browse | `workout-browse.yaml` | Tap workout card → workout detail with exercise list |
 | Exercise Detail | `exercise-detail.yaml` | Workout detail → tap exercise → muscles, resolved equipment, and truthful demo status |
