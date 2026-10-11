@@ -23,23 +23,23 @@ Original iPhone 16 Plus screenshots, shown at phone-friendly width. These are un
 
 ### After — Light
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-light-setup.png" width="320" alt="Light appearance after: neutral weekday and start-mode choices, readable instructions and purple Review schedule action" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-light-now-review.png" width="320" alt="Light appearance after: this-week schedule consequences and readable equipment conflicts" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-light-setup.png" width="320" alt="Light appearance after: neutral weekday and start-mode choices, readable instructions and purple Review schedule action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-light-now-review.png" width="320" alt="Light appearance after: this-week schedule consequences and readable equipment conflicts" />
 
 ### After — Dark
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-dark-setup.png" width="320" alt="Dark appearance after: neutral choices and small purple selected indicators" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/after-dark-review.png" width="320" alt="Dark appearance after: this-week schedule consequences and equipment review" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-dark-setup.png" width="320" alt="Dark appearance after: neutral choices and small purple selected indicators" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/after-dark-review.png" width="320" alt="Dark appearance after: this-week schedule consequences and equipment review" />
 
 <details>
 <summary>Before — Light and Dark</summary>
 
 The previous screen concentrated purple in weekday fills, mode text/tints and informational icons, with lighter descriptions. These genuine baseline images show the same program, fixture and Start now presentation.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-light-setup.png" width="320" alt="Light setup before refinement" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-light-review.png" width="320" alt="Light schedule review before refinement" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-dark-setup.png" width="320" alt="Dark setup before refinement" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-dark-review.png" width="320" alt="Dark schedule review before refinement" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-light-setup.png" width="320" alt="Light setup before refinement" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-light-review.png" width="320" alt="Light schedule review before refinement" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-dark-setup.png" width="320" alt="Dark setup before refinement" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-dark-review.png" width="320" alt="Dark schedule review before refinement" />
 
 </details>
 
@@ -48,22 +48,22 @@ The previous screen concentrated purple in weekday fills, mode text/tints and in
 
 The old fixed header truncated the program name. The new full name scrolls with the content; weekdays wrap, and start-mode cards stack. These are different scroll positions, not a claim that all content fits in one viewport.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-light-max-top.png" width="320" alt="Light maximum-text baseline with truncated fixed header" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-before-dark-max-top.png" width="320" alt="Dark maximum-text baseline with truncated fixed header" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-light-max-top.png" width="320" alt="Light maximum-text full program name in scrolling content" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-dark-max-top.png" width="320" alt="Dark maximum-text full program name in scrolling content" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-light-max-weekdays.png" width="320" alt="Light maximum-text all seven weekday controls wrap within the screen" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-dark-max-weekdays.png" width="320" alt="Dark maximum-text all seven weekday controls wrap within the screen" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-light-max-modes.png" width="320" alt="Light maximum-text stacked start-mode cards" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-dark-max-modes.png" width="320" alt="Dark maximum-text stacked start-mode cards" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-light-max-top.png" width="320" alt="Light maximum-text baseline with truncated fixed header" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-before-dark-max-top.png" width="320" alt="Dark maximum-text baseline with truncated fixed header" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-light-max-top.png" width="320" alt="Light maximum-text full program name in scrolling content" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-dark-max-top.png" width="320" alt="Dark maximum-text full program name in scrolling content" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-light-max-weekdays.png" width="320" alt="Light maximum-text all seven weekday controls wrap within the screen" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-dark-max-weekdays.png" width="320" alt="Dark maximum-text all seven weekday controls wrap within the screen" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-light-max-modes.png" width="320" alt="Light maximum-text stacked start-mode cards" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-dark-max-modes.png" width="320" alt="Dark maximum-text stacked start-mode cards" />
 
 </details>
 
 <details>
 <summary>Unresolved-equipment safety state and small-screen check</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/u10-dark-unresolved.png" width="320" alt="Unresolved equipment remains visible and Activate is disabled" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u10/after-se-light-setup.png" width="320" alt="Small iPhone SE normal-text setup with contained weekday choices" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/u10-dark-unresolved.png" width="320" alt="Unresolved equipment remains visible and Activate is disabled" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8d8bc314f61d3ca658ae15428a22f2ae50631547/docs/pr-screenshots/u10/after-se-light-setup.png" width="320" alt="Small iPhone SE normal-text setup with contained weekday choices" />
 
 </details>
 
