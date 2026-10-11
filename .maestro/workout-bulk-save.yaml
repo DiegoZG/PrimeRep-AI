@@ -1,0 +1,80 @@
+# Native development build, local backend, and an onboarded test account required.
+appId: com.diegozegarra.primerep
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-dev-build.yaml
+- runFlow:
+    when:
+      notVisible:
+        id: "player-finish"
+    commands:
+      - runFlow: flows/auth-login-dev-build.yaml
+      - tapOn:
+          id: "workout-card"
+          index: 0
+      - extendedWaitUntil:
+          visible:
+            id: "start-workout-button"
+          timeout: 10000
+      - tapOn:
+          id: "start-workout-button"
+- extendedWaitUntil:
+    visible:
+      id: "player-finish"
+    timeout: 15000
+- tapOn:
+    id: "player-reps-input-.*-1"
+- eraseText: 12
+- inputText: "10"
+- tapOn:
+    id: "player-weight-input-.*-1"
+- eraseText: 12
+- inputText: "40"
+- tapOn:
+    id: "player-reps-input-.*-2"
+- eraseText: 12
+- inputText: "8"
+- tapOn:
+    id: "player-weight-input-.*-2"
+- eraseText: 12
+- inputText: "40"
+- scrollUntilVisible:
+    element:
+      id: "player-save-entered-sets"
+    direction: DOWN
+- assertVisible: "Save 2 entered sets.*"
+- takeScreenshot: bulk-before-save
+- tapOn:
+    id: "player-save-entered-sets"
+- extendedWaitUntil:
+    visible: "2 sets saved on this device."
+    timeout: 5000
+- assertNotVisible:
+    id: "player-rest-skip"
+- takeScreenshot: bulk-saved-neutral-rows
+- scrollUntilVisible:
+    element:
+      id: "player-reps-input-.*-3"
+    direction: UP
+- tapOn:
+    id: "player-reps-input-.*-3"
+- eraseText: 12
+- inputText: "6"
+- tapOn:
+    id: "player-finish"
+- assertVisible: "Finish workout?"
+- assertVisible: "2 logged · 1 unsaved entry"
+- tapOn:
+    id: "player-save-and-finish"
+- extendedWaitUntil:
+    visible: "Workout Complete!"
+    timeout: 30000
+- takeScreenshot: bulk-finish-summary
+- scrollUntilVisible:
+    element:
+      id: "summary-done"
+    direction: DOWN
+- tapOn:
+    id: "summary-done"

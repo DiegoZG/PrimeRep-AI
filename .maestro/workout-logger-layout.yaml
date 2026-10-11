@@ -1,0 +1,49 @@
+# Run after workout-editing.yaml with the test workout still active.
+appId: com.diegozegarra.primerep
+---
+- runFlow: flows/launch-dev-build.yaml
+- runFlow:
+    when:
+      visible:
+        id: "player-finish"
+    commands:
+      - tapOn: "Leave workout"
+      - tapOn: "Keep Workout Active"
+- repeat:
+    times: 8
+    commands:
+      - runFlow:
+          when:
+            visible: "Back from workout details"
+          commands:
+            - tapOn: "Back from workout details"
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- tapOn:
+    id: "settings-appearance-light"
+- tapOn: "Back from Settings"
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "home-resume-workout"
+- assertVisible:
+    id: "player-finish"
+- takeScreenshot: logger-light
+- tapOn: "Leave workout"
+- tapOn: "Keep Workout Active"
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- tapOn:
+    id: "settings-appearance-dark"
+- tapOn: "Back from Settings"
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "home-resume-workout"
+- assertVisible:
+    id: "player-finish"
+- takeScreenshot: logger-dark

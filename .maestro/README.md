@@ -223,6 +223,9 @@ must retain the native response until a later successful or terminal lookup.
 | Exercise Search | `exercise-search.yaml` | Explore tab search → results → clear |
 | Workout Player | `workout-player.yaml` | Start Workout → confirm set → skip rest → jump via exercise sheet → finish → summary |
 | Workout Editing | `workout-editing.yaml` | Confirm → edit → remove/undo a set, save a note, then dismiss the keyboard via the backdrop |
+| Workout Bulk Save | `workout-bulk-save.yaml` | Save two edited rows without starting rest, catch another unsaved entry at Finish, and save it before completion |
+| Workout Logger Layout | `workout-logger-layout.yaml` | Resume the active test workout in light and dark appearance; run after Workout Editing |
+| Workout Keyboard Save | `workout-keyboard-save.yaml` | Save the second entered row on the first tap with the keyboard open; run after Workout Editing |
 | Workout Correction | `workout-correction.yaml` | Finish with zero sets → add a planned set in history → verify refreshed summary |
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |

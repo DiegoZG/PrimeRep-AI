@@ -1,0 +1,24 @@
+# Run after workout-editing.yaml with the test workout still active.
+appId: com.diegozegarra.primerep
+---
+- scrollUntilVisible:
+    element:
+      id: "player-reps-input-.*-2"
+    direction: UP
+- tapOn:
+    id: "player-reps-input-.*-2"
+- eraseText: 12
+- inputText: "12"
+- assertVisible:
+    id: "player-save-entered-sets"
+- takeScreenshot: keyboard-open-save-action
+- tapOn:
+    id: "player-save-entered-sets"
+- extendedWaitUntil:
+    visible:
+      id: "player-set-menu-.*-2"
+    timeout: 5000
+- assertVisible: "1 set saved on this device."
+- assertNotVisible:
+    id: "player-rest-skip"
+- takeScreenshot: keyboard-first-tap-saved

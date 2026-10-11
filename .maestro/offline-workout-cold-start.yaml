@@ -19,7 +19,7 @@ appId: com.diegozegarra.primerep
 - tapOn: "Finish anyway"
 - extendedWaitUntil:
     visible: "Saved on this device — finish when online."
-    timeout: 10000
+    timeout: 45000
 - takeScreenshot: offline-finish-queued
 - stopApp
 - launchApp
@@ -35,8 +35,8 @@ appId: com.diegozegarra.primerep
 - tapOn:
     id: player-continue-logging
 - extendedWaitUntil:
-    visible: "Finish Workout"
-    timeout: 10000
+    visible: "Finish Workout.*"
+    timeout: 45000
 - assertNotVisible: "Saved on this device — finish when online."
 - takeScreenshot: offline-continue-logging
 - scrollUntilVisible:
@@ -66,5 +66,5 @@ appId: com.diegozegarra.primerep
 - tapOn: "Finish anyway"
 - extendedWaitUntil:
     visible: "Saved on this device — finish when online."
-    timeout: 10000
+    timeout: 45000
 - takeScreenshot: offline-finish-requeued

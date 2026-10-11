@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import vm from "node:vm";
+import test from "node:test";
+import React from "react";
+import { act, create } from "react-test-renderer";
+import ts from "typescript";
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const filename = path.join(root, "components/workout/SetInputRow.tsx");
+const palette = { background: "#fff", inputBackground: "#fff", inputBorder: "#E5E5E5", text: "#11181C", placeholder: "#9BA1A6" };
+const mocks = {
+  react: React,
+  "@expo/vector-icons": { Ionicons: "Ionicons" },
+  "react-native": { View: "View", TextInput: "TextInput", Pressable: "Pressable", Modal: "Modal", Keyboard: { dismiss() {} } },
+  "@/components/workout/WorkoutText": { WorkoutText: "WorkoutText" },
+  "@/constants/theme": { Colors: { dark: { background: "#151718" } }, Fonts: { sans: "system-ui" } },
+};
+const module = { exports: {} };
+const source = ts.transpileModule(readFileSync(filename, "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true },
+}).outputText;
+vm.runInNewContext(source, { module, exports: module.exports, require: (name) => {
+  if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`);
+  return mocks[name];
+} }, { filename });
+const { SetInputRow } = module.exports;
+const base = { exerciseId: "squat", setNumber: 1, weight: "40", reps: "8", confirmed: false, syncStatus: "synced" };
+
+for (const [name, fields, icon, label] of [
+  ["empty", { weight: "", reps: "" }, "ellipse-outline", "Not logged yet"],
+  ["suggested", {}, "ellipse-outline", "Suggested values. Not logged yet"],
+  ["edited", { hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
+  ["saved", { confirmed: true }, "checkmark-done-outline", "Saved and synced"],
+  ["pending", { confirmed: true, syncStatus: "pending" }, "time-outline", "Saved on this device. Pending sync"],
+  ["retrying", { confirmed: true, syncStatus: "retrying" }, "time-outline", "Pending sync"],
+  ["failed", { confirmed: true, syncStatus: "failed" }, "alert-circle-outline", "Sync failed"],
+  ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
+]) test(`${name} set has a truthful icon and spoken status in both themes`, async () => {
+  for (const background of ["#fff", "#151718"]) {
+    let tree;
+    let confirmed = null;
+    await act(async () => { tree = create(React.createElement(SetInputRow, {
+      setRow: { ...base, ...fields }, colors: { ...palette, background }, weightUnit: "LB", lastTimeHint: "40 lb × 8",
+      onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {},
+    })); });
+    const status = tree.root.findByProps({ testID: "player-set-status-squat-1" });
+    const symbol = status.findByType("Ionicons");
+    assert.equal(symbol.props.name, icon);
+    assert.ok(status.props.accessibilityLabel.includes(label));
+    assert.equal(status.props.accessibilityRole, "image");
+    assert.equal(symbol.props.accessible, false);
+    assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
+    if (icon === "checkmark-done-outline") assert.equal(symbol.props.color, background === "#fff" ? "#237858" : "#70D5AD");
+    if (name === "failed") assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
+    if (name === "edited") {
+      await act(async () => tree.root.findByProps({ testID: "player-confirm-set-squat-1" }).props.onPress());
+      assert.equal(confirmed, 1);
+      assert.ok(tree.root.findAllByType("WorkoutText").some((text) => String(text.props.children).includes("Last time")));
+    }
+    await act(async () => tree.unmount());
+  }
+});
