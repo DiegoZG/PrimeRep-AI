@@ -15,22 +15,22 @@ are original captures, not synthesized or stitched.
 
 ### After — light and dark
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/after-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/after-light.png" alt="After: light completed-workout correction with neutral actions and a clear Save note control" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/after-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/after-light.png" alt="After: light completed-workout correction with neutral actions and a clear Save note control" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/after-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/after-dark.png" alt="After: dark completed-workout correction with readable saved sets and restrained colors" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/after-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/after-dark.png" alt="After: dark completed-workout correction with readable saved sets and restrained colors" width="320" /></a>
 
 ### After — editing a set
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/edit-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/edit-light.png" alt="After: light numeric set editor with labeled fields and Save changes and Cancel" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/edit-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/edit-light.png" alt="After: light numeric set editor with labeled fields and Save changes and Cancel" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/edit-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/edit-dark.png" alt="After: dark numeric set editor with neutral fields and clear save hierarchy" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/edit-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/edit-dark.png" alt="After: dark numeric set editor with neutral fields and clear save hierarchy" width="320" /></a>
 
 <details>
 <summary>Before — original correction layout</summary>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/before-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/before-light.png" alt="Before: light workout correction with purple Edit icons and inline save text" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/before-light.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/before-light.png" alt="Before: light workout correction with purple Edit icons and inline save text" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/before-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/before-dark.png" alt="Before: dark workout correction with original actions and note layout" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/before-dark.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/before-dark.png" alt="Before: dark workout correction with original actions and note layout" width="320" /></a>
 
 </details>
 
@@ -41,9 +41,9 @@ The title and status scroll instead of consuming a fixed header. The note action
 remains reachable with naturally wrapping text; these are separate scroll-position
 captures, not stitched images.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/max-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/max-light-actions.png" alt="After: light maximum-text correction note with reachable Save note" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/max-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/max-light-actions.png" alt="After: light maximum-text correction note with reachable Save note" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/max-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-workout-correction-refinement/docs/pr-screenshots/u06/max-dark-actions.png" alt="After: dark maximum-text correction note with reachable Save note" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/max-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/913fb044b429ecd50295add19c977d4664fe4436/docs/pr-screenshots/u06/max-dark-actions.png" alt="After: dark maximum-text correction note with reachable Save note" width="320" /></a>
 
 </details>
 
