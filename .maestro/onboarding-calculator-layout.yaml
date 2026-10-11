@@ -1,0 +1,56 @@
+# Start with an empty calculator manually opened on a dedicated guest simulator.
+# Captures layout and temporary estimates, then cancels without applying a value.
+# Does not launch/reset the app, authenticate, change units, or touch workout/Health data.
+appId: com.diegozegarra.primerep
+tags:
+  - onboarding
+  - layout
+  - manual-entry
+env:
+  UNIT: lb
+---
+- assertVisible:
+    id: "calculator-reps-input"
+- assertVisible:
+    id: "calculator-calculate"
+    enabled: false
+- takeScreenshot: calculator-empty
+- tapOn:
+    id: "calculator-reps-input"
+- inputText: "5"
+- tapOn:
+    id: "calculator-weight-input"
+- inputText: "100.5"
+- takeScreenshot: calculator-keyboard
+- scrollUntilVisible:
+    element:
+      id: "calculator-calculate"
+    direction: DOWN
+- tapOn:
+    id: "calculator-calculate"
+- scrollUntilVisible:
+    element:
+      id: "calculator-result"
+    direction: UP
+- assertVisible: "Estimated one-rep max: 113 ${UNIT}"
+- takeScreenshot: calculator-result
+- scrollUntilVisible:
+    element:
+      id: "calculator-exercise-bench-press"
+    direction: DOWN
+- tapOn:
+    id: "calculator-exercise-bench-press"
+- scrollUntilVisible:
+    element:
+      id: "calculator-apply"
+    direction: DOWN
+- assertVisible: "Apply 113 ${UNIT} to Bench Press"
+- takeScreenshot: calculator-apply
+- scrollUntilVisible:
+    element:
+      id: "calculator-cancel"
+    direction: DOWN
+- tapOn:
+    id: "calculator-cancel"
+- assertNotVisible:
+    id: "calculator-reps-input"

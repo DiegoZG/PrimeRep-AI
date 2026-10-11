@@ -4,6 +4,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -61,6 +62,7 @@ export default function CalculatorModal() {
   });
 
   const handleCalculate = () => {
+    Keyboard.dismiss();
     const repsNum = parseInt(reps, 10);
     const weightNum = parseFloat(weight);
 
@@ -90,193 +92,250 @@ export default function CalculatorModal() {
   };
 
   const canGoBack = router.canGoBack();
+  const hasResult = calculated1RM !== null;
 
   return (
     <ThemedView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={canGoBack ? () => router.back() : undefined}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
       >
-        <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <Animated.View
-            style={[
-              styles.modal,
-              {
-                backgroundColor: colors.inputBackground,
-              },
-              modalAnimatedStyle,
-            ]}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={styles.keyboardAvoidingView}
+        <View style={styles.backdrop}>
+          <TouchableOpacity
+            testID="calculator-dismiss"
+            style={styles.backdropDismiss}
+            activeOpacity={1}
+            accessible={false}
+            onPress={canGoBack ? () => router.back() : undefined}
+          />
+          <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+            <Animated.View
+              accessibilityViewIsModal
+              style={[
+                styles.modal,
+                {
+                  backgroundColor: colors.inputBackground,
+                },
+                modalAnimatedStyle,
+              ]}
             >
-              {/* Title */}
-              <Text style={[styles.title, { color: colors.text }]}>
-                {ONE_REP_MAX_CALCULATOR_MODAL.title}
-              </Text>
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.modalContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+              >
+                {/* Title */}
+                <Text
+                  accessibilityRole="header"
+                  style={[styles.title, { color: colors.text }]}
+                >
+                  {ONE_REP_MAX_CALCULATOR_MODAL.title}
+                </Text>
 
-              {/* Description */}
-              <Text style={[styles.description, { color: colors.placeholder }]}>
-                {ONE_REP_MAX_CALCULATOR_MODAL.description}
-              </Text>
+                {/* Description */}
+                <Text style={[styles.description, { color: colors.icon }]}>
+                  {ONE_REP_MAX_CALCULATOR_MODAL.description}
+                </Text>
 
-              {/* Input Fields */}
-              <View style={styles.inputsContainer}>
-                {/* Reps Input */}
-                <View style={styles.inputRow}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>
-                    {ONE_REP_MAX_CALCULATOR_MODAL.inputs.reps.label}
-                  </Text>
-                  <AnimatedInput
-                    style={styles.input}
-                    placeholder={
-                      ONE_REP_MAX_CALCULATOR_MODAL.inputs.reps.placeholder
-                    }
-                    value={reps}
-                    onChangeText={setReps}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                {/* Weight Input */}
-                <View style={styles.inputRow}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>
-                    {ONE_REP_MAX_CALCULATOR_MODAL.inputs.weight.label}
-                  </Text>
-                  <View style={styles.weightInputContainer}>
+                {/* Input Fields */}
+                <View style={styles.inputsContainer}>
+                  {/* Reps Input */}
+                  <View style={styles.inputRow}>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>
+                      {ONE_REP_MAX_CALCULATOR_MODAL.inputs.reps.label}
+                    </Text>
                     <AnimatedInput
+                      testID="calculator-reps-input"
+                      accessibilityLabel="Reps"
                       style={styles.input}
                       placeholder={
-                        ONE_REP_MAX_CALCULATOR_MODAL.inputs.weight.placeholder
+                        ONE_REP_MAX_CALCULATOR_MODAL.inputs.reps.placeholder
                       }
-                      value={weight}
-                      onChangeText={setWeight}
+                      value={reps}
+                      onChangeText={setReps}
                       keyboardType="numeric"
                     />
-                    <Text
-                      style={[styles.unitLabel, { color: colors.placeholder }]}
-                    >
-                      {weightUnit.toLowerCase()}
+                  </View>
+
+                  {/* Weight Input */}
+                  <View style={styles.inputRow}>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>
+                      {ONE_REP_MAX_CALCULATOR_MODAL.inputs.weight.label}
                     </Text>
+                    <View style={styles.weightInputContainer}>
+                      <AnimatedInput
+                        testID="calculator-weight-input"
+                        accessibilityLabel={`Weight in ${weightUnit.toLowerCase()}`}
+                        style={[styles.input, styles.weightInput]}
+                        placeholder={
+                          ONE_REP_MAX_CALCULATOR_MODAL.inputs.weight.placeholder
+                        }
+                        value={weight}
+                        onChangeText={setWeight}
+                        keyboardType="numeric"
+                      />
+                      <Text
+                        style={[styles.unitLabel, { color: colors.icon }]}
+                      >
+                        {weightUnit.toLowerCase()}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Calculated Result */}
-              {calculated1RM !== null && (
-                <View style={styles.resultContainer}>
-                  <Text
-                    style={[styles.resultLabel, { color: colors.placeholder }]}
-                  >
-                    Estimated 1RM:
-                  </Text>
-                  <Text
-                    style={[styles.resultValue, { color: colors.electricBlue }]}
-                  >
-                    {calculated1RM} {weightUnit.toLowerCase()}
-                  </Text>
-                </View>
-              )}
-
-              {/* Exercise Selection (only show if calculated) */}
-              {calculated1RM !== null && (
-                <View style={styles.exerciseSelectionContainer}>
-                  <Text
-                    style={[
-                      styles.exerciseSelectionLabel,
-                      { color: colors.text },
-                    ]}
-                  >
-                    Apply to:
-                  </Text>
-                  <View style={styles.exerciseButtonsContainer}>
-                    {ONE_REP_MAX_SCREEN.exercises.map((exercise) => {
-                      const isSelected = selectedExercise === exercise.id;
-                      return (
-                        <TouchableOpacity
-                          key={exercise.id}
-                          onPress={() => setSelectedExercise(exercise.id)}
-                          style={[
-                            styles.exerciseButton,
-                            {
-                              backgroundColor: isSelected
-                                ? "rgba(106, 79, 245, 0.12)"
-                                : colors.inputBackground,
-                              borderColor: isSelected
-                                ? colors.primaryButton
-                                : colors.inputBorder,
-                              borderWidth: isSelected ? 2 : 1,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.exerciseButtonText,
-                              {
-                                color: isSelected
-                                  ? colors.primaryButton
-                                  : colors.text,
-                                fontWeight: isSelected ? "600" : "500",
-                              },
-                            ]}
-                          >
-                            {exercise.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {/* Calculate Button */}
-              <AnimatedButton
-                onPress={handleCalculate}
-                disabled={!reps || !weight}
-                accessibilityState={{ disabled: !reps || !weight }}
-              >
-                <View
-                  style={[
-                    styles.calculateButton,
-                    { backgroundColor: colors.primaryButton },
-                    (!reps || !weight) && { opacity: 0.5 },
-                  ]}
-                >
-                  <Text style={styles.calculateButtonText}>
-                    {ONE_REP_MAX_CALCULATOR_MODAL.calculateButton}
-                  </Text>
-                </View>
-              </AnimatedButton>
-
-              {/* Apply Button (only show if calculated and exercise selected) */}
-              {calculated1RM !== null && selectedExercise && (
-                <AnimatedButton onPress={handleApply}>
+                {/* Calculated Result */}
+                {calculated1RM !== null && (
                   <View
+                    testID="calculator-result"
+                    accessible
+                    accessibilityLiveRegion="polite"
+                    accessibilityLabel={`Estimated one-rep max: ${calculated1RM} ${weightUnit.toLowerCase()}`}
                     style={[
-                      styles.applyButton,
+                      styles.resultContainer,
                       {
-                        backgroundColor: colors.electricBlue,
-                        marginTop: 12,
+                        backgroundColor: colors.background,
+                        borderColor: colors.inputBorder,
                       },
                     ]}
                   >
+                    <Text
+                      style={[styles.resultLabel, { color: colors.icon }]}
+                    >
+                      Estimated 1RM:
+                    </Text>
+                    <Text
+                      testID="calculator-result-value"
+                      style={[styles.resultValue, { color: colors.text }]}
+                    >
+                      {calculated1RM} {weightUnit.toLowerCase()}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Exercise Selection (only show if calculated) */}
+                {calculated1RM !== null && (
+                  <View style={styles.exerciseSelectionContainer}>
+                    <Text
+                      style={[
+                        styles.exerciseSelectionLabel,
+                        { color: colors.text },
+                      ]}
+                    >
+                      Apply to:
+                    </Text>
+                    <View style={styles.exerciseButtonsContainer}>
+                      {ONE_REP_MAX_SCREEN.exercises.map((exercise) => {
+                        const isSelected = selectedExercise === exercise.id;
+                        return (
+                          <TouchableOpacity
+                            key={exercise.id}
+                            testID={`calculator-exercise-${exercise.id}`}
+                            accessibilityRole="button"
+                            accessibilityLabel={exercise.name}
+                            accessibilityState={{ selected: isSelected }}
+                            onPress={() => setSelectedExercise(exercise.id)}
+                            style={[
+                              styles.exerciseButton,
+                              {
+                                backgroundColor: colors.inputBackground,
+                                borderColor: isSelected
+                                  ? colors.primaryButton
+                                  : colors.inputBorder,
+                                borderWidth: isSelected ? 2 : 1,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.exerciseButtonText,
+                                {
+                                  color: colors.text,
+                                  fontWeight: isSelected ? "600" : "500",
+                                },
+                              ]}
+                            >
+                              {exercise.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Calculate Button */}
+                <AnimatedButton
+                  testID="calculator-calculate"
+                  accessibilityRole="button"
+                  accessibilityLabel="Calculate one-rep max"
+                  onPress={handleCalculate}
+                  disabled={!reps || !weight}
+                  accessibilityState={{ disabled: !reps || !weight }}
+                  style={[
+                    styles.calculateButton,
+                    {
+                      backgroundColor: hasResult
+                        ? colors.inputBackground
+                        : colors.primaryButton,
+                      borderColor: hasResult
+                        ? colors.inputBorder
+                        : colors.primaryButton,
+                    },
+                    (!reps || !weight) && { opacity: 0.5 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.calculateButtonText,
+                      { color: hasResult ? colors.text : "#FFFFFF" },
+                    ]}
+                  >
+                    Calculate
+                  </Text>
+                </AnimatedButton>
+
+                {/* Apply Button (only show if calculated and exercise selected) */}
+                {calculated1RM !== null && selectedExercise && (
+                  <AnimatedButton
+                    testID="calculator-apply"
+                    accessibilityRole="button"
+                    onPress={handleApply}
+                    style={[
+                      styles.applyButton,
+                      { backgroundColor: colors.primaryButton },
+                    ]}
+                  >
                     <Text style={styles.applyButtonText}>
-                      Apply {calculated1RM} lb to{" "}
+                      Apply {calculated1RM} {weightUnit.toLowerCase()} to{" "}
                       {
                         ONE_REP_MAX_SCREEN.exercises.find(
                           (e) => e.id === selectedExercise
                         )?.name
                       }
                     </Text>
-                  </View>
-                </AnimatedButton>
-              )}
-            </KeyboardAvoidingView>
-          </Animated.View>
-        </TouchableWithoutFeedback>
-      </TouchableOpacity>
+                  </AnimatedButton>
+                )}
+                {canGoBack && (
+                  <TouchableOpacity
+                    testID="calculator-cancel"
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel calculator"
+                    style={styles.cancelButton}
+                    onPress={() => router.back()}
+                  >
+                    <Text
+                      style={[styles.cancelButtonText, { color: colors.text }]}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
@@ -292,11 +351,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+  backdropDismiss: {
+    ...StyleSheet.absoluteFillObject,
+  },
   modal: {
     width: "100%",
     maxWidth: 400,
     borderRadius: 16,
-    padding: 24,
+    maxHeight: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -304,11 +366,17 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   keyboardAvoidingView: {
-    width: "100%",
+    flex: 1,
+  },
+  scrollView: {
+    flexShrink: 1,
+  },
+  modalContent: {
+    padding: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
     marginBottom: 12,
   },
@@ -324,25 +392,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
+    gap: 8,
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    minWidth: 80,
   },
   input: {
+    minHeight: 44,
+  },
+  weightInput: {
     flex: 1,
+    minWidth: 0,
   },
   weightInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flex: 1,
   },
   unitLabel: {
     fontSize: 14,
@@ -351,13 +418,11 @@ const styles = StyleSheet.create({
     minWidth: 30,
   },
   resultContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(0, 212, 255, 0.1)",
+    borderWidth: 1,
     marginBottom: 24,
   },
   resultLabel: {
@@ -371,21 +436,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
   calculateButton: {
+    minHeight: 48,
     borderRadius: 12,
     paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   calculateButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
+    textAlign: "center",
   },
   applyButton: {
+    minHeight: 48,
     borderRadius: 12,
     paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginTop: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -394,6 +464,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+    textAlign: "center",
+  },
+  cancelButton: {
+    minHeight: 44,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.sans,
+    textAlign: "center",
   },
   exerciseSelectionContainer: {
     marginBottom: 24,
@@ -410,10 +494,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exerciseButton: {
+    minHeight: 44,
+    maxWidth: "100%",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
+    justifyContent: "center",
   },
   exerciseButtonText: {
     fontSize: 14,
