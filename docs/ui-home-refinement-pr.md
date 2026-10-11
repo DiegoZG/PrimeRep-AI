@@ -15,15 +15,15 @@ These presentation captures do not close the manual checks listed below.
 
 ### Light — workout action and cards
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-top.png" alt="Home after refinement in light mode, Resume action and neutral workout carousel" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/light-top.png" alt="Home after refinement in light mode, Resume action and neutral workout carousel" width="320"></a>
 
 ### Dark — workout action and cards
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/dark-top.png" alt="Home after refinement in dark mode, Resume action and neutral workout carousel" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/dark-top.png" alt="Home after refinement in dark mode, Resume action and neutral workout carousel" width="320"></a>
 
 ### Light — Coach guidance and training trend
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-guidance-trend.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-guidance-trend.png" alt="Home after refinement in light mode, compact Coach guidance and four-week trend" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/light-guidance-trend.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/508a7718a154812441d3b258807dcb6d62a80c40/docs/pr-screenshots/u02/light-guidance-trend.png" alt="Home after refinement in light mode, compact Coach guidance and four-week trend" width="320"></a>
 
 ## Changes
 
