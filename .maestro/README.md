@@ -184,6 +184,37 @@ normal text, light appearance, and Home. Initial baseline catalog requests faile
 but recovered on a text-size app reload without account or backend changes;
 the before/after images therefore do not imply a styling fix for that failure.
 
+### Workout Summary refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
+with an already-authenticated native app and the usual local backend. Repeat
+with `APPEARANCE=dark` after changing the isolated simulator's appearance.
+Select an existing generic fixture through Workout History; do not create or
+finish a workout to manufacture screenshots. Public screenshots must not expose
+private notes or personal names. Before opening Summary, confirm this fixture
+has no Health export opt-in: Summary's existing focus callback can reconcile
+previously enabled exports. This flow does not grant Health permissions.
+
+The read-only flow verifies the completed summary, opens Review or correct
+workout without editing anything, returns to refresh the canonical totals, and
+uses Done to return Home. It does not clear app data, change authentication,
+finish/log/correct a session, or share externally. Inspect normal and maximum
+accessibility text in both themes for neutral metric/share controls, readable
+values, adaptive columns, and reachable 44-point actions. Native sharing,
+physical-iPhone, and VoiceOver acceptance remain manual unless separately
+recorded; a driver command alone does not prove visual correctness.
+
+U05 local acceptance passed this read-only flow in normal light and dark on an
+isolated 375-point iPhone simulator, using the same existing Lower A session
+(4m 22s, 3 sets, 3,640 lb, no workout note). Review/back preserved its canonical
+totals, and Done returned Home. Maximum-text header/metrics/actions were
+visually inspected in both themes: metrics become one column, values remain
+uncapped, and actions remain reachable; extreme text can wrap mid-word.
+The native iOS share sheet opened and was closed without sharing anything.
+No maximum-text before capture was taken. The simulator was restored to normal
+text, light appearance, and Home with the original Upper A 4/4 workout intact.
+Physical-iPhone and VoiceOver acceptance remain manual.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
@@ -348,6 +379,7 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
+| Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
 | Home Dashboard (seeded) | `seeded/home-dashboard.yaml` | Confirmed next workout, unread Coach action/deep link, four-week trend, and history navigation |

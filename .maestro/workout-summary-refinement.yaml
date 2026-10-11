@@ -1,0 +1,55 @@
+# Read-only completed-summary checks in an already-authenticated native app.
+# SUMMARY_SESSION_ID must identify an existing completed fixture with no private note.
+# Confirm Health export is not enabled for the fixture before running this flow.
+# Never logs/finishes/corrects a workout, changes notes, shares externally, or resets auth.
+appId: com.diegozegarra.primerep
+tags:
+  - summary-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://workout/summary?sessionId=${SUMMARY_SESSION_ID}
+- extendedWaitUntil:
+    visible:
+      id: summary-header
+    timeout: 15000
+- assertVisible: Workout Complete!
+- assertVisible:
+    id: summary-stat-duration
+- takeScreenshot: /private/tmp/u05-${APPEARANCE}-summary-top
+- scrollUntilVisible:
+    element:
+      id: summary-done
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: summary-share
+- assertVisible:
+    id: summary-detail-${SUMMARY_SESSION_ID}
+- takeScreenshot: /private/tmp/u05-${APPEARANCE}-summary-actions
+- tapOn:
+    id: summary-detail-${SUMMARY_SESSION_ID}
+- extendedWaitUntil:
+    visible:
+      id: history-back
+    timeout: 15000
+- assertVisible: Completed workout
+- tapOn:
+    id: history-back
+- extendedWaitUntil:
+    visible:
+      id: summary-header
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: summary-done
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: summary-done
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 15000
