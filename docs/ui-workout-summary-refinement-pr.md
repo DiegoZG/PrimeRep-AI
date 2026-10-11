@@ -16,29 +16,29 @@ checks.
 
 ### After — light and dark summary
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-light-top.png" alt="After: light summary with a small green completion cue and neutral metrics" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-light-top.png" alt="After: light summary with a small green completion cue and neutral metrics" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-dark-top.png" alt="After: dark summary with readable values and neutral metric icons" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-dark-top.png" alt="After: dark summary with readable values and neutral metric icons" width="320" /></a>
 
 ### After — actions
 
 Separate scroll-position captures show neutral Share and Review, with Done as
 the primary purple action.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-light-actions.png" alt="After: light summary with neutral secondary actions and purple Done" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-light-actions.png" alt="After: light summary with neutral secondary actions and purple Done" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/after-dark-actions.png" alt="After: dark summary actions with readable logged values" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/after-dark-actions.png" alt="After: dark summary actions with readable logged values" width="320" /></a>
 
 <details>
 <summary>Before — original summary and actions</summary>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-light-top.png" alt="Before: light summary with purple completion tile and metric icons" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-light-top.png" alt="Before: light summary with purple completion tile and metric icons" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-dark-top.png" alt="Before: dark summary with original purple completion tile and metrics" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-dark-top.png" alt="Before: dark summary with original purple completion tile and metrics" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-light-actions.png" alt="Before: light summary actions with purple Share treatment" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-light-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-light-actions.png" alt="Before: light summary actions with purple Share treatment" width="320" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-workout-summary-refinement/docs/pr-screenshots/u05/before-dark-actions.png" alt="Before: dark summary actions with purple Share treatment" width="320" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-dark-actions.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/7158c102e8650ded04c6a84a603a4fd182df907d/docs/pr-screenshots/u05/before-dark-actions.png" alt="Before: dark summary actions with purple Share treatment" width="320" /></a>
 
 </details>
 
