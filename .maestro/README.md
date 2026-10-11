@@ -69,6 +69,25 @@ verify the workout finishes once on the server with its sets and notes. Repeat
 manually on iOS and Android with timeout, backgrounding, account switch, and
 expired-auth conditions; the YAML does not toggle the network for you.
 
+### Health connections layout
+
+`maestro test -e APPEARANCE=dark .maestro/health-settings-layout.yaml` inspects the native Health
+screen using the existing local test account and usual local backend. Start at
+Home or login; it uses adaptive authentication without clearing app storage and
+keeps any active workout available to resume. It selects the requested app
+appearance; use `-e APPEARANCE=light` for light mode and restore the original
+appearance after visual checks.
+The flow checks the status, three switch rows, stacked primary source, and
+full-width actions, then returns Home. It never changes Health choices, grants
+permissions, syncs data, or disconnects a source.
+
+Repeat with light/dark appearance and an accessibility text size on a small
+iPhone simulator. Inspect screenshots for neutral switch tracks in both states,
+purple ON thumbs, grey OFF thumbs, title/switch alignment, wrapped descriptions,
+and unclipped actions. Connected/unselected and unavailable states are also
+covered by `npm run test:health-ui`; physical-device switch appearance and
+VoiceOver require manual verification.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
