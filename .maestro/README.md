@@ -396,6 +396,67 @@ Home in normal light appearance; the primary has normal text and its original
 dark app preference, ready for reviewing the setup. No final activation,
 replacement selection, Health action, or workout completion was performed.
 
+### Program builder refinement
+
+Run `maestro --device <simulator-uuid> test -e APPEARANCE=light .maestro/program-builder-refinement.yaml`
+only with an already-authenticated native app, the usual local backend, and a
+manually verified empty account-owned program draft. Repeat in settled dark
+appearance. Use iPhone 16 Plus for primary evidence and a 375-point simulator
+for the secondary small-screen check. Do not launch/restart the app to clear a
+draft, use `clearState`, or press Explore's Build action: that action resets the
+existing draft. The direct builder route preserves it.
+
+This flow temporarily enters generic name/description text into an empty local
+draft, checks outside-tap keyboard dismissal, adds two disposable local workout
+days, inspects Options/Cancel, and removes only those days through the explicit
+confirmation. It then clears its own text and returns Home. It never presses
+Create/Save, opens the exercise editor, clones or activates a program, touches
+Health, changes authentication, or finishes/discards the active workout.
+
+If interrupted, inspect the current draft and restore only the flow's own
+changes before leaving; never reset a pre-existing draft. Manual prerequisites
+are mandatory: absence of a visible day selector alone does not prove an
+off-screen draft is empty. Native screenshot/target/keyboard acceptance will be
+recorded separately after execution; this flow's presence is not a test pass.
+Physical-iPhone, VoiceOver, hardware keyboard, actual backend saves, existing
+private/current/scheduled drafts, drag/accessibility reordering, and storage or
+network failures remain manual unless separately verified.
+
+U11 local acceptance passed the complete normal-text local-only flow in Light
+and Dark on the 430-point iPhone 16 Plus (2/2). Both runs retained entered text
+after outside-title taps, inspected two empty local days and Options/Cancel,
+then explicitly removed their own days and cleared their own inputs. A separate
+check with the software keyboard visibly open verified both the fixed Program
+title and empty header background dismiss it without losing the draft; that
+disposable input was cleared afterward. No Create/Save action was pressed.
+
+Bounded individual-target checks passed at maximum accessibility text in both
+themes. Full hero title/subtitle wrap in the scrolling content; day edit content
+stays above its separate reorder/options row. The options sheet scrolls to an
+enabled, fully visible Cancel. These are focused maximum-text layout checks,
+not executions of the entire normal-text flow at maximum text.
+
+Actual 16 Plus targets measured Back/Add/reorder/options 44×44 points, normal
+input interiors 50 points (description 110), and normal choices 45–46 points
+tall. Maximum-text day Edit measured 370×133 and sheet Cancel 390×97; sheet
+move actions measured 97 points tall and Remove 165. The secondary 375-point
+normal-text day check passed: Edit 227×64, Back/Add/reorder/options 44×44, and
+Create 331×56 (not pressed). Its own two disposable local days were removed.
+
+The initial Light appearance assertion used flags the iOS radio control did not
+expose to Maestro; CUA verified the checked control and settled theme instead.
+A baseline navigation-transition image was replaced with a settled original.
+The final primary navigation driver ended before completing its wait; CUA and
+read-only hierarchy independently confirmed the expected empty builder. None
+of these driver/capture limitations is counted as a passing flow or app fix.
+
+Both simulators retain Upper A with 4/4 logged sets, verified visually on Home.
+Actual name/description/alias values and day counts were restored empty before
+any ordinary text-trait restart. The primary is left at its useful empty builder
+in original Dark appearance and normal `large` text; the secondary is at Home
+in Light and `large`. No resetDraft, app-data reset, backend save, Health action,
+authentication change, or workout completion/discard was performed.
+
 ### Workout Summary refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
@@ -593,6 +654,7 @@ must retain the native response until a later successful or terminal lookup.
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
 | Program Detail Refinement | `program-detail-refinement.yaml` | Read-only canonical system card, detail metadata, Use/Customize reachability without mutation, and Home return |
 | Program Activation Refinement | `program-activation-refinement.yaml` | Read-only weekday/start-mode choices, canonical next-week schedule and unresolved-equipment preview, disabled Activate, and Home return |
+| Program Builder Refinement | `program-builder-refinement.yaml` | Verified-empty local draft input/keyboard, two disposable local days, Options/Cancel, explicit cleanup, and Home return without backend save |
 | Settings Refinement | `settings-refinement.yaml` | Read-only preferences, Coach switch, Terms/Help navigation, account actions, and Home return |
 | Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
 | Workout Correction Refinement | `workout-correction-refinement.yaml` | Read-only existing completed correction layout, note action, Summary refresh, and Home with active workout preserved |
@@ -677,6 +739,11 @@ Elements with `testID` props added for Maestro targeting:
 | `program-filter-{field}-{value}` | `Pressable` | applies a catalog filter |
 | `program-builder-day-{position}` | `View` | identifies a draft workout day |
 | `program-builder-day-open-{position}` | `Pressable` | opens an ordered draft workout day |
+| `program-builder-back` | `Pressable` | leaves the builder without saving or resetting the draft |
+| `program-builder-title` | `Text` | full scrolling builder title and outside-input keyboard target |
+| `program-builder-header` | `View` | fixed header background supports outside-input keyboard dismissal |
+| `program-builder-scroll` | `ScrollView` | scrolls builder metadata, choices, days, and save action |
+| `program-day-options-scroll` | `ScrollView` | keeps day options and confirmation actions reachable at large text |
 | `program-day-handle-{position}` | gesture target | drags a visible workout day; exposes increment/decrement accessibility actions |
 | `program-day-menu-{position}` | `Pressable` | opens the cross-platform fallback action sheet |
 | `program-day-move-earlier` / `program-day-move-later` | `Pressable` | moves the selected day one persistent position |

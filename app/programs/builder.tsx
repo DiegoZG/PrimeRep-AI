@@ -6,6 +6,7 @@ import {
   AccessibilityInfo,
   Alert,
   findNodeHandle,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +14,8 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
   type AccessibilityActionEvent,
 } from "react-native";
@@ -29,8 +32,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ProgramHeader } from "@/components/program";
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { DraftProgramDay, ProgramGoal, ProgramLevel } from "@/interfaces/programs";
@@ -49,6 +51,9 @@ type DayActionState = { dayId: string; step: "actions" | "confirmRemove" } | nul
 export default function ProgramBuilderScreen() {
   const router = useRouter();
   const colors = Colors[useColorScheme() ?? "light"];
+  const { fontScale } = useWindowDimensions();
+  const dark = colors.background === Colors.dark.background;
+  const danger = dark ? "#FF8B82" : "#B42318";
   const { token, user } = useContext(AuthContext);
   const { draft, updateMetadata, addDay, removeDay, moveDay, toPayload, loadProgram } = useProgramDraft();
   const [saving, setSaving] = useState(false);
@@ -176,17 +181,27 @@ export default function ProgramBuilderScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
-      <ProgramHeader title={isEditing ? "Edit program" : "Build program"} subtitle="Repeats every week" onBack={() => router.back()} backDisabled={saving} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+      <View testID="program-builder-header" style={styles.header} onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}>
+        <Pressable testID="program-builder-back" accessibilityRole="button" accessibilityLabel={`Back from ${isEditing ? "Edit program" : "Build program"}`} accessibilityState={{ disabled: saving }} disabled={saving} onPress={() => { Keyboard.dismiss(); router.back(); }} style={styles.headerAction}>
+          <Ionicons name="arrow-back" size={24} color={saving ? colors.icon : colors.text} />
+        </Pressable>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}><View style={styles.headerCopy}>{fontScale < 2 ? <ThemedText style={styles.headerTitle}>Program</ThemedText> : null}</View></TouchableWithoutFeedback>
+        <View style={styles.headerAction} />
+      </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} scrollEnabled={!activeDragId}>
+        <ScrollView testID="program-builder-scroll" contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"} onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }} showsVerticalScrollIndicator={false} scrollEnabled={!activeDragId}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}>
+          <ThemedText testID="program-builder-title" style={styles.title}>{isEditing ? "Edit program" : "Build program"}</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: colors.icon }]}>Repeats every week</ThemedText>
           <FieldLabel text="Program name" />
-          <TextInput testID="program-name-input" accessibilityLabel="Program name" value={draft.name} onChangeText={(name) => { updateMetadata({ name }); setError(null); }} placeholder="My strength plan" placeholderTextColor={colors.placeholder} style={[styles.input, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
+          <TextInput testID="program-name-input" accessibilityLabel="Program name" value={draft.name} onChangeText={(name) => { updateMetadata({ name }); setError(null); }} placeholder="My strength plan" placeholderTextColor={colors.icon} style={[styles.input, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
           <FieldLabel text="What is this program for?" />
-          <TextInput testID="program-description-input" accessibilityLabel="Program description" value={draft.description} onChangeText={(description) => { updateMetadata({ description }); setError(null); }} placeholder="A clear description of the plan" placeholderTextColor={colors.placeholder} multiline style={[styles.input, styles.description, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
+          <TextInput testID="program-description-input" accessibilityLabel="Program description" value={draft.description} onChangeText={(description) => { updateMetadata({ description }); setError(null); }} placeholder="A clear description of the plan" placeholderTextColor={colors.icon} multiline style={[styles.input, styles.description, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
           <FieldLabel text="Search aliases (optional)" />
-          <TextInput testID="program-aliases-input" accessibilityLabel="Program search aliases" value={aliasesText} onChangeText={setAliasesText} placeholder="push pull legs, ppl" placeholderTextColor={colors.placeholder} style={[styles.input, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
-          <ThemedText style={[styles.helper, { color: colors.placeholder }]}>Separate alternate names with commas.</ThemedText>
+          <TextInput testID="program-aliases-input" accessibilityLabel="Program search aliases" value={aliasesText} onChangeText={setAliasesText} placeholder="push pull legs, ppl" placeholderTextColor={colors.icon} style={[styles.input, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]} />
+          <ThemedText style={[styles.helper, { color: colors.icon }]}>Separate alternate names with commas.</ThemedText>
 
           <FieldLabel text="Goal" />
           <View style={styles.wrap}>{(Object.keys(PROGRAM_GOAL_LABELS) as ProgramGoal[]).map((goal) => <Choice key={goal} testID={`program-goal-${goal}`} label={PROGRAM_GOAL_LABELS[goal]} selected={draft.goal === goal} onPress={() => updateMetadata({ goal })} colors={colors} />)}</View>
@@ -195,7 +210,7 @@ export default function ProgramBuilderScreen() {
           <FieldLabel text="Workout duration" />
           <View style={styles.wrap}>{[25, 35, 45, 60].map((duration) => <Choice key={duration} testID={`program-duration-${duration}`} label={`${duration} min`} selected={draft.durationMinutes === duration} onPress={() => updateMetadata({ durationMinutes: duration })} colors={colors} />)}</View>
 
-          <View style={styles.daysTitle}><View style={styles.flex}><ThemedText style={styles.sectionTitle}>Workout days</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{draft.days.length}/7 days · Drag nearby or use Options to move farther</ThemedText></View><Pressable testID="program-add-day" accessibilityRole="button" accessibilityLabel="Add workout day" accessibilityState={{ disabled: draft.days.length >= 7 }} disabled={draft.days.length >= 7} onPress={() => { addDay(); setError(null); }} style={[styles.addDay, { backgroundColor: colors.primaryButton, opacity: draft.days.length >= 7 ? 0.4 : 1 }]}><Ionicons name="add" size={22} color="#FFF" /></Pressable></View>
+          <View style={styles.daysTitle}><View style={styles.flex}><ThemedText style={styles.sectionTitle}>Workout days</ThemedText><ThemedText style={[styles.helper, { color: colors.icon }]}>{draft.days.length}/7 days · Drag nearby or use Options to move farther</ThemedText></View><Pressable testID="program-add-day" accessibilityRole="button" accessibilityLabel="Add workout day" accessibilityState={{ disabled: draft.days.length >= 7 }} disabled={draft.days.length >= 7} onPress={() => { Keyboard.dismiss(); addDay(); setError(null); }} style={({ pressed }) => [styles.addDay, { borderColor: colors.inputBorder, backgroundColor: pressed && draft.days.length < 7 ? dark ? "#2C2C2C" : "#F5F5F5" : colors.inputBackground }]}><Ionicons name="add" size={22} color={draft.days.length >= 7 ? colors.icon : colors.text} /></Pressable></View>
           {draft.days.map((day, index) => <ReorderableDay
             key={day.localId}
             day={day}
@@ -206,14 +221,16 @@ export default function ProgramBuilderScreen() {
             isDragging={activeDragId === day.localId}
             isMoved={movedDayId === day.localId}
             onOpen={() => router.push({ pathname: "/programs/day", params: { dayId: day.localId } })}
-            onOptions={() => setDayAction({ dayId: day.localId, step: "actions" })}
+            onOptions={() => { Keyboard.dismiss(); setDayAction({ dayId: day.localId, step: "actions" }); }}
             onMove={(direction) => moveDayBy(day.localId, direction)}
             onDragStart={() => setActiveDragId(day.localId)}
             onDrop={(destination) => finishDrag(day.localId, destination)}
             onDragCancel={() => cancelDrag(day.localId)}
           />)}
-          {error ? <ThemedText testID="program-builder-error" accessibilityRole="alert" style={styles.error}>{error}</ThemedText> : null}
-          <Pressable testID="program-save" accessibilityRole="button" accessibilityLabel={isEditing ? "Save program changes" : "Create program"} accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => void save()} style={[styles.save, { backgroundColor: colors.primaryButton, opacity: saving ? 0.65 : 1 }]}><ThemedText style={styles.saveText}>{saving ? "Saving…" : isEditing ? "Save changes" : "Create program"}</ThemedText></Pressable>
+          {error ? <ThemedText testID="program-builder-error" accessibilityRole="alert" style={[styles.error, { color: danger }]}>{error}</ThemedText> : null}
+          <Pressable testID="program-save" accessibilityRole="button" accessibilityLabel={isEditing ? "Save program changes" : "Create program"} accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => { Keyboard.dismiss(); void save(); }} style={({ pressed }) => [styles.save, { borderColor: saving ? colors.inputBorder : colors.primaryButton, backgroundColor: saving ? colors.inputBackground : colors.primaryButton, transform: pressed && !saving ? [{ scale: 0.99 }] : undefined }]}><ThemedText style={[styles.saveText, { color: saving ? colors.icon : "#FFF" }]}>{saving ? "Saving…" : isEditing ? "Save changes" : "Create program"}</ThemedText></Pressable>
+          </View>
+          </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
       <DayActionSheet
@@ -234,7 +251,10 @@ export default function ProgramBuilderScreen() {
 }
 
 function FieldLabel({ text }: { text: string }) { return <ThemedText style={styles.label}>{text}</ThemedText>; }
-function Choice({ label, selected, onPress, colors, testID }: { label: string; selected: boolean; onPress: () => void; colors: typeof Colors.light; testID: string }) { return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={label} onPress={onPress} style={[styles.choice, { borderColor: selected ? colors.primaryButton : colors.inputBorder, backgroundColor: selected ? "rgba(106,79,245,0.11)" : colors.inputBackground }]}><ThemedText style={{ color: selected ? colors.primaryButton : colors.text, fontWeight: "700" }}>{label}</ThemedText></Pressable>; }
+function Choice({ label, selected, onPress, colors, testID }: { label: string; selected: boolean; onPress: () => void; colors: typeof Colors.light; testID: string }) {
+  const activeSurface = colors.background === Colors.dark.background ? "#2C2C2C" : "#F5F5F5";
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.choice, { borderColor: selected ? colors.icon : colors.inputBorder, backgroundColor: selected || pressed ? activeSurface : colors.inputBackground }]}>{selected ? <Ionicons name="checkmark" size={18} color={colors.text} /> : null}<ThemedText style={[styles.choiceText, { color: colors.text }]}>{label}</ThemedText></Pressable>;
+}
 
 function DayActionSheet({ visible, step, day, index, count, colors, reduceMotion, onClose, onMove, onRequestRemove, onConfirmRemove }: {
   visible: boolean;
@@ -256,9 +276,10 @@ function DayActionSheet({ visible, step, day, index, count, colors, reduceMotion
       <View style={styles.sheetOverlay}>
         <Pressable testID="program-day-options-backdrop" accessibilityRole="button" accessibilityLabel="Close workout day options" onPress={onClose} style={StyleSheet.absoluteFill} />
         <SafeAreaView edges={["bottom"]} style={[styles.sheet, { backgroundColor: colors.background }]} accessibilityViewIsModal>
+          <ScrollView testID="program-day-options-scroll" style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
           <View style={[styles.sheetGrabber, { backgroundColor: colors.inputBorder }]} />
           <ThemedText style={styles.sheetTitle}>{isConfirmation ? `Remove ${day.title}?` : day.title}</ThemedText>
-          <ThemedText style={[styles.sheetMessage, { color: colors.placeholder }]}>
+          <ThemedText style={[styles.sheetMessage, { color: colors.icon }]}>
             {isConfirmation
               ? "This removes the workout day and all of its exercises from this draft."
               : `Position ${index + 1} of ${count}. Move it one place at a time or remove it.`}
@@ -276,6 +297,7 @@ function DayActionSheet({ visible, step, day, index, count, colors, reduceMotion
               <SheetAction testID="program-day-options-cancel" icon="close" label="Cancel" onPress={onClose} colors={colors} />
             </>
           )}
+          </ScrollView>
         </SafeAreaView>
       </View>
     </Modal>
@@ -291,7 +313,8 @@ function SheetAction({ testID, icon, label, destructive = false, disabled = fals
   onPress: () => void;
   colors: typeof Colors.light;
 }) {
-  const color = destructive ? "#D92D20" : colors.text;
+  const dark = colors.background === Colors.dark.background;
+  const color = disabled ? colors.icon : destructive ? dark ? "#FF8B82" : "#B42318" : colors.text;
   return (
     <Pressable
       testID={testID}
@@ -300,7 +323,7 @@ function SheetAction({ testID, icon, label, destructive = false, disabled = fals
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.sheetAction, { borderTopColor: colors.inputBorder, opacity: disabled ? 0.35 : pressed ? 0.65 : 1 }]}
+      style={({ pressed }) => [styles.sheetAction, { borderTopColor: colors.inputBorder, backgroundColor: pressed && !disabled ? dark ? "#2C2C2C" : "#F5F5F5" : colors.background }]}
     >
       <Ionicons name={icon} size={21} color={color} />
       <ThemedText style={[styles.sheetActionText, { color }]}>{label}</ThemedText>
@@ -323,6 +346,7 @@ function ReorderableDay({ day, index, count, colors, reduceMotion, isDragging, i
   onDrop: (destination: number) => void;
   onDragCancel: () => void;
 }) {
+  const { fontScale } = useWindowDimensions();
   const translateY = useSharedValue(0);
   const dragActive = useSharedValue(0);
   const movedProgress = useSharedValue(0);
@@ -392,6 +416,39 @@ function ReorderableDay({ day, index, count, colors, reduceMotion, isDragging, i
   };
   const orderTestKey = day.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "untitled";
 
+  const handle = (
+    <GestureDetector gesture={dragGesture}>
+      <Animated.View style={styles.handleContainer}>
+        <View
+          ref={handleRef}
+          testID={`program-day-handle-${index + 1}`}
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel={`Reorder ${day.title}, position ${index + 1} of ${count}`}
+          accessibilityValue={{ text: `Position ${index + 1} of ${count}` }}
+          accessibilityHint="Drag up or down, or use the move actions"
+          accessibilityActions={accessibilityActions}
+          onAccessibilityAction={onAccessibilityAction}
+          style={styles.handle}
+        >
+          <Ionicons name="reorder-three-outline" size={23} color={isDragging ? colors.primaryButton : colors.icon} />
+        </View>
+      </Animated.View>
+    </GestureDetector>
+  );
+  const main = (
+    <Pressable testID={`program-builder-day-open-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Edit ${day.title}, position ${index + 1} of ${count}`} onPress={onOpen} style={[styles.dayMain, fontScale >= 1.4 && styles.dayMainExpanded]}>
+      <View style={[styles.dayNumber, { backgroundColor: colors.background, borderColor: colors.inputBorder }]}><ThemedText style={styles.dayNumberText}>{index + 1}</ThemedText></View>
+      <View style={styles.flex}><ThemedText style={styles.dayName}>{day.title}</ThemedText><ThemedText style={[styles.helper, { color: colors.icon }]}>{day.exercises.length} {day.exercises.length === 1 ? "exercise" : "exercises"}</ThemedText></View>
+      <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+    </Pressable>
+  );
+  const menu = (
+    <Pressable testID={`program-day-menu-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Options for ${day.title}`} accessibilityHint="Move or remove this workout day" onPress={onOptions} style={styles.menu}>
+      <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+    </Pressable>
+  );
+
   return (
     <Animated.View
       testID={`program-builder-day-${index + 1}`}
@@ -405,43 +462,19 @@ function ReorderableDay({ day, index, count, colors, reduceMotion, isDragging, i
       ]}
     >
       <View testID={`program-day-order-${orderTestKey}-${index + 1}`} collapsable={false} pointerEvents="none" style={StyleSheet.absoluteFill} />
-      <View style={styles.dayRow}>
-        <GestureDetector gesture={dragGesture}>
-          <Animated.View style={styles.handleContainer}>
-            <View
-              ref={handleRef}
-              testID={`program-day-handle-${index + 1}`}
-              accessible
-              accessibilityRole="adjustable"
-              accessibilityLabel={`Reorder ${day.title}, position ${index + 1} of ${count}`}
-              accessibilityValue={{ text: `Position ${index + 1} of ${count}` }}
-              accessibilityHint="Drag up or down, or use the move actions"
-              accessibilityActions={accessibilityActions}
-              onAccessibilityAction={onAccessibilityAction}
-              style={styles.handle}
-            >
-              <Ionicons name="reorder-three-outline" size={23} color={isDragging ? colors.primaryButton : colors.placeholder} />
-            </View>
-          </Animated.View>
-        </GestureDetector>
-        <Pressable testID={`program-builder-day-open-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Edit ${day.title}, position ${index + 1} of ${count}`} onPress={onOpen} style={styles.dayMain}>
-          <View style={[styles.dayNumber, { backgroundColor: "rgba(106,79,245,0.12)" }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "900" }}>{index + 1}</ThemedText></View>
-          <View style={styles.flex}><ThemedText numberOfLines={1} style={styles.dayName}>{day.title}</ThemedText><ThemedText style={[styles.helper, { color: colors.placeholder }]}>{day.exercises.length} {day.exercises.length === 1 ? "exercise" : "exercises"}</ThemedText></View>
-          <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
-        </Pressable>
-        <Pressable testID={`program-day-menu-${index + 1}`} accessibilityRole="button" accessibilityLabel={`Options for ${day.title}`} accessibilityHint="Move or remove this workout day" onPress={onOptions} style={styles.menu}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
-        </Pressable>
+      <View style={[styles.dayRow, fontScale >= 1.4 && styles.dayRowExpanded]}>
+        {fontScale >= 1.4 ? <>{main}<View style={styles.dayActions}>{handle}{menu}</View></> : <>{handle}{main}{menu}</>}
       </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 }, flex: { flex: 1 }, content: { padding: 22, paddingBottom: 52 }, label: { marginTop: 19, marginBottom: 8, fontSize: 15, fontWeight: "800" },
-  input: { minHeight: 52, borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, fontSize: 16 }, description: { minHeight: 96, paddingTop: 14, textAlignVertical: "top" }, wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 15, alignItems: "center", justifyContent: "center" },
-  daysTitle: { marginTop: 31, marginBottom: 12, flexDirection: "row", alignItems: "center" }, sectionTitle: { fontSize: 21, fontWeight: "900" }, helper: { marginTop: 3, fontSize: 12 }, addDay: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  dayCard: { borderRadius: 19, marginBottom: 11 }, dayRow: { minHeight: 78, paddingHorizontal: 7, flexDirection: "row", alignItems: "center" }, draggingCard: { elevation: 9, shadowColor: "#000", shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.22, shadowRadius: 12 }, handleContainer: { width: 44, height: 44 }, handle: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, dayMain: { minHeight: 64, flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }, dayNumber: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" }, dayName: { fontSize: 16, fontWeight: "800" }, menu: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)" }, sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 }, sheetGrabber: { width: 38, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 18 }, sheetTitle: { fontSize: 21, fontWeight: "900", textAlign: "center" }, sheetMessage: { marginTop: 6, marginBottom: 18, paddingHorizontal: 12, textAlign: "center", lineHeight: 20 }, sheetAction: { minHeight: 54, borderTopWidth: 1, flexDirection: "row", alignItems: "center", gap: 13, paddingHorizontal: 10 }, sheetActionText: { fontSize: 16, fontWeight: "700" },
-  error: { color: "#D92D20", marginTop: 12, lineHeight: 20 }, save: { minHeight: 56, marginTop: 22, borderRadius: 18, alignItems: "center", justifyContent: "center" }, saveText: { color: "#FFF", fontSize: 17, fontWeight: "900" },
+  container: { flex: 1 }, flex: { flex: 1 }, content: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 28 },
+  header: { minHeight: 64, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 }, headerAction: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, headerCopy: { flex: 1, alignItems: "center", paddingHorizontal: 8 }, headerTitle: { fontSize: 22, fontWeight: "800" }, title: { fontSize: 30, fontWeight: "800" }, subtitle: { marginTop: 6, fontSize: 15 }, label: { marginTop: 22, marginBottom: 8, fontSize: 16, fontWeight: "700" },
+  input: { minHeight: 52, borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 }, description: { minHeight: 112, textAlignVertical: "top" }, wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { minHeight: 44, maxWidth: "100%", borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" }, choiceText: { fontWeight: "700", flexShrink: 1 },
+  daysTitle: { marginTop: 28, marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 12 }, sectionTitle: { fontSize: 22, fontWeight: "800" }, helper: { marginTop: 5, fontSize: 14 }, addDay: { minWidth: 44, minHeight: 44, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  dayCard: { borderRadius: 19, marginBottom: 11 }, dayRow: { minHeight: 78, paddingHorizontal: 7, paddingVertical: 7, flexDirection: "row", alignItems: "center" }, dayRowExpanded: { flexDirection: "column", alignItems: "stretch", gap: 8 }, dayActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, draggingCard: { elevation: 9, shadowColor: "#000", shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.22, shadowRadius: 12 }, handleContainer: { width: 44, height: 44 }, handle: { width: 44, height: 44, alignItems: "center", justifyContent: "center" }, dayMain: { minHeight: 64, flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }, dayMainExpanded: { flex: 0 }, dayNumber: { minWidth: 38, minHeight: 38, padding: 8, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }, dayNumberText: { fontWeight: "800", fontVariant: ["tabular-nums"] }, dayName: { fontSize: 16, fontWeight: "700" }, menu: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)" }, sheet: { maxHeight: "85%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10 }, sheetScroll: { flexGrow: 0, flexShrink: 1 }, sheetContent: { paddingBottom: 12 }, sheetGrabber: { width: 38, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 18 }, sheetTitle: { fontSize: 22, fontWeight: "800", textAlign: "center" }, sheetMessage: { marginTop: 8, marginBottom: 18, paddingHorizontal: 12, textAlign: "center" }, sheetAction: { minHeight: 54, borderTopWidth: 1, flexDirection: "row", alignItems: "center", gap: 13, paddingHorizontal: 10, paddingVertical: 14 }, sheetActionText: { fontSize: 16, fontWeight: "700", flex: 1 },
+  error: { marginTop: 14 }, save: { minHeight: 56, marginTop: 22, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 15, alignItems: "center", justifyContent: "center" }, saveText: { fontSize: 17, fontWeight: "800" },
 });
