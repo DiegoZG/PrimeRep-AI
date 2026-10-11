@@ -150,6 +150,40 @@ and a physical-device/VoiceOver pass remain manual checks. Maximum-text captures
 verified Explore's scrollable content and contained section headings in both
 themes; extreme text wraps some short labels mid-word.
 
+### Program catalog refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/program-catalog-refinement.yaml`
+with the authenticated native app already open at normal text size and the usual
+local backend running. Repeat in dark appearance with `APPEARANCE=dark`.
+The flow changes only local scopes and filters, deselects them afterward, opens
+a catalog card's canonical detail, and returns Home. It never presses Build,
+activates or edits a program, changes favorites, clears app data, or signs out.
+It requires at least one catalog program with a day. Leave any active workout
+intact; the flow does not restart the app or touch workout controls.
+
+Inspect the original screenshots for neutral selected chips/checks, readable
+semantic equipment warnings, 44-point controls, and both themes. At maximum
+accessibility text size, inspect the scrollable header/scopes and wrapping
+Goal/Experience/Schedule controls, horizontal Equipment labels, bottom Hide
+filters, and results reachability separately. Do not assume a successful driver
+command proves visual correctness.
+
+Native pagination cannot be exercised when the usual fixture has fewer than 20
+programs. Error/pagination/account-switch states are covered by rendered tests;
+physical-iPhone and VoiceOver acceptance remain manual. Do not create fixture
+programs or reset drafts just to fill these gaps.
+
+U04 local acceptance passed the read-only flow in normal light and dark on an
+isolated 375-point iPhone simulator. Goal, experience, and frequency selection
+and deselection, All/PrimeRep/Mine scopes, Hide filters, canonical program detail,
+and Home return were exercised. Native scope/Create/Filters accessibility bounds
+measured 44 points tall. Maximum-text controls were visually inspected in both
+themes, including equipment labels, Hide filters, and results reachability.
+The original Upper A 4/4 workout remained intact; the simulator was restored to
+normal text, light appearance, and Home. Initial baseline catalog requests failed
+but recovered on a text-size app reload without account or backend changes;
+the before/after images therefore do not imply a styling fix for that failure.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
@@ -313,6 +347,7 @@ must retain the native response until a later successful or terminal lookup.
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
+| Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
 | Home Dashboard (seeded) | `seeded/home-dashboard.yaml` | Confirmed next workout, unread Coach action/deep link, four-week trend, and history navigation |
