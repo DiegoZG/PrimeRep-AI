@@ -1,0 +1,59 @@
+# Read-only schedule setup on an already-authenticated native app.
+# Requires the existing Full Body Foundation program and saved active workout.
+# Never taps Activate, changes equipment, or clears app/auth/session data.
+appId: com.diegozegarra.primerep
+tags:
+  - program-activation-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs/activate?templateId=system-full-body-foundation
+- extendedWaitUntil:
+    visible:
+      id: activation-program-name
+    timeout: 15000
+- assertVisible: Full Body Foundation
+- takeScreenshot: /private/tmp/u10-${APPEARANCE}-setup
+- tapOn:
+    id: activation-weekday-0
+- assertVisible:
+    id: activation-preview
+    enabled: false
+- tapOn:
+    id: activation-weekday-0
+- assertVisible:
+    id: activation-preview
+    enabled: true
+- tapOn:
+    id: activation-mode-next-week
+- assertVisible:
+    id: activation-mode-next-week
+    selected: true
+- tapOn:
+    id: activation-preview
+- extendedWaitUntil:
+    visible:
+      id: activation-review
+    timeout: 20000
+- assertVisible:
+    id: activation-target-week
+- assertVisible: Equipment replacements
+- takeScreenshot: /private/tmp/u10-${APPEARANCE}-review
+- scrollUntilVisible:
+    element:
+      id: activation-unresolved-summary
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: activation-confirm
+    enabled: false
+- takeScreenshot: /private/tmp/u10-${APPEARANCE}-unresolved
+- tapOn:
+    id: activation-back
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000

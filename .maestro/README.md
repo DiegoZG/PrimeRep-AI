@@ -340,6 +340,62 @@ restored to normal text, light appearance, and Home. Initial catalog/detail
 reads recovered after restarting the existing app session without account,
 backend, database, or source changes; styling does not claim to fix that failure.
 
+### Program activation refinement
+
+Run `maestro --device <simulator-uuid> test -e APPEARANCE=light .maestro/program-activation-refinement.yaml`
+with the authenticated native app open at normal text size, the usual local
+backend running, and the existing Full Body Foundation system program. The
+fixture has Monday selected and unresolved equipment conflicts; preserve its
+existing active workout. Repeat with settled dark appearance and
+`APPEARANCE=dark`.
+
+This read-only flow opens schedule setup, checks an incomplete weekday choice
+disables review, restores that choice, selects next week locally, and reads the
+canonical schedule/equipment preview. It verifies unresolved equipment keeps
+Activate disabled, then returns Home. The preview endpoint computes impact
+without activating a program. Never tap `activation-confirm`, seed equipment,
+or run the mutating `explore-programs.yaml` lifecycle to capture presentation
+evidence. No app reset, authentication change, Health operation, or training
+mutation is part of this flow.
+
+Use the iPhone 16 Plus for primary screenshots; a 375-point simulator is a
+secondary small-screen check. Inspect original light/dark screenshots at normal
+and maximum accessibility text for the full program title, wrapped weekday and
+start-mode controls, readable schedule impact and warning copy, 44-point
+targets, reachable review/disabled activation, and Home return. Appearance or
+text-size driver commands alone do not prove the app applied those settings.
+Physical-iPhone, VoiceOver, final activation, compatible replacement choices,
+current/scheduled program variants, and failed preview remain manual native
+checks unless separately recorded; focused rendered tests cover their contracts.
+
+U10 local acceptance passed the full read-only flow in normal light and dark
+on the 430-point iPhone 16 Plus. Matched Start now screenshots retain the same
+four preserved workouts and zero replacements as the baseline; the flow's
+separate next-week preview shows canonical selected dates. Eight unresolved
+equipment conflicts were read without changing equipment or activating.
+
+Maximum-text original images verified the untruncated scrolling program name,
+all seven weekdays wrapping into contained rows, stacked start-mode controls,
+reachable Review, and readable schedule impact/semantic warning copy in both
+themes. An initial assertion requiring the entire review group in one viewport
+failed; bounded individual impact/warning targets passed instead. A same-route
+reopen also retained the existing scroll offset, so the subsequent bounds check
+explicitly scrolled to the weekday target. These are driver-scope/navigation
+limitations, not passing runs of the normal-text flow at maximum text.
+
+Actual 16 Plus bounds were Back 44×44, normal weekdays 52–53×50, and normal
+start modes 188×94 points. At maximum text, weekdays were 189×90–91 (Sunday
+386×91), with stacked start modes 386×289 and 386×301. The secondary
+375-point normal-text reachability check passed: Back 44×44, weekdays
+44–45×51, start modes 160–161×112, and Review 331×54. Its initial unavailable
+read recovered after restarting the existing app session without resetting
+authentication, modifying the usual database, or changing source.
+
+Both simulators retain their saved active workout. The secondary is back at
+Home in normal light appearance; the primary has normal text and its original
+dark app preference, ready for reviewing the setup. No final activation,
+replacement selection, Health action, or workout completion was performed.
+
 ### Workout Summary refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
@@ -536,6 +592,7 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
 | Program Detail Refinement | `program-detail-refinement.yaml` | Read-only canonical system card, detail metadata, Use/Customize reachability without mutation, and Home return |
+| Program Activation Refinement | `program-activation-refinement.yaml` | Read-only weekday/start-mode choices, canonical next-week schedule and unresolved-equipment preview, disabled Activate, and Home return |
 | Settings Refinement | `settings-refinement.yaml` | Read-only preferences, Coach switch, Terms/Help navigation, account actions, and Home return |
 | Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
 | Workout Correction Refinement | `workout-correction-refinement.yaml` | Read-only existing completed correction layout, note action, Summary refresh, and Home with active workout preserved |
@@ -630,6 +687,9 @@ Elements with `testID` props added for Maestro targeting:
 | `program-exercise-{position}` | `View` | identifies an ordered draft exercise |
 | `custom-exercise-save` | `Pressable` | creates or updates a private custom exercise |
 | `activation-weekday-{0-6}` | `Pressable` | selects an activation weekday |
+| `activation-back` | `Pressable` | leaves setup without activating the program |
+| `activation-scroll` | `ScrollView` | scrolls setup, schedule impact, and equipment review |
+| `activation-program-name` | `Text` | full program name in the scrolling setup hero |
 | `activation-preview` | `Pressable` | loads canonical schedule and equipment impact |
 | `activation-preview-retry` | `Pressable` | retries a failed schedule/equipment preview |
 | `program-review-equipment` | `Pressable` | opens activation review for an active program requiring equipment changes |
