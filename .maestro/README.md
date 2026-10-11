@@ -88,6 +88,29 @@ and unclipped actions. Connected/unselected and unavailable states are also
 covered by `npm run test:health-ui`; physical-device switch appearance and
 VoiceOver require manual verification.
 
+### Explore refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/explore-refinement.yaml`
+with an already-authenticated native development app and the local backend.
+Repeat after changing only the isolated simulator to dark appearance.
+The flow browses recommendations, the catalog, Favorites, Weights, and scoped
+exercise search without creating programs, resetting drafts, toggling favorites,
+activating plans, or changing an active workout. It assumes the normal catalog
+has exercises matching `press` and no program names matching that query.
+No app-data reset or account switch is performed. Inspect screenshots at normal
+text size, then separately inspect the screen at maximum accessibility text size;
+the fixed tab bar and neighboring screen typography are outside this slice.
+Physical-device and VoiceOver checks remain manual.
+
+U03 local verification reached the recommendations/catalog, empty Favorites,
+All/Programs/Exercises search scopes, and an exercise detail in bounded read-only
+runs. The complete flow has not passed end-to-end: native driver scroll/tap and
+keyboard behavior interrupted it before category navigation. Weights routing,
+builder navigation (which resets its draft), active/scheduled native card states,
+and a physical-device/VoiceOver pass remain manual checks. Maximum-text captures
+verified Explore's scrollable content and contained section headings in both
+themes; extreme text wraps some short labels mid-word.
+
 ### Part 8: profile, support, and export
 
 Use the isolated Part 8 database and API described in
@@ -249,6 +272,7 @@ must retain the native response until a later successful or terminal lookup.
 | Core Screen Completion | `core-screen-completion.yaml` | Forgot-password request, Coach shortcut, cleaned Explore, and Legal routes |
 | Invalid Reset Link | `password-reset-link.yaml` | Deep link submission reaches the generic invalid/expired state |
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
+| Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |
 | Home Dashboard (seeded) | `seeded/home-dashboard.yaml` | Confirmed next workout, unread Coach action/deep link, four-week trend, and history navigation |

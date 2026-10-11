@@ -13,6 +13,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface AnimatedSearchProps {
   placeholder?: string;
+  accessibilityLabel?: string;
+  testID?: string;
   value: string;
   onChangeText?: (text: string) => void;
   onFocus?: () => void;
@@ -23,6 +25,8 @@ interface AnimatedSearchProps {
 
 export function AnimatedSearch({
   placeholder = "Search for equipment",
+  accessibilityLabel,
+  testID,
   value,
   onChangeText,
   onFocus,
@@ -84,6 +88,8 @@ export function AnimatedSearch({
         style={styles.searchIcon}
       />
       <TextInput
+        accessibilityLabel={accessibilityLabel}
+        testID={testID}
         style={[styles.input, { color: colors.text }]}
         placeholder={placeholder}
         placeholderTextColor={colors.placeholder}
