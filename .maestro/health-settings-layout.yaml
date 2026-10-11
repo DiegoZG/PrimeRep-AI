@@ -1,0 +1,106 @@
+# Native Health layout inspection; start at Home or login with the local backend running.
+# Navigates only: never grants permissions, changes Health choices, syncs, or disconnects.
+appId: com.diegozegarra.primerep
+tags:
+  - health
+  - layout
+env:
+  LOGIN_EMAIL: testuser@primerep.com
+  LOGIN_PASSWORD: StrongPass123
+---
+- runFlow: flows/launch-dev-build.yaml
+- runFlow:
+    when:
+      visible: "Back from Health connections"
+    commands:
+      - tapOn: "Back from Health connections"
+- runFlow:
+    when:
+      visible: "Back from Settings"
+    commands:
+      - tapOn: "Back from Settings"
+- runFlow:
+    when:
+      visible:
+        id: "tab-home"
+    commands:
+      - tapOn:
+          id: "tab-home"
+- runFlow:
+    when:
+      visible: "Leave workout"
+    commands:
+      - tapOn: "Leave workout"
+      - tapOn: "Keep Workout Active"
+- runFlow: flows/auth-login-dev-build.yaml
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-settings-button"
+- scrollUntilVisible:
+    element:
+      id: "settings-appearance-${APPEARANCE}"
+    direction: UP
+- tapOn:
+    id: "settings-appearance-${APPEARANCE}"
+- scrollUntilVisible:
+    element:
+      id: "settings-health"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "settings-health"
+- extendedWaitUntil:
+    visible: "Back from Health connections"
+    timeout: 15000
+- takeScreenshot: health-settings-heading
+- scrollUntilVisible:
+    element:
+      id: "health-server-status"
+    direction: DOWN
+    visibilityPercentage: 20
+- takeScreenshot: health-settings-status
+- scrollUntilVisible:
+    element:
+      id: "health-read-toggle"
+    direction: DOWN
+- assertVisible: "Read steps and sleep"
+- scrollUntilVisible:
+    element:
+      id: "health-export-toggle"
+    direction: DOWN
+- assertVisible: "Save PrimeRep workouts"
+- scrollUntilVisible:
+    element:
+      id: "health-coach-toggle"
+    direction: DOWN
+- assertVisible: "Use summaries in Coach"
+- takeScreenshot: health-settings-choices
+- scrollUntilVisible:
+    element:
+      id: "health-primary-source"
+    direction: DOWN
+    visibilityPercentage: 20
+- assertVisible: "Only the selected source is used for Coach context."
+- takeScreenshot: health-settings-primary-source
+- scrollUntilVisible:
+    element:
+      id: "health-sync-now"
+    direction: DOWN
+- assertVisible:
+    id: "health-sync-now"
+- scrollUntilVisible:
+    element:
+      id: "health-disconnect"
+    direction: DOWN
+- assertVisible:
+    id: "health-disconnect"
+- scrollUntilVisible:
+    element:
+      id: "health-open-health-app-settings"
+    direction: DOWN
+- takeScreenshot: health-settings-actions
+- tapOn: "Back from Health connections"
+- tapOn: "Back from Settings"
+- tapOn:
+    id: "tab-home"

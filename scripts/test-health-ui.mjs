@@ -19,7 +19,10 @@ function load(relative, mocks = {}) {
     '@/constants/legal': { PRIVACY_VERSION: '2026-10-02', TERMS_VERSION: '2026-09-12' },
     '@/services/userService': { acceptCurrentLegal: async () => ({}) },
   };
-  const require = (name) => name in mocks ? mocks[name] : name in sharedMocks ? sharedMocks[name] : fallback(name);
+  const require = (name) => {
+    const result = name in mocks ? mocks[name] : name in sharedMocks ? sharedMocks[name] : fallback(name);
+    return name === 'react-native' && name in mocks ? { useWindowDimensions: () => ({ fontScale: 1 }), ...result } : result;
+  };
   const output = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, require, setTimeout, clearTimeout, console }, { filename });
   return module.exports;
@@ -27,6 +30,150 @@ function load(relative, mocks = {}) {
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const quietExportStatus = { subscribeHealthExportSyncStatus: (_userId, listener) => { listener(null); return () => {}; }, setHealthExportSyncStatus() {} };
 const acceptedUser = (id) => ({ id, privacy_accepted_version: '2026-10-02' });
+const flatStyle = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
+
+for (const scheme of ['light', 'dark']) {
+  const colors = scheme === 'dark'
+    ? { background: '#151718', inputBackground: '#1F1F1F', inputBorder: '#3A3A3A', text: '#ECEDEE', icon: '#9BA1A6', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' }
+    : { background: '#fff', inputBackground: '#fff', inputBorder: '#E5E5E5', text: '#11181C', icon: '#687076', primaryButton: '#6a4ff5', placeholder: '#9BA1A6' };
+  async function renderHealth({ primary = true, connected = true, available = true, fail = false, privacyAccepted = true, fontScale = 1 } = {}) {
+    const AuthContext = React.createContext(null);
+    const navigations = [];
+    let settingsOpened = 0;
+    const { default: HealthScreen } = load('app/settings/health.tsx', {
+      react: React,
+      '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      'expo-router': { useRouter: () => ({ back() {}, push: (target) => navigations.push(target) }) },
+      'react-native': { Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) }, Pressable: 'Pressable', ScrollView: 'ScrollView', StatusBar: 'StatusBar', Switch: 'Switch', View: 'View', useWindowDimensions: () => ({ fontScale }), StyleSheet: { hairlineWidth: 1, create: (styles) => styles } },
+      'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+      '@/components/themed-text': { ThemedText: 'ThemedText' },
+      '@/components/screen-state': { ScreenState: 'ScreenState' },
+      '@/config/healthBridgeTest': { HEALTH_BRIDGE_TEST_ENABLED: true },
+      '@/constants/theme': { Colors: { [scheme]: colors }, Fonts: { sans: 'system-ui' } },
+      '@/hooks/use-color-scheme': { useColorScheme: () => scheme },
+      '@/services/healthService': { getHealthState: async () => {
+        if (fail) throw new Error('offline');
+        return { collectionAvailable: available, sources: connected ? [{ source: 'apple_health', readEnabled: true, exportEnabled: true, connectionRevision: 1, lastSuccessfulSyncAt: '2026-10-03T20:07:25Z' }] : [], primarySource: primary ? 'apple_health' : null, coachEnabled: false, days: [] };
+      } },
+      '@/services/health/appleHealthAdapter': { appleHealthAdapter: { availability: async () => 'available', getPermissions: async () => ({ writeWorkout: 'granted' }), openAppSettings: async () => { settingsOpened += 1; } } },
+      '@/services/health/readSync': { syncAppleHealthRead: async () => false },
+      '@/services/health/exportSync': { disableHealthExport: async () => {}, prepareHealthExport: async () => {}, reconcileAppleHealthExport: async () => {}, requestHealthExportStop: async () => {}, waitForHealthExportIdle: async () => {}, pauseHealthExport() {}, resumeHealthExport() {} },
+      '@/services/health/exportStatus': quietExportStatus,
+      '@/services/httpClient': { HttpError: Error },
+      '@/utils/authContext': { AuthContext },
+    });
+    let tree;
+    await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { token: 'token-A', user: privacyAccepted ? acceptedUser('A') : { id: 'A' }, refreshUser() {} } }, React.createElement(HealthScreen))); });
+    return { tree, navigations, settingsOpened: () => settingsOpened };
+  }
+
+  test(`Health switches keep neutral tracks, aligned headers and clear states in ${scheme} mode`, async () => {
+    const { tree } = await renderHealth();
+    const switches = tree.root.findAllByType('Switch');
+    assert.equal(switches.length, 3);
+    for (const node of switches) {
+      assert.deepEqual({ ...node.props.trackColor }, { false: colors.inputBorder, true: colors.inputBorder });
+      assert.equal(node.props.ios_backgroundColor, colors.inputBorder);
+      assert.equal(node.props.thumbColor, node.props.value ? '#6a4ff5' : colors.placeholder);
+      assert.equal(node.props.accessibilityState.disabled, node.props.disabled);
+      assert.deepEqual({ ...node.props.hitSlop }, { top: 7, bottom: 7 });
+      assert.ok(flatStyle(node.parent.props.style).minHeight >= 44);
+      const header = node.parent.parent;
+      assert.equal(flatStyle(header.props.style).flexDirection, 'row');
+      assert.equal(flatStyle(header.props.style).alignItems, 'center');
+      assert.equal(flatStyle(header.findByType('ThemedText').props.style).flex, 1);
+    }
+    await act(async () => { tree.unmount(); });
+  });
+
+  test(`Health source and ordinary actions use neutral stacked styling in ${scheme} mode`, async () => {
+    const { tree, navigations, settingsOpened } = await renderHealth();
+    const source = tree.root.findByProps({ testID: 'health-primary-source' });
+    assert.notEqual(flatStyle(source.props.style).flexDirection, 'row');
+    const selected = tree.root.findByProps({ testID: 'health-primary-selected' });
+    assert.equal(selected.props.accessibilityLabel, 'Apple Health selected as primary source');
+    assert.equal(selected.findByType('Ionicons').props.name, 'checkmark-outline');
+    const captions = tree.root.findAllByType('ThemedText').map((node) => node.children.join(''));
+    assert.ok(captions.includes('Apple Health · Selected'));
+    assert.ok(captions.includes('Only the selected source is used for Coach context.'));
+    assert.ok(captions.some((text) => text.startsWith('Last PrimeRep sync:')));
+    assert.ok(captions.some((text) => text.includes('Apple does not reveal read permission status')));
+    assert.ok(captions.some((text) => text.includes('first import covers 30 days') && text.includes('does not delete records in Apple Health')));
+    assert.ok(captions.some((text) => text.includes('privacy and platform release gates are approved')));
+    const heart = tree.root.findByProps({ testID: 'health-release-status' }).findByProps({ name: 'heart-outline' });
+    assert.equal(heart.props.color, colors.icon);
+    assert.equal(flatStyle(heart.parent.props.style).backgroundColor, undefined);
+    for (const id of ['health-sync-now', 'health-open-health-app-settings', 'health-bridge-test-link']) {
+      const action = tree.root.findByProps({ testID: id });
+      assert.equal(flatStyle(action.props.style({ pressed: false })).minHeight, 44);
+      assert.equal(flatStyle(action.props.style({ pressed: true })).backgroundColor, colors.inputBorder);
+      assert.equal(action.findByType('Ionicons').props.color, colors.text);
+      assert.equal(flatStyle(action.findByType('ThemedText').props.style).color, colors.text);
+    }
+    const disconnect = tree.root.findByProps({ testID: 'health-disconnect' });
+    assert.equal(flatStyle(disconnect.findByType('ThemedText').props.style).color, scheme === 'dark' ? '#F18C86' : '#D14343');
+    await act(async () => { tree.root.findByProps({ testID: 'health-open-health-app-settings' }).props.onPress(); tree.root.findByProps({ testID: 'health-bridge-test-link' }).props.onPress(); });
+    assert.equal(settingsOpened(), 1);
+    assert.deepEqual(navigations, ['/settings/health-bridge-test']);
+    await act(async () => { tree.unmount(); });
+  });
+
+  test(`Health source selection, disabled actions and consent remain available in ${scheme} mode`, async () => {
+    let { tree } = await renderHealth({ primary: false });
+    assert.equal(tree.root.findAllByProps({ testID: 'health-primary-selected' }).length, 0);
+    const select = tree.root.findByProps({ accessibilityLabel: 'Select Apple Health as primary source' });
+    assert.equal(select.props.disabled, false);
+    assert.equal(select.findByType('Ionicons').props.color, colors.text);
+    assert.equal(tree.root.findByProps({ accessibilityLabel: 'Use summaries in Coach' }).props.disabled, true);
+    await act(async () => { tree.unmount(); });
+    ({ tree } = await renderHealth({ primary: false, connected: false, available: false, privacyAccepted: false }));
+    assert.equal(tree.root.findAllByType('Switch').every((node) => node.props.disabled && !node.props.value), true);
+    for (const id of ['health-sync-now', 'health-disconnect']) {
+      const action = tree.root.findByProps({ testID: id });
+      assert.equal(action.props.disabled, true);
+      assert.equal(flatStyle(action.props.style({ pressed: true })).opacity, 0.5);
+      assert.equal(flatStyle(action.props.style({ pressed: true })).backgroundColor, 'transparent');
+    }
+    assert.equal(flatStyle(tree.root.findByProps({ testID: 'health-privacy-accept' }).props.style).backgroundColor, '#6a4ff5');
+    assert.equal(tree.root.findAllByProps({ testID: 'health-privacy-open' }).length, 1);
+    assert.equal(tree.root.findAllByProps({ testID: 'health-privacy-checkbox' }).length, 1);
+    await act(async () => { tree.unmount(); });
+  });
+
+  test(`Health status retry stays neutral without changing shared ScreenState in ${scheme} mode`, async () => {
+    const { tree } = await renderHealth({ fail: true });
+    const error = tree.root.findByProps({ testID: 'health-state-error' });
+    const retry = error.findByProps({ accessibilityLabel: 'Retry' });
+    assert.equal(retry.findByType('Ionicons').props.color, colors.text);
+    assert.equal(flatStyle(retry.props.style({ pressed: false })).backgroundColor, 'transparent');
+    assert.equal(error.findByType('ScreenState').props.onAction, undefined);
+    await act(async () => { retry.props.onPress(); });
+    assert.equal(tree.root.findAllByProps({ testID: 'health-state-error' }).length, 1);
+    await act(async () => { tree.unmount(); });
+  });
+
+  test(`Health title scrolls at accessibility sizes without limiting font scaling in ${scheme} mode`, async () => {
+    for (const fontScale of [1, 2, 3]) {
+      const { tree } = await renderHealth({ fontScale });
+      const title = tree.root.findAllByType('ThemedText').find((node) => node.children.join('') === 'Health connections');
+      const back = tree.root.findByProps({ accessibilityLabel: 'Back from Health connections' });
+      assert.equal(title.props.accessibilityRole, 'header');
+      assert.equal(title.props.maxFontSizeMultiplier, undefined);
+      assert.equal(title.props.allowFontScaling, undefined);
+      assert.equal(title.props.numberOfLines, undefined);
+      assert.equal(flatStyle(back.parent.props.style).minHeight, 64);
+      assert.equal(flatStyle(back.parent.props.style).paddingVertical, 10);
+      if (fontScale >= 2) {
+        assert.equal(title.parent.type, 'ScrollView');
+        assert.equal(back.parent.findAllByType('ThemedText').length, 0);
+        assert.equal(flatStyle(title.props.style).marginLeft, 0);
+      } else {
+        assert.equal(title.parent, back.parent);
+      }
+      await act(async () => { tree.unmount(); });
+    }
+  });
+}
 
 test('Coach health guidance has a valid Settings destination', () => {
   const nav = load('utils/coachNavigation.ts');

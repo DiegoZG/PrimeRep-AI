@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, View } from 'react-native';
+import { AppState, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -30,6 +30,8 @@ export default function HealthSettingsScreen() {
   const { user, token, refreshUser } = useContext(AuthContext);
   const scheme = useColorScheme() ?? 'light';
   const colors = Colors[scheme];
+  const scrollingTitle = useWindowDimensions().fontScale >= 2;
+  const destructiveColor = scheme === 'dark' ? '#F18C86' : '#D14343';
   const accountKey = `${user?.id ?? 'guest'}:${token ?? 'anonymous'}`;
   const accountKeyRef = useRef(accountKey);
   accountKeyRef.current = accountKey;
@@ -322,16 +324,34 @@ export default function HealthSettingsScreen() {
   };
 
   const settingRow = (label: string, detail: string, testID: string, value: boolean, enabled: boolean, onChange?: () => void) => (
-    <View testID={testID} style={[styles.settingRow, styles.settingToggleRow, { borderColor: colors.inputBorder }]}>
-      <View style={styles.settingText}>
-        <ThemedText style={styles.settingTitle}>{label}</ThemedText>
-        <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>{detail}</ThemedText>
+    <View testID={testID} style={[styles.settingRow, { borderColor: colors.inputBorder }, testID === 'health-coach-toggle' && styles.lastSettingRow]}>
+      <View style={styles.settingHeader}>
+        <ThemedText style={[styles.settingTitle, styles.settingLabel]}>{label}</ThemedText>
+        <View style={styles.settingSwitch}>
+          <Switch value={value} disabled={!enabled || Boolean(busy)} onValueChange={onChange} accessibilityLabel={label} accessibilityState={{ disabled: !enabled || Boolean(busy) }} hitSlop={{ top: 7, bottom: 7 }} trackColor={{ false: colors.inputBorder, true: colors.inputBorder }} ios_backgroundColor={colors.inputBorder} thumbColor={value ? colors.primaryButton : colors.placeholder} />
+        </View>
       </View>
-      <View style={styles.settingSwitch}>
-        <Switch value={value} disabled={!enabled || Boolean(busy)} onValueChange={onChange} accessibilityLabel={label} accessibilityState={{ disabled: !enabled || Boolean(busy) }} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor={value ? colors.primaryButton : colors.placeholder} />
-      </View>
+      <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>{detail}</ThemedText>
     </View>
   );
+
+  const actionButton = ({ label, icon, onPress, disabled = false, testID, accessibilityLabel, destructive = false }: {
+    label: string;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    onPress: () => void;
+    disabled?: boolean;
+    testID?: string;
+    accessibilityLabel?: string;
+    destructive?: boolean;
+  }) => {
+    const color = disabled ? colors.icon : destructive ? destructiveColor : colors.text;
+    return (
+      <Pressable testID={testID} onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }} style={({ pressed }) => [styles.actionButton, { borderColor: colors.inputBorder, backgroundColor: pressed && !disabled ? colors.inputBorder : 'transparent', opacity: disabled ? 0.5 : 1 }]}>
+        <Ionicons name={icon} size={20} color={color} accessible={false} />
+        <ThemedText style={[styles.actionText, { color }]}>{label}</ThemedText>
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -340,33 +360,43 @@ export default function HealthSettingsScreen() {
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back from Health connections" style={styles.back}>
           <Ionicons name="arrow-back" size={25} color={colors.text} />
         </Pressable>
-        <ThemedText accessibilityRole="header" style={styles.headerTitle}>Health connections</ThemedText>
+        {!scrollingTitle ? <ThemedText accessibilityRole="header" style={styles.headerTitle}>Health connections</ThemedText> : null}
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {scrollingTitle ? <ThemedText accessibilityRole="header" style={[styles.headerTitle, styles.scrollingTitle]}>Health connections</ThemedText> : null}
         <View testID="health-release-status" style={[styles.status, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <View style={[styles.statusIcon, { backgroundColor: `${colors.primaryButton}20` }]}>
-            <Ionicons name="heart-outline" size={27} color={colors.primaryButton} />
+          <View style={styles.statusHeader}>
+            <Ionicons name="heart-outline" size={24} color={colors.icon} accessible={false} />
+            <ThemedText style={[styles.statusTitle, styles.settingLabel]}>{connected ? 'Apple Health connection saved' : canConnect ? 'Connect Apple Health' : 'Health connections are not available yet'}</ThemedText>
           </View>
-          <ThemedText style={styles.statusTitle}>{connected ? 'Apple Health connection saved' : canConnect ? 'Connect Apple Health' : 'Health connections are not available yet'}</ThemedText>
-          <ThemedText style={[styles.body, { color: colors.icon }]}>
-            {connected
-              ? canConnect
-                ? 'Your PrimeRep connection is saved. Apple Health read access is managed in iOS and cannot be confirmed here.'
-                : 'Your PrimeRep connection is saved, but syncing and new connections are unavailable right now. You can still disconnect it.'
-              : canConnect
+          {!connected ? <ThemedText style={[styles.body, { color: colors.icon }]}>
+            {canConnect
               ? 'Choose what to share. PrimeRep reads daily steps and sleep only after you opt in; your workout plan never changes automatically.'
               : visibleState?.collectionAvailable && Platform.OS === 'ios' && availability === 'unsupported'
                 ? 'Apple Health is unavailable in this build or on this device.'
                 : `PrimeRep is preparing ${sourceName} support. No steps, sleep, or workouts are read or written by this screen.`}
-          </ThemedText>
+          </ThemedText> : null}
+          {!isLoading && !visibleError && visibleState ? (
+            <View testID="health-server-status" style={styles.connectionStatus}>
+              <ThemedText style={[styles.body, { color: colors.icon }]}>
+                {connected
+                  ? canConnect
+                    ? `${SOURCE_NAMES[connected.source]} is listed in your PrimeRep account. This does not confirm access in your phone's Health settings.`
+                    : 'Your PrimeRep connection is saved, but syncing and new connections are unavailable right now. You can still disconnect it.'
+                  : source ? `No ${sourceName} connection is saved in your PrimeRep account.` : 'No health connection is saved in your PrimeRep account.'}
+              </ThemedText>
+              {connected?.lastSuccessfulSyncAt ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Last PrimeRep sync: {new Date(connected.lastSuccessfulSyncAt).toLocaleString()}</ThemedText> : null}
+              {connected?.readEnabled ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Apple does not reveal read permission status. Missing data can mean no records or access was not granted.</ThemedText> : null}
+            </View>
+          ) : null}
         </View>
         {privacyRequired ? (
           <View testID="health-privacy-acceptance" style={[styles.status, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-            <Ionicons name="shield-checkmark-outline" size={25} color={colors.primaryButton} />
+            <Ionicons name="shield-checkmark-outline" size={25} color={colors.icon} />
             <ThemedText style={styles.sectionTitle}>Review the updated Privacy Policy</ThemedText>
             <ThemedText style={[styles.body, { color: colors.icon }]}>It explains optional Apple Health steps, sleep, and workout export. Accepting the policy does not itself enable Health collection.</ThemedText>
             <Pressable testID="health-privacy-open" accessibilityRole="link" accessibilityLabel="Read updated Privacy Policy" onPress={() => router.push('/legal/privacy')} style={styles.policyAction}>
-              <ThemedText style={[styles.settingTitle, { color: colors.primaryButton }]}>Read Privacy Policy</ThemedText>
+              <ThemedText style={styles.settingTitle}>Read Privacy Policy</ThemedText>
             </Pressable>
             <Pressable testID="health-privacy-checkbox" accessibilityRole="checkbox" accessibilityState={{ checked: policyChecked }} onPress={() => setPolicyChecked((value) => !value)} style={styles.policyCheck}>
               <Ionicons name={policyChecked ? 'checkbox' : 'square-outline'} size={24} color={colors.primaryButton} />
@@ -379,19 +409,11 @@ export default function HealthSettingsScreen() {
         ) : null}
 
         {isLoading ? (
-          <ScreenState colors={colors} kind="loading" title="Checking connection status…" testID="health-state-loading" />
+          <ScreenState colors={{ ...colors, primaryButton: colors.icon }} kind="loading" title="Checking connection status…" testID="health-state-loading" />
         ) : visibleError ? (
-          <ScreenState colors={colors} kind="error" title="Status unavailable" message={visibleError} actionLabel="Retry" onAction={() => setRevision((value) => value + 1)} testID="health-state-error" />
-        ) : visibleState ? (
-          <View testID="health-server-status" style={styles.connectionStatus}>
-            <ThemedText style={styles.sectionTitle}>PrimeRep connection status</ThemedText>
-            <ThemedText style={[styles.body, { color: colors.icon }]}>
-              {connected
-                ? `${SOURCE_NAMES[connected.source]} is listed in your PrimeRep account. This does not confirm access in your phone's Health settings.`
-                : source ? `No ${sourceName} connection is saved in your PrimeRep account.` : 'No health connection is saved in your PrimeRep account.'}
-            </ThemedText>
-            {connected?.lastSuccessfulSyncAt ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Last PrimeRep sync: {new Date(connected.lastSuccessfulSyncAt).toLocaleString()}</ThemedText> : null}
-            {connected?.readEnabled ? <ThemedText style={[styles.caption, { color: colors.icon }]}>Apple does not reveal read permission status. Missing data can mean no records or access was not granted.</ThemedText> : null}
+          <View testID="health-state-error" style={styles.exportIssue}>
+            <ScreenState colors={colors} kind="error" title="Status unavailable" message={visibleError} />
+            {actionButton({ label: 'Retry', icon: 'refresh-outline', onPress: () => setRevision((value) => value + 1) })}
           </View>
         ) : null}
 
@@ -399,9 +421,7 @@ export default function HealthSettingsScreen() {
         {visibleExportStatus === 'retry' || exportStopPending ? (
           <View testID="health-export-sync-error" style={styles.exportIssue}>
             <ThemedText accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>{visibleExportStatus === 'export-off-pending' ? 'The PrimeRep server has not confirmed that Apple Health workout export stopped. This device will not export more workouts. Retry when online.' : visibleExportStatus === 'disconnect-pending' ? 'The PrimeRep server has not confirmed that Apple Health was disconnected. This device will not export more workouts. Retry when online.' : 'Apple Health sync could not finish. Your workout remains saved in PrimeRep. Retry when your connection or Health access is available.'}</ThemedText>
-            <Pressable testID="health-export-retry" onPress={retryExport} disabled={exportRetrying} accessibilityRole="button" accessibilityLabel={visibleExportStatus === 'export-off-pending' ? 'Retry stopping Apple Health export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnecting Apple Health' : 'Retry Apple Health sync'} accessibilityState={{ disabled: exportRetrying }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-              <ThemedText style={{ color: colors.primaryButton }}>{exportRetrying ? 'Retrying…' : visibleExportStatus === 'export-off-pending' ? 'Retry stopping export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnect' : 'Retry Apple Health sync'}</ThemedText>
-            </Pressable>
+            {actionButton({ testID: 'health-export-retry', label: exportRetrying ? 'Retrying…' : visibleExportStatus === 'export-off-pending' ? 'Retry stopping export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnect' : 'Retry Apple Health sync', icon: 'refresh-outline', onPress: retryExport, disabled: exportRetrying, accessibilityLabel: visibleExportStatus === 'export-off-pending' ? 'Retry stopping Apple Health export' : visibleExportStatus === 'disconnect-pending' ? 'Retry disconnecting Apple Health' : 'Retry Apple Health sync' })}
           </View>
         ) : null}
         {visibleExportStatus === 'connection-changed' ? <ThemedText testID="health-export-connection-changed" accessibilityLiveRegion="polite" style={[styles.body, { color: '#D93632' }]}>This Apple Health connection changed on another device. Workout export is paused here. Review your Save PrimeRep workouts choice above; turn it off before opting in again if you want this device to export.</ThemedText> : null}
@@ -416,38 +436,29 @@ export default function HealthSettingsScreen() {
         </View>
 
         <View style={[styles.settingsGroup, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <View testID="health-primary-source" style={[styles.settingRow, { borderColor: colors.inputBorder }]}>
-            <View style={styles.settingText}>
-              <ThemedText style={styles.settingTitle}>Primary source</ThemedText>
-              <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>Only the selected source is used for Coach context.</ThemedText>
-            </View>
+          <View testID="health-primary-source" style={[styles.primarySource, { borderColor: colors.inputBorder }]}>
+            <ThemedText style={styles.settingTitle}>Primary source</ThemedText>
             {primarySelected ? (
-              <ThemedText style={[styles.unavailable, { color: colors.icon }]}>Apple Health selected</ThemedText>
+              <View testID="health-primary-selected" accessible accessibilityLabel="Apple Health selected as primary source" style={styles.sourceSelection}>
+                <Ionicons name="checkmark-outline" size={18} color={colors.text} accessible={false} />
+                <ThemedText style={styles.sourceName}>Apple Health · Selected</ThemedText>
+              </View>
             ) : (
-              <Pressable onPress={selectPrimary} disabled={!canConnect || !connected?.readEnabled || Boolean(busy)} accessibilityRole="button" accessibilityLabel="Select Apple Health as primary source" accessibilityState={{ disabled: !canConnect || !connected?.readEnabled || Boolean(busy) }} style={styles.primaryButton}>
-                <ThemedText style={{ color: colors.primaryButton }}>Select Apple Health</ThemedText>
-              </Pressable>
+              actionButton({ label: 'Select Apple Health', icon: 'heart-outline', onPress: selectPrimary, disabled: !canConnect || !connected?.readEnabled || Boolean(busy), accessibilityLabel: 'Select Apple Health as primary source' })
             )}
+            <ThemedText style={[styles.settingDetail, { color: colors.icon }]}>Only the selected source is used for Coach context.</ThemedText>
           </View>
           <View style={styles.actions}>
-            <Pressable onPress={syncNow} disabled={!canConnect || !readEnabled || Boolean(busy)} testID="health-sync-now" accessibilityRole="button" accessibilityState={{ disabled: !canConnect || !readEnabled || Boolean(busy) }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-              <ThemedText style={[styles.disabledActionText, { color: canConnect && readEnabled ? colors.primaryButton : colors.icon }]}>{busy === 'sync' ? 'Syncing…' : 'Sync now'}</ThemedText>
-            </Pressable>
-            <Pressable onPress={disconnect} disabled={connected?.source !== 'apple_health' || Boolean(busy)} testID="health-disconnect" accessibilityRole="button" accessibilityState={{ disabled: connected?.source !== 'apple_health' || Boolean(busy) }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-              <ThemedText style={[styles.disabledActionText, { color: connected?.source === 'apple_health' ? colors.primaryButton : colors.icon }]}>Disconnect</ThemedText>
-            </Pressable>
-            <Pressable onPress={openSettings} disabled={Platform.OS !== 'ios'} testID="health-open-health-app-settings" accessibilityRole="button" accessibilityState={{ disabled: Platform.OS !== 'ios' }} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-              <ThemedText style={[styles.disabledActionText, { color: Platform.OS === 'ios' ? colors.primaryButton : colors.icon }]}>Open iOS app settings</ThemedText>
-            </Pressable>
+            {actionButton({ testID: 'health-sync-now', label: busy === 'sync' ? 'Syncing…' : 'Sync now', icon: 'sync-outline', onPress: syncNow, disabled: !canConnect || !readEnabled || Boolean(busy) })}
+            {actionButton({ testID: 'health-disconnect', label: 'Disconnect', icon: 'unlink-outline', onPress: disconnect, disabled: connected?.source !== 'apple_health' || Boolean(busy), destructive: true })}
+            {actionButton({ testID: 'health-open-health-app-settings', label: 'Open iOS app settings', icon: 'settings-outline', onPress: openSettings, disabled: Platform.OS !== 'ios' })}
           </View>
         </View>
 
         <ThemedText style={[styles.privacy, { color: colors.icon }]}>When enabled, the first import covers 30 days. PrimeRep retains daily summaries for up to 90 days. Disconnect removes this source’s summaries from PrimeRep, but does not delete records in Apple Health.</ThemedText>
         <ThemedText style={[styles.privacy, { color: colors.icon }]}>Apple does not tell apps whether read access was granted or revoked. To review steps and sleep access, open the Health app’s Apps section and select PrimeRep. Health collection stays disabled until the privacy and platform release gates are approved.</ThemedText>
         {HEALTH_BRIDGE_TEST_ENABLED ? (
-          <Pressable testID="health-bridge-test-link" accessibilityRole="button" accessibilityLabel="Open Apple Health bridge test" onPress={() => router.push('/settings/health-bridge-test')} style={[styles.disabledAction, { borderColor: colors.inputBorder }]}>
-            <ThemedText style={[styles.disabledActionText, { color: colors.primaryButton }]}>Open developer bridge test</ThemedText>
-          </Pressable>
+          actionButton({ testID: 'health-bridge-test-link', label: 'Open developer bridge test', icon: 'code-slash-outline', accessibilityLabel: 'Open Apple Health bridge test', onPress: () => router.push('/settings/health-bridge-test') })
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -456,30 +467,33 @@ export default function HealthSettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: 20, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: Fonts.sans, fontSize: 23, lineHeight: 30, fontWeight: '700', marginLeft: 8 },
-  content: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 22 },
-  status: { borderWidth: 1, borderRadius: 22, padding: 22, gap: 12 },
-  statusIcon: { width: 52, height: 52, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  statusTitle: { fontFamily: Fonts.sans, fontSize: 23, lineHeight: 30, fontWeight: '700' },
-  exportIssue: { gap: 12, alignItems: 'flex-start' },
+  headerTitle: { fontFamily: Fonts.sans, fontSize: 23, lineHeight: 30, fontWeight: '700', marginLeft: 8, flex: 1 },
+  scrollingTitle: { flex: 0, marginLeft: 0 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32, gap: 20 },
+  status: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 12 },
+  statusHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statusTitle: { fontFamily: Fonts.sans, fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  exportIssue: { gap: 12 },
   body: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 23 },
-  connectionStatus: { gap: 6 },
+  connectionStatus: { gap: 8 },
   sectionTitle: { fontFamily: Fonts.sans, fontSize: 18, lineHeight: 24, fontWeight: '700' },
   caption: { fontFamily: Fonts.sans, fontSize: 13, lineHeight: 19 },
   settingsGroup: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 16 },
-  settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 82, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
-  settingToggleRow: { alignItems: 'flex-start' },
-  settingText: { flex: 1, paddingVertical: 14, gap: 4 },
-  settingSwitch: { paddingTop: 10, alignItems: 'center', justifyContent: 'flex-start' },
+  settingRow: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
+  lastSettingRow: { borderBottomWidth: 0 },
+  settingHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingLabel: { flex: 1, flexShrink: 1 },
+  settingSwitch: { minHeight: 44, minWidth: 51, alignItems: 'center', justifyContent: 'center' },
   settingTitle: { fontFamily: Fonts.sans, fontSize: 16, lineHeight: 22, fontWeight: '600' },
   settingDetail: { fontFamily: Fonts.sans, fontSize: 13, lineHeight: 19 },
-  unavailable: { fontFamily: Fonts.sans, fontSize: 12, lineHeight: 18 },
-  primaryButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
+  primarySource: { paddingVertical: 16, gap: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  sourceSelection: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sourceName: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 21, flex: 1, flexShrink: 1 },
   actions: { paddingVertical: 16, gap: 10 },
-  disabledAction: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12 },
-  disabledActionText: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 21, fontWeight: '600' },
+  actionButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  actionText: { fontFamily: Fonts.sans, fontSize: 15, lineHeight: 21, fontWeight: '600', flexShrink: 1 },
   privacy: { fontFamily: Fonts.sans, fontSize: 14, lineHeight: 21 },
   policyAction: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center' },
   policyCheck: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
