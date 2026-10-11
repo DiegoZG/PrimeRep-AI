@@ -12,11 +12,11 @@ These presentation captures do not close the manual checks listed below.
 
 ### Light — discovery and program card
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/light-top.png" alt="Explore after refinement in light mode, quiet search and neutral program discovery card" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/e6ee6ebf6fea37747e470c440db6f723df21f195/docs/pr-screenshots/u03/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/e6ee6ebf6fea37747e470c440db6f723df21f195/docs/pr-screenshots/u03/light-top.png" alt="Explore after refinement in light mode, quiet search and neutral program discovery card" width="320"></a>
 
 ### Dark — discovery and program card
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/dark-top.png" alt="Explore after refinement in dark mode, quiet search and neutral program discovery card" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/e6ee6ebf6fea37747e470c440db6f723df21f195/docs/pr-screenshots/u03/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/e6ee6ebf6fea37747e470c440db6f723df21f195/docs/pr-screenshots/u03/dark-top.png" alt="Explore after refinement in dark mode, quiet search and neutral program discovery card" width="320"></a>
 
 ## Changes
 
