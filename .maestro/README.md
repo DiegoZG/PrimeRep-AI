@@ -253,6 +253,47 @@ normal text, light appearance, and Home. Initial baseline catalog requests faile
 but recovered on a text-size app reload without account or backend changes;
 the before/after images therefore do not imply a styling fix for that failure.
 
+### Program detail refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/program-detail-refinement.yaml`
+with the authenticated native app already open at normal text size, the usual
+local backend running, and the existing Full Body Foundation system program in
+the catalog. Repeat in dark appearance with `APPEARANCE=dark` after verifying
+the appearance has settled. The fixture must retain its existing active workout.
+
+The flow browses the PrimeRep scope, opens the canonical system program card,
+scrolls to the existing Use and Customize actions without tapping them, returns
+to the catalog, restores All scope, and returns Home. It never activates,
+customizes, edits, archives, stops, or cancels a program; clears app data;
+changes authentication; or touches the active workout. Do not run the broader
+`explore-programs.yaml` lifecycle flow merely to produce presentation evidence.
+
+Inspect original native screenshots in both themes and at maximum accessibility
+text size for contained titles, neutral day numbers and metadata, readable
+prescriptions, reachable 44-point Back/actions, and real status indicators.
+Native activation/customization/private/scheduled mutations, physical-iPhone,
+and VoiceOver acceptance remain manual unless separately recorded. A driver
+command alone does not prove that content is visible or correctly colored.
+
+The U09 baseline normal dark top screenshot was excluded because it caught an
+appearance transition; genuine dark action and maximum-text captures remain.
+No source rollback was performed to manufacture a replacement baseline.
+
+U09 local acceptance passed the read-only flow in normal light and dark on the
+isolated 375-point iPhone simulator. At maximum accessibility text, original
+images verified the full scrolling title, contained day headers, stacked
+exercise name/prescription/block labels, and reachable Use/Customize actions in
+both themes. Back measured 44 points tall; maximum-text Use and Customize
+measured 166 and 99 points respectively. A first 20-second maximum-text scroll
+timed out partway through the long content; a subsequent bounded 60-second
+scroll reached both actions at full visibility. This was a test-driver timeout,
+not a successful run of the normal-text flow at maximum text.
+
+The existing Upper A 4/4 workout was retained throughout. The simulator was
+restored to normal text, light appearance, and Home. Initial catalog/detail
+reads recovered after restarting the existing app session without account,
+backend, database, or source changes; styling does not claim to fix that failure.
+
 ### Workout Summary refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
@@ -448,6 +489,7 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
+| Program Detail Refinement | `program-detail-refinement.yaml` | Read-only canonical system card, detail metadata, Use/Customize reachability without mutation, and Home return |
 | Settings Refinement | `settings-refinement.yaml` | Read-only preferences, Coach switch, Terms/Help navigation, account actions, and Home return |
 | Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |

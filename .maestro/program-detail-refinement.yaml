@@ -1,0 +1,59 @@
+# Read-only presentation check on an already-authenticated native app.
+# Requires the existing system Full Body Foundation catalog program.
+# Never activates/customizes/edits/archives a program or resets app/session data.
+appId: com.diegozegarra.primerep
+tags:
+  - program-detail-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs
+- extendedWaitUntil:
+    visible:
+      id: program-filter-scope-system
+    timeout: 15000
+- tapOn:
+    id: program-filter-scope-system
+- scrollUntilVisible:
+    element:
+      id: program-card-system-full-body-foundation
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: program-card-system-full-body-foundation
+- extendedWaitUntil:
+    visible:
+      id: program-detail-back
+    timeout: 15000
+- assertVisible:
+    id: program-detail-source
+- takeScreenshot: /private/tmp/u09-${APPEARANCE}-top
+- scrollUntilVisible:
+    element:
+      id: program-customize
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: program-activate
+    enabled: true
+- assertVisible:
+    id: program-customize
+    enabled: true
+- assertVisible:
+    text: Equipment
+- takeScreenshot: /private/tmp/u09-${APPEARANCE}-actions
+- tapOn:
+    id: program-detail-back
+- extendedWaitUntil:
+    visible:
+      id: program-filter-scope-system
+    timeout: 15000
+- tapOn:
+    id: program-filter-scope-all
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000
