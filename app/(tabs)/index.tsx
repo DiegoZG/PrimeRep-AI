@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -20,6 +19,10 @@ import {
   Share,
   Text,
   View,
+  useWindowDimensions,
+  type PressableStateCallbackType,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -59,15 +62,6 @@ function statValue(value: number | undefined): string {
   return value === undefined ? "—" : String(value);
 }
 
-// Gradient colors for workout cards (cycle through)
-const CARD_GRADIENTS: [string, string][] = [
-  ["#6a4ff5", "#4338ca"], // Purple
-  ["#00D4FF", "#0096c7"], // Blue
-  ["#FF6B6B", "#ee5a5a"], // Red
-  ["#34C759", "#2da94e"], // Green
-  ["#FF9500", "#e68600"], // Orange
-];
-
 async function loadHomeCoachAction(token: string): Promise<CoachNextAction> {
   const page = await getCoachFeed(token, localDateIso(), { view: "now", limit: 50 });
   return page.nextAction;
@@ -88,6 +82,13 @@ const Home = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { fontScale, width } = useWindowDimensions();
+  const expandedText = fontScale >= 1.6 || width < 360;
+  const actionStyle = (style: StyleProp<ViewStyle>, primary = false) =>
+    ({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => [
+      style,
+      pressed && { backgroundColor: primary ? "#5940D0" : colors.inputBorder },
+    ];
   const { token, user } = useContext(AuthContext);
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { activeWorkout, refreshActiveWorkout } = useActiveWorkout();
@@ -101,6 +102,7 @@ const Home = () => {
   const [weightUnitState, setWeightUnitState] = useState<{ userId: string; unit: WeightUnit } | null>(null);
   const weightUnit = weightUnitState && weightUnitState.userId === user?.id ? weightUnitState.unit : null;
   const flatListRef = useRef<FlatList>(null);
+  const previousFontScale = useRef(fontScale);
 
   // Store refs for overflow buttons to measure their positions
   const buttonRefs = useRef<Map<string, View | null>>(new Map());
@@ -197,9 +199,9 @@ const Home = () => {
         if (!hasLoadedOnce) {
           setHasLoadedOnce(true);
         }
-        scrollToIndex(highlightedIndex);
+        scrollToIndex(highlightedIndex, fontScale >= 1.6 ? 0 : 0.1);
       }
-    }, [sortedWorkouts.length, highlightedIndex, scrollToIndex, hasLoadedOnce])
+    }, [sortedWorkouts.length, highlightedIndex, scrollToIndex, hasLoadedOnce, fontScale])
   );
 
   // Handle pull-to-refresh (uses local state, not global isLoading)
@@ -277,6 +279,12 @@ const Home = () => {
     setSelectedWorkout(null);
     setMenuAnchorRect(null);
   }, []);
+
+  useEffect(() => {
+    if (previousFontScale.current === fontScale) return;
+    previousFontScale.current = fontScale;
+    handleCloseMenu();
+  }, [fontScale, handleCloseMenu]);
 
   // Handle regenerate week
   const handleRegenerateWeek = useCallback(async () => {
@@ -407,62 +415,54 @@ const Home = () => {
   }) => {
     const highlighted = isHighlighted(workout);
     const today = isToday(workout.date);
-    const gradientColors = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
     const exerciseCount = getExerciseCount(workout);
 
     return (
       <AnimatedCard delay={100 + index * 50}>
         <Pressable
           testID="workout-card"
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${workout.title}, ${getDayName(workout.date)}${today ? ", today" : ""}, ${workout.durationMinutes} minutes, ${exerciseCount} ${exerciseCount === 1 ? "exercise" : "exercises"}`}
           onPress={() => handleWorkoutPress(workout)}
           style={({ pressed }) => [
             styles.workoutCard,
-            highlighted && styles.workoutCardHighlighted,
+            { backgroundColor: colors.inputBackground, borderColor: highlighted ? colors.primaryButton : colors.inputBorder },
             { opacity: pressed ? 0.95 : 1 },
           ]}
         >
-          <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.workoutCardGradient}
-          />
-
-          {/* Day badge */}
-          <View style={styles.dayBadge}>
-            <Text style={styles.dayBadgeText}>{getDayName(workout.date)}</Text>
-            {today && (
-              <View style={styles.todayIndicator}>
-                <Text style={styles.todayText}>TODAY</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Overflow menu button */}
-          <View
-            ref={(ref) => {
-              buttonRefs.current.set(workout.workoutDayId, ref);
-            }}
-            collapsable={false}
-          >
-            <Pressable
-              testID="home-workout-options"
-              onPress={() => handleOpenMenu(workout)}
-              style={styles.overflowButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityRole="button"
-              accessibilityLabel="Workout options"
+          <View style={styles.workoutCardHeader}>
+            <View style={styles.dayBadge}>
+              <Text style={[styles.dayBadgeText, { color: colors.icon }]}>{getDayName(workout.date)}</Text>
+              {today && (
+                <View style={[styles.todayIndicator, { borderColor: colors.inputBorder }]}>
+                  <Text style={[styles.todayText, { color: colors.text }]}>Today</Text>
+                </View>
+              )}
+            </View>
+            <View
+              ref={(ref) => {
+                buttonRefs.current.set(workout.workoutDayId, ref);
+              }}
+              collapsable={false}
             >
-              <Ionicons name="ellipsis-horizontal" size={20} color="#FFFFFF" />
-            </Pressable>
+              <Pressable
+                testID="home-workout-options"
+                onPress={() => handleOpenMenu(workout)}
+                style={actionStyle(styles.overflowButton)}
+                accessibilityRole="button"
+                accessibilityLabel={`Workout options for ${workout.title}`}
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} />
+              </Pressable>
+            </View>
           </View>
 
           {/* Content */}
           <View style={styles.workoutContent}>
-            <Text style={styles.workoutTitle} numberOfLines={1}>
+            <Text style={[styles.workoutTitle, { color: colors.text }]}>
               {workout.title}
             </Text>
-            <Text style={styles.workoutSubtitle}>{workout.dayType}</Text>
+            <Text style={[styles.workoutSubtitle, { color: colors.icon }]}>{workout.dayType}</Text>
 
             {/* Metrics */}
             <View style={styles.workoutMetrics}>
@@ -470,9 +470,9 @@ const Home = () => {
                 <Ionicons
                   name="time-outline"
                   size={14}
-                  color="rgba(255, 255, 255, 0.85)"
+                  color={colors.icon}
                 />
-                <Text style={styles.metricText}>
+                <Text style={[styles.metricText, { color: colors.icon }]}>
                   {workout.durationMinutes} min
                 </Text>
               </View>
@@ -480,19 +480,13 @@ const Home = () => {
                 <Ionicons
                   name="barbell-outline"
                   size={14}
-                  color="rgba(255, 255, 255, 0.85)"
+                  color={colors.icon}
                 />
-                <Text style={styles.metricText}>{exerciseCount} exercises</Text>
+                <Text style={[styles.metricText, { color: colors.icon }]}>{exerciseCount} {exerciseCount === 1 ? "exercise" : "exercises"}</Text>
               </View>
             </View>
           </View>
 
-          {/* Highlighted indicator */}
-          {highlighted && (
-            <View style={styles.highlightIndicator}>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-            </View>
-          )}
         </Pressable>
       </AnimatedCard>
     );
@@ -522,6 +516,7 @@ const Home = () => {
       )}
 
       <ScrollView
+        key={fontScale}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -535,7 +530,7 @@ const Home = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <ThemedText type="default" style={styles.greeting}>
               {getGreeting()},
             </ThemedText>
@@ -551,12 +546,12 @@ const Home = () => {
             accessibilityRole="button"
             accessibilityLabel={`Resume ${activeWorkoutTitle}`}
             onPress={openNextAction}
-            style={[styles.primaryAction, { backgroundColor: colors.primaryButton }]}
+            style={actionStyle([styles.primaryAction, { backgroundColor: colors.primaryButton }], true)}
           >
-            <View style={[styles.liveDot, { backgroundColor: colors.electricBlue }]} />
+            <View style={[styles.liveDot, { backgroundColor: "#FFFFFF" }]} />
             <View style={{ flex: 1 }}>
               <ThemedText style={styles.primaryEyebrow}>Workout in progress</ThemedText>
-              <ThemedText style={styles.primaryTitle} numberOfLines={1}>{activeWorkoutTitle}</ThemedText>
+              <ThemedText style={styles.primaryTitle}>{activeWorkoutTitle}</ThemedText>
               <ThemedText style={styles.primaryBody}>
                 {activeWorkout.completedSets}{activeWorkoutTotalSets > 0 ? `/${activeWorkoutTotalSets}` : ""} sets completed
               </ThemedText>
@@ -572,23 +567,23 @@ const Home = () => {
           <View testID="home-next-error" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
             <ThemedText style={styles.quietActionTitle}>Next workout unavailable</ThemedText>
             <ThemedText style={{ color: colors.icon }}>Browse your week below, or retry to confirm what’s next.</ThemedText>
-            <Pressable testID="home-next-retry" accessibilityRole="button" accessibilityLabel="Retry next workout guidance" onPress={() => void refreshCoachAction()} style={styles.compactAction}>
-              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry guidance</ThemedText>
+            <Pressable testID="home-next-retry" accessibilityRole="button" accessibilityLabel="Retry next workout guidance" onPress={() => void refreshCoachAction()} style={actionStyle(styles.compactAction)}>
+              <ThemedText style={{ color: colors.text, fontWeight: "700" }}>Retry guidance</ThemedText>
             </Pressable>
           </View>
         ) : workoutState === "planned" || workoutState === "resume" ? (
           <Pressable
             testID="home-next-workout"
             accessibilityRole="button"
-            accessibilityLabel={`${completedCount === 0 ? "Start your first workout" : "Open next workout"}: ${nextAction?.title ?? "Workout"}`}
+            accessibilityLabel={`${completedCount === 0 ? "Open your first workout" : "Open next workout"}: ${nextAction?.title ?? "Workout"}`}
             onPress={openNextAction}
-            style={[styles.primaryAction, { backgroundColor: colors.primaryButton }]}
+            style={actionStyle([styles.primaryAction, { backgroundColor: colors.primaryButton }], true)}
           >
             <Ionicons name="barbell-outline" size={22} color="#FFFFFF" />
             <View style={{ flex: 1 }}>
               <ThemedText style={styles.primaryEyebrow}>{completedCount === 0 ? "Your first workout" : workoutState === "resume" ? "Workout in progress" : "Up next"}</ThemedText>
-              <ThemedText style={styles.primaryTitle} numberOfLines={2}>{nextAction?.title}</ThemedText>
-              <ThemedText style={styles.primaryBody} numberOfLines={2}>{nextAction?.body}</ThemedText>
+              <ThemedText style={styles.primaryTitle}>{nextAction?.title}</ThemedText>
+              <ThemedText style={styles.primaryBody}>{nextAction?.body}</ThemedText>
             </View>
             <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
           </Pressable>
@@ -596,16 +591,16 @@ const Home = () => {
           <View testID="home-first-workout" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
             <ThemedText style={styles.quietActionTitle}>Your first workout starts here</ThemedText>
             <ThemedText style={{ color: colors.icon }}>Choose a program to put a workout on your calendar.</ThemedText>
-            <Pressable testID="home-find-program" accessibilityRole="button" onPress={() => router.push("/programs")} style={styles.compactAction}>
-              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Browse programs</ThemedText>
+            <Pressable testID="home-find-program" accessibilityRole="button" onPress={() => router.push("/programs")} style={actionStyle(styles.compactAction)}>
+              <ThemedText style={{ color: colors.text, fontWeight: "700" }}>Browse programs</ThemedText>
             </Pressable>
           </View>
         ) : workoutState === "complete" ? (
           <View testID="home-week-complete" style={[styles.quietAction, { backgroundColor: colors.inputBackground }]}>
             <ThemedText style={styles.quietActionTitle}>Your week is complete</ThemedText>
             <ThemedText style={{ color: colors.icon }}>No unfinished workout is scheduled next. Your training history is ready whenever you are.</ThemedText>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/workout/history")} style={styles.compactAction}>
-              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>View history</ThemedText>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/workout/history")} style={actionStyle(styles.compactAction)}>
+              <ThemedText style={{ color: colors.text, fontWeight: "700" }}>View history</ThemedText>
             </Pressable>
           </View>
         ) : (
@@ -621,7 +616,7 @@ const Home = () => {
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               This Week
             </ThemedText>
-            <Text style={[styles.workoutCount, { color: colors.placeholder }]}>
+            <Text style={[styles.workoutCount, { color: colors.icon }]}>
               {sortedWorkouts.length} workouts
             </Text>
           </View>
@@ -663,13 +658,16 @@ const Home = () => {
                 </ThemedText>
                 <ThemedText style={styles.errorSubtitle}>{error}</ThemedText>
                 <Pressable
+                  testID="home-week-retry"
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry weekly workouts"
                   onPress={() => refreshWeek({ force: false })}
-                  style={[
+                  style={actionStyle([
                     styles.retryButton,
-                    { backgroundColor: colors.primaryButton },
-                  ]}
+                    { borderColor: colors.inputBorder },
+                  ])}
                 >
-                  <Text style={styles.retryButtonText}>Try Again</Text>
+                  <Text style={[styles.retryButtonText, { color: colors.text }]}>Try Again</Text>
                 </Pressable>
               </View>
             </View>
@@ -685,13 +683,12 @@ const Home = () => {
                 <View
                   style={[
                     styles.emptyIcon,
-                    { backgroundColor: "rgba(106, 79, 245, 0.1)" },
                   ]}
                 >
                   <Ionicons
                     name="calendar-outline"
                     size={32}
-                    color={colors.primaryButton}
+                    color={colors.icon}
                   />
                 </View>
                 <ThemedText style={styles.emptyTitle}>
@@ -732,7 +729,7 @@ const Home = () => {
           </View>
 
           <AnimatedCard delay={300}>
-            <View testID="home-live-stats" style={styles.statsRow}>
+            <View testID="home-live-stats" style={[styles.statsRow, expandedText && styles.statsStack]}>
               <View
                 style={[
                   styles.statCard,
@@ -742,13 +739,12 @@ const Home = () => {
                 <View
                   style={[
                     styles.statIcon,
-                    { backgroundColor: "rgba(106, 79, 245, 0.1)" },
                   ]}
                 >
                   <Ionicons
                     name="flame"
                     size={24}
-                    color={colors.primaryButton}
+                    color={colors.icon}
                   />
                 </View>
                 <ThemedText testID="home-stat-streak" style={styles.statValue}>
@@ -766,13 +762,12 @@ const Home = () => {
                 <View
                   style={[
                     styles.statIcon,
-                    { backgroundColor: "rgba(0, 212, 255, 0.1)" },
                   ]}
                 >
                   <Ionicons
                     name="trophy"
                     size={24}
-                    color={colors.electricBlue}
+                    color={colors.icon}
                   />
                 </View>
                 <ThemedText testID="home-stat-workouts" style={styles.statValue}>
@@ -816,8 +811,8 @@ const Home = () => {
           ) : coachCard.error ? (
             <View testID="home-coach-error" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
               <ThemedText style={{ color: colors.icon, flex: 1 }}>Coach guidance is unavailable.</ThemedText>
-              <Pressable testID="home-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach guidance" onPress={() => void refreshCoachCard()} style={styles.compactAction}>
-                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText>
+              <Pressable testID="home-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach guidance" onPress={() => void refreshCoachCard()} style={actionStyle(styles.compactAction)}>
+                <ThemedText style={{ color: colors.text, fontWeight: "700" }}>Retry</ThemedText>
               </Pressable>
             </View>
           ) : coachItem ? (
@@ -826,19 +821,18 @@ const Home = () => {
               accessibilityRole="button"
               accessibilityLabel={`Open Coach action: ${coachItem.title}`}
               onPress={() => openCoachItem(coachItem)}
-              style={[styles.coachPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+              style={actionStyle([styles.coachPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }])}
             >
-              <View style={[styles.coachStripe, { backgroundColor: colors.electricBlue }]} />
               <View style={{ flex: 1 }}>
-                <ThemedText style={[styles.panelLabel, { color: colors.primaryButton }]}>For your next move</ThemedText>
-                <ThemedText style={styles.coachTitle} numberOfLines={2}>{coachItem.title}</ThemedText>
-                <ThemedText style={[styles.coachBody, { color: colors.icon }]} numberOfLines={2}>
+                <ThemedText style={[styles.panelLabel, { color: colors.icon }]}>For your next move</ThemedText>
+                <ThemedText style={styles.coachTitle}>{coachItem.title}</ThemedText>
+                <ThemedText style={[styles.coachBody, { color: colors.icon }]}>
                   {coachItem.weightData && !weightUnit
                     ? "Preparing your target…"
                     : coachItemPresentation(coachItem, weightUnit, equipmentWeights.dumbbellWeights, equipmentWeights.plateWeights).body}
                 </ThemedText>
               </View>
-              <Ionicons name="arrow-forward" size={20} color={colors.primaryButton} />
+              <Ionicons name="arrow-forward" size={20} color={colors.icon} />
             </Pressable>
           ) : (
             <ThemedText testID="home-coach-empty" style={[styles.emptyLine, { color: colors.icon }]}>No unread Coach actions right now.</ThemedText>
@@ -848,8 +842,8 @@ const Home = () => {
         <View style={styles.sectionPadded}>
           <View style={styles.sectionHeader}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>Last four weeks</ThemedText>
-            <Pressable testID="home-trend-history" accessibilityRole="button" accessibilityLabel="View workout history" onPress={() => router.push("/workout/history")} style={styles.compactAction}>
-              <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>History</ThemedText>
+            <Pressable testID="home-trend-history" accessibilityRole="button" accessibilityLabel="View workout history" onPress={() => router.push("/workout/history")} style={actionStyle(styles.compactAction)}>
+              <ThemedText style={{ color: colors.text, fontWeight: "700" }}>History</ThemedText>
             </Pressable>
           </View>
           {achievements.loading ? (
@@ -860,8 +854,8 @@ const Home = () => {
           ) : achievements.error ? (
             <View testID="home-trend-error" style={[styles.compactPanel, { backgroundColor: colors.inputBackground }]}>
               <ThemedText style={{ color: colors.icon, flex: 1 }}>Training trend is unavailable.</ThemedText>
-              <Pressable testID="home-trend-retry" accessibilityRole="button" accessibilityLabel="Retry training trend" onPress={() => void refreshAchievements()} style={styles.compactAction}>
-                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText>
+              <Pressable testID="home-trend-retry" accessibilityRole="button" accessibilityLabel="Retry training trend" onPress={() => void refreshAchievements()} style={actionStyle(styles.compactAction)}>
+                <ThemedText style={{ color: colors.text, fontWeight: "700" }}>Retry</ThemedText>
               </Pressable>
             </View>
           ) : achievements.data?.total_completed === 0 ? (
@@ -871,16 +865,16 @@ const Home = () => {
             </View>
           ) : achievements.data ? (
             <View testID="home-four-week-trend" style={[styles.trendPanel, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-              <View style={styles.trendBars}>
+              <View style={[styles.trendBars, expandedText && styles.trendBarsExpanded]}>
                 {trendWeeks.map((week) => {
                   const label = week.is_current ? "This week" : new Date(`${week.week_start}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
                   return (
-                    <View key={week.week_start} testID={`home-trend-week-${week.week_start}`} accessible accessibilityLabel={`${label}: ${week.completed_workouts} completed ${week.completed_workouts === 1 ? "workout" : "workouts"}${week.is_current ? ", week in progress" : ""}`} style={styles.trendColumn}>
+                    <View key={week.week_start} testID={`home-trend-week-${week.week_start}`} accessible accessibilityLabel={`${label}: ${week.completed_workouts} completed ${week.completed_workouts === 1 ? "workout" : "workouts"}${week.is_current ? ", week in progress" : ""}`} style={[styles.trendColumn, expandedText && styles.trendColumnExpanded]}>
                       <ThemedText style={styles.trendCount}>{week.completed_workouts}</ThemedText>
                       <View style={[styles.trendTrack, { backgroundColor: colors.inputBorder }]}>
                         <View style={[styles.trendFill, { height: week.completed_workouts === 0 ? 0 : Math.max(6, 64 * week.completed_workouts / trendMaximum), backgroundColor: week.is_current ? colors.electricBlue : colors.primaryButton }]} />
                       </View>
-                      <ThemedText style={[styles.trendWeekLabel, { color: colors.icon }]} numberOfLines={1}>{label}</ThemedText>
+                      <ThemedText style={[styles.trendWeekLabel, { color: colors.icon }]}>{label}</ThemedText>
                     </View>
                   );
                 })}
