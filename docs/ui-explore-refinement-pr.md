@@ -4,6 +4,20 @@
 
 Refine Explore to match the accepted workout logger and Health settings direction: neutral surfaces, readable metadata and restrained purple on the main Browse programs action. No search, program, favorite, account, workout or Health behavior is changed.
 
+## Screenshots
+
+After-refinement native iPhone SE simulator captures (375-point width, normal
+text), using the existing test fixture. Tap a preview for its full-size image.
+These presentation captures do not close the manual checks listed below.
+
+### Light — discovery and program card
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/light-top.png" alt="Explore after refinement in light mode, quiet search and neutral program discovery card" width="320"></a>
+
+### Dark — discovery and program card
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-explore-refinement/docs/pr-screenshots/u03/dark-top.png" alt="Explore after refinement in dark mode, quiet search and neutral program discovery card" width="320"></a>
+
 ## Changes
 
 - Replace the decorative Favorites gradient, shadows and press spring with a compact neutral card, restrained heart, readable count and native pressed feedback.
