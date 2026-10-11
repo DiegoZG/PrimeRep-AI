@@ -6,6 +6,25 @@ Refine Home to match the accepted workout logger and Health settings direction:
 neutral supporting content, readable system typography, and purple concentrated
 on the main Resume/next-workout action. This is the independent U02 screen slice.
 
+## Screenshots
+
+After-refinement native iPhone SE simulator captures (375-point width, normal
+text), using the existing test fixture. The lower-screen image is a separate
+scroll position, not a stitched screen. Tap a preview for its full-size image.
+These presentation captures do not close the manual checks listed below.
+
+### Light — workout action and cards
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-top.png" alt="Home after refinement in light mode, Resume action and neutral workout carousel" width="320"></a>
+
+### Dark — workout action and cards
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/dark-top.png" alt="Home after refinement in dark mode, Resume action and neutral workout carousel" width="320"></a>
+
+### Light — Coach guidance and training trend
+
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-guidance-trend.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-home-refinement/docs/pr-screenshots/u02/light-guidance-trend.png" alt="Home after refinement in light mode, compact Coach guidance and four-week trend" width="320"></a>
+
 ## Changes
 
 - Replace position-based rainbow workout gradients with theme-native neutral
