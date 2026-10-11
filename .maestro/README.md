@@ -127,6 +127,42 @@ and unclipped actions. Connected/unselected and unavailable states are also
 covered by `npm run test:health-ui`; physical-device switch appearance and
 VoiceOver require manual verification.
 
+### Settings refinement
+
+Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/settings-refinement.yaml`
+with an already-authenticated native development app and the usual local backend.
+Repeat in dark appearance. The flow inspects Settings, opens Terms and Help,
+returns without sending messages, and checks the account actions without pressing
+them. It never changes Appearance, Units, Coach or AI preferences, requests OS
+permissions, signs out, deletes an account, resets app data, or touches Health data.
+
+Inspect the original screenshots and accessibility bounds at normal text size,
+then separately inspect maximum accessibility text in both themes. Restart the
+app without clearing its data after changing simulator text size so React Native
+receives the updated font scale. Preserve any recovered workout with **Keep
+Workout Active**, never Discard. Restore normal text size and light appearance
+afterward. If the fixture has Coach notifications off or no Premium entitlement,
+do not enable them just for screenshots; enabled reminder and Premium controls
+are covered by renderer tests and remain manual native acceptance checks.
+Physical-iPhone and VoiceOver checks remain manual.
+
+U07 verification passed this read-only flow in normal light and dark on a
+375-point iPhone simulator. Initial driver attempts missed the Terms tap and
+generic iOS `back` did not navigate; waiting for scroll animations, using the
+native action label, and pressing each screen's explicit Back control resolved
+those test-driver failures. The final flow checks Terms/Help and returns Home.
+Maximum-text inspection confirmed stacked Appearance choices and reachable
+Units, wrapped Coach explanations, and the 44-point Settings Back target in
+both themes. Extreme text may wrap long words mid-word rather than truncate.
+The native Coach switch is 51 by 31 points, with seven-point top/bottom hit slop
+inside its 44-point wrapper for an intended 44-point target; parent clipping can
+clamp hit slop, so actual edge-hit checks remain manual. Its OFF thumb and
+neutral track were inspected; UIKit may apply native track treatments, so
+configured-color contrast calculations are not pixel-measured native contrast.
+No existing preference or permission was changed. ON/reminder, Premium,
+permission refusal/loading/error, save/retry, and account changes are renderer
+regressions or manual native checks, not live fixture mutations in this flow.
+
 ### Explore refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light .maestro/explore-refinement.yaml`
@@ -379,6 +415,7 @@ must retain the native response until a later successful or terminal lookup.
 | Explore Programs | `explore-programs.yaml` | Catalog, builder, immediate/next-week activation, Apply Now, deactivation, substitution review, locked prescriptions/Skip Day, Favorites, and custom exercise lifecycle |
 | Explore Refinement | `explore-refinement.yaml` | Read-only native recommendations/catalog, favorites, category, scoped search, and exercise-detail navigation |
 | Program Catalog Refinement | `program-catalog-refinement.yaml` | Read-only native scopes/filter selection, bottom panel close, canonical card detail, and Home return |
+| Settings Refinement | `settings-refinement.yaml` | Read-only preferences, Coach switch, Terms/Help navigation, account actions, and Home return |
 | Workout Summary Refinement | `workout-summary-refinement.yaml` | Read-only existing completed summary, review editor/back refresh, and Done to Home |
 | Coach Feed | `coach-feed.yaml` | Account-fenced next action and settled first-page refresh smoke check |
 | Coach Feed (seeded) | `seeded/coach-feed.yaml` | All six item kinds, AI label, read-on-expand, dismiss, pagination, deep link, and reminder-time save |

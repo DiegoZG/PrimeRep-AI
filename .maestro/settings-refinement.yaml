@@ -1,0 +1,73 @@
+# Read-only Settings checks with an existing authenticated local fixture.
+# Does not request permissions, change preferences, sign out, or delete data.
+# Run at normal text size; maximum accessibility text is inspected separately.
+appId: com.diegozegarra.primerep
+tags:
+  - settings-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://settings
+- extendedWaitUntil:
+    visible: Settings
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: settings-appearance-system
+    direction: UP
+    timeout: 10000
+- assertVisible: Units
+- assertVisible:
+    id: settings-coach-notifications
+- takeScreenshot: /private/tmp/u07-${APPEARANCE}-settings-top
+- scrollUntilVisible:
+    element:
+      id: settings-terms
+    direction: DOWN
+    centerElement: true
+    timeout: 15000
+- waitForAnimationToEnd
+- tapOn:
+    text: Terms of Service
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: Back from Terms of Service
+    timeout: 15000
+- tapOn: Back from Terms of Service
+- extendedWaitUntil:
+    visible: Settings
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: settings-help
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- waitForAnimationToEnd
+- tapOn:
+    text: Help and Support
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: help-faq-workouts
+    timeout: 15000
+- tapOn:
+    id: profile-page-back
+- extendedWaitUntil:
+    visible: Settings
+    timeout: 15000
+- scrollUntilVisible:
+    element: Delete account
+    direction: DOWN
+    timeout: 10000
+- assertVisible: Log out
+- assertVisible:
+    id: settings-export
+- takeScreenshot: /private/tmp/u07-${APPEARANCE}-settings-actions
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 15000
