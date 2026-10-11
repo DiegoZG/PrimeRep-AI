@@ -15,19 +15,19 @@ captures were not taken. Tap a preview to open its full-size image.
 
 ### Light — estimate
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-result.png" alt="Calculator after refinement in light mode, estimate scroll position" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/light-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/light-result.png" alt="Calculator after refinement in light mode, estimate scroll position" width="320"></a>
 
 ### Light — Apply action
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/light-apply.png" alt="Calculator after refinement in light mode, selected Apply action" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/light-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/light-apply.png" alt="Calculator after refinement in light mode, selected Apply action" width="320"></a>
 
 ### Dark — estimate
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-result.png" alt="Calculator after refinement in dark mode, estimate scroll position" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/dark-result.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/dark-result.png" alt="Calculator after refinement in dark mode, estimate scroll position" width="320"></a>
 
 ### Dark — Apply action
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/refs/heads/feat/ui-calculator-refinement/docs/pr-screenshots/u01/dark-apply.png" alt="Calculator after refinement in dark mode, selected Apply action" width="320"></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/dark-apply.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/8b30918e36065170f1dae8ba19a551c354030388/docs/pr-screenshots/u01/dark-apply.png" alt="Calculator after refinement in dark mode, selected Apply action" width="320"></a>
 
 ## Changes
 
