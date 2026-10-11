@@ -1,0 +1,79 @@
+# Read-only Training Preferences checks with an existing authenticated fixture.
+# Search and tab changes are local drafts; Cancel discards them.
+# Never applies equipment, saves preferences, changes permissions, or resets data.
+# Run at normal text size; inspect maximum accessibility text separately.
+appId: com.diegozegarra.primerep
+tags:
+  - training-preferences-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://settings/training-preferences
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: Build muscle
+    timeout: 15000
+- assertVisible: Experience
+- assertVisible: Days per week
+- takeScreenshot: /private/tmp/u08-${APPEARANCE}-training-top
+- scrollUntilVisible:
+    element: Save preferences
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- waitForAnimationToEnd
+- assertVisible: Edit owned equipment
+- takeScreenshot: /private/tmp/u08-${APPEARANCE}-training-actions
+- tapOn: Edit owned equipment
+- waitForAnimationToEnd
+- assertVisible: Cancel equipment changes
+- assertVisible: Apply equipment changes
+- tapOn:
+    id: training-equipment-tab-not-selected
+- waitForAnimationToEnd
+- assertVisible: Available equipment
+- takeScreenshot: /private/tmp/u08-${APPEARANCE}-equipment-picker
+- tapOn: Search equipment
+- inputText: bench
+- assertVisible: Search results
+- tapOn: Search results
+- waitForAnimationToEnd
+- assertNotVisible: space
+- assertVisible: Bench Press Machine
+- tapOn: Search equipment
+- swipe:
+    start: 65%, 43%
+    end: 65%, 25%
+    duration: 500
+- waitForAnimationToEnd
+- assertNotVisible: space
+- assertVisible: Bench Press Machine
+- tapOn: Cancel equipment changes
+- waitForAnimationToEnd
+- tapOn: Edit owned equipment
+- waitForAnimationToEnd
+- tapOn:
+    id: training-equipment-tab-not-selected
+- waitForAnimationToEnd
+- tapOn: Search equipment
+- inputText: zz-no-equipment-match
+- assertVisible: No unselected equipment matches your search.
+- tapOn: Cancel equipment changes
+- waitForAnimationToEnd
+- assertNotVisible: Search equipment
+- tapOn: Edit owned equipment
+- waitForAnimationToEnd
+- assertVisible: Equipment you own
+- assertVisible: No selected equipment matches your search.
+- tapOn: Cancel equipment changes
+- waitForAnimationToEnd
+- assertVisible: Save preferences
+- tapOn: Back
+- waitForAnimationToEnd
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 15000

@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Keyboard, Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TrainingPreferences } from "@/services/onboardingService";
@@ -59,12 +59,14 @@ const CUSTOM_MUSCLES: Choice[] = [
 function ChoiceGroup({ title, choices, value, onChange }: { title: string; choices: Choice[]; value?: string; onChange: (next: string) => void }) {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { fontScale } = useWindowDimensions();
   return <View style={styles.group}>
-    <ThemedText style={[styles.label, { color: colors.placeholder }]}>{title}</ThemedText>
-    <View style={styles.chips}>{choices.map((choice) => {
+    <ThemedText accessibilityRole="header" style={[styles.label, { color: colors.icon }]}>{title}</ThemedText>
+    <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={title}>{choices.map((choice) => {
       const selected = value === choice.value;
-      return <Pressable key={choice.value} onPress={() => onChange(choice.value)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.chip, { borderColor: colors.inputBorder }, selected && { backgroundColor: colors.primaryButton, borderColor: colors.primaryButton }]}>
-        <ThemedText style={[styles.chipText, selected && styles.selectedChipText]}>{choice.label}</ThemedText>
+      return <Pressable key={choice.value} onPress={() => onChange(choice.value)} accessibilityRole="radio" accessibilityLabel={choice.label} accessibilityState={{ checked: selected, selected }} style={({ pressed }) => [styles.chip, fontScale >= 1.5 && styles.fullWidth, { borderColor: colors.inputBorder, backgroundColor: selected || pressed ? colors.inputBorder : "transparent" }]}>
+        <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} />
+        <ThemedText style={[styles.chipText, { color: colors.text }]}>{choice.label}</ThemedText>
       </Pressable>;
     })}</View>
   </View>;
@@ -77,6 +79,12 @@ export default function TrainingPreferencesScreen() {
   const { items: catalogItems } = useEquipment();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { fontScale } = useWindowDimensions();
+  const scrollingTitle = fontScale >= 2;
+  const stackedPickerTabs = fontScale >= 1.3;
+  const stackedPickerActions = fontScale >= 2.5;
+  const destructiveColor = scheme === "dark" ? "#F18C86" : "#D14343";
+  const pressedSurface = scheme === "dark" ? colors.inputBackground : "#F5F5F5";
   const [preferences, setPreferences] = useState<TrainingPreferences>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -192,56 +200,109 @@ export default function TrainingPreferencesScreen() {
     setCustomMuscles([]);
   };
 
-  return <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top"]}>
-    <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.back} accessibilityRole="button" accessibilityLabel="Back"><Ionicons name="chevron-back" size={24} color={colors.text} /></Pressable><ThemedText type="title" style={styles.title}>Training Preferences</ThemedText><View style={styles.back} /></View>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {loading ? <ThemedText style={{ color: colors.placeholder }}>Loading preferences…</ThemedText> : <>
+  return <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+    <View style={styles.header}>
+      <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && { backgroundColor: colors.inputBorder }]} accessibilityRole="button" accessibilityLabel="Back"><Ionicons name="chevron-back" size={24} color={colors.text} accessible={false} /></Pressable>
+      {!scrollingTitle && <ThemedText accessibilityRole="header" testID="training-preferences-title" style={[styles.title, styles.headerTitle]}>Training Preferences</ThemedText>}
+      <View style={styles.back} />
+    </View>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={Keyboard.dismiss}>
+      {scrollingTitle && <ThemedText accessibilityRole="header" testID="training-preferences-title" style={styles.scrollingTitle}>Training Preferences</ThemedText>}
+      {loading ? <ThemedText style={{ color: colors.icon }}>Loading preferences…</ThemedText> : <>
         <ChoiceGroup title="Goal" choices={GOALS} value={preferences.fitnessGoal} onChange={(value) => setPreferences((p) => ({ ...p, fitnessGoal: value as TrainingPreferences["fitnessGoal"] }))} />
         <ChoiceGroup title="Experience" choices={EXPERIENCE} value={preferences.experienceLevel} onChange={(value) => setPreferences((p) => ({ ...p, experienceLevel: value as TrainingPreferences["experienceLevel"] }))} />
         <ChoiceGroup title="Days per week" choices={FREQUENCY} value={preferences.workoutFrequency} onChange={(value) => setPreferences((p) => ({ ...p, workoutFrequency: value as TrainingPreferences["workoutFrequency"] }))} />
         <ChoiceGroup title="Workout split" choices={SPLITS} value={preferences.workoutSplit} onChange={(value) => setPreferences((p) => ({ ...p, workoutSplit: value as TrainingPreferences["workoutSplit"] }))} />
         {preferences.workoutSplit === "custom" && <View style={styles.group}>
-          <ThemedText style={[styles.label, { color: colors.placeholder }]}>Custom workout cycle</ThemedText>
-          {(preferences.customWorkouts || []).map((workout) => <View key={workout.id} style={[styles.customWorkout, { borderColor: colors.inputBorder }]}><View><ThemedText style={styles.customWorkoutName}>{workout.name}</ThemedText><ThemedText style={{ color: colors.placeholder }}>{workout.muscleGroups.join(", ")}</ThemedText></View><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${workout.name}`} onPress={() => setPreferences((current) => ({ ...current, customWorkouts: current.customWorkouts?.filter((item) => item.id !== workout.id) }))}><Ionicons name="trash-outline" size={22} color="#D14343" /></Pressable></View>)}
-          <TextInput value={customWorkoutName} onChangeText={setCustomWorkoutName} placeholder="Workout name" placeholderTextColor={colors.placeholder} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} />
-          <View style={styles.chips}>{CUSTOM_MUSCLES.map((muscle) => { const selected = customMuscles.includes(muscle.value); return <Pressable key={muscle.value} onPress={() => toggleCustomMuscle(muscle.value)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.chip, { borderColor: colors.inputBorder }, selected && { backgroundColor: colors.primaryButton, borderColor: colors.primaryButton }]}><ThemedText style={[styles.chipText, selected && styles.selectedChipText]}>{muscle.label}</ThemedText></Pressable>; })}</View>
-          <Pressable onPress={addCustomWorkout} accessibilityRole="button" style={[styles.addWorkout, { borderColor: colors.primaryButton }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Add custom workout</ThemedText></Pressable>
+          <ThemedText accessibilityRole="header" style={[styles.label, { color: colors.icon }]}>Custom workout cycle</ThemedText>
+          {(preferences.customWorkouts || []).map((workout) => <View key={workout.id} style={[styles.customWorkout, { borderColor: colors.inputBorder }]}>
+            <View style={styles.customWorkoutCopy}><ThemedText style={styles.customWorkoutName}>{workout.name}</ThemedText><ThemedText style={{ color: colors.icon }}>{workout.muscleGroups.join(", ")}</ThemedText></View>
+            <Pressable style={({ pressed }) => [styles.removeWorkout, pressed && { backgroundColor: colors.inputBorder }]} accessibilityRole="button" accessibilityLabel={`Remove ${workout.name}`} onPress={() => setPreferences((current) => ({ ...current, customWorkouts: current.customWorkouts?.filter((item) => item.id !== workout.id) }))}><Ionicons name="trash-outline" size={22} color={destructiveColor} accessible={false} /></Pressable>
+          </View>)}
+          <TextInput value={customWorkoutName} onChangeText={setCustomWorkoutName} placeholder="Workout name" accessibilityLabel="Workout name" placeholderTextColor={colors.icon} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} />
+          <View style={styles.chips}>{CUSTOM_MUSCLES.map((muscle) => { const selected = customMuscles.includes(muscle.value); return <Pressable key={muscle.value} onPress={() => toggleCustomMuscle(muscle.value)} accessibilityRole="checkbox" accessibilityLabel={muscle.label} accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.chip, fontScale >= 1.5 && styles.fullWidth, { borderColor: colors.inputBorder, backgroundColor: selected || pressed ? colors.inputBorder : "transparent" }]}><Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} /><ThemedText style={[styles.chipText, { color: colors.text }]}>{muscle.label}</ThemedText></Pressable>; })}</View>
+          <Pressable onPress={addCustomWorkout} accessibilityRole="button" accessibilityLabel="Add custom workout" style={({ pressed }) => [styles.addWorkout, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBorder : "transparent" }]}><Ionicons name="add" size={20} color={colors.text} accessible={false} /><ThemedText style={[styles.actionText, { color: colors.text }]}>Add custom workout</ThemedText></Pressable>
         </View>}
         <ChoiceGroup title="Training location" choices={PLACES} value={preferences.trainingPlace} onChange={(value) => setPreferences((p) => ({ ...p, trainingPlace: value as TrainingPreferences["trainingPlace"] }))} />
         <View style={styles.group}>
-          <ThemedText style={[styles.label, { color: colors.placeholder }]}>General equipment</ThemedText>
-          <Pressable onPress={openEquipmentPicker} accessibilityRole="button" accessibilityLabel="Edit owned equipment" accessibilityHint="Opens a searchable equipment picker" style={[styles.equipmentSummary, { borderColor: colors.inputBorder }]}>
+          <ThemedText accessibilityRole="header" style={[styles.label, { color: colors.icon }]}>General equipment</ThemedText>
+          <Pressable onPress={openEquipmentPicker} accessibilityRole="button" accessibilityLabel="Edit owned equipment" accessibilityHint="Opens a searchable equipment picker" style={({ pressed }) => [styles.equipmentSummary, { borderColor: colors.inputBorder, backgroundColor: pressed ? pressedSurface : "transparent" }]}>
             <View style={styles.equipmentSummaryCopy}>
               <ThemedText style={styles.customWorkoutName}>{selectedEquipmentItems.length} {selectedEquipmentItems.length === 1 ? "item" : "items"} selected</ThemedText>
-              <ThemedText numberOfLines={1} style={{ color: colors.placeholder }}>{selectedEquipmentItems.length ? selectedEquipmentItems.slice(0, 3).map((item) => item.name).join(", ") + (selectedEquipmentItems.length > 3 ? "…" : "") : "No equipment selected"}</ThemedText>
+              <ThemedText style={{ color: colors.icon }}>{selectedEquipmentItems.length ? selectedEquipmentItems.slice(0, 3).map((item) => item.name).join(", ") + (selectedEquipmentItems.length > 3 ? "…" : "") : "No equipment selected"}</ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={22} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={22} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
-        <Pressable onPress={() => void save()} disabled={saving} accessibilityRole="button" accessibilityState={{ disabled: saving, busy: saving }} style={[styles.save, { backgroundColor: colors.primaryButton }, saving && styles.dim]}><ThemedText style={styles.saveText}>{saving ? "Saving…" : "Save preferences"}</ThemedText></Pressable>
+        <Pressable onPress={() => void save()} disabled={saving} accessibilityRole="button" accessibilityLabel="Save preferences" accessibilityState={{ disabled: saving, busy: saving }} style={({ pressed }) => [styles.save, { backgroundColor: saving ? colors.inputBorder : colors.primaryButton }, pressed && !saving && styles.pressedSave]}><ThemedText style={[styles.saveText, saving && { color: colors.text }]}>{saving ? "Saving…" : "Save preferences"}</ThemedText></Pressable>
       </>}
     </ScrollView>
     <Modal visible={equipmentPickerVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEquipmentPickerVisible(false)}>
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
-        <View style={styles.header}><Pressable onPress={() => setEquipmentPickerVisible(false)} style={styles.back} accessibilityRole="button" accessibilityLabel="Cancel equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Cancel</ThemedText></Pressable><ThemedText type="title" style={styles.title}>Your equipment</ThemedText><Pressable onPress={applyEquipmentDraft} style={styles.back} accessibilityRole="button" accessibilityLabel="Apply equipment changes"><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Done</ThemedText></Pressable></View>
-        <View style={styles.pickerContent}>
-          <TextInput value={equipmentQuery} onChangeText={setEquipmentQuery} placeholder="Search equipment" placeholderTextColor={colors.placeholder} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} accessibilityLabel="Search equipment" />
-          <View style={[styles.pickerTabs, { borderColor: colors.inputBorder }]} accessibilityRole="tablist">
+        <View style={[styles.header, stackedPickerActions && styles.stackedPickerHeader]}>
+          <Pressable onPress={() => setEquipmentPickerVisible(false)} style={({ pressed }) => [styles.headerAction, scrollingTitle && styles.expandedHeaderAction, stackedPickerActions && styles.fullWidthHeaderAction, pressed && { backgroundColor: colors.inputBorder }]} accessibilityRole="button" accessibilityLabel="Cancel equipment changes"><ThemedText style={[styles.actionText, { color: colors.text }]}>Cancel</ThemedText></Pressable>
+          {!scrollingTitle && <ThemedText accessibilityRole="header" testID="training-equipment-title" style={[styles.title, styles.headerTitle]}>Your equipment</ThemedText>}
+          <Pressable onPress={applyEquipmentDraft} style={({ pressed }) => [styles.headerAction, scrollingTitle && styles.expandedHeaderAction, stackedPickerActions && styles.fullWidthHeaderAction, pressed && { backgroundColor: colors.inputBorder }]} accessibilityRole="button" accessibilityLabel="Apply equipment changes"><ThemedText style={[styles.actionText, { color: colors.text }]}>Done</ThemedText></Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.pickerContent} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={Keyboard.dismiss}>
+          {scrollingTitle && <ThemedText accessibilityRole="header" testID="training-equipment-title" style={styles.scrollingTitle}>Your equipment</ThemedText>}
+          <TextInput value={equipmentQuery} onChangeText={setEquipmentQuery} placeholder="Search equipment" placeholderTextColor={colors.icon} style={[styles.textInput, { color: colors.text, borderColor: colors.inputBorder }]} accessibilityLabel="Search equipment" />
+          <View testID="training-equipment-tabs" style={[styles.pickerTabs, stackedPickerTabs && styles.stackedPickerTabs, { borderColor: colors.inputBorder }]} accessibilityRole="tablist">
             {(["selected", "not-selected"] as const).map((tab) => {
               const selected = equipmentPickerTab === tab;
               const label = tab === "selected" ? `Selected (${equipmentDraft.length})` : `Not selected (${Math.max(0, catalogItems.length - equipmentDraft.length)})`;
-              return <Pressable key={tab} onPress={() => setEquipmentPickerTab(tab)} accessibilityRole="tab" accessibilityState={{ selected }} style={[styles.pickerTab, selected && { backgroundColor: colors.primaryButton }]}><ThemedText style={[styles.pickerTabText, selected && styles.selectedPickerTabText]}>{label}</ThemedText></Pressable>;
+              return <Pressable key={tab} testID={`training-equipment-tab-${tab}`} onPress={() => setEquipmentPickerTab(tab)} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }} style={({ pressed }) => [styles.pickerTab, !stackedPickerTabs && styles.flexibleTab, { backgroundColor: selected || pressed ? colors.inputBorder : "transparent" }]}><Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} /><ThemedText style={[styles.pickerTabText, { color: colors.text }]}>{label}</ThemedText></Pressable>;
             })}
           </View>
-          <ThemedText style={{ color: colors.placeholder }}>{equipmentQuery ? "Search results" : equipmentPickerTab === "selected" ? "Equipment you own" : "Available equipment"}</ThemedText>
-          <ScrollView contentContainerStyle={styles.pickerList} keyboardShouldPersistTaps="handled">
-            {pickerItems.map((item) => { const selected = equipmentDraft.includes(item.id); return <Pressable key={item.id} onPress={() => toggleDraftEquipment(item.id)} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} style={[styles.pickerRow, { borderColor: colors.inputBorder }]}><View style={styles.pickerRowCopy}><ThemedText numberOfLines={2} style={styles.customWorkoutName}>{item.name}</ThemedText><ThemedText numberOfLines={1} style={{ color: colors.placeholder }}>{item.category}</ThemedText></View><Ionicons style={styles.pickerRowControl} name={selected ? "checkmark-circle" : "ellipse-outline"} size={25} color={selected ? colors.primaryButton : colors.placeholder} /></Pressable>; })}
-            {!pickerItems.length && <ThemedText style={{ color: colors.placeholder }}>{equipmentPickerTab === "selected" ? "No selected equipment matches your search." : "No unselected equipment matches your search."}</ThemedText>}
-          </ScrollView>
-        </View>
+          <ThemedText style={{ color: colors.icon }}>{equipmentQuery ? "Search results" : equipmentPickerTab === "selected" ? "Equipment you own" : "Available equipment"}</ThemedText>
+          <View style={styles.pickerList}>
+            {pickerItems.map((item) => { const selected = equipmentDraft.includes(item.id); return <Pressable key={item.id} onPress={() => toggleDraftEquipment(item.id)} accessibilityRole="checkbox" accessibilityLabel={item.name} accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.pickerRow, { borderColor: colors.inputBorder, backgroundColor: pressed ? pressedSurface : "transparent" }]}><View style={styles.pickerRowCopy}><ThemedText style={styles.customWorkoutName}>{item.name}</ThemedText><ThemedText style={{ color: colors.icon }}>{item.category}</ThemedText></View><Ionicons style={styles.pickerRowControl} name={selected ? "checkmark-circle" : "ellipse-outline"} size={25} color={selected ? colors.text : colors.icon} accessible={false} /></Pressable>; })}
+            {!pickerItems.length && <ThemedText style={{ color: colors.icon }}>{equipmentPickerTab === "selected" ? "No selected equipment matches your search." : "No unselected equipment matches your search."}</ThemedText>}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, back: { width: 64, minHeight: 44, justifyContent: "center" }, title: { fontSize: 20 }, content: { padding: 20, paddingBottom: 44, gap: 28 }, group: { gap: 12 }, label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.7 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 }, chip: { minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 16, justifyContent: "center" }, chipText: { fontSize: 15, fontWeight: "600" }, selectedChipText: { color: "#FFFFFF" }, save: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 }, saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 }, dim: { opacity: 0.6 }, customWorkout: { minHeight: 56, padding: 12, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, customWorkoutName: { fontWeight: "700" }, textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, fontSize: 16 }, addWorkout: { minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }, equipmentSummary: { minHeight: 68, paddingHorizontal: 16, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, equipmentSummaryCopy: { flex: 1, gap: 4, paddingRight: 12 }, pickerContent: { flex: 1, padding: 20, gap: 16 }, pickerTabs: { minHeight: 44, borderWidth: 1, borderRadius: 12, padding: 3, flexDirection: "row" }, pickerTab: { flex: 1, minHeight: 36, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, pickerTabText: { fontSize: 14, fontWeight: "700", textAlign: "center" }, selectedPickerTabText: { color: "#FFFFFF" }, pickerList: { gap: 10, paddingBottom: 32 }, pickerRow: { minHeight: 64, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center" }, pickerRowCopy: { flex: 1, minWidth: 0, gap: 2 }, pickerRowControl: { flexShrink: 0, marginLeft: 12 } });
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  header: { minHeight: 64, paddingHorizontal: 20, paddingVertical: 8, gap: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  back: { width: 44, minHeight: 44, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: 10 },
+  headerAction: { minWidth: 44, minHeight: 44, maxWidth: "40%", paddingHorizontal: 4, paddingVertical: 8, justifyContent: "center", alignItems: "center", borderRadius: 10 },
+  expandedHeaderAction: { flex: 1, maxWidth: "50%" },
+  stackedPickerHeader: { flexDirection: "column" },
+  fullWidthHeaderAction: { flex: 0, width: "100%", maxWidth: "100%" },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: "center" },
+  title: { fontSize: 20, fontWeight: "700" },
+  scrollingTitle: { fontSize: 24, fontWeight: "700" },
+  content: { padding: 20, paddingBottom: 28, gap: 24 },
+  group: { gap: 12 },
+  label: { fontSize: 14, fontWeight: "600" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { minHeight: 44, maxWidth: "100%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8 },
+  fullWidth: { width: "100%" },
+  chipText: { fontSize: 15, fontWeight: "600", flexShrink: 1 },
+  save: { minHeight: 52, paddingHorizontal: 16, paddingVertical: 14, alignItems: "center", justifyContent: "center", borderRadius: 12, marginTop: 4 },
+  saveText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16, textAlign: "center" },
+  pressedSave: { transform: [{ scale: 0.99 }] },
+  customWorkout: { minHeight: 56, padding: 12, gap: 8, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center" },
+  customWorkoutCopy: { flex: 1, minWidth: 0, gap: 4 },
+  customWorkoutName: { fontWeight: "700" },
+  removeWorkout: { minHeight: 44, minWidth: 44, flexShrink: 0, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  textInput: { borderWidth: 1, borderRadius: 12, minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
+  actionText: { fontWeight: "700", flexShrink: 1 },
+  addWorkout: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 12, gap: 8, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  equipmentSummary: { minHeight: 68, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderRadius: 12, flexDirection: "row", alignItems: "center" },
+  equipmentSummaryCopy: { flex: 1, minWidth: 0, gap: 4, paddingRight: 12 },
+  pickerContent: { padding: 20, paddingBottom: 28, gap: 16 },
+  pickerTabs: { borderWidth: 1, borderRadius: 12, padding: 3, gap: 4, flexDirection: "row" },
+  stackedPickerTabs: { flexDirection: "column" },
+  pickerTab: { minHeight: 44, minWidth: 0, borderRadius: 9, gap: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 8, paddingVertical: 10 },
+  flexibleTab: { flex: 1 },
+  pickerTabText: { fontSize: 14, fontWeight: "700", textAlign: "center", flexShrink: 1 },
+  pickerList: { gap: 10 },
+  pickerRow: { minHeight: 64, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center" },
+  pickerRowCopy: { flex: 1, minWidth: 0, gap: 2 },
+  pickerRowControl: { flexShrink: 0, marginLeft: 12 },
+});

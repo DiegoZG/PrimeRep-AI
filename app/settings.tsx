@@ -10,11 +10,12 @@ import {
   StyleSheet,
   Switch,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthContext } from "@/utils/authContext";
@@ -56,6 +57,12 @@ export default function SettingsScreen() {
   } = useAppearance();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
+  const { width, fontScale } = useWindowDimensions();
+  const stackedPreferences = width < 390 || fontScale >= 1.3;
+  const stackedAppearance = fontScale >= 1.5;
+  const scrollingTitle = fontScale >= 2;
+  const destructiveColor = scheme === "dark" ? "#F18C86" : "#D14343";
+  const switchTrack = scheme === "dark" ? colors.inputBackground : colors.inputBorder;
 
   const isPremium = user?.subscription_tier === "premium";
   const coachEnabled = user?.coach_insights_enabled ?? false;
@@ -331,7 +338,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       <StatusBar
         barStyle={scheme === "dark" ? "light-content" : "dark-content"}
@@ -343,15 +350,15 @@ export default function SettingsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Back from Settings"
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={({ pressed }) => [styles.backButton, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]}
           hitSlop={10}
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <ThemedText type="title" style={styles.headerTitle}>
+        {!scrollingTitle ? <ThemedText accessibilityRole="header" style={styles.headerTitle}>
           Settings
-        </ThemedText>
-        <View style={{ width: 32 }} />
+        </ThemedText> : null}
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -360,7 +367,8 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Preferences</ThemedText>
+        {scrollingTitle ? <ThemedText accessibilityRole="header" style={styles.scrollingTitle}>Settings</ThemedText> : null}
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Preferences</ThemedText>
         <View
           style={[
             styles.card,
@@ -368,12 +376,14 @@ export default function SettingsScreen() {
             { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
           ]}
         >
-          <View style={styles.preferenceRow}>
+          <View style={[styles.preferenceRow, stackedPreferences && styles.stackedPreferenceRow]}>
             <ThemedText style={styles.preferenceLabel}>Appearance</ThemedText>
             <View
               accessibilityRole="radiogroup"
               style={[
                 styles.inlinePreferenceControl,
+                stackedPreferences && styles.stackedPreferenceControl,
+                stackedAppearance && styles.stackedAppearanceControl,
                 { backgroundColor: colors.background, borderColor: colors.inputBorder },
               ]}
             >
@@ -390,12 +400,14 @@ export default function SettingsScreen() {
                     accessibilityState={{ checked: selected, disabled }}
                     onPress={() => void handleThemePreference(preference)}
                     disabled={disabled}
-                    style={[
+                    style={({ pressed }) => [
                       styles.preferenceOption,
-                      selected && { backgroundColor: colors.primaryButton },
+                      stackedAppearance && styles.stackedAppearanceOption,
+                      { backgroundColor: selected || pressed ? colors.inputBorder : "transparent", opacity: disabled ? 0.5 : 1 },
                     ]}
                   >
-                    <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
+                    <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} />
+                    <ThemedText style={[styles.preferenceText, { color: selected ? colors.text : colors.icon }]}>
                       {label}
                     </ThemedText>
                   </Pressable>
@@ -404,13 +416,14 @@ export default function SettingsScreen() {
             </View>
           </View>
           <View style={[styles.preferenceDivider, { backgroundColor: colors.inputBorder }]} />
-          <View style={styles.preferenceRow}>
+          <View style={[styles.preferenceRow, stackedPreferences && styles.stackedPreferenceRow]}>
             <ThemedText style={styles.preferenceLabel}>Units</ThemedText>
             <View
               accessibilityRole="radiogroup"
               style={[
                 styles.inlinePreferenceControl,
                 styles.unitPreferenceControl,
+                stackedPreferences && styles.stackedUnitControl,
                 { backgroundColor: colors.background, borderColor: colors.inputBorder },
               ]}
             >
@@ -425,12 +438,13 @@ export default function SettingsScreen() {
                     accessibilityState={{ checked: selected, disabled }}
                     onPress={() => void handleWeightUnit(unit)}
                     disabled={disabled}
-                    style={[
+                    style={({ pressed }) => [
                       styles.preferenceOption,
-                      selected && { backgroundColor: colors.primaryButton },
+                      { backgroundColor: selected || pressed ? colors.inputBorder : "transparent", opacity: disabled ? 0.5 : 1 },
                     ]}
                   >
-                    <ThemedText style={[styles.preferenceText, selected && styles.selectedPreferenceText]}>
+                    <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} />
+                    <ThemedText style={[styles.preferenceText, { color: selected ? colors.text : colors.icon }]}>
                       {unit}
                     </ThemedText>
                   </Pressable>
@@ -440,7 +454,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Notifications</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Notifications</ThemedText>
         <View
           style={[
             styles.card,
@@ -450,7 +464,7 @@ export default function SettingsScreen() {
         >
           <Pressable
             testID="settings-push-notifications"
-            style={styles.navigationRow}
+            style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent", opacity: isUpdatingNotifications || notificationPermission === "unsupported" ? 0.5 : 1 }]}
             onPress={() => void handleNotifications()}
             disabled={isUpdatingNotifications || notificationPermission === "unsupported"}
             accessibilityRole="button"
@@ -462,7 +476,7 @@ export default function SettingsScreen() {
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Push Notifications</ThemedText>
               <ThemedText
-                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+                style={[styles.rowSubtitle, { color: colors.icon }]}
               >
                 {isUpdatingNotifications
                   ? "Updating…"
@@ -476,17 +490,14 @@ export default function SettingsScreen() {
               </ThemedText>
             </View>
             {notificationPermission !== "unsupported" && (
-              <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+              <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
             )}
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
           <View style={styles.row}>
-            <View style={styles.rowContent}>
+            <View style={styles.settingHeader}>
               <ThemedText style={styles.rowTitle}>Coach Notifications</ThemedText>
-              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>
-                Actionable workout reminders only. Progress and recovery guidance stays in the app.
-              </ThemedText>
-            </View>
+              <View style={styles.settingSwitch}>
             <Switch
               testID="settings-coach-notifications"
               accessibilityLabel="Coach notifications"
@@ -495,18 +506,25 @@ export default function SettingsScreen() {
               value={coachPreferences?.notificationsEnabled ?? false}
               onValueChange={(value) => void handleCoachNotifications(value)}
               disabled={isCoachPreferenceLoading || isCoachPreferenceSaving || !coachPreferences}
-              trackColor={{ false: colors.inputBorder, true: colors.primaryButton }}
-              thumbColor={Platform.OS === "android" ? colors.background : undefined}
-              ios_backgroundColor={colors.inputBorder}
+              hitSlop={{ top: 7, bottom: 7 }}
+              trackColor={{ false: switchTrack, true: switchTrack }}
+              thumbColor={coachPreferences?.notificationsEnabled ? colors.primaryButton : colors.icon}
+              ios_backgroundColor={switchTrack}
             />
+              </View>
+            </View>
+            <ThemedText style={[styles.rowSubtitle, { color: colors.icon }]}>
+              Actionable workout reminders only. Progress and recovery guidance stays in the app.
+            </ThemedText>
           </View>
           {coachPreferences?.notificationsEnabled ? <>
             <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
             <View style={styles.coachReminderRow}>
               <View style={styles.rowContent}>
                 <ThemedText style={styles.rowTitle}>Daily Reminder Time</ThemedText>
-                <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>{coachPreferences.timeZone}</ThemedText>
+                <ThemedText style={[styles.rowSubtitle, { color: colors.icon }]}>{coachPreferences.timeZone}</ThemedText>
               </View>
+              <View style={styles.reminderControls}>
               <TextInput
                 testID="settings-coach-reminder-time"
                 accessibilityLabel="Coach reminder time in 24-hour format"
@@ -523,7 +541,7 @@ export default function SettingsScreen() {
                 selectTextOnFocus
                 editable={!isCoachPreferenceLoading && !isCoachPreferenceSaving}
                 accessibilityState={{ disabled: isCoachPreferenceLoading || isCoachPreferenceSaving, busy: isCoachPreferenceLoading || isCoachPreferenceSaving }}
-                style={[styles.timeInput, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.background }]}
+                style={[styles.timeInput, fontScale >= 1.5 && styles.largeTimeInput, { color: colors.text, borderColor: colors.inputBorder, backgroundColor: colors.background }]}
               />
               <Pressable
                 testID="settings-save-coach-time"
@@ -532,18 +550,19 @@ export default function SettingsScreen() {
                 accessibilityState={{ disabled: isCoachPreferenceLoading || isCoachPreferenceSaving, busy: isCoachPreferenceLoading || isCoachPreferenceSaving }}
                 disabled={isCoachPreferenceLoading || isCoachPreferenceSaving}
                 onPress={() => void saveCoachReminderTime()}
-                style={[styles.saveTimeButton, { opacity: isCoachPreferenceLoading || isCoachPreferenceSaving ? 0.5 : 1 }]}
+                style={({ pressed }) => [styles.saveTimeButton, { borderColor: colors.primaryButton, backgroundColor: pressed ? "#5940D9" : colors.primaryButton, opacity: isCoachPreferenceLoading || isCoachPreferenceSaving ? 0.5 : 1 }]}
               >
-                <ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText>
+                <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Save</ThemedText>
               </Pressable>
+              </View>
             </View>
           </> : null}
-          {coachPreferenceError ? <View style={styles.coachPreferenceErrorRow}><ThemedText testID="settings-coach-error" accessibilityRole="alert" style={styles.coachPreferenceError}>{coachPreferenceError}</ThemedText>{!coachPreferences ? <Pressable testID="settings-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach notification settings" onPress={() => setCoachPreferenceRevision((revision) => revision + 1)} style={styles.coachPreferenceRetry}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Retry</ThemedText></Pressable> : null}</View> : null}
-          {coachPreferenceSaved ? <ThemedText testID="settings-coach-saved" accessibilityLiveRegion="polite" style={[styles.coachPreferenceSaved, { color: colors.primaryButton }]}>Coach notification settings saved.</ThemedText> : null}
+          {coachPreferenceError ? <View style={styles.coachPreferenceErrorRow}><ThemedText testID="settings-coach-error" accessibilityRole="alert" style={[styles.coachPreferenceError, { color: destructiveColor }]}>{coachPreferenceError}</ThemedText>{!coachPreferences ? <Pressable testID="settings-coach-retry" accessibilityRole="button" accessibilityLabel="Retry Coach notification settings" onPress={() => setCoachPreferenceRevision((revision) => revision + 1)} style={({ pressed }) => [styles.coachPreferenceRetry, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBorder : "transparent" }]}><Ionicons name="refresh-outline" size={18} color={colors.text} accessible={false} /><ThemedText style={{ color: colors.text, fontWeight: "700" }}>Retry</ThemedText></Pressable> : null}</View> : null}
+          {coachPreferenceSaved ? <ThemedText testID="settings-coach-saved" accessibilityLiveRegion="polite" style={[styles.coachPreferenceSaved, { color: colors.icon }]}>Coach notification settings saved.</ThemedText> : null}
         </View>
 
         <ThemedText
-          style={[styles.sectionLabel, { color: colors.placeholder }]}
+          style={[styles.sectionLabel, { color: colors.icon }]}
         >
           Training
         </ThemedText>
@@ -555,7 +574,7 @@ export default function SettingsScreen() {
           ]}
         >
           <Pressable
-            style={styles.navigationRow}
+            style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]}
             onPress={() => router.push("/settings/training-preferences" as Href)}
             accessibilityRole="button"
             accessibilityLabel="Training preferences"
@@ -563,16 +582,16 @@ export default function SettingsScreen() {
           >
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Training Preferences</ThemedText>
-              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>
+              <ThemedText style={[styles.rowSubtitle, { color: colors.icon }]}>
                 Goal, experience, schedule, split, and equipment
               </ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
 
         <ThemedText
-          style={[styles.sectionLabel, { color: colors.placeholder }]}
+          style={[styles.sectionLabel, { color: colors.icon }]}
         >
           Equipment Weights
         </ThemedText>
@@ -585,7 +604,7 @@ export default function SettingsScreen() {
           ]}
         >
           <Pressable
-            style={styles.navigationRow}
+            style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]}
             onPress={() => router.push("/settings/dumbbells" as Href)}
             accessibilityRole="button"
             accessibilityLabel="Dumbbells"
@@ -594,16 +613,16 @@ export default function SettingsScreen() {
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Dumbbells</ThemedText>
               <ThemedText
-                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+                style={[styles.rowSubtitle, { color: colors.icon }]}
               >
                 Choose the dumbbell weights you own
               </ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
           <Pressable
-            style={styles.navigationRow}
+            style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]}
             onPress={() => router.push("/settings/plates" as Href)}
             accessibilityRole="button"
             accessibilityLabel="Plates"
@@ -612,53 +631,53 @@ export default function SettingsScreen() {
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Plates</ThemedText>
               <ThemedText
-                style={[styles.rowSubtitle, { color: colors.placeholder }]}
+                style={[styles.rowSubtitle, { color: colors.icon }]}
               >
                 Choose the plate weights you own
               </ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
 
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Health</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Health</ThemedText>
         <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <Pressable testID="settings-health" style={styles.navigationRow} onPress={() => router.push("/settings/health" as Href)} accessibilityRole="button" accessibilityLabel="Health connections" accessibilityHint="View Apple Health and Health Connect availability">
+          <Pressable testID="settings-health" style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]} onPress={() => router.push("/settings/health" as Href)} accessibilityRole="button" accessibilityLabel="Health connections" accessibilityHint="View Apple Health and Health Connect availability">
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowTitle}>Health connections</ThemedText>
-              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>Steps, sleep, and workout export</ThemedText>
+              <ThemedText style={[styles.rowSubtitle, { color: colors.icon }]}>Steps, sleep, and workout export</ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
 
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Legal</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Legal</ThemedText>
         <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <Pressable testID="settings-terms" style={styles.navigationRow} onPress={() => router.push("/legal/terms" as Href)} accessibilityRole="button" accessibilityLabel="Terms of Service">
+          <Pressable testID="settings-terms" style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]} onPress={() => router.push("/legal/terms" as Href)} accessibilityRole="button" accessibilityLabel="Terms of Service">
             <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Terms of Service</ThemedText></View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
-          <Pressable testID="settings-privacy" style={styles.navigationRow} onPress={() => router.push("/legal/privacy" as Href)} accessibilityRole="button" accessibilityLabel="Privacy Policy">
+          <Pressable testID="settings-privacy" style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]} onPress={() => router.push("/legal/privacy" as Href)} accessibilityRole="button" accessibilityLabel="Privacy Policy">
             <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Privacy Policy</ThemedText></View>
-            <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
 
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Help & Data</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Help & Data</ThemedText>
         <View style={[styles.card, styles.sectionCard, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <Pressable testID="settings-help" style={styles.navigationRow} onPress={() => router.push("/settings/help" as Href)} accessibilityRole="button" accessibilityLabel="Help and Support">
-            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Help & Support</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          <Pressable testID="settings-help" style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]} onPress={() => router.push("/settings/help" as Href)} accessibilityRole="button" accessibilityLabel="Help and Support">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Help & Support</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
-          <Pressable testID="settings-export" style={styles.navigationRow} onPress={() => router.push("/settings/export" as Href)} accessibilityRole="button" accessibilityLabel="Download my data">
-            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Download my data</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+          <Pressable testID="settings-export" style={({ pressed }) => [styles.navigationRow, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]} onPress={() => router.push("/settings/export" as Href)} accessibilityRole="button" accessibilityLabel="Download my data">
+            <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Download my data</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
 
         {/* AI Features section */}
         {isPremium ? <>
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>
           AI Features
         </ThemedText>
 
@@ -670,7 +689,7 @@ export default function SettingsScreen() {
           ]}
         >
           <View style={styles.row}>
-            <View style={styles.rowContent}>
+            <View style={styles.settingHeader}>
               <View style={styles.rowTitleRow}>
                 <ThemedText style={styles.rowTitle}>AI Coaching Insights</ThemedText>
                 {!isPremium && (
@@ -681,25 +700,30 @@ export default function SettingsScreen() {
                   </View>
                 )}
               </View>
-              <ThemedText style={[styles.rowSubtitle, { color: colors.placeholder }]}>
-                {isPremium
-                  ? "Personalized intent and rationale for each workout"
-                  : "Upgrade to unlock AI-generated workout coaching"}
-              </ThemedText>
-            </View>
+              <View style={styles.settingSwitch}>
             <Switch
+              accessibilityLabel="AI Coaching Insights"
+              accessibilityState={{ disabled: isToggling || !isPremium, busy: isToggling }}
               value={isPremium ? coachEnabled : false}
               onValueChange={handleToggle}
               disabled={isToggling || !isPremium}
-              trackColor={{ false: colors.inputBorder, true: colors.primaryButton }}
-              thumbColor={Platform.OS === "android" ? colors.background : undefined}
-              ios_backgroundColor={colors.inputBorder}
+              hitSlop={{ top: 7, bottom: 7 }}
+              trackColor={{ false: switchTrack, true: switchTrack }}
+              thumbColor={isPremium && coachEnabled ? colors.primaryButton : colors.icon}
+              ios_backgroundColor={switchTrack}
             />
+              </View>
+            </View>
+            <ThemedText style={[styles.rowSubtitle, { color: colors.icon }]}>
+              {isPremium
+                ? "Personalized intent and rationale for each workout"
+                : "Upgrade to unlock AI-generated workout coaching"}
+            </ThemedText>
           </View>
         </View>
         </> : null}
 
-        <ThemedText style={[styles.sectionLabel, { color: colors.placeholder }]}>Account</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Account</ThemedText>
         <View
           style={[
             styles.card,
@@ -707,7 +731,7 @@ export default function SettingsScreen() {
           ]}
         >
           <Pressable
-            style={styles.accountRow}
+            style={({ pressed }) => [styles.accountRow, { backgroundColor: pressed ? colors.inputBorder : "transparent", opacity: isDeleting || isLoggingOut ? 0.5 : 1 }]}
             onPress={() => void handleLogOut()}
             disabled={isDeleting || isLoggingOut}
             accessibilityRole="button"
@@ -720,14 +744,14 @@ export default function SettingsScreen() {
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.inputBorder }]} />
           <Pressable
-            style={styles.accountRow}
+            style={({ pressed }) => [styles.accountRow, { backgroundColor: pressed ? colors.inputBorder : "transparent", opacity: isDeleting ? 0.5 : 1 }]}
             onPress={confirmDeleteAccount}
             disabled={isDeleting}
             accessibilityRole="button"
             accessibilityLabel={isDeleting ? "Deleting account" : "Delete account"}
             accessibilityState={{ disabled: isDeleting }}
           >
-            <ThemedText style={styles.deleteText}>
+            <ThemedText style={[styles.deleteText, { color: destructiveColor }]}>
               {isDeleting ? "Deleting Account…" : "Delete Account"}
             </ThemedText>
           </Pressable>
@@ -750,14 +774,22 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
+    flex: 1,
+    textAlign: "center",
     fontSize: 20,
     fontWeight: "700",
+  },
+  scrollingTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 20,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -765,10 +797,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -778,54 +808,81 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   equipmentCard: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   sectionCard: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   preferenceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: 60,
-    paddingLeft: 16,
-    paddingRight: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
   },
   preferenceLabel: {
-    fontSize: 15,
+    flexShrink: 1,
+    fontSize: 16,
     fontWeight: "600",
   },
   inlinePreferenceControl: {
     flex: 1,
-    maxWidth: 210,
+    maxWidth: 240,
     flexDirection: "row",
     padding: 3,
     borderWidth: 1,
     borderRadius: 12,
   },
   unitPreferenceControl: {
-    maxWidth: 132,
+    maxWidth: 156,
+  },
+  stackedPreferenceRow: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  stackedPreferenceControl: {
+    flex: 0,
+    maxWidth: undefined,
+  },
+  stackedUnitControl: {
+    flex: 0,
+    maxWidth: undefined,
+    width: "100%",
+  },
+  stackedAppearanceControl: {
+    flexDirection: "column",
+    gap: 3,
+  },
+  stackedAppearanceOption: {
+    flex: 0,
+    justifyContent: "flex-start",
+    paddingHorizontal: 12,
   },
   preferenceOption: {
     flex: 1,
+    flexDirection: "row",
+    gap: 6,
     minHeight: 44,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 11,
   },
   preferenceText: {
-    fontSize: 12,
+    flexShrink: 1,
+    fontSize: 14,
     fontWeight: "700",
-  },
-  selectedPreferenceText: {
-    color: "#fff",
   },
   preferenceDivider: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 16,
   },
   navigationRow: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
@@ -837,18 +894,31 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 16,
+    gap: 6,
+  },
+  settingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
+  settingSwitch: {
+    minHeight: 44,
+    minWidth: 51,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   coachReminderRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  reminderControls: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     gap: 10,
   },
   timeInput: {
@@ -863,21 +933,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
   },
+  largeTimeInput: {
+    flex: 1,
+    flexBasis: 160,
+    flexShrink: 0,
+    maxWidth: undefined,
+  },
   saveTimeButton: {
     minWidth: 64,
     minHeight: 44,
     paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   coachPreferenceError: {
-    flex: 1,
-    color: "#DC2626",
-    fontSize: 12,
-    lineHeight: 17,
+    width: "100%",
+    fontSize: 14,
   },
   coachPreferenceErrorRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -886,40 +964,47 @@ const styles = StyleSheet.create({
   coachPreferenceSaved: {
     paddingHorizontal: 16,
     paddingBottom: 10,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
   },
   coachPreferenceRetry: {
+    flexDirection: "row",
+    gap: 6,
     minWidth: 52,
     minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   accountRow: {
+    minHeight: 44,
     paddingVertical: 17,
     paddingHorizontal: 16,
   },
   deleteText: {
-    color: "#DC2626",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
   },
   rowContent: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   rowTitleRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
   rowTitle: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 16,
     fontWeight: "600",
   },
   rowSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
   },
   premiumBadge: {
     borderRadius: 6,
