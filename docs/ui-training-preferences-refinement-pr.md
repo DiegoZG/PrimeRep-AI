@@ -12,28 +12,28 @@ Original iPhone SE (3rd generation) simulator captures, 375-point width. Tap a s
 
 Light:
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-top.png" width="320" alt="Training Preferences after refinement in light mode, with neutral choices and visible selection checks" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-top.png" width="320" alt="Training Preferences after refinement in light mode, with neutral choices and visible selection checks" /></a>
 
 Dark:
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-top.png" width="320" alt="Training Preferences after refinement in dark mode, with neutral choices and visible selection checks" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-top.png" width="320" alt="Training Preferences after refinement in dark mode, with neutral choices and visible selection checks" /></a>
 
 ### After — Equipment picker
 
 Light:
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-picker.png" width="320" alt="Equipment picker after refinement in light mode, showing neutral tabs and searchable equipment" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-picker.png" width="320" alt="Equipment picker after refinement in light mode, showing neutral tabs and searchable equipment" /></a>
 
 Dark:
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-picker.png" width="320" alt="Equipment picker after refinement in dark mode, showing neutral tabs and searchable equipment" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-picker.png" width="320" alt="Equipment picker after refinement in dark mode, showing neutral tabs and searchable equipment" /></a>
 
 <details>
 <summary>Before — Training Preferences in both themes</summary>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-light-top.png" width="320" alt="Training Preferences before refinement in light mode, with purple selected chips" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-light-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-light-top.png" width="320" alt="Training Preferences before refinement in light mode, with purple selected chips" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-dark-top.png" width="320" alt="Training Preferences before refinement in dark mode, with purple selected chips" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-dark-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-dark-top.png" width="320" alt="Training Preferences before refinement in dark mode, with purple selected chips" /></a>
 
 </details>
 
@@ -42,21 +42,21 @@ Dark:
 
 Before: the fixed equipment header overflowed the screen and made Done unreachable. These captures demonstrate the baseline defect; they do not represent a passing test.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-light-max-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-light-max-picker.png" width="320" alt="Before, maximum-text light equipment picker with overflowing fixed title and hidden Done action" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-light-max-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-light-max-picker.png" width="320" alt="Before, maximum-text light equipment picker with overflowing fixed title and hidden Done action" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-dark-max-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-before-dark-max-picker.png" width="320" alt="Before, maximum-text dark equipment picker with overflowing fixed title and hidden Done action" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-dark-max-picker.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-before-dark-max-picker.png" width="320" alt="Before, maximum-text dark equipment picker with overflowing fixed title and hidden Done action" /></a>
 
 After: Cancel and Done have full-width targets; title, search, tabs, and results can scroll. Extreme text still wraps naturally rather than being capped or truncated. Final maximum-text result-navigation acceptance remains manual; no result-flow success is claimed from these idle/focused-field captures.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-max-picker-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-max-picker-top.png" width="320" alt="After, maximum-text light equipment picker with full-width Cancel and Done and scrollable title" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-max-picker-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-max-picker-top.png" width="320" alt="After, maximum-text light equipment picker with full-width Cancel and Done and scrollable title" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-max-picker-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-max-picker-top.png" width="320" alt="After, maximum-text dark equipment picker with full-width Cancel and Done and scrollable title" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-max-picker-top.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-max-picker-top.png" width="320" alt="After, maximum-text dark equipment picker with full-width Cancel and Done and scrollable title" /></a>
 
 Focused search: native keyboard insets keep the entered search visible above the keyboard.
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-max-picker-keyboard.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-light-max-picker-keyboard.png" width="320" alt="After, maximum-text light equipment search fully visible above the keyboard" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-max-picker-keyboard.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-light-max-picker-keyboard.png" width="320" alt="After, maximum-text light equipment search fully visible above the keyboard" /></a>
 
-<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-max-picker-keyboard.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/feat/ui-training-preferences-refinement/docs/pr-screenshots/u08/u08-after-dark-max-picker-keyboard.png" width="320" alt="After, maximum-text dark equipment search fully visible above the keyboard" /></a>
+<a href="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-max-picker-keyboard.png"><img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/20a6810e04c60070b0de973faecb7767c6062602/docs/pr-screenshots/u08/u08-after-dark-max-picker-keyboard.png" width="320" alt="After, maximum-text dark equipment search fully visible above the keyboard" /></a>
 
 </details>
 
