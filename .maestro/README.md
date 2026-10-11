@@ -69,6 +69,28 @@ verify the workout finishes once on the server with its sets and notes. Repeat
 manually on iOS and Android with timeout, backgrounding, account switch, and
 expired-auth conditions; the YAML does not toggle the network for you.
 
+### Home refinement
+
+`maestro --device <isolated-simulator-uuid> test .maestro/home-refinement.yaml`
+checks Home in the native development app, with an existing signed-in local
+fixture and weekly plan. It preserves a recovered active workout with **Keep
+Workout Active**, then checks the carousel overflow/backdrop, workout-detail
+navigation, Quick Stats, History, and refresh. It does not save, complete,
+abandon, or regenerate workouts; mark Coach guidance read; or change Health
+choices. The overflow assertion uses its existing grouped iOS accessibility
+label rather than assuming that the menu's child test ID is exposed natively.
+An iOS selector tap can occasionally miss after a centered scroll; inspect the
+current screenshot/accessibility bounds before diagnosing an app action failure.
+
+Use `-e SCREENSHOT_PREFIX=/private/tmp/home-light` for temporary screenshot
+output. Repeat in light and dark appearance. For maximum accessibility text,
+first reach Home at normal text size, then increase the isolated simulator's
+text size and inspect the primary action, wrapped week header/cards, stacked
+stats, Coach text, and two-column trend; restore the prior size afterward.
+Do not reset an app or abandon an active workout to enter Home. Physical-device
+and VoiceOver checks remain manual; long titles and independent failures are
+covered by `node --test scripts/test-home-ui.mjs`.
+
 ### Onboarding calculator layout
 
 Manually open the empty one-rep max calculator from the strength-entry screen on

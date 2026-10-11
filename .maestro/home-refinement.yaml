@@ -1,0 +1,78 @@
+# Read-only Home checks in a native development build.
+# Start signed in to the usual local fixture with an available weekly plan.
+# No workout, Coach-read, Health, account, or program mutations are performed.
+appId: com.diegozegarra.primerep
+---
+- runFlow: flows/launch-dev-build.yaml
+- swipe:
+    direction: DOWN
+    duration: 100
+- runFlow:
+    when:
+      visible:
+        id: player-finish
+    commands:
+      - tapOn: Leave workout
+      - tapOn: Keep Workout Active
+- tapOn:
+    id: tab-home
+- extendedWaitUntil:
+    visible: This Week
+    timeout: 30000
+- assertNotVisible:
+    id: home-open-coach
+- takeScreenshot: "${typeof SCREENSHOT_PREFIX === 'undefined' ? 'home-refinement' : SCREENSHOT_PREFIX}-top"
+- scrollUntilVisible:
+    element:
+      id: home-workout-options
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: home-workout-options
+    index: 0
+- extendedWaitUntil:
+    visible: .*Share Workout.*
+    timeout: 10000
+- assertNotVisible: Back from workout details
+- takeScreenshot: "${typeof SCREENSHOT_PREFIX === 'undefined' ? 'home-refinement' : SCREENSHOT_PREFIX}-options"
+# The system-modal backdrop above its measured menu anchor dismisses only the menu.
+- tapOn:
+    point: 50%, 10%
+- assertNotVisible: .*Share Workout.*
+- tapOn:
+    id: workout-card
+    index: 0
+- extendedWaitUntil:
+    visible: Back from workout details
+    timeout: 15000
+- tapOn: Back from workout details
+- scrollUntilVisible:
+    element:
+      id: home-live-stats
+    direction: DOWN
+    centerElement: true
+- assertVisible:
+    id: home-stat-workouts
+- takeScreenshot: "${typeof SCREENSHOT_PREFIX === 'undefined' ? 'home-refinement' : SCREENSHOT_PREFIX}-stats"
+- scrollUntilVisible:
+    element:
+      id: home-trend-history
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: "${typeof SCREENSHOT_PREFIX === 'undefined' ? 'home-refinement' : SCREENSHOT_PREFIX}-guidance-trend"
+- tapOn:
+    id: home-trend-history
+- extendedWaitUntil:
+    visible: Workout History
+    timeout: 15000
+- tapOn: Back from Workout History
+- scrollUntilVisible:
+    element:
+      id: home-workout-options
+    direction: UP
+    centerElement: true
+- swipe:
+    direction: DOWN
+    duration: 500
+- assertVisible: This Week
+- takeScreenshot: "${typeof SCREENSHOT_PREFIX === 'undefined' ? 'home-refinement' : SCREENSHOT_PREFIX}-refreshed"
