@@ -18,25 +18,25 @@ Original, settled **375-point iPhone SE (3rd generation)** simulator captures. S
 
 ### After — Light
 
-<img src="../docs/pr-screenshots/u09/after-light-top.png" width="320" alt="Program detail after in light mode: neutral metadata and numbered day tiles" />
-<img src="../docs/pr-screenshots/u09/after-light-actions.png" width="320" alt="Program detail after in light mode: purple Use and neutral Customize" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-light-top.png" width="320" alt="Program detail after in light mode: neutral metadata and numbered day tiles" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-light-actions.png" width="320" alt="Program detail after in light mode: purple Use and neutral Customize" />
 
 ### After — Dark
 
-<img src="../docs/pr-screenshots/u09/after-dark-top.png" width="320" alt="Program detail after in dark mode: clear source, readable prescriptions and neutral surfaces" />
-<img src="../docs/pr-screenshots/u09/after-dark-actions.png" width="320" alt="Program detail after in dark mode: restrained action hierarchy" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-dark-top.png" width="320" alt="Program detail after in dark mode: clear source, readable prescriptions and neutral surfaces" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-dark-actions.png" width="320" alt="Program detail after in dark mode: restrained action hierarchy" />
 
 <details>
 <summary>Before — original comparison</summary>
 
 Light top and actions:
 
-<img src="../docs/pr-screenshots/u09/before-light-top.png" width="320" alt="Program detail before in light mode: duplicate name and purple metadata" />
-<img src="../docs/pr-screenshots/u09/before-light-actions.png" width="320" alt="Program detail before in light mode: purple informational and secondary text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/before-light-top.png" width="320" alt="Program detail before in light mode: duplicate name and purple metadata" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/before-light-actions.png" width="320" alt="Program detail before in light mode: purple informational and secondary text" />
 
 Dark actions:
 
-<img src="../docs/pr-screenshots/u09/before-dark-actions.png" width="320" alt="Program detail before in dark mode: purple day numbers and secondary Customize" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/before-dark-actions.png" width="320" alt="Program detail before in dark mode: purple day numbers and secondary Customize" />
 
 </details>
 
@@ -45,15 +45,15 @@ Dark actions:
 
 Before: fixed header truncates the program name and source.
 
-<img src="../docs/pr-screenshots/u09/before-light-max-top.png" width="320" alt="Before maximum text light: truncated fixed header" />
-<img src="../docs/pr-screenshots/u09/before-dark-max-top.png" width="320" alt="Before maximum text dark: truncated fixed header" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/before-light-max-top.png" width="320" alt="Before maximum text light: truncated fixed header" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/before-dark-max-top.png" width="320" alt="Before maximum text dark: truncated fixed header" />
 
 After: compact Back control remains visible; the complete title and source are in scrolling content, and bottom actions wrap inside the screen.
 
-<img src="../docs/pr-screenshots/u09/after-light-max-top.png" width="320" alt="After maximum text light: uncapped program title and visible Back control" />
-<img src="../docs/pr-screenshots/u09/after-dark-max-top.png" width="320" alt="After maximum text dark: uncapped program title and visible Back control" />
-<img src="../docs/pr-screenshots/u09/after-light-max-actions.png" width="320" alt="After maximum text light: fully readable reachable Use and Customize actions" />
-<img src="../docs/pr-screenshots/u09/after-dark-max-actions.png" width="320" alt="After maximum text dark: fully readable reachable Use and Customize actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-light-max-top.png" width="320" alt="After maximum text light: uncapped program title and visible Back control" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-dark-max-top.png" width="320" alt="After maximum text dark: uncapped program title and visible Back control" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-light-max-actions.png" width="320" alt="After maximum text light: fully readable reachable Use and Customize actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/82f3d0bf1fd6292aeeb4fa2d1549b8813bf2962e/docs/pr-screenshots/u09/after-dark-max-actions.png" width="320" alt="After maximum text dark: fully readable reachable Use and Customize actions" />
 
 </details>
 
