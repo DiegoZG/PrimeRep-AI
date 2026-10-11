@@ -1,0 +1,100 @@
+# Only run on a verified EMPTY, account-owned local program draft at normal text.
+# No app restart, resetDraft, clearState, authentication changes, or backend Save.
+# If interrupted, remove only this flow's two disposable local days and clear
+# its name/description before leaving; preserve all pre-existing user content.
+appId: com.diegozegarra.primerep
+tags:
+  - program-builder-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs/builder
+- extendedWaitUntil:
+    visible:
+      id: program-name-input
+    timeout: 15000
+- assertNotVisible:
+    id: program-builder-day-1
+- assertVisible:
+    id: program-goal-general-fitness
+    selected: true
+- tapOn:
+    id: program-name-input
+- inputText: Layout test draft
+- tapOn:
+    id: program-builder-title
+- assertVisible: Layout test draft
+- tapOn:
+    id: program-description-input
+- inputText: A disposable local draft for checking the program layout.
+- tapOn:
+    id: program-builder-title
+- takeScreenshot: /private/tmp/u11-${APPEARANCE}-setup
+- scrollUntilVisible:
+    element:
+      id: program-add-day
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: program-add-day
+- tapOn:
+    id: program-add-day
+- scrollUntilVisible:
+    element:
+      id: program-day-menu-2
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: program-builder-day-open-1
+- assertVisible:
+    id: program-builder-day-open-2
+- takeScreenshot: /private/tmp/u11-${APPEARANCE}-days
+- tapOn:
+    id: program-day-menu-1
+- assertVisible:
+    id: program-day-move-earlier
+    enabled: false
+- assertVisible:
+    id: program-day-move-later
+    enabled: true
+- takeScreenshot: /private/tmp/u11-${APPEARANCE}-options
+- tapOn:
+    id: program-day-options-cancel
+- tapOn:
+    id: program-day-menu-2
+- tapOn:
+    id: program-day-request-remove
+- assertVisible:
+    id: program-day-confirm-cancel
+- tapOn:
+    id: program-day-confirm-remove
+- tapOn:
+    id: program-day-menu-1
+- tapOn:
+    id: program-day-request-remove
+- tapOn:
+    id: program-day-confirm-remove
+- assertNotVisible:
+    id: program-builder-day-1
+- scrollUntilVisible:
+    element:
+      id: program-name-input
+    direction: UP
+    timeout: 30000
+- tapOn:
+    id: program-name-input
+- eraseText: 100
+- tapOn:
+    id: program-description-input
+- eraseText: 200
+- tapOn:
+    id: program-builder-title
+- tapOn:
+    id: program-builder-back
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000
