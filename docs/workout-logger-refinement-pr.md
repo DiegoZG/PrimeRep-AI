@@ -6,7 +6,7 @@ Make active workout logging calmer and more forgiving without changing the backe
 
 ## Changes
 
-- Neutral, aligned set rows, readable saved values, small green completion checks, and explicit Suggested / Unsaved / pending-sync labels.
+- Neutral, aligned set rows and readable saved values, with compact status icons instead of repeated labels: hollow circle for unlogged suggestions, pencil for unsaved edits, green double checks for saved/synced sets, clock for pending sync, and a warning for failures. Spoken status labels and visible validation/retry guidance remain available.
 - Logged-row overflow actions for Edit and Remove, with Undo and visible sync retries.
 - Compact note/feedback actions, equipment-aware weight labels, a quiet LB/KG control, and a rest timer that leaves the set inputs usable.
 - Exercise-level **Save entered sets (N)** saves only user-edited rows, including corrections to logged sets. It never starts or resets rest or advances exercises.
@@ -20,11 +20,12 @@ Make active workout logging calmer and more forgiving without changing the backe
 
 ## Verification
 
-- 43/43 focused/regression tests pass across entry validation, batch persistence, partial/lost network responses, storage rollback, rest preservation, restart recovery, account isolation, offline finish races, and Health export. Native and web regressions pass for the acknowledged-operation-ID completion race.
+- 51/51 focused/regression tests pass across entry validation, batch persistence, partial/lost network responses, storage rollback, rest preservation, restart recovery, account isolation, offline finish races, and Health export. Eight status-icon tests cover both themes, spoken labels, validation/retry states, and retained history hints. Native and web regressions pass for the acknowledged-operation-ID completion race.
 - Frontend lint, TypeScript, and UI-action audit pass.
 - Production web export passes.
 - Prior Maestro simulator checks cover batch save / save-and-finish, individual logging, edit/remove/Undo, note keyboard dismissal, light/dark appearance, and offline finish / cold-start / Continue logging / reconnection. The final Maestro rerun passed: a fresh two-row batch preserved rest, and save-and-finish saved a forgotten third row and reached the canonical summary.
 - Small iPhone SE and accessibility-size layout inspection caught and fixed clipped headings; finish confirmation is scrollable.
+- Status-icon follow-up: simulator inspection verified unlogged, edited, and failed-sync icons with tap-outside keyboard dismissal. The live saved/synced assertion was blocked by the simulator test account's expired authentication (HTTP 401); the queued test set remains intact. Saved/pending icon states pass component tests in both themes.
 
 ## Manual checks before merge
 

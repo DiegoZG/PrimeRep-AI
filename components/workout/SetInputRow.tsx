@@ -37,9 +37,14 @@ export const SetInputRow = React.memo(function SetInputRow({
   const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
-  const status = unsaved ? "Unsaved" : editing ? "Editing" : logged
-    ? syncStatus === "failed" ? "Sync failed" : syncStatus !== "synced" ? "Saved · pending sync" : "Logged"
-    : weight || reps ? "Suggested · confirm when done" : "";
+  const needsAttention = Boolean(issue) || syncStatus === "failed";
+  const saved = logged && syncStatus === "synced";
+  const status = issue ? `Needs attention: ${issue}` : syncStatus === "failed" ? "Sync failed. Retry available."
+    : unsaved ? "Unsaved changes" : editing ? "Editing saved set" : logged
+      ? saved ? "Saved and synced" : "Saved on this device. Pending sync."
+      : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
+  const statusIcon: React.ComponentProps<typeof Ionicons>["name"] = needsAttention ? "alert-circle-outline"
+    : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : "ellipse-outline";
   const inputStyle = {
     minHeight: 44, flex: 1, borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
@@ -65,7 +70,11 @@ export const SetInputRow = React.memo(function SetInputRow({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignItems: "center", gap: 2 }}>
           <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
-          {logged ? <Ionicons name="checkmark" size={15} color={successColor} accessibilityLabel={`Set ${number} logged`} /> : null}
+          <View testID={`player-set-status-${id}`} accessible accessibilityRole="image"
+            accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite">
+            <Ionicons name={statusIcon} size={18} accessible={false}
+              color={needsAttention ? "#D14343" : saved && !unsaved ? successColor : secondaryColor} />
+          </View>
         </View>
         <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
           value={editing ? setRow.editDraft?.weight ?? weight : weight}
@@ -84,8 +93,6 @@ export const SetInputRow = React.memo(function SetInputRow({
           <Ionicons name={logged ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
         </Pressable>
       </View>
-      {status ? <ThemedText testID={`player-set-status-${id}`} style={{ fontSize: 12, lineHeight: 18, marginLeft: 36, marginTop: 4,
-        color: issue || syncStatus === "failed" ? "#D14343" : logged && syncStatus === "synced" ? successColor : secondaryColor }}>{status}</ThemedText> : null}
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
       {syncStatus === "failed" ? <Pressable testID={`player-retry-set-${id}`} accessibilityRole="button" disabled={readOnly}
         accessibilityState={{ disabled: Boolean(readOnly) }}
