@@ -1,0 +1,107 @@
+# Read-only layout and navigation check; start authenticated on an isolated
+# native development simulator with normal text size and the local API running.
+# Does not create programs, toggle favorites, reset drafts, or change workouts.
+appId: com.diegozegarra.primerep
+env:
+  APPEARANCE: light
+tags:
+  - explore-layout
+---
+- launchApp
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Leave workout"
+    commands:
+      - tapOn: "Leave workout"
+      - tapOn: "Keep Workout Active"
+- tapOn:
+    id: tab-explore
+- scrollUntilVisible:
+    element: "Recommended for you"
+    direction: UP
+    timeout: 15000
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-recommendations
+- tapOn: "View all"
+- extendedWaitUntil:
+    visible:
+      id: program-filters-toggle
+    timeout: 15000
+- assertVisible:
+    id: program-filter-scope-all
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-catalog
+- tapOn: "Back from Programs"
+- extendedWaitUntil:
+    visible:
+      id: explore-search-input
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: explore-favorites
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-library
+- tapOn:
+    id: explore-favorites
+- extendedWaitUntil:
+    visible: "Back from favorites"
+    timeout: 10000
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-favorites
+- tapOn: "Back from favorites"
+- scrollUntilVisible:
+    element:
+      id: exercise-category-weights
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: exercise-category-weights
+- extendedWaitUntil:
+    visible: "Back from exercise category"
+    timeout: 15000
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-weights
+- tapOn: "Back from exercise category"
+- tapOn:
+    id: explore-search-input
+- inputText: press
+- swipe:
+    direction: UP
+    duration: 500
+- extendedWaitUntil:
+    visible:
+      id: explore-search-scope-all
+    timeout: 10000
+- assertVisible:
+    id: exercise-row
+- tapOn:
+    id: explore-search-scope-programs
+- extendedWaitUntil:
+    visible: "No matches"
+    timeout: 10000
+- tapOn:
+    id: explore-search-scope-exercises
+- extendedWaitUntil:
+    visible:
+      id: exercise-row
+    timeout: 10000
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-exercise-search
+- tapOn:
+    id: exercise-row
+    index: 0
+- scrollUntilVisible:
+    element: "Equipment"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: /private/tmp/explore-${APPEARANCE}-exercise-detail
+- tapOn: "Back from exercise"
+- tapOn:
+    id: explore-search-input
+- eraseText
+- tapOn:
+    id: tab-home
