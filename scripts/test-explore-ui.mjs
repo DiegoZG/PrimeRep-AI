@@ -19,7 +19,7 @@ function load(relative, mocks = {}) {
   vm.runInNewContext(output, { module, exports: module.exports, require: (name) => name in mocks ? mocks[name] : fallback(name), setTimeout, clearTimeout, console: { ...console, warn() {} } }, { filename });
   return module.exports;
 }
-const native = { Pressable: "Pressable", View: "View", Text: "Text", TextInput: "TextInput", ScrollView: "ScrollView", TouchableOpacity: "TouchableOpacity", StyleSheet: { create: (styles) => styles }, Platform: { select: (values) => values.ios }, useWindowDimensions: () => ({ fontScale: 1 }) };
+const native = { ActivityIndicator: "ActivityIndicator", Pressable: "Pressable", View: "View", Text: "Text", TextInput: "TextInput", ScrollView: "ScrollView", TouchableOpacity: "TouchableOpacity", StyleSheet: { create: (styles) => styles }, Platform: { select: (values) => values.ios }, useWindowDimensions: () => ({ fontScale: 1 }) };
 const { Colors, Fonts } = load("constants/theme.ts", { "react-native": native });
 const display = load("utils/programDisplay.ts", { "@/utils/localDate": { localDateIso: () => "2026-10-11" } });
 const flat = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));

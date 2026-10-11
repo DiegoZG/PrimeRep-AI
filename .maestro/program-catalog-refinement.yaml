@@ -1,0 +1,89 @@
+# Read-only catalog presentation check on an already-authenticated native app.
+# Start at normal text size with the usual local backend running.
+# Never creates/activates programs, changes favorites, or resets a draft/session.
+appId: com.diegozegarra.primerep
+tags:
+  - catalog-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs
+- extendedWaitUntil:
+    visible:
+      id: program-filters-toggle
+    timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: program-catalog-error-action
+    commands:
+      - tapOn:
+          id: program-catalog-error-action
+- assertVisible:
+    id: program-filter-scope-all
+    selected: true
+- takeScreenshot: /private/tmp/u04-${APPEARANCE}-catalog
+- tapOn:
+    id: program-filter-scope-system
+- assertVisible:
+    id: program-filter-scope-system
+    selected: true
+- tapOn:
+    id: program-filter-scope-private
+- assertVisible:
+    id: program-filter-scope-private
+    selected: true
+- takeScreenshot: /private/tmp/u04-${APPEARANCE}-mine
+- tapOn:
+    id: program-filter-scope-all
+- tapOn:
+    id: program-filters-toggle
+- assertVisible:
+    id: program-filters-panel
+- tapOn:
+    id: program-filter-goal-build-muscle
+- assertVisible:
+    id: program-filter-goal-build-muscle
+    selected: true
+- takeScreenshot: /private/tmp/u04-${APPEARANCE}-filters
+- tapOn:
+    id: program-filter-goal-build-muscle
+- assertVisible:
+    id: program-filter-goal-build-muscle
+    selected: false
+- tapOn:
+    id: program-filter-level-beginner
+- assertVisible:
+    id: program-filter-level-beginner
+    selected: true
+- tapOn:
+    id: program-filter-level-beginner
+- tapOn:
+    id: program-filter-frequency-3
+- assertVisible:
+    id: program-filter-frequency-3
+    selected: true
+- tapOn:
+    id: program-filter-frequency-3
+- scrollUntilVisible:
+    element:
+      id: program-filters-close
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: program-filters-close
+- extendedWaitUntil:
+    visible:
+      id: program-card-.*
+    timeout: 15000
+- tapOn:
+    id: program-card-.*
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: program-day-.*
+    timeout: 15000
+- takeScreenshot: /private/tmp/u04-${APPEARANCE}-detail
+- openLink: primerepai://
