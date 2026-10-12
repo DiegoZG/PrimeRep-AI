@@ -4,11 +4,11 @@ Workout Split previously emphasized selected cards, checkboxes, and the Recommen
 
 Before, normal Dark with PrimeRep Optimized selected:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-before-dark-selected.png" width="320" alt="Original Workout Split in Dark with PrimeRep Optimized selected and purple selection treatment" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-before-dark-selected.png" width="320" alt="Original Workout Split in Dark with PrimeRep Optimized selected and purple selection treatment" />
 
 After, normal Dark with the neutral selected preset treatment; the complete Continue frame appears in the collapsed details below:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-dark-selected.png" width="320" alt="Final Workout Split in Dark with a neutral selected preset border and checkmark" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-dark-selected.png" width="320" alt="Final Workout Split in Dark with a neutral selected preset border and checkmark" />
 
 ## Changes and preserved contracts
 
@@ -60,32 +60,32 @@ Screenshots and provenance link to the immutable asset commit. The two normal Da
 <details>
 <summary>Original Light and Dark empty states</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-before-light-initial.png" width="320" alt="Original Workout Split in Light with no selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-before-light-initial.png" width="320" alt="Original Workout Split in Light with no selection" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-before-dark-initial.png" width="320" alt="Original Workout Split in Dark with no selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-before-dark-initial.png" width="320" alt="Original Workout Split in Dark with no selection" />
 
 </details>
 
 <details>
 <summary>Final normal Light and complete Light/Dark Continue frames</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-light-selected.png" width="320" alt="Final Workout Split in Light with a selected preset" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-light-selected.png" width="320" alt="Final Workout Split in Light with a selected preset" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-light-bottom.png" width="320" alt="Final Workout Split in Light with lower choices and the full Continue frame" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-light-bottom.png" width="320" alt="Final Workout Split in Light with lower choices and the full Continue frame" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-dark-bottom.png" width="320" alt="Final Workout Split in Dark with lower choices and the full Continue frame" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-dark-bottom.png" width="320" alt="Final Workout Split in Dark with lower choices and the full Continue frame" />
 
 </details>
 
 <details>
 <summary>Final cold maximum-text Light/Dark and compact Light empty state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-light-max-bottom.png" width="320" alt="Final Workout Split at cold maximum text in Light with Continue reached through scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-light-max-bottom.png" width="320" alt="Final Workout Split at cold maximum text in Light with Continue reached through scrolling" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-dark-max-bottom.png" width="320" alt="Final Workout Split at cold maximum text in Dark with Continue reached through scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-dark-max-bottom.png" width="320" alt="Final Workout Split at cold maximum text in Dark with Continue reached through scrolling" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/u25-after-compact-light-disabled.png" width="320" alt="Final Workout Split on compact Light with no selection and disabled neutral Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/u25-after-compact-light-disabled.png" width="320" alt="Final Workout Split on compact Light with no selection and disabled neutral Continue" />
 
 </details>
 
-[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/__U25_ASSET_COMMIT_SHA__/docs/pr-screenshots/u25/README.md)
+[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/451749f2b3179bcba828d06dc98f20a5d3364291/docs/pr-screenshots/u25/README.md)
