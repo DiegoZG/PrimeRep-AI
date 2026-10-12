@@ -14,11 +14,13 @@ const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 interface AnimatedInputProps extends TextInputProps {
   style?: any;
   error?: boolean;
+  authPresentation?: boolean;
 }
 
 export function AnimatedInput({
   style,
   error = false,
+  authPresentation = false,
   onFocus,
   onBlur,
   ...props
@@ -29,6 +31,14 @@ export function AnimatedInput({
   const glowOpacity = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => {
+    if (authPresentation) {
+      return {
+        borderColor: error ? (colorScheme === "dark" ? "#FF8B82" : "#B42318") : isFocused ? colors.text : colors.inputBorder,
+        borderWidth: isFocused ? 2 : 1,
+        shadowOpacity: 0,
+        elevation: 0,
+      };
+    }
     return {
       borderColor: error ? "#D14343" : isFocused ? colors.electricBlue : colors.inputBorder,
       borderWidth: isFocused ? 2 : 1,
@@ -66,7 +76,7 @@ export function AnimatedInput({
       ]}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      placeholderTextColor={colors.placeholder}
+      placeholderTextColor={authPresentation ? colors.icon : colors.placeholder}
     />
   );
 }

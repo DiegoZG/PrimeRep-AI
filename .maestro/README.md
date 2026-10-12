@@ -996,3 +996,45 @@ flow pass. Both apps were returned Home with their active Upper A / 4-of-4 sets
 preserved; original Dark (primary) and Light (SE) app choices, OS Light, and
 normal `large` text were restored. No real favorite/custom-exercise mutations,
 external-AI requests, Health actions, or account changes were made.
+
+### Login refinement
+
+Run `maestro --device <isolated-guest-uuid> test -e APPEARANCE=light .maestro/login-refinement.yaml`
+at normal text on an isolated guest native development app; repeat in Dark.
+Verify Email and Password are empty before starting. Never run this flow on a
+signed-in user's simulator or reset an existing app to create guest state.
+It never types credentials or presses Return. The empty-form Sign in action
+returns through existing local validation before `logIn`; no real sign-in,
+password-reset mail, onboarding Next, or account creation is exercised.
+
+The flow checks Show/Hide password, empty-form feedback, the secondary controls,
+read-only Sign up/onboarding and recovery navigation, and returns to empty
+Login. Stable selectors are `login-scroll`, `email-input`, `password-input`,
+`password-visibility-button`, `login-button`, `forgot-password-link`,
+`signup-link`, `onboarding-return-link`, `login-error`, and
+`password-reset-success`.
+
+U14 uses separate iOS 18.5 guest devices: iPhone 16 Plus
+`C3D67687-978B-4319-80AF-26BB0A56B525` and SE (375 points)
+`67BF52B6-AC88-4620-841C-2970B1D5AF0D`. No existing signed-in app, workout,
+Health permission, Keychain value, or account data was changed. Both use the
+existing development app and local Metro/backend, with no rebuild or fixtures.
+The final normal-text flow passed with exit code 0 in Light and Dark on the
+16 Plus guest and in Light on the compact guest (three successful runs).
+
+Separate native checks covered neutral focus with the software keyboard,
+outside-tap and drag dismissal retaining a disposable invalid-email draft,
+and first-tap password visibility/local invalid-email validation while the
+keyboard was open. Only those invented drafts were cleared afterward.
+At the largest iOS text setting, Login's password, Sign in, Sign up, and
+onboarding controls were reached by scrolling in both themes; the uncapped
+intro is larger than the first viewport. This does not claim a full maximum-text
+navigation flow: the existing recovery screen's Back action did not return in
+the attempted maximum-text run and is a separate recovery-layout follow-up.
+
+Native SE normal-text bounds were 52 × 56 points for password visibility,
+132 × 44 for recovery, 327 × 52 for Sign in, 67 × 44 for Sign up, and
+327 × 44 for the onboarding return. Restore both isolated guests to OS Light,
+normal `large` text, and empty Login after checks. VoiceOver, physical-device
+password-manager/autofill, successful sign-in and network failures, and real
+password-reset delivery remain separate manual checks, not screenshot passes.
