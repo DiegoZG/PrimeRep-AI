@@ -168,25 +168,24 @@ export default function FitnessGoalScreen() {
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="fitness-goal-scroll"
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.question, { color: colors.text }]}>
+              <AnimatedText testID="fitness-goal-question" style={[styles.question, { color: colors.text }]}>
                 {FITNESS_GOAL_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
-            {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text testID="fitness-goal-description" style={[styles.description, { color: colors.icon }]}>
                 {FITNESS_GOAL_SCREEN.description}
               </Text>
             </Animated.View>
 
-            {/* Options */}
             <View style={styles.optionsContainer}>
               {FITNESS_GOAL_SCREEN.options.map((option, index) => {
                 const isSelected = selectedGoal === option.id;
@@ -195,6 +194,11 @@ export default function FitnessGoalScreen() {
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
                     <TouchableOpacity
+                      testID={`fitness-goal-option-${option.id}`}
+                      accessible
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={`${option.title}. ${option.description}${option.tag ? `. ${option.tag.text}` : ""}`}
                       onPress={() => handleSelectGoal(option.id)}
                       activeOpacity={0.8}
                     >
@@ -202,58 +206,24 @@ export default function FitnessGoalScreen() {
                         style={[
                           styles.optionCard,
                           {
-                            backgroundColor: isSelected
-                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
-                              : colors.inputBackground,
+                            backgroundColor: colors.inputBackground,
                             borderColor: isSelected
-                              ? colors.primaryButton
+                              ? colors.icon
                               : colors.inputBorder,
-                            borderWidth: isSelected ? 2 : 1,
                           },
                         ]}
                       >
-                        {/* Tag */}
-                        {option.tag && (
-                          <View
-                            style={[
-                              styles.tag,
-                              {
-                                backgroundColor:
-                                  option.tag.type === "popular"
-                                    ? colors.primaryButton
-                                    : "rgba(155, 161, 166, 0.2)", // Light grey for powerlifting tag
-                              },
-                            ]}
-                          >
+                        <View style={styles.optionContent}>
+                          <View style={styles.optionTextContainer}>
+                            {option.tag && (
+                              <View testID={`fitness-goal-tag-${option.id}`} style={[styles.tag, { backgroundColor: colors.inputBorder }]}>
+                                <Text testID={`fitness-goal-tag-text-${option.id}`} style={[styles.tagText, { color: colors.text }]}>
+                                  {option.tag.text}
+                                </Text>
+                              </View>
+                            )}
                             <Text
-                              style={[
-                                styles.tagText,
-                                {
-                                  color:
-                                    option.tag.type === "popular"
-                                      ? "#FFFFFF"
-                                      : colors.text,
-                                },
-                              ]}
-                            >
-                              {option.tag.text}
-                            </Text>
-                          </View>
-                        )}
-
-                        <View
-                          style={[
-                            styles.optionContent,
-                            option.tag && { marginTop: 20 },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.optionTextContainer,
-                              option.tag && { paddingTop: 0 },
-                            ]}
-                          >
-                            <Text
+                              testID={`fitness-goal-title-${option.id}`}
                               style={[
                                 styles.optionTitle,
                                 { color: colors.text },
@@ -262,29 +232,24 @@ export default function FitnessGoalScreen() {
                               {option.title}
                             </Text>
                             <Text
+                              testID={`fitness-goal-option-description-${option.id}`}
                               style={[
                                 styles.optionDescription,
-                                { color: colors.placeholder },
+                                { color: colors.icon },
                               ]}
                             >
                               {option.description}
                             </Text>
                           </View>
                           <View
-                            style={[
-                              styles.checkbox,
-                              {
-                                backgroundColor: isSelected
-                                  ? colors.primaryButton
-                                  : "transparent",
-                                borderColor: isSelected
-                                  ? colors.primaryButton
-                                  : colors.inputBorder,
-                              },
-                            ]}
+                            testID={`fitness-goal-indicator-${option.id}`}
+                            accessible={false}
+                            accessibilityElementsHidden
+                            importantForAccessibility="no-hide-descendants"
+                            style={styles.checkbox}
                           >
                             <AnimatedCheckmark visible={isSelected}>
-                              <Text style={styles.checkmarkText}>✓</Text>
+                              <View style={[styles.checkmark, { borderColor: colors.icon }]} />
                             </AnimatedCheckmark>
                           </View>
                         </View>
@@ -295,27 +260,28 @@ export default function FitnessGoalScreen() {
               })}
             </View>
           </View>
-        </ScrollView>
-
-        {/* Next Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton onPress={handleNext} disabled={!selectedGoal} accessibilityState={{ disabled: !selectedGoal }}>
-            <View
+          <View style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="fitness-goal-continue"
+              onPress={handleNext}
+              disabled={!selectedGoal}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              accessibilityState={{ disabled: !selectedGoal }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !selectedGoal && { opacity: 0.5 },
+                {
+                  backgroundColor: selectedGoal ? colors.primaryButton : colors.inputBackground,
+                  borderColor: selectedGoal ? colors.primaryButton : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text style={[styles.primaryButtonText, { color: selectedGoal ? "#FFFFFF" : colors.icon }]}>
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -330,7 +296,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
   },
   content: {
     paddingHorizontal: 24,
@@ -339,17 +304,13 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
-    marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    marginBottom: 8,
   },
   optionsContainer: {
     gap: 12,
@@ -357,24 +318,21 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    position: "relative",
+    padding: 20,
+    borderWidth: 2,
+    minHeight: 44,
   },
   tag: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    paddingHorizontal: 6,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    zIndex: 1,
   },
   tagText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
   optionContent: {
     flexDirection: "row",
@@ -384,49 +342,54 @@ const styles = StyleSheet.create({
   },
   optionTextContainer: {
     flex: 1,
-    gap: 4,
+    minWidth: 0,
+    gap: 8,
   },
   optionTitle: {
     fontSize: 17,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    marginBottom: 4,
   },
   optionDescription: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 20,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
+    width: 20,
+    height: 20,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+  checkmark: {
+    width: 7,
+    height: 12,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
   },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });

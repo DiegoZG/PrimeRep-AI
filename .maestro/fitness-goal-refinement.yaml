@@ -1,0 +1,236 @@
+# Preserved fictional guest only. Start on Fitness Goal; no reset/authentication.
+# Required MODE=full|layout|empty and SCREENSHOT_PREFIX=/absolute/existing-dir/prefix.
+# Full mode additionally requires FIRST_CHOICE and LAST_CHOICE option IDs.
+# Empty mode is read-only on an original empty guest; returns it to Signup.
+appId: com.diegozegarra.primerep
+tags:
+  - fitness-goal-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: fitness-goal-scroll
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'empty'}
+    commands:
+      - assertVisible:
+          id: fitness-goal-option-build-muscle
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-general-fitness
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-general-fitness
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-conditioning
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-conditioning
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-get-stronger
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-get-stronger
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-continue
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-disabled
+      - openLink: primerepai://signup
+      - assertVisible:
+          id: email-input
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-${FIRST_CHOICE}
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: fitness-goal-option-${FIRST_CHOICE}
+      - assertVisible:
+          id: fitness-goal-option-${FIRST_CHOICE}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-${LAST_CHOICE}
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: fitness-goal-option-${LAST_CHOICE}
+      - assertVisible:
+          id: fitness-goal-option-${LAST_CHOICE}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-get-stronger
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-get-stronger
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-continue
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+      - tapOn:
+          id: fitness-goal-continue
+      - assertVisible: Training Frequency \(5/9\)
+      - openLink: primerepai://onboarding/fitness-goal
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-${LAST_CHOICE}
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-${LAST_CHOICE}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-${FIRST_CHOICE}
+          direction: UP
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-option-${FIRST_CHOICE}
+          text: radio button, unchecked
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-tag-text-build-muscle
+          direction: DOWN
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-title-build-muscle
+          direction: DOWN
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-build-upper
+      - swipe:
+          start: 50%, 75%
+          end: 50%, 45%
+          duration: 600
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-build-helper-upper
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-description-build-muscle
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-build-lower
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-title-general-fitness
+          direction: DOWN
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-general-title
+      - swipe:
+          start: 50%, 75%
+          end: 50%, 45%
+          duration: 600
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-general-helper-upper
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-description-general-fitness
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-general
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-title-conditioning
+          direction: DOWN
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-conditioning-title
+      - swipe:
+          start: 50%, 75%
+          end: 50%, 45%
+          duration: 600
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-conditioning-helper-upper
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-description-conditioning
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-conditioning
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-tag-text-get-stronger
+          direction: DOWN
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-title-get-stronger
+          direction: DOWN
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-stronger-upper
+      - swipe:
+          start: 50%, 75%
+          end: 50%, 45%
+          duration: 600
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-stronger-helper-upper
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-option-description-get-stronger
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: fitness-goal-continue
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: fitness-goal-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
