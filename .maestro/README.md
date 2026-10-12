@@ -955,3 +955,44 @@ kept out of the shared-account flow:
   archive/deactivate/cancel, or custom-exercise save/archive, then use the native
   back gesture. Releasing the delayed response must not navigate from the screen
   now visible.
+
+### Exercise detail refinement
+
+Run `maestro --device <simulator-uuid> test -e APPEARANCE=dark .maestro/exercise-detail-refinement.yaml`
+on an already-authenticated native development app and the usual local backend.
+Repeat in Light appearance. The flow uses the existing public `crunch_machine`
+catalog entry: no fixtures, mock server, account reset, or backend writes.
+
+Before running, confirm that its displayed question thread and unsent question
+input are empty. Screenshots must not contain private questions or answers.
+The flow checks public information, expands/collapses the existing instructions,
+checks the empty composer and disabled Send, and returns to the preserved Home
+Resume action. It does not type, press Return, or submit an AI question; it also
+does not toggle favorites, edit/archive custom exercises, touch Health settings,
+or finish/discard an active workout.
+
+Keyboard dismissal, largest iOS text, 375-point layout, VoiceOver, physical-device
+playback, favorite failure/retry, and custom-exercise lifecycle need separate
+scoped checks. Never submit a question merely to test composer styling. Only
+type a disposable unsent draft after verifying an empty input, and erase only
+that draft before leaving. Restore the original app appearance and normal text
+size after simulator layout checks; verify the active-workout Resume state.
+
+U13 native evidence: the read-only normal-size flow passed in both themes on
+iPhone 16 Plus (430 points). Maximum iOS text was inspected in both themes at
+the media and empty-composer scroll positions: the header stays controls-only,
+and the media caption is readable without overlap; the exercise name is below
+the first viewport at that size. Native normal-size Back and Favorite bounds
+were 44 × 44 points, and the instruction toggle was 388 × 46 points.
+
+Outside header/body taps dismissed the keyboard and retained a disposable
+unsent draft. Dragging dismissed the keyboard, but exact draft retention across
+that drag was not independently established because repeated test-tool text
+entry changed the test text. Only the disposable draft was cleared; no question
+was sent. The SE (375 points) public-info layout was inspected in Light at
+normal text, but its full flow did not pass: after opening the accordion, the
+paragraph assertion was below the current viewport. Do not report a full SE
+flow pass. Both apps were returned Home with their active Upper A / 4-of-4 sets
+preserved; original Dark (primary) and Light (SE) app choices, OS Light, and
+normal `large` text were restored. No real favorite/custom-exercise mutations,
+external-AI requests, Health actions, or account changes were made.

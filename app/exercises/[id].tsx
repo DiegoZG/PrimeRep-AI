@@ -5,10 +5,14 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from "rea
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
 import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useIsBeginner } from "@/hooks/use-is-beginner";
@@ -35,6 +39,9 @@ export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale >= 2;
+  const danger = colorScheme === "dark" ? "#FF8B82" : "#B42318";
   const { token, isLoggedIn, user } = useContext(AuthContext);
   const accountKey = `${user?.id ?? "guest"}:${token ?? "anonymous"}`;
   const accountRef = useRef(accountKey);
@@ -183,11 +190,12 @@ export default function ExerciseDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View testID="exercise-detail-header" style={styles.header} onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}>
         <Pressable
+          testID="exercise-detail-back"
           accessibilityRole="button"
           accessibilityLabel="Back from exercise"
           accessibilityState={{ disabled: customActionBusy }}
@@ -198,13 +206,18 @@ export default function ExerciseDetailScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
+        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
         <View style={styles.headerTitleContainer}>
+          {!largeText && (
           <ThemedText type="title" style={styles.headerTitle}>
             Exercise
           </ThemedText>
+          )}
         </View>
+        </TouchableWithoutFeedback>
         {isLoggedIn && (
           <Pressable
+            testID="exercise-detail-favorite"
             accessibilityRole="button"
             accessibilityLabel={isFavorite ? `Remove ${exercise?.name ?? "exercise"} from favorites` : `Add ${exercise?.name ?? "exercise"} to favorites`}
             accessibilityState={{ disabled: isFavoriteLoading, busy: isFavoriteLoading }}
@@ -214,7 +227,7 @@ export default function ExerciseDetailScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {isFavoriteLoading ? (
-              <ActivityIndicator size="small" color={colors.primaryButton} />
+              <ActivityIndicator size="small" color={colors.icon} />
             ) : (
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
@@ -230,64 +243,72 @@ export default function ExerciseDetailScreen() {
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primaryButton} />
+          <ActivityIndicator size="large" color={colors.icon} />
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
+        <ScrollView contentContainerStyle={styles.errorContainer}>
           <View
             style={[
               styles.errorIcon,
-              { backgroundColor: "rgba(255, 59, 48, 0.1)" },
+              { backgroundColor: colors.inputBackground },
             ]}
           >
-            <Ionicons name="alert-circle" size={48} color="#FF3B30" />
+            <Ionicons name="alert-circle" size={32} color={danger} />
           </View>
           <ThemedText style={styles.errorTitle}>Exercise not found</ThemedText>
-          <ThemedText style={styles.errorSubtitle}>{error}</ThemedText>
+          <ThemedText style={[styles.errorSubtitle, { color: colors.icon }]}>{error}</ThemedText>
           <Pressable
             testID="exercise-detail-retry"
             accessibilityRole="button"
             accessibilityLabel="Retry loading exercise"
             onPress={() => void fetchExercise()}
-            style={[
+            style={({ pressed }) => [
               styles.backActionButton,
-              { backgroundColor: colors.primaryButton },
+              { backgroundColor: pressed ? colors.inputBackground : colors.background, borderColor: colors.inputBorder },
             ]}
           >
-            <Text style={styles.backActionButtonText}>Retry</Text>
+            <Text style={[styles.backActionButtonText, { color: colors.text }]}>Retry</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Back from exercise error" onPress={() => router.back()} style={styles.secondaryErrorAction}>
-            <Text style={[styles.secondaryErrorActionText, { color: colors.primaryButton }]}>Go Back</Text>
+            <Text style={[styles.secondaryErrorActionText, { color: colors.text }]}>Go Back</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       ) : exercise ? (
         <ScrollView
+          testID="exercise-detail-scroll"
           contentContainerStyle={styles.scrollContent}
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
         >
+          <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+          <View testID="exercise-detail-content">
           {/* Exercise media — real footage, else labelled placeholder */}
           <ExerciseMedia
             imageUrl={exercise.imageUrl}
             demoVideoUrl={exercise.demoVideoUrl}
             media={exercise.media}
             exerciseName={exercise.name}
-            colors={colors}
+            colors={{ ...colors, placeholder: colors.icon }}
+            height={largeText ? Math.round(220 * fontScale) : 220}
           />
 
           {/* Exercise Name & Type */}
           <View style={styles.titleSection}>
-            <ThemedText type="title" style={styles.exerciseName}>
+            <ThemedText testID="exercise-detail-name" type="title" style={styles.exerciseName}>
               {exercise.name}
             </ThemedText>
             {exercise.exerciseType && (
               <View
                 style={[
                   styles.typeBadge,
-                  { backgroundColor: colors.inputBackground },
+                  { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
                 ]}
               >
                 <Text
-                  style={[styles.typeBadgeText, { color: colors.primaryButton }]}
+                  style={[styles.typeBadgeText, { color: colors.icon }]}
                 >
                   {exercise.exerciseType.toUpperCase()}
                 </Text>
@@ -297,9 +318,9 @@ export default function ExerciseDetailScreen() {
 
           {exercise.isEditable ? (
             <><View style={styles.customActions}>
-              <Pressable testID="custom-exercise-edit" accessibilityRole="button" accessibilityLabel={`Edit ${exercise.name}`} accessibilityState={{ disabled: customActionBusy }} disabled={customActionBusy} onPress={() => router.push({ pathname: "/programs/custom-exercise", params: { exerciseId: exercise.id } })} style={[styles.customAction, { borderColor: colors.inputBorder, opacity: customActionBusy ? 0.5 : 1 }]}><Ionicons name="create-outline" size={20} color={colors.primaryButton} /><Text style={[styles.customActionText, { color: colors.primaryButton }]}>Edit</Text></Pressable>
-              <Pressable testID="custom-exercise-archive" accessibilityRole="button" accessibilityLabel={`Archive ${exercise.name}`} accessibilityState={{ disabled: customActionBusy, busy: customActionBusy }} disabled={customActionBusy} onPress={handleArchiveCustom} style={[styles.customAction, { borderColor: colors.inputBorder, opacity: customActionBusy ? 0.5 : 1 }]}>{customActionBusy ? <ActivityIndicator size="small" color="#D92D20" /> : <Ionicons name="trash-outline" size={20} color="#D92D20" />}<Text style={[styles.customActionText, { color: "#D92D20" }]}>{customActionBusy ? "Archiving…" : "Archive"}</Text></Pressable>
-            </View>{customActionError ? <ThemedText testID="custom-exercise-archive-error" accessibilityRole="alert" style={styles.customActionError}>{customActionError}</ThemedText> : null}</>
+              <Pressable testID="custom-exercise-edit" accessibilityRole="button" accessibilityLabel={`Edit ${exercise.name}`} accessibilityState={{ disabled: customActionBusy }} disabled={customActionBusy} onPress={() => router.push({ pathname: "/programs/custom-exercise", params: { exerciseId: exercise.id } })} style={({ pressed }) => [styles.customAction, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBackground : colors.background }]}><Ionicons name="create-outline" size={20} color={customActionBusy ? colors.icon : colors.text} /><Text style={[styles.customActionText, { color: customActionBusy ? colors.icon : colors.text }]}>Edit</Text></Pressable>
+              <Pressable testID="custom-exercise-archive" accessibilityRole="button" accessibilityLabel={`Archive ${exercise.name}`} accessibilityState={{ disabled: customActionBusy, busy: customActionBusy }} disabled={customActionBusy} onPress={handleArchiveCustom} style={({ pressed }) => [styles.customAction, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBackground : colors.background }]}>{customActionBusy ? <ActivityIndicator size="small" color={danger} /> : <Ionicons name="trash-outline" size={20} color={danger} />}<Text style={[styles.customActionText, { color: danger }]}>{customActionBusy ? "Archiving…" : "Archive"}</Text></Pressable>
+            </View>{customActionError ? <ThemedText testID="custom-exercise-archive-error" accessibilityRole="alert" style={[styles.customActionError, { color: danger }]}>{customActionError}</ThemedText> : null}</>
           ) : null}
 
           {/* Muscles Section */}
@@ -312,23 +333,23 @@ export default function ExerciseDetailScreen() {
             <View
               style={[
                 styles.muscleCard,
-                { backgroundColor: colors.inputBackground },
+                { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
               ]}
             >
               <View
                 style={[
                   styles.muscleIcon,
-                  { backgroundColor: "rgba(106, 79, 245, 0.1)" },
+                  { backgroundColor: colors.background, borderColor: colors.inputBorder },
                 ]}
               >
                 <Ionicons
                   name="fitness"
                   size={20}
-                  color={colors.primaryButton}
+                  color={colors.icon}
                 />
               </View>
               <View style={styles.muscleInfo}>
-                <Text style={[styles.muscleLabel, { color: colors.placeholder }]}>
+                <Text style={[styles.muscleLabel, { color: colors.icon }]}>
                   Primary
                 </Text>
                 <Text style={[styles.muscleName, { color: colors.text }]}>
@@ -342,24 +363,24 @@ export default function ExerciseDetailScreen() {
               <View
                 style={[
                   styles.muscleCard,
-                  { backgroundColor: colors.inputBackground },
+                  { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
                 ]}
               >
                 <View
                   style={[
                     styles.muscleIcon,
-                    { backgroundColor: "rgba(0, 212, 255, 0.1)" },
+                    { backgroundColor: colors.background, borderColor: colors.inputBorder },
                   ]}
                 >
                   <Ionicons
                     name="body"
                     size={20}
-                    color={colors.electricBlue}
+                    color={colors.icon}
                   />
                 </View>
                 <View style={styles.muscleInfo}>
                   <Text
-                    style={[styles.muscleLabel, { color: colors.placeholder }]}
+                    style={[styles.muscleLabel, { color: colors.icon }]}
                   >
                     Secondary
                   </Text>
@@ -379,16 +400,16 @@ export default function ExerciseDetailScreen() {
               <View
                 style={[
                   styles.equipmentCard,
-                  { backgroundColor: colors.inputBackground },
+                  { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
                 ]}
               >
                 <View
                   style={[
                     styles.equipmentIcon,
-                    { backgroundColor: "rgba(52, 199, 89, 0.1)" },
+                    { backgroundColor: colors.background, borderColor: colors.inputBorder },
                   ]}
                 >
-                  <Ionicons name="barbell" size={20} color="#34C759" />
+                  <Ionicons name="barbell" size={20} color={colors.icon} />
                 </View>
                 <Text testID="exercise-equipment-names" style={[styles.equipmentText, { color: colors.text }]}>
                   {equipmentLabel}
@@ -396,19 +417,21 @@ export default function ExerciseDetailScreen() {
               </View>
               {equipmentError && unresolvedEquipmentIds.length > 0 && !isEquipmentPending ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Retry loading equipment names" onPress={() => void ensureEquipmentLoaded({ force: true })} style={styles.equipmentRetry}>
-                  <Text style={[styles.equipmentRetryText, { color: colors.primaryButton }]}>Retry equipment details</Text>
+                  <Text style={[styles.equipmentRetryText, { color: colors.text }]}>Retry equipment details</Text>
                 </Pressable>
               ) : null}
           </View>
 
-          {exercise.structuredContent?.cues.length ? <ContentSection title="Form cues" content={exercise.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" /> : null}
+          {exercise.structuredContent?.cues.length ? <ContentSection testID="exercise-detail-cues" title="Form cues" content={exercise.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" detailPresentation /> : null}
           {/* Beginner Notes — prominent for beginners */}
           {isBeginner && exercise.beginnerNotes && (
             <ContentSection
               title="New to this?"
+              testID="exercise-detail-beginner"
               content={exercise.beginnerNotes}
               colors={colors}
               highlight
+              detailPresentation
               icon="sparkles"
             />
           )}
@@ -418,21 +441,27 @@ export default function ExerciseDetailScreen() {
             <View style={styles.section}>
               <ContentSection
                 title="How to perform"
+                testID="exercise-detail-how-to"
                 content={exercise.howTo}
                 colors={colors}
                 icon="list-outline"
+                detailPresentation
               />
               <ContentSection
                 title="Why this exercise"
+                testID="exercise-detail-why"
                 content={exercise.whyItWorks}
                 colors={colors}
                 icon="bulb-outline"
+                detailPresentation
               />
               <ContentSection
                 title="Common mistakes"
+                testID="exercise-detail-mistakes"
                 content={exercise.commonMistakes}
                 colors={colors}
                 icon="warning-outline"
+                detailPresentation
               />
             </View>
           )}
@@ -447,8 +476,11 @@ export default function ExerciseDetailScreen() {
               token={token}
               isLoggedIn={isLoggedIn}
               colors={colors}
+              detailPresentation
             />
           </View>
+          </View>
+          </TouchableWithoutFeedback>
         </ScrollView>
       ) : null}
     </SafeAreaView>
@@ -464,28 +496,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    gap: 16,
+    gap: 12,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitleContainer: {
     flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: 24,
   },
   favoriteButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   headerSpacer: {
-    width: 40,
+    width: 44,
   },
   loadingContainer: {
     flex: 1,
@@ -493,10 +526,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   errorContainer: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   errorIcon: {
     width: 80,
@@ -513,7 +547,6 @@ const styles = StyleSheet.create({
   },
   errorSubtitle: {
     fontSize: 14,
-    opacity: 0.7,
     textAlign: "center",
     marginBottom: 24,
   },
@@ -521,6 +554,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 44,
   },
   backActionButtonText: {
     color: "#FFFFFF",
@@ -541,15 +576,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 32,
   },
   titleSection: {
     marginBottom: 24,
   },
-  customActions: { flexDirection: "row", gap: 10, marginBottom: 22 },
-  customAction: { flex: 1, minHeight: 46, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  customActionText: { fontSize: 14, fontWeight: "700", fontFamily: Fonts.sans },
-  customActionError: { color: "#D92D20", marginTop: -12, marginBottom: 20, lineHeight: 20 },
+  customActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 22 },
+  customAction: { flexGrow: 1, flexBasis: 140, minHeight: 46, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  customActionText: { flexShrink: 1, fontSize: 14, fontWeight: "700", fontFamily: Fonts.sans },
+  customActionError: { marginTop: -12, marginBottom: 20 },
   exerciseName: {
     fontSize: 28,
     marginBottom: 8,
@@ -559,12 +594,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: "100%",
   },
   typeBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    letterSpacing: 0.5,
   },
   section: {
     marginBottom: 24,
@@ -578,6 +614,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 8,
     gap: 14,
   },
@@ -585,18 +622,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   muscleInfo: {
     flex: 1,
+    minWidth: 0,
   },
   muscleLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "500",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
     marginBottom: 2,
   },
   muscleName: {
@@ -610,12 +647,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
+    borderWidth: 1,
     gap: 14,
   },
   equipmentIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },

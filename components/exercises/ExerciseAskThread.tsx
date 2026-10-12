@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { WorkoutText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 import { HttpError } from "@/services/httpClient";
 import {
@@ -17,6 +18,7 @@ interface ExerciseAskThreadProps {
   token: string | null;
   isLoggedIn: boolean;
   colors: typeof Colors.light;
+  detailPresentation?: boolean;
 }
 
 function friendlyErrorMessage(err: unknown): string {
@@ -40,6 +42,7 @@ export function ExerciseAskThread({
   token,
   isLoggedIn,
   colors,
+  detailPresentation = false,
 }: ExerciseAskThreadProps) {
   const router = useRouter();
 
@@ -90,6 +93,10 @@ export function ExerciseAskThread({
     }
   }, [questionText, token, isAsking, exerciseId]);
 
+  const ThreadText = detailPresentation ? WorkoutText : ThemedText;
+  const muted = detailPresentation ? colors.icon : colors.placeholder;
+  const danger = colors.background === Colors.dark.background ? "#FF8B82" : "#B42318";
+
   if (!isLoggedIn) {
     return (
       <View
@@ -101,11 +108,12 @@ export function ExerciseAskThread({
           gap: 10,
         }}
       >
-        <Ionicons name="chatbubble-ellipses-outline" size={28} color={colors.placeholder} />
-        <ThemedText style={{ fontSize: 14, textAlign: "center", color: colors.placeholder }}>
+        <Ionicons name="chatbubble-ellipses-outline" size={28} color={muted} />
+        <ThreadText style={{ fontSize: 14, textAlign: "center", color: muted }}>
           Log in to ask the coach questions about this exercise.
-        </ThemedText>
+        </ThreadText>
         <Pressable
+          {...(detailPresentation ? { accessibilityRole: "button" as const, accessibilityLabel: "Log in to ask exercise questions" } : {})}
           onPress={() => router.push("/login")}
           style={{
             marginTop: 4,
@@ -113,11 +121,12 @@ export function ExerciseAskThread({
             paddingVertical: 10,
             borderRadius: 12,
             backgroundColor: colors.primaryButton,
+            ...(detailPresentation ? { minHeight: 44, justifyContent: "center" as const } : {}),
           }}
         >
-          <ThemedText style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}>
+          <ThreadText style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "600" }}>
             Log In
-          </ThemedText>
+          </ThreadText>
         </Pressable>
       </View>
     );
@@ -131,9 +140,9 @@ export function ExerciseAskThread({
             <ActivityIndicator size="small" color={colors.primaryButton} />
           </View>
         ) : questions.length === 0 ? (
-          <ThemedText style={{ fontSize: 13, color: colors.placeholder, paddingVertical: 4 }}>
+          <ThreadText style={{ fontSize: detailPresentation ? 14 : 13, color: muted, paddingVertical: 4 }}>
             Ask anything about form, tempo, or how to adapt this exercise.
-          </ThemedText>
+          </ThreadText>
         ) : (
           questions.map((item) => (
             <View key={item.id} style={{ gap: 6 }}>
@@ -142,16 +151,17 @@ export function ExerciseAskThread({
                 <View
                   style={{
                     maxWidth: "85%",
-                    backgroundColor: colors.primaryButton,
+                    backgroundColor: detailPresentation ? colors.inputBackground : colors.primaryButton,
+                    ...(detailPresentation ? { borderWidth: 1, borderColor: colors.inputBorder } : {}),
                     borderRadius: 16,
                     borderBottomRightRadius: 4,
                     paddingHorizontal: 14,
                     paddingVertical: 10,
                   }}
                 >
-                  <ThemedText style={{ color: "#FFFFFF", fontSize: 14, lineHeight: 20 }}>
+                  <ThreadText style={{ color: detailPresentation ? colors.text : "#FFFFFF", fontSize: 14, lineHeight: 20 }}>
                     {item.question}
-                  </ThemedText>
+                  </ThreadText>
                 </View>
               </View>
               {/* Answer bubble — left aligned, subtle */}
@@ -166,7 +176,7 @@ export function ExerciseAskThread({
                     paddingVertical: 10,
                   }}
                 >
-                  <ThemedText style={{ fontSize: 14, lineHeight: 20 }}>{item.answer}</ThemedText>
+                  <ThreadText style={{ fontSize: 14, lineHeight: 20 }}>{item.answer}</ThreadText>
                 </View>
               </View>
             </View>
@@ -175,11 +185,11 @@ export function ExerciseAskThread({
       </View>
 
       {error && (
-        <ThemedText
-          style={{ fontSize: 13, color: "#FF3B30", marginBottom: 8, lineHeight: 18 }}
+        <ThreadText
+          style={{ fontSize: detailPresentation ? 14 : 13, color: detailPresentation ? danger : "#FF3B30", marginBottom: 8, lineHeight: 18 }}
         >
           {error}
-        </ThemedText>
+        </ThreadText>
       )}
 
       <View
@@ -200,13 +210,15 @@ export function ExerciseAskThread({
           value={questionText}
           onChangeText={setQuestionText}
           placeholder="Ask about this exercise..."
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={muted}
+          {...(detailPresentation ? { accessibilityLabel: "Exercise question" } : {})}
           style={{
             flex: 1,
             fontSize: 14,
             paddingVertical: 8,
             color: colors.text,
             fontFamily: Fonts.sans,
+            ...(detailPresentation ? { minHeight: 44 } : {}),
           }}
           multiline
           editable={!isAsking}
@@ -221,9 +233,9 @@ export function ExerciseAskThread({
           disabled={isAsking || !questionText.trim()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: detailPresentation ? 44 : 36,
+            height: detailPresentation ? 44 : 36,
+            borderRadius: detailPresentation ? 22 : 18,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor:
