@@ -10,13 +10,13 @@ The action now uses `[{ scale: pressed && !saving ? 0.99 : 1 }]`: the pressed fe
 
 These are unchanged original iPhone 16 Plus screenshots, 1290×2796 pixels. The native check uses an empty local draft and never sends a program-save request.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/builder-press-fix/after-dark.png" width="320" alt="After Dark: repeated Create presses retain Give your program a name validation without a native crash" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/builder-press-fix/after-light.png" width="320" alt="After Light: repeated Create presses retain Give your program a name validation without a native crash" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2b50e1fcaa3a73301f052f531e2756592bf7e263/docs/pr-screenshots/builder-press-fix/after-dark.png" width="320" alt="After Dark: repeated Create presses retain Give your program a name validation without a native crash" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2b50e1fcaa3a73301f052f531e2756592bf7e263/docs/pr-screenshots/builder-press-fix/after-light.png" width="320" alt="After Light: repeated Create presses retain Give your program a name validation without a native crash" />
 
 <details>
 <summary>Before — Confirmed native crash</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/builder-press-fix/before-crash.png" width="320" alt="Before: Fabric processTransform forEach null crash on Program builder Create release" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2b50e1fcaa3a73301f052f531e2756592bf7e263/docs/pr-screenshots/builder-press-fix/before-crash.png" width="320" alt="Before: Fabric processTransform forEach null crash on Program builder Create release" />
 
 </details>
 
