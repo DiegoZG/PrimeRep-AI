@@ -228,7 +228,7 @@ export default function ProgramBuilderScreen() {
             onDragCancel={() => cancelDrag(day.localId)}
           />)}
           {error ? <ThemedText testID="program-builder-error" accessibilityRole="alert" style={[styles.error, { color: danger }]}>{error}</ThemedText> : null}
-          <Pressable testID="program-save" accessibilityRole="button" accessibilityLabel={isEditing ? "Save program changes" : "Create program"} accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => { Keyboard.dismiss(); void save(); }} style={({ pressed }) => [styles.save, { borderColor: saving ? colors.inputBorder : colors.primaryButton, backgroundColor: saving ? colors.inputBackground : colors.primaryButton, transform: pressed && !saving ? [{ scale: 0.99 }] : undefined }]}><ThemedText style={[styles.saveText, { color: saving ? colors.icon : "#FFF" }]}>{saving ? "Saving…" : isEditing ? "Save changes" : "Create program"}</ThemedText></Pressable>
+          <Pressable testID="program-save" accessibilityRole="button" accessibilityLabel={isEditing ? "Save program changes" : "Create program"} accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => { Keyboard.dismiss(); void save(); }} style={({ pressed }) => [styles.save, { borderColor: saving ? colors.inputBorder : colors.primaryButton, backgroundColor: saving ? colors.inputBackground : colors.primaryButton, transform: [{ scale: pressed && !saving ? 0.99 : 1 }] }]}><ThemedText style={[styles.saveText, { color: saving ? colors.icon : "#FFF" }]}>{saving ? "Saving…" : isEditing ? "Save changes" : "Create program"}</ThemedText></Pressable>
           </View>
           </TouchableWithoutFeedback>
         </ScrollView>
