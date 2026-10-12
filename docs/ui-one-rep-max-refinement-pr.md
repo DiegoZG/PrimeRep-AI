@@ -39,7 +39,7 @@ Native testing caught and resolved two local layout problems: the initial in-scr
 
 Earlier source versions verified entry and LB/KG rounding, background dismissal, and calculator cancel plus the actual 5 reps × 100.5 lb → 113 lb Bench Press estimate/apply. These are not claimed as complete final-source math/modal reruns. The calculator/controller is unchanged and all eighteen calculator regressions pass. A later visible modal returned an empty automation hierarchy and was closed through observed native Cancel coordinates; final ID-driven apply and VoiceOver traversal are not claimed.
 
-The fictional fixture retains 100.1/225.1/315 lb, Advanced experience, and its existing reason, with Light/standard `large` settings restored. The original compact guest is back at empty Signup; no state or credentials were cleared. Detailed modes, provenance, restoration, and limits are in [the native evidence README](https://github.com/DiegoZG/PrimeRep-AI/blob/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/README.md). Failed intermediate captures are excluded. Shared cyan Skip/header limitations remain outside scope; Android, physical devices, native animation timing, and OS Reduce Motion are not established by this matrix. Native body-weight conversion is not claimed; real controller/unit tests cover its preserved logic.
+The fictional fixture retains 100.1/225.1/315 lb, Advanced experience, and its existing reason, with Light/standard `large` settings restored. The original compact guest is back at empty Signup; no state or credentials were cleared. Detailed modes, provenance, restoration, and limits are in [the native evidence README](https://github.com/DiegoZG/PrimeRep-AI/blob/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/README.md). Failed intermediate captures are excluded. Shared cyan Skip/header limitations remain outside scope; Android, physical devices, native animation timing, and OS Reduce Motion are not established by this matrix. Native body-weight conversion is not claimed; real controller/unit tests cover its preserved logic.
 
 ## Scope and rollout
 
@@ -49,34 +49,34 @@ Only `app/onboarding/fitness-experience/one-rep-max.tsx` changes production sour
 
 Before, normal Light with the original fictional 100 lb entry:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-before-light-entered.png" width="320" alt="One Rep Max before, normal Light with narrow input and purple secondary controls" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-before-light-entered.png" width="320" alt="One Rep Max before, normal Light with narrow input and purple secondary controls" />
 
 After, normal Light with the final fictional 100.1/225.1/315 lb values:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-light-entered.png" width="320" alt="Final One Rep Max, normal Light with neutral controls and stacked full-width inputs" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-light-entered.png" width="320" alt="Final One Rep Max, normal Light with neutral controls and stacked full-width inputs" />
 
 <details>
 <summary>Before: optional blank fields and original keyboard footer</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-before-light-initial.png" width="320" alt="One Rep Max before, normal Light with three optional blank fields" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-before-light-initial.png" width="320" alt="One Rep Max before, normal Light with three optional blank fields" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-before-dark-keyboard.png" width="320" alt="One Rep Max before, Dark with original NEXT above the numeric keyboard" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-before-dark-keyboard.png" width="320" alt="One Rep Max before, Dark with original NEXT above the numeric keyboard" />
 
 </details>
 
 <details>
 <summary>Final: Dark controls, real keyboard reachability, maximum text and compact blank state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-dark-entered.png" width="320" alt="Final One Rep Max, normal Dark with individually named full-width inputs" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-dark-entered.png" width="320" alt="Final One Rep Max, normal Dark with individually named full-width inputs" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-light-keyboard.png" width="320" alt="Final One Rep Max, Light with complete Continue above the actual numeric keyboard" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-light-keyboard.png" width="320" alt="Final One Rep Max, Light with complete Continue above the actual numeric keyboard" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-dark-keyboard.png" width="320" alt="Final One Rep Max, Dark with complete Continue above the actual numeric keyboard" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-dark-keyboard.png" width="320" alt="Final One Rep Max, Dark with complete Continue above the actual numeric keyboard" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-light-max-bottom.png" width="320" alt="Final One Rep Max, cold maximum-text Light with readable lower fields and complete Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-light-max-bottom.png" width="320" alt="Final One Rep Max, cold maximum-text Light with readable lower fields and complete Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-dark-max-bottom.png" width="320" alt="Final One Rep Max, cold maximum-text Dark with readable lower fields and complete Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-dark-max-bottom.png" width="320" alt="Final One Rep Max, cold maximum-text Dark with readable lower fields and complete Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U19_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u19/u19-after-compact-light-blank.png" width="320" alt="Final One Rep Max, compact Light with three blank optional inputs and enabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/30d289233a7ab517feaf36b68e6c31a2956e116a/docs/pr-screenshots/u19/u19-after-compact-light-blank.png" width="320" alt="Final One Rep Max, compact Light with three blank optional inputs and enabled Continue" />
 
 </details>
