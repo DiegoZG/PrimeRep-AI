@@ -43,30 +43,30 @@ Native scrolling/insets and natural text follow the existing component patterns 
 
 Normal iPhone 16 Plus after, Light:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-light.png" width="320" alt="Welcome after, Light theme at normal text on iPhone 16 Plus" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-light.png" width="320" alt="Welcome after, Light theme at normal text on iPhone 16 Plus" />
 
 Normal iPhone 16 Plus after, Dark:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-dark.png" width="320" alt="Welcome after, Dark theme at normal text on iPhone 16 Plus" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-dark.png" width="320" alt="Welcome after, Dark theme at normal text on iPhone 16 Plus" />
 
 <details>
 <summary>Before: original glow, personalized name, and maximum text</summary>
 
 Before, Light normal text:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-before-light.png" width="320" alt="Welcome before, Light theme, cyan logo halo and name" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-before-light.png" width="320" alt="Welcome before, Light theme, cyan logo halo and name" />
 
 Before, Dark normal text:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-before-dark.png" width="320" alt="Welcome before, Dark theme, cyan logo halo and name" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-before-dark.png" width="320" alt="Welcome before, Dark theme, cyan logo halo and name" />
 
 Before, compact Light:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-before-compact-light.png" width="320" alt="Welcome before, compact Light screen at normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-before-compact-light.png" width="320" alt="Welcome before, compact Light screen at normal text" />
 
 Before, compact Light maximum text; greeting clips and NEXT overlaps lower text:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-before-max-light.png" width="320" alt="Welcome before, compact maximum text with greeting clipping and NEXT overlapping text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-before-max-light.png" width="320" alt="Welcome before, compact maximum text with greeting clipping and NEXT overlapping text" />
 
 </details>
 
@@ -75,26 +75,26 @@ Before, compact Light maximum text; greeting clips and NEXT overlaps lower text:
 
 After, compact Light:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-compact-light.png" width="320" alt="Welcome after, compact Light screen at normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-compact-light.png" width="320" alt="Welcome after, compact Light screen at normal text" />
 
 After, compact Dark:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-compact-dark.png" width="320" alt="Welcome after, compact Dark screen at normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-compact-dark.png" width="320" alt="Welcome after, compact Dark screen at normal text" />
 
 After, compact maximum-text Light lower view, reached through continuous scrolling:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-max-light-lower.png" width="320" alt="Welcome after, compact maximum-text Light personalized name and Continue reached by scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-max-light-lower.png" width="320" alt="Welcome after, compact maximum-text Light personalized name and Continue reached by scrolling" />
 
 After, compact maximum-text Dark lower view, reached through continuous scrolling:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-max-dark-lower.png" width="320" alt="Welcome after, compact maximum-text Dark personalized name and Continue reached by scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-max-dark-lower.png" width="320" alt="Welcome after, compact maximum-text Dark personalized name and Continue reached by scrolling" />
 
 After, normal-text Dark fictional long name on the separate disposable iPhone 16 Plus:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-long-name-dark.png" width="320" alt="Welcome after, Dark normal text with fictional Alexandria-Lee Montgomery name wrapping naturally" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-long-name-dark.png" width="320" alt="Welcome after, Dark normal text with fictional Alexandria-Lee Montgomery name wrapping naturally" />
 
 After, maximum-text Light fictional long-name lower view; native word wrapping and Continue at a later scroll position:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U16_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u16/u16-after-long-name-max-light-lower.png" width="320" alt="Welcome after, maximum-text Light lower portion of fictional long name and Continue reached by scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/fd53621ea0489f0ca862c0ab8bb226a8979544ba/docs/pr-screenshots/u16/u16-after-long-name-max-light-lower.png" width="320" alt="Welcome after, maximum-text Light lower portion of fictional long name and Continue reached by scrolling" />
 
 </details>
