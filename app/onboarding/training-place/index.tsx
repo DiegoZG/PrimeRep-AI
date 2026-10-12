@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AnimatedButton } from "@/components/animated-button";
-import { SelectableOptionCard } from "@/components/selectable-option-card";
+import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -146,25 +146,24 @@ export default function TrainingPlaceScreen() {
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="training-place-scroll"
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.question, { color: colors.text }]}>
+              <AnimatedText testID="training-place-question" style={[styles.question, { color: colors.text }]}>
                 {TRAINING_PLACE_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
-            {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text testID="training-place-description" style={[styles.description, { color: colors.icon }]}>
                 {TRAINING_PLACE_SCREEN.description}
               </Text>
             </Animated.View>
 
-            {/* Options */}
             <View style={styles.optionsContainer}>
               {TRAINING_PLACE_SCREEN.options.map((option, index) => {
                 const isSelected = selectedPlace === option.id;
@@ -172,39 +171,80 @@ export default function TrainingPlaceScreen() {
 
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
-                    <SelectableOptionCard
-                      title={option.title}
-                      description={option.description}
-                      isSelected={isSelected}
+                    <TouchableOpacity
+                      testID={`training-place-option-${option.id}`}
+                      accessible
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={`${option.title}. ${option.description}`}
                       onPress={() => handleSelectPlace(option.id)}
-                      showCheckbox={true}
-                    />
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.optionCard,
+                          {
+                            backgroundColor: colors.inputBackground,
+                            borderColor: isSelected ? colors.icon : colors.inputBorder,
+                          },
+                        ]}
+                      >
+                        <View style={styles.optionContent}>
+                          <View style={styles.optionTextContainer}>
+                            <Text
+                              testID={`training-place-title-${option.id}`}
+                              style={[styles.optionTitle, { color: colors.text }]}
+                            >
+                              {option.title}
+                            </Text>
+                            <Text
+                              testID={`training-place-option-description-${option.id}`}
+                              style={[styles.optionDescription, { color: colors.icon }]}
+                            >
+                              {option.description}
+                            </Text>
+                          </View>
+                          <View
+                            testID={`training-place-indicator-${option.id}`}
+                            accessible={false}
+                            accessibilityElementsHidden
+                            importantForAccessibility="no-hide-descendants"
+                            style={styles.checkbox}
+                          >
+                            <AnimatedCheckmark visible={isSelected}>
+                              <View style={[styles.checkmark, { borderColor: colors.icon }]} />
+                            </AnimatedCheckmark>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
                   </Animated.View>
                 );
               })}
             </View>
           </View>
-        </ScrollView>
-
-        {/* Next Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton onPress={handleNext} disabled={!selectedPlace} accessibilityState={{ disabled: !selectedPlace }}>
-            <View
+          <View style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="training-place-continue"
+              onPress={handleNext}
+              disabled={!selectedPlace}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              accessibilityState={{ disabled: !selectedPlace }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !selectedPlace && { opacity: 0.5 },
+                {
+                  backgroundColor: selectedPlace ? colors.primaryButton : colors.inputBackground,
+                  borderColor: selectedPlace ? colors.primaryButton : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text style={[styles.primaryButtonText, { color: selectedPlace ? "#FFFFFF" : colors.icon }]}>
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -219,7 +259,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
   },
   content: {
     paddingHorizontal: 24,
@@ -228,38 +267,80 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
-    marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    marginBottom: 8,
   },
   optionsContainer: {
     gap: 12,
     marginTop: 8,
   },
+  optionCard: {
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 2,
+    minHeight: 44,
+  },
+  optionContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  optionTextContainer: {
+    flex: 1,
+    minWidth: 0,
+    gap: 8,
+  },
+  optionTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  optionDescription: {
+    fontSize: 15,
+    fontWeight: "400",
+    fontFamily: Fonts.sans,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    width: 7,
+    height: 12,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
+  },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });
