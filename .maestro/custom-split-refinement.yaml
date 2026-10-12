@@ -1,0 +1,401 @@
+# Only the approved fictional guest may add/edit/remove its own recorded days.
+# Original compact is read-only. MODE and SCREENSHOT_PREFIX are required CLI values.
+appId: com.diegozegarra.primerep
+---
+- runFlow:
+    when:
+      true: ${MODE != 'commit-upper' && MODE != 'commit-custom' && MODE != 'cancel'}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: auth-loaded
+          timeout: 60000
+      - openLink: primerepai://onboarding/workout-split/custom
+      - extendedWaitUntil:
+          visible:
+            id: custom-split-scroll
+          timeout: 15000
+- assertNotVisible: There was a problem loading the project.
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'empty' || MODE == 'compact'}
+    commands:
+      - assertNotVisible:
+          id: custom-split-title-.*
+      - assertVisible:
+          id: custom-split-validation
+          text: Add at least one workout day to continue.
+      - assertVisible:
+          id: custom-split-continue
+          enabled: false
+      - scrollUntilVisible:
+          element:
+            id: custom-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'normal'}
+    commands:
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - assertVisible:
+          id: custom-split-title-${SECOND_ID}
+          text: Upper body - Workout 2
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 3
+      - assertVisible:
+          id: custom-split-edit-${SECOND_ID}
+          text: Edit Upper body, workout 2
+      - assertVisible:
+          id: custom-split-remove-${SECOND_ID}
+          text: Remove Upper body, workout 2
+      - tapOn:
+          id: custom-split-edit-${EDIT_ID}
+      - assertVisible: .*Add a custom workout, Update.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-edit-prefill
+      - swipe:
+          start: 50%,8%
+          end: 50%,85%
+          duration: 900
+      - extendedWaitUntil:
+          visible:
+            id: custom-split-scroll
+          timeout: 15000
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - assertVisible:
+          id: custom-split-title-${SECOND_ID}
+          text: Upper body - Workout 2
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 3
+      - assertVisible:
+          id: custom-split-muscles-${CUSTOM_ID}
+          text: Chest, Back, Biceps, Glutes, Shoulders, Triceps, Quads, Hamstrings, Calves, Adductors, Abductors, Forearms, Trapezius
+      - assertVisible:
+          id: custom-split-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+      - tapOn:
+          id: custom-split-continue
+      - assertVisible: Variety Level \(7/9\)
+      - openLink: primerepai://onboarding/workout-split/custom
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - assertVisible:
+          id: custom-split-title-${SECOND_ID}
+          text: Upper body - Workout 2
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 3
+- runFlow:
+    when:
+      true: ${MODE == 'compact'}
+    commands:
+      - openLink: primerepai://signup
+      - extendedWaitUntil:
+          visible:
+            id: email-input
+          timeout: 15000
+      - assertVisible:
+          id: email-input
+          text: Email
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'open-add'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: custom-split-add
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: custom-split-add
+      - assertVisible: .*Add a custom workout.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'commit-upper'}
+    commands:
+      - assertVisible: .*Add a custom workout.*
+      - tapOn:
+          point: 50%,39%
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-modal-selected
+      - tapOn:
+          point: 91%,11%
+      - extendedWaitUntil:
+          visible:
+            id: custom-split-title-.*
+            text: Upper body - Workout 1
+          timeout: 15000
+      - assertNotVisible:
+          id: custom-split-validation
+      - assertVisible:
+          id: custom-split-continue
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-one-day
+      - tapOn:
+          id: custom-split-continue
+      - assertVisible: Variety Level \(7/9\)
+      - openLink: primerepai://onboarding/workout-split/custom
+      - assertVisible:
+          id: custom-split-title-.*
+          text: Upper body - Workout 1
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-one-day-return
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: custom-split-heading
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: custom-split-description
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper
+      - scrollUntilVisible:
+          element:
+            id: custom-split-title-${FIRST_ID}
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: custom-split-remove-${FIRST_ID}
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-upper-title
+      - scrollUntilVisible:
+          element:
+            id: custom-split-edit-${FIRST_ID}
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-upper-muscles
+      - scrollUntilVisible:
+          element:
+            id: custom-split-title-${CUSTOM_ID}
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: custom-split-remove-${CUSTOM_ID}
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-title
+      - swipe:
+          start: 50%,75%
+          end: 50%,45%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-muscles-middle
+      - swipe:
+          start: 50%,75%
+          end: 50%,45%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-muscles-lower
+      - scrollUntilVisible:
+          element:
+            id: custom-split-add
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-add
+      - scrollUntilVisible:
+          element:
+            id: custom-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: custom-split-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'add-second'}
+    commands:
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - tapOn:
+          id: custom-split-add
+      - assertVisible: .*Add a custom workout.*
+      - tapOn:
+          point: 50%,39%
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-second-preset
+      - tapOn:
+          point: 91%,11%
+      - assertVisible:
+          id: custom-split-title-.*
+          text: Upper body - Workout 2
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-two-days
+      - scrollUntilVisible:
+          element:
+            id: custom-split-add
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: custom-split-add
+      - assertVisible: .*Add a custom workout.*
+      - tapOn:
+          point: 75%,23%
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-grid
+- runFlow:
+    when:
+      true: ${MODE == 'commit-custom'}
+    commands:
+      - assertVisible: .*Add a custom workout.*
+      - tapOn:
+          point: 15%,33%
+      - tapOn:
+          point: 38%,33%
+      - tapOn:
+          point: 60%,33%
+      - tapOn:
+          point: 83%,33%
+      - tapOn:
+          point: 15%,46%
+      - tapOn:
+          point: 38%,46%
+      - tapOn:
+          point: 15%,60%
+      - tapOn:
+          point: 38%,60%
+      - tapOn:
+          point: 60%,60%
+      - tapOn:
+          point: 83%,60%
+      - tapOn:
+          point: 15%,73%
+      - tapOn:
+          point: 38%,73%
+      - tapOn:
+          point: 60%,73%
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-selected
+      - tapOn:
+          point: 91%,11%
+      - scrollUntilVisible:
+          element:
+            id: custom-split-title-.*
+            text: Custom - Workout 3
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertNotVisible:
+          id: custom-split-validation
+      - assertVisible:
+          id: custom-split-continue
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-populated-top
+      - scrollUntilVisible:
+          element:
+            id: custom-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'remove-own'}
+    commands:
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - assertVisible:
+          id: custom-split-title-${SECOND_ID}
+          text: Upper body - Workout 2
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 3
+      - tapOn:
+          id: custom-split-remove-${SECOND_ID}
+      - assertNotVisible:
+          id: custom-split-title-${SECOND_ID}
+      - assertVisible:
+          id: custom-split-title-${FIRST_ID}
+          text: Upper body - Workout 1
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 2
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-middle-removed
+      - tapOn:
+          id: custom-split-remove-${FIRST_ID}
+      - assertNotVisible:
+          id: custom-split-title-${FIRST_ID}
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 1
+      - assertVisible:
+          id: custom-split-continue
+          enabled: true
+      - tapOn:
+          id: custom-split-continue
+      - assertVisible: Variety Level \(7/9\)
+      - openLink: primerepai://onboarding/workout-split/custom
+      - assertVisible:
+          id: custom-split-title-${CUSTOM_ID}
+          text: Custom - Workout 1
+      - tapOn:
+          id: custom-split-remove-${CUSTOM_ID}
+      - assertNotVisible:
+          id: custom-split-title-.*
+      - assertVisible:
+          id: custom-split-validation
+          text: Add at least one workout day to continue.
+      - assertVisible:
+          id: custom-split-continue
+          enabled: false
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-last-removed
+- runFlow:
+    when:
+      true: ${MODE == 'restore-choice'}
+    commands:
+      - assertNotVisible:
+          id: custom-split-title-.*
+      - assertVisible:
+          id: custom-split-continue
+          enabled: false
+      - openLink: primerepai://onboarding/workout-split
+      - assertVisible: Workout Split \(6/9\)
+      - scrollUntilVisible:
+          element:
+            text: .*PrimeRep Optimized.*
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn: .*PrimeRep Optimized.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
