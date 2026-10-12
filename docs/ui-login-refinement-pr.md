@@ -41,22 +41,22 @@ Four genuine before captures are approved: normal Light, normal Dark, Dark focus
 
 After · Light theme
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-light.png" width="320" alt="Login after, Light theme" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-light.png" width="320" alt="Login after, Light theme" />
 
 After · Dark theme
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-dark.png" width="320" alt="Login after, Dark theme" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-dark.png" width="320" alt="Login after, Dark theme" />
 
 <details>
 <summary>Before · normal Light and Dark</summary>
 
 Before · Light theme
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-before-light.png" width="320" alt="Login before, Light theme" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-before-light.png" width="320" alt="Login before, Light theme" />
 
 Before · Dark theme
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-before-dark.png" width="320" alt="Login before, Dark theme" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-before-dark.png" width="320" alt="Login before, Dark theme" />
 
 </details>
 
@@ -65,31 +65,31 @@ Before · Dark theme
 
 Before · Dark focused keyboard
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-before-dark-focus.png" width="320" alt="Login before, Dark focused input" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-before-dark-focus.png" width="320" alt="Login before, Dark focused input" />
 
 After · Dark focused keyboard
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-dark-focus.png" width="320" alt="Login after, Dark focused input" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-dark-focus.png" width="320" alt="Login after, Dark focused input" />
 
 After · Dark local empty-form validation
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-dark-validation.png" width="320" alt="Login after, local empty-form validation" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-dark-validation.png" width="320" alt="Login after, local empty-form validation" />
 
 Before · Dark maximum text
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-before-dark-max.png" width="320" alt="Login before, Dark maximum text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-before-dark-max.png" width="320" alt="Login before, Dark maximum text" />
 
 After · Dark maximum text, actions at a later scroll position
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-dark-max-actions.png" width="320" alt="Login after, Dark maximum-text actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-dark-max-actions.png" width="320" alt="Login after, Dark maximum-text actions" />
 
 After · Light maximum text, actions at a later scroll position
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-light-max-actions.png" width="320" alt="Login after, Light maximum-text actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-light-max-actions.png" width="320" alt="Login after, Light maximum-text actions" />
 
 After · Light compact 375-point width
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u14/u14-after-light-compact.png" width="320" alt="Login after, Light compact width" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/19b754a3447e851168ce80236bc5ba2336ea029f/docs/pr-screenshots/u14/u14-after-light-compact.png" width="320" alt="Login after, Light compact width" />
 
 </details>
 
