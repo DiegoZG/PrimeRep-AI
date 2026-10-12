@@ -13,20 +13,20 @@
 
 All 15 captures are genuine, unmodified originals: 14 from iPhone 16 Plus and one secondary iPhone SE. They show the public Crunch Machine exercise with its real unavailable-demo state and displayed empty Q&A view; the empty display alone is not proof of an empty server-side thread. No private workout, question history or Health data is included. Before has an unavailable demonstration, not invented media or a muscle diagram. Image links will be pinned to the immutable feature/assets commit before publication.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-light-info.png" width="320" alt="Light after: readable exercise information with neutral type, muscle and equipment controls" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-dark-info.png" width="320" alt="Dark after: quiet informational icon tiles and readable neutral labels" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-light-ask.png" width="320" alt="Light after: neutral instruction disclosures and displayed empty Q&A view with a visible 44-point Send control" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-dark-ask.png" width="320" alt="Dark after: readable instructions and Q&A hint with restrained Send action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-light-info.png" width="320" alt="Light after: readable exercise information with neutral type, muscle and equipment controls" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-dark-info.png" width="320" alt="Dark after: quiet informational icon tiles and readable neutral labels" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-light-ask.png" width="320" alt="Light after: neutral instruction disclosures and displayed empty Q&A view with a visible 44-point Send control" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-dark-ask.png" width="320" alt="Dark after: readable instructions and Q&A hint with restrained Send action" />
 
 <details>
 <summary>Before — Light, Dark and maximum native text</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-light-info.png" width="320" alt="Light baseline: colored informational icons and exercise type" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-dark-info.png" width="320" alt="Dark baseline: purple type and primary muscle with green equipment icon" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-light-ask.png" width="320" alt="Light baseline: unavailable demonstration, collapsible instructions and empty Q&A" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-dark-ask.png" width="320" alt="Dark baseline: instructions and empty Q&A with its small visible Send circle" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-dark-max-info.png" width="320" alt="Maximum-text baseline: wrapped Exercise header and overlapping unavailable-demo placeholder in the fixed-height media box" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-before-dark-max-ask.png" width="320" alt="Maximum-text baseline: enlarged Q&A copy and 36-point visible Send circle" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-light-info.png" width="320" alt="Light baseline: colored informational icons and exercise type" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-dark-info.png" width="320" alt="Dark baseline: purple type and primary muscle with green equipment icon" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-light-ask.png" width="320" alt="Light baseline: unavailable demonstration, collapsible instructions and empty Q&A" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-dark-ask.png" width="320" alt="Dark baseline: instructions and empty Q&A with its small visible Send circle" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-dark-max-info.png" width="320" alt="Maximum-text baseline: wrapped Exercise header and overlapping unavailable-demo placeholder in the fixed-height media box" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-before-dark-max-ask.png" width="320" alt="Maximum-text baseline: enlarged Q&A copy and 36-point visible Send circle" />
 
 </details>
 
@@ -35,17 +35,17 @@ All 15 captures are genuine, unmodified originals: 14 from iPhone 16 Plus and on
 
 These are separate scroll positions, not a claim that the entire page fits in one viewport. Native text stays uncapped. The controls-only header leaves the full exercise name in scrolling content below the media, below the first screenshot's fold. The partly visible preceding Common mistakes disclosure in the Q&A images reflects the scroll position, not clipped text or a capped label.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-light-max-info.png" width="320" alt="Light maximum text after: contained header controls and full unavailable-demo placeholder without overlapping text; exercise name below the fold" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-dark-max-info.png" width="320" alt="Dark maximum text after: readable demonstration placeholder in its adaptive-height media card" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-light-max-ask.png" width="320" alt="Light maximum text after: naturally wrapping Q&A copy and visible 44-point Send; preceding disclosure partially above the scroll position" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-dark-max-ask.png" width="320" alt="Dark maximum text after: readable Q&A copy and empty question input with contained Send control" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-light-max-info.png" width="320" alt="Light maximum text after: contained header controls and full unavailable-demo placeholder without overlapping text; exercise name below the fold" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-dark-max-info.png" width="320" alt="Dark maximum text after: readable demonstration placeholder in its adaptive-height media card" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-light-max-ask.png" width="320" alt="Light maximum text after: naturally wrapping Q&A copy and visible 44-point Send; preceding disclosure partially above the scroll position" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-dark-max-ask.png" width="320" alt="Dark maximum text after: readable Q&A copy and empty question input with contained Send control" />
 
 </details>
 
 <details>
 <summary>Secondary narrow-layout inspection — iPhone SE</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u13/u13-se-info.png" width="320" alt="375-point Light layout: readable neutral exercise information and contained header controls" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/96933ce2cf351f66ff96f975b32e365430e91e25/docs/pr-screenshots/u13/u13-se-info.png" width="320" alt="375-point Light layout: readable neutral exercise information and contained header controls" />
 
 This is a successful narrow-layout inspection, not a full secondary flow pass. Equipment continues partly below the screenshot viewport because the page scrolls. The broader SE runner reached and expanded How to perform but failed an instruction-paragraph visibility assertion below the viewport; the full SE flow remains a manual check.
 
