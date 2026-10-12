@@ -1,0 +1,249 @@
+# Dedicated fictional guest for full/layout modes; original compact uses empty read-only.
+# Required MODE=full|layout|empty|restore and SCREENSHOT_PREFIX=/absolute/existing-dir/prefix.
+# Layout also requires SELECT_ID. Connect to the frozen isolated Metro before opening route.
+appId: com.diegozegarra.primerep
+tags:
+  - training-place-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 60000
+- openLink: primerepai://onboarding/training-place
+- extendedWaitUntil:
+    visible:
+      id: training-place-scroll
+    timeout: 15000
+- assertNotVisible: There was a problem loading the project.
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'restore'}
+    commands:
+      - tapOn:
+          id: training-place-option-large-gym
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, checked
+      - assertVisible:
+          id: training-place-option-small-gym
+          text: radio button, unchecked
+      - assertVisible:
+          id: training-place-option-garage-gym
+          text: radio button, unchecked
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, checked
+      - tapOn:
+          id: training-place-option-small-gym
+      - assertVisible:
+          id: training-place-option-small-gym
+          text: radio button, checked
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, unchecked
+      - tapOn:
+          id: training-place-option-garage-gym
+      - assertVisible:
+          id: training-place-option-garage-gym
+          text: radio button, checked
+      - assertVisible:
+          id: training-place-option-small-gym
+          text: radio button, unchecked
+      - tapOn:
+          id: training-place-option-large-gym
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, checked
+      - assertVisible:
+          id: training-place-option-garage-gym
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-place-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-garage-gym
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: training-place-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-place-continue
+          enabled: true
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+      - openLink: primerepai://onboarding/training-frequency
+      - assertVisible: Training Frequency \(5/9\)
+      - openLink: primerepai://onboarding/training-place
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, checked
+      - assertVisible:
+          id: training-place-option-small-gym
+          text: radio button, unchecked
+      - assertVisible:
+          id: training-place-option-garage-gym
+          text: radio button, unchecked
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: training-place-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: training-place-description
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 50%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper-companion
+      - scrollUntilVisible:
+          element:
+            id: training-place-title-large-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-large-title
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-description-large-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-large-description
+      - scrollUntilVisible:
+          element:
+            id: training-place-title-small-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-small-title
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-description-small-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-small-description
+      - scrollUntilVisible:
+          element:
+            id: training-place-title-garage-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-garage-title
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-description-garage-gym
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-garage-description
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-${SELECT_ID}
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-place-option-${SELECT_ID}
+      - assertVisible:
+          id: training-place-option-${SELECT_ID}
+          text: radio button, checked
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: training-place-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - assertVisible:
+          id: training-place-continue
+          enabled: true
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'empty'}
+    commands:
+      - assertVisible:
+          id: training-place-option-large-gym
+          text: radio button, unchecked
+      - assertVisible:
+          id: training-place-option-small-gym
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-place-option-garage-gym
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-place-option-garage-gym
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-place-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-place-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-disabled
+      - openLink: primerepai://signup
+      - assertVisible:
+          id: email-input
