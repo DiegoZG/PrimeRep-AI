@@ -1,0 +1,56 @@
+# Already-open isolated guest Welcome only. No launch/reset or name writes.
+# Names on existing guest drafts must stay unchanged. Long-name coverage uses
+# the separately authorized blank disposable fixture, never a user's draft.
+appId: com.diegozegarra.primerep
+tags:
+  - welcome-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: welcome-scroll
+- scrollUntilVisible:
+    element:
+      id: welcome-greeting
+    direction: UP
+    visibilityPercentage: 10
+    timeout: 15000
+- assertVisible: Welcome to PrimeRep AI,
+- scrollUntilVisible:
+    element:
+      id: welcome-name
+    direction: DOWN
+    visibilityPercentage: 10
+    timeout: 15000
+- assertVisible:
+    id: welcome-name
+    text: "${typeof EXPECTED_NAME == 'undefined' ? 'there!' : EXPECTED_NAME}"
+- scrollUntilVisible:
+    element:
+      id: welcome-continue
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: welcome-continue
+    text: Continue
+    enabled: true
+- assertNotVisible: space
+- extendedWaitUntil:
+    notVisible: Refreshing.*
+    timeout: 15000
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      true: ${typeof MODE == 'undefined' || MODE == 'full'}
+    commands:
+      - tapOn:
+          id: welcome-continue
+      - assertVisible: Reason \(1/9\)
+      - openLink: primerepai://onboarding/welcome
+      - extendedWaitUntil:
+          visible:
+            id: welcome-scroll
+          timeout: 15000
+      - waitForAnimationToEnd

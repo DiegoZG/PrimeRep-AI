@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -87,52 +87,58 @@ export default function WelcomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
-        <View style={styles.content}>
-          {/* Logo */}
-          <AnimatedCard delay={100}>
-            <View style={styles.logoContainer}>
-              <Logo
-                width={180}
-                height={180}
-                style={{
-                  shadowColor: colors.electricBlue,
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.6,
-                  shadowRadius: 20,
-                  elevation: 20,
-                }}
-              />
+        <ScrollView
+          testID="welcome-scroll"
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.content}>
+            <AnimatedCard delay={100}>
+              <View
+                style={styles.logoContainer}
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Logo width={144} height={176} color={colors.text} />
+              </View>
+            </AnimatedCard>
+
+            <View style={styles.welcomeContainer}>
+              <Animated.View style={[styles.messageLine, welcomeTextAnimatedStyle]}>
+                <Text
+                  testID="welcome-greeting"
+                  style={[styles.welcomeText, { color: colors.icon }]}
+                >
+                  Welcome to PrimeRep AI,
+                </Text>
+              </Animated.View>
+              <Animated.View style={[styles.messageLine, nameTextAnimatedStyle]}>
+                <Text
+                  testID="welcome-name"
+                  style={[styles.nameText, { color: colors.text }]}
+                >
+                  {preferredName || "there"}!
+                </Text>
+              </Animated.View>
             </View>
-          </AnimatedCard>
-
-          {/* Welcome Message */}
-          <View style={styles.welcomeContainer}>
-            <Animated.View style={welcomeTextAnimatedStyle}>
-              <Text style={[styles.welcomeText, { color: colors.text }]}>
-                Welcome to PrimeRep AI,
-              </Text>
-            </Animated.View>
-            <Animated.View style={nameTextAnimatedStyle}>
-              <Text style={[styles.nameText, { color: colors.electricBlue }]}>
-                {preferredName || "there"}!
-              </Text>
-            </Animated.View>
           </View>
-        </View>
 
-        {/* Next Button */}
-        <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
-          <AnimatedButton onPress={handleNext}>
-            <View
+          <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
+            <AnimatedButton
+              testID="welcome-continue"
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              onPress={handleNext}
               style={[
                 styles.primaryButton,
                 { backgroundColor: colors.primaryButton },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </Animated.View>
+              <Text style={styles.primaryButtonText}>Continue</Text>
+            </AnimatedButton>
+          </Animated.View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -145,22 +151,30 @@ const styles = StyleSheet.create({
   animatedContainer: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    paddingVertical: 32,
   },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 60,
+    marginBottom: 32,
   },
   welcomeContainer: {
     alignItems: "center",
+    width: "100%",
+  },
+  messageLine: {
+    width: "100%",
   },
   welcomeText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 8,
@@ -174,10 +188,11 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 24,
     paddingTop: 20,
   },
   primaryButton: {
+    minHeight: 56,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -188,6 +203,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });
