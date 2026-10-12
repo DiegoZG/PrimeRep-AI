@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { WorkoutText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 
 interface ContentSectionProps {
@@ -16,6 +17,7 @@ interface ContentSectionProps {
   /** Starts expanded when not in highlight mode. */
   defaultExpanded?: boolean;
   testID?: string;
+  detailPresentation?: boolean;
 }
 
 /**
@@ -35,8 +37,10 @@ export function ContentSection({
   icon,
   defaultExpanded = false,
   testID,
+  detailPresentation = false,
 }: ContentSectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const SectionText = detailPresentation ? WorkoutText : ThemedText;
 
   if (!content) return null;
 
@@ -45,24 +49,24 @@ export function ContentSection({
       <View
         testID={testID}
         style={{
-          backgroundColor: `${colors.primaryButton}14`,
+          backgroundColor: detailPresentation ? colors.inputBackground : `${colors.primaryButton}14`,
           borderWidth: 1,
-          borderColor: `${colors.primaryButton}40`,
+          borderColor: detailPresentation ? colors.inputBorder : `${colors.primaryButton}40`,
           borderRadius: 16,
           padding: 16,
           marginBottom: 24,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <Ionicons name={icon || "sparkles"} size={18} color={colors.primaryButton} />
-          <ThemedText
+          <Ionicons name={icon || "sparkles"} size={18} color={detailPresentation ? colors.icon : colors.primaryButton} />
+          <SectionText
             type="defaultSemiBold"
-            style={{ fontSize: 15, color: colors.primaryButton }}
+            style={{ fontSize: 15, color: detailPresentation ? colors.text : colors.primaryButton, ...(detailPresentation ? { flex: 1 } : {}) }}
           >
             {title}
-          </ThemedText>
+          </SectionText>
         </View>
-        <ThemedText style={{ fontSize: 14, lineHeight: 21 }}>{content}</ThemedText>
+        <SectionText style={{ fontSize: 14, lineHeight: 21 }}>{content}</SectionText>
       </View>
     );
   }
@@ -73,11 +77,14 @@ export function ContentSection({
       style={{
         borderRadius: 16,
         backgroundColor: colors.inputBackground,
+        ...(detailPresentation ? { borderWidth: 1, borderColor: colors.inputBorder } : {}),
         marginBottom: 12,
         overflow: "hidden",
       }}
     >
       <Pressable
+        accessibilityLabel={detailPresentation ? title : undefined}
+        {...(detailPresentation ? { testID: testID ? `${testID}-toggle` : undefined, accessibilityRole: "button" as const, accessibilityState: { expanded } } : {})}
         onPress={() => setExpanded((prev) => !prev)}
         style={{
           flexDirection: "row",
@@ -85,27 +92,28 @@ export function ContentSection({
           justifyContent: "space-between",
           paddingHorizontal: 16,
           paddingVertical: 14,
+          ...(detailPresentation ? { minHeight: 44, gap: 10 } : {}),
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
           {icon && <Ionicons name={icon} size={18} color={colors.text} />}
-          <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>
+          <SectionText type="defaultSemiBold" style={{ fontSize: 15, ...(detailPresentation ? { flex: 1 } : {}) }}>
             {title}
-          </ThemedText>
+          </SectionText>
         </View>
         <Ionicons
           name={expanded ? "chevron-up" : "chevron-down"}
           size={18}
-          color={colors.placeholder}
+          color={detailPresentation ? colors.icon : colors.placeholder}
         />
       </Pressable>
       {expanded && (
         <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <ThemedText
+          <SectionText
             style={{ fontSize: 14, lineHeight: 21, color: colors.text, fontFamily: Fonts.sans }}
           >
             {content}
-          </ThemedText>
+          </SectionText>
         </View>
       )}
     </View>

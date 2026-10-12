@@ -1,0 +1,44 @@
+# Read-only public-catalog check on the usual backend and an authenticated app.
+# Confirm the selected exercise's displayed Q&A thread and input are empty first.
+# No favorite/custom-exercise mutation, Q&A send/Return, account/Health action,
+# app reset/restart, or active-workout finish/discard. This flow never types text.
+appId: com.diegozegarra.primerep
+tags:
+  - exercise-detail-layout
+env:
+  PUBLIC_EXERCISE_ID: crunch_machine
+  PUBLIC_EXERCISE_NAME: Crunch Machine
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://exercises/${PUBLIC_EXERCISE_ID}
+- assertVisible: ${PUBLIC_EXERCISE_NAME}
+- waitForAnimationToEnd
+- takeScreenshot: /private/tmp/u13-${APPEARANCE}-info
+- scrollUntilVisible:
+    element:
+      id: exercise-detail-how-to-toggle
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: exercise-detail-how-to-toggle
+- assertVisible: Sit in the ab crunch machine.*
+- tapOn:
+    id: exercise-detail-how-to-toggle
+- scrollUntilVisible:
+    element:
+      id: exercise-ask-input
+    direction: DOWN
+    timeout: 20000
+- assertVisible: Ask anything about form, tempo, or how to adapt this exercise.
+- assertVisible:
+    id: exercise-ask-send
+    enabled: false
+- takeScreenshot: /private/tmp/u13-${APPEARANCE}-ask
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000
