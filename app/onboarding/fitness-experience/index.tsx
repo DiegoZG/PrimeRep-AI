@@ -177,20 +177,29 @@ export default function FitnessExperienceScreen() {
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="fitness-experience-scroll"
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.question, { color: colors.text }]}>
+              <AnimatedText
+                testID="fitness-experience-question"
+                accessibilityRole="header"
+                style={[styles.question, { color: colors.text }]}
+              >
                 {FITNESS_EXPERIENCE_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text
+                testID="fitness-experience-description"
+                style={[styles.description, { color: colors.icon }]}
+              >
                 {FITNESS_EXPERIENCE_SCREEN.description}
               </Text>
             </Animated.View>
@@ -204,6 +213,11 @@ export default function FitnessExperienceScreen() {
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
                     <TouchableOpacity
+                      testID={`fitness-experience-option-${option.id}`}
+                      accessible
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${option.title}. ${option.description}`}
+                      accessibilityState={{ checked: isSelected }}
                       onPress={() => handleSelectExperience(option.id)}
                       activeOpacity={0.8}
                     >
@@ -211,19 +225,17 @@ export default function FitnessExperienceScreen() {
                         style={[
                           styles.optionCard,
                           {
-                            backgroundColor: isSelected
-                              ? "rgba(106, 79, 245, 0.12)" // 12% opacity of primaryButton
-                              : colors.inputBackground,
+                            backgroundColor: colors.inputBackground,
                             borderColor: isSelected
-                              ? colors.primaryButton
+                              ? colors.text
                               : colors.inputBorder,
-                            borderWidth: isSelected ? 2 : 1,
                           },
                         ]}
                       >
                         <View style={styles.optionContent}>
                           <View style={styles.optionTextContainer}>
                             <Text
+                              testID={`fitness-experience-title-${option.id}`}
                               style={[
                                 styles.optionTitle,
                                 { color: colors.text },
@@ -232,29 +244,26 @@ export default function FitnessExperienceScreen() {
                               {option.title}
                             </Text>
                             <Text
+                              testID={`fitness-experience-description-${option.id}`}
                               style={[
                                 styles.optionDescription,
-                                { color: colors.placeholder },
+                                { color: colors.icon },
                               ]}
                             >
                               {option.description}
                             </Text>
                           </View>
                           <View
-                            style={[
-                              styles.checkbox,
-                              {
-                                backgroundColor: isSelected
-                                  ? colors.primaryButton
-                                  : "transparent",
-                                borderColor: isSelected
-                                  ? colors.primaryButton
-                                  : colors.inputBorder,
-                              },
-                            ]}
+                            testID={`fitness-experience-indicator-${option.id}`}
+                            style={styles.selectionIndicator}
+                            accessible={false}
+                            accessibilityElementsHidden
+                            importantForAccessibility="no-hide-descendants"
                           >
                             <AnimatedCheckmark visible={isSelected}>
-                              <Text style={styles.checkmarkText}>✓</Text>
+                              <View
+                                style={[styles.selectionCheck, { borderColor: colors.text }]}
+                              />
                             </AnimatedCheckmark>
                           </View>
                         </View>
@@ -265,27 +274,33 @@ export default function FitnessExperienceScreen() {
               })}
             </View>
           </View>
-        </ScrollView>
-
-        {/* Next Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton onPress={handleNext} disabled={!selectedExperience} accessibilityState={{ disabled: !selectedExperience }}>
-            <View
+          <View style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="fitness-experience-continue"
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              onPress={handleNext}
+              disabled={!selectedExperience}
+              accessibilityState={{ disabled: !selectedExperience }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !selectedExperience && { opacity: 0.5 },
+                {
+                  backgroundColor: selectedExperience ? colors.primaryButton : colors.inputBackground,
+                  borderColor: selectedExperience ? colors.primaryButton : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text
+                style={[
+                  styles.primaryButtonText,
+                  { color: selectedExperience ? "#FFFFFF" : colors.icon },
+                ]}
+              >
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -300,25 +315,23 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
   },
   content: {
     paddingHorizontal: 24,
     paddingTop: 24,
+    flexGrow: 1,
     gap: 16,
   },
   question: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
     marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
     marginBottom: 8,
   },
   optionsContainer: {
@@ -326,6 +339,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   optionCard: {
+    minHeight: 44,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -338,49 +352,53 @@ const styles = StyleSheet.create({
   },
   optionTextContainer: {
     flex: 1,
-    gap: 4,
+    minWidth: 0,
+    gap: 6,
   },
   optionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    marginBottom: 4,
   },
   optionDescription: {
     fontSize: 14,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 20,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
+  selectionIndicator: {
+    width: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkmarkText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+  selectionCheck: {
+    width: 6,
+    height: 10,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
   },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });

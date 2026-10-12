@@ -1,0 +1,132 @@
+# Existing fictional guest fixture only; saves local experience choices.
+# Start on Fitness Experience with the installed native development build.
+# No launch/reset, authentication, onboarding submission, or health access.
+# Required: MODE=full|layout, STARTER_CHOICE=no-experience|beginner,
+# EXPERIENCED_CHOICE=intermediate|advanced, SCREENSHOT_PREFIX=/absolute/prefix.
+appId: com.diegozegarra.primerep
+tags:
+  - fitness-experience-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: fitness-experience-scroll
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-option-${STARTER_CHOICE}
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: fitness-experience-option-${STARTER_CHOICE}
+    direction: UP
+    visibilityPercentage: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: fitness-experience-option-${STARTER_CHOICE}
+- assertVisible:
+    id: fitness-experience-option-${STARTER_CHOICE}
+    text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-continue
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: fitness-experience-continue
+      - assertVisible: Fitness Goal \(4/9\)
+      - openLink: primerepai://onboarding/fitness-experience
+      - assertVisible:
+          id: fitness-experience-scroll
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-option-${STARTER_CHOICE}
+          direction: UP
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - assertVisible:
+          id: fitness-experience-option-${STARTER_CHOICE}
+          text: radio button, checked
+- scrollUntilVisible:
+    element:
+      id: fitness-experience-option-${EXPERIENCED_CHOICE}
+    direction: DOWN
+    visibilityPercentage: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: fitness-experience-option-${EXPERIENCED_CHOICE}
+- assertVisible:
+    id: fitness-experience-option-${EXPERIENCED_CHOICE}
+    text: radio button, checked
+- assertNotVisible:
+    id: fitness-experience-option-${STARTER_CHOICE}
+    text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+- scrollUntilVisible:
+    element:
+      id: fitness-experience-continue
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: fitness-experience-continue
+    enabled: true
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - tapOn:
+          id: fitness-experience-continue
+      - assertVisible: Do you know your one-rep max?.*
+      - openLink: primerepai://onboarding/fitness-experience
+      - assertVisible:
+          id: fitness-experience-scroll
+      - scrollUntilVisible:
+          element:
+            id: fitness-experience-option-${EXPERIENCED_CHOICE}
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - assertVisible:
+          id: fitness-experience-option-${EXPERIENCED_CHOICE}
+          text: radio button, checked
+      - waitForAnimationToEnd
