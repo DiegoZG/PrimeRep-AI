@@ -1,0 +1,370 @@
+# Dedicated fictional guest fixture only; updates its local strength values.
+# Start on One-rep Max in the existing native development build.
+# Required: MODE=full|keyboard|layout, SCREENSHOT_PREFIX=/absolute/output/prefix.
+# Full mode also requires CALCULATOR_MODE=apply|cancel. No reset or authentication.
+appId: com.diegozegarra.primerep
+tags:
+  - one-rep-max-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: one-rep-max-scroll
+- runFlow:
+    when:
+      true: ${MODE == 'keyboard'}
+    commands:
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-entered
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-deadlift
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertVisible:
+          id: one-rep-max-continue
+          above:
+            id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-keyboard
+      - tapOn:
+          id: one-rep-max-continue
+      - assertVisible: Fitness Goal \(4/9\)
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - openLink: primerepai://onboarding/fitness-experience/one-rep-max
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "315"
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-bench-press
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-bench-press
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - tapOn:
+          id: one-rep-max-question
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-unit-LB
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-unit-LB
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-bench-press
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-bench-press
+      - eraseText
+      - inputText: "100"
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+          text: "100"
+      - assertVisible:
+          id: one-rep-max-label-bench-press
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-back-squat
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-back-squat
+      - eraseText
+      - inputText: "225"
+      - assertVisible:
+          id: one-rep-max-input-back-squat
+          text: "225"
+      - assertVisible:
+          id: one-rep-max-label-back-squat
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-deadlift
+      - eraseText
+      - inputText: "315"
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "315"
+      - assertVisible:
+          id: one-rep-max-label-deadlift
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-keyboard
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-entered
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-unit-KG
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-unit-KG
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+          text: "45.4"
+      - assertVisible:
+          id: one-rep-max-input-back-squat
+          text: "102.1"
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "142.9"
+      - tapOn:
+          id: one-rep-max-unit-LB
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+          text: "100.1"
+      - assertVisible:
+          id: one-rep-max-input-back-squat
+          text: "225.1"
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "315"
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-calculator
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-calculator
+      - assertVisible:
+          id: calculator-reps-input
+      - scrollUntilVisible:
+          element:
+            id: calculator-cancel
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: calculator-cancel
+      - assertVisible:
+          id: one-rep-max-scroll
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+          text: "100.1"
+      - runFlow:
+          when:
+            true: ${CALCULATOR_MODE == 'apply'}
+          commands:
+            - tapOn:
+                id: one-rep-max-calculator
+            - assertVisible:
+                id: calculator-reps-input
+            - tapOn:
+                id: calculator-reps-input
+            - inputText: "5"
+            - tapOn:
+                id: calculator-weight-input
+            - inputText: "100.5"
+            - scrollUntilVisible:
+                element:
+                  id: calculator-calculate
+                direction: DOWN
+                timeout: 30000
+            - tapOn:
+                id: calculator-calculate
+            - scrollUntilVisible:
+                element:
+                  id: calculator-result
+                direction: UP
+                timeout: 30000
+            - assertVisible: "Estimated one-rep max: 113 lb"
+            - scrollUntilVisible:
+                element:
+                  id: calculator-exercise-bench-press
+                direction: DOWN
+                timeout: 30000
+            - tapOn:
+                id: calculator-exercise-bench-press
+            - scrollUntilVisible:
+                element:
+                  id: calculator-apply
+                direction: DOWN
+                timeout: 30000
+            - tapOn:
+                id: calculator-apply
+            - assertVisible:
+                id: one-rep-max-input-bench-press
+                text: "113"
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-continue
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-continue
+          enabled: true
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: one-rep-max-input-deadlift
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertVisible:
+          id: one-rep-max-continue
+          above:
+            id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-keyboard
+      - tapOn:
+          id: one-rep-max-continue
+      - assertVisible: Fitness Goal \(4/9\)
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - openLink: primerepai://onboarding/fitness-experience/one-rep-max
+      - assertVisible:
+          id: one-rep-max-scroll
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "315"
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-calculator
+          direction: DOWN
+          visibilityPercentage: 10
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-calculator
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-unit-LB
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-unit-LB
+      - assertVisible:
+          id: one-rep-max-unit-KG
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-upper
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-bench-press
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+      - assertVisible:
+          id: one-rep-max-label-bench-press
+      - assertVisible:
+          id: one-rep-max-unit-bench-press
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bench
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-back-squat
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-input-back-squat
+      - assertVisible:
+          id: one-rep-max-label-back-squat
+      - assertVisible:
+          id: one-rep-max-unit-back-squat
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-squat
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+      - assertVisible:
+          id: one-rep-max-label-deadlift
+      - assertVisible:
+          id: one-rep-max-unit-deadlift
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-continue
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-continue
+          enabled: true
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
