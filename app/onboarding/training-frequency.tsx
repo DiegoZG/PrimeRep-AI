@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AnimatedButton } from "@/components/animated-button";
-import { SelectableOptionCard } from "@/components/selectable-option-card";
+import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -195,25 +195,24 @@ export default function TrainingFrequencyScreen() {
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="training-frequency-scroll"
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.question, { color: colors.text }]}>
+              <AnimatedText testID="training-frequency-question" accessibilityRole="header" style={[styles.question, { color: colors.text }]}>
                 {TRAINING_FREQUENCY_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
-            {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text testID="training-frequency-description" style={[styles.description, { color: colors.icon }]}>
                 {TRAINING_FREQUENCY_SCREEN.description}
               </Text>
             </Animated.View>
 
-            {/* Options */}
             <View style={styles.optionsContainer}>
               {TRAINING_FREQUENCY_SCREEN.options.map((option, index) => {
                 const isSelected = selectedFrequency === option.id;
@@ -221,39 +220,78 @@ export default function TrainingFrequencyScreen() {
 
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
-                    <SelectableOptionCard
-                      title={option.title}
-                      isSelected={isSelected}
+                    <TouchableOpacity
+                      testID={`training-frequency-option-${option.id}`}
+                      accessible
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={`${option.title}${option.tag ? `. ${option.tag.text}` : ""}`}
                       onPress={() => handleSelectFrequency(option.id)}
-                      tag={option.tag}
-                      showCheckbox={true}
-                    />
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.optionCard,
+                          {
+                            backgroundColor: colors.inputBackground,
+                            borderColor: isSelected ? colors.icon : colors.inputBorder,
+                          },
+                        ]}
+                      >
+                        <View style={styles.optionContent}>
+                          <View style={styles.optionTextContainer}>
+                            {option.tag && (
+                              <View testID={`training-frequency-tag-${option.id}`} style={[styles.tag, { backgroundColor: colors.inputBorder }]}>
+                                <Text testID={`training-frequency-tag-text-${option.id}`} style={[styles.tagText, { color: colors.text }]}>
+                                  {option.tag.text}
+                                </Text>
+                              </View>
+                            )}
+                            <Text testID={`training-frequency-title-${option.id}`} style={[styles.optionTitle, { color: colors.text }]}>
+                              {option.title}
+                            </Text>
+                          </View>
+                          <View
+                            testID={`training-frequency-indicator-${option.id}`}
+                            accessible={false}
+                            accessibilityElementsHidden
+                            importantForAccessibility="no-hide-descendants"
+                            style={styles.checkbox}
+                          >
+                            <AnimatedCheckmark visible={isSelected}>
+                              <View style={[styles.checkmark, { borderColor: colors.icon }]} />
+                            </AnimatedCheckmark>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
                   </Animated.View>
                 );
               })}
             </View>
           </View>
-        </ScrollView>
-
-        {/* Next Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton onPress={handleNext} disabled={!selectedFrequency} accessibilityState={{ disabled: !selectedFrequency }}>
-            <View
+          <View style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="training-frequency-continue"
+              onPress={handleNext}
+              disabled={!selectedFrequency}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              accessibilityState={{ disabled: !selectedFrequency }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !selectedFrequency && { opacity: 0.5 },
+                {
+                  backgroundColor: selectedFrequency ? colors.primaryButton : colors.inputBackground,
+                  borderColor: selectedFrequency ? colors.primaryButton : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text style={[styles.primaryButtonText, { color: selectedFrequency ? "#FFFFFF" : colors.icon }]}>
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -268,7 +306,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
   },
   content: {
     paddingHorizontal: 24,
@@ -277,38 +314,87 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
-    marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    marginBottom: 8,
   },
   optionsContainer: {
     gap: 12,
     marginTop: 8,
   },
+  optionCard: {
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 2,
+    minHeight: 44,
+  },
+  tag: {
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  optionContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  optionTextContainer: {
+    flex: 1,
+    minWidth: 0,
+    gap: 8,
+  },
+  optionTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    width: 7,
+    height: 12,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
+  },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });
