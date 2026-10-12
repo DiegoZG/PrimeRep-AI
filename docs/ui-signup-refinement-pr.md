@@ -40,30 +40,30 @@ The only production source change is `app/signup.tsx`. Tests, the Signup Maestro
 
 Normal iPhone 16 Plus after, Light:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-light.png" width="320" alt="Signup after, Light theme, normal text on iPhone 16 Plus" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-light.png" width="320" alt="Signup after, Light theme, normal text on iPhone 16 Plus" />
 
 Normal iPhone 16 Plus after, Dark:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-dark.png" width="320" alt="Signup after, Dark theme, normal text on iPhone 16 Plus" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-dark.png" width="320" alt="Signup after, Dark theme, normal text on iPhone 16 Plus" />
 
 <details>
 <summary>Before: original form, keyboard, and maximum text</summary>
 
 Before, Light normal text:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-before-light.png" width="320" alt="Signup before, Light theme, normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-before-light.png" width="320" alt="Signup before, Light theme, normal text" />
 
 Before, Dark normal text:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-before-dark.png" width="320" alt="Signup before, Dark theme, normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-before-dark.png" width="320" alt="Signup before, Dark theme, normal text" />
 
 Before, focused keyboard:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-before-focus-keyboard.png" width="320" alt="Signup before, focused field and keyboard" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-before-focus-keyboard.png" width="320" alt="Signup before, focused field and keyboard" />
 
 Before, Light maximum text; consent and primary action are beyond the fixed form's reachable viewport:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-before-max-light.png" width="320" alt="Signup before, Light maximum text with lower actions beyond the fixed viewport" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-before-max-light.png" width="320" alt="Signup before, Light maximum text with lower actions beyond the fixed viewport" />
 
 </details>
 
@@ -72,26 +72,26 @@ Before, Light maximum text; consent and primary action are beyond the fixed form
 
 After, compact Light:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-light.png" width="320" alt="Signup after, compact Light screen at normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-light.png" width="320" alt="Signup after, compact Light screen at normal text" />
 
 After, compact Dark:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-dark.png" width="320" alt="Signup after, compact Dark screen at normal text" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-dark.png" width="320" alt="Signup after, compact Dark screen at normal text" />
 
 After, compact Dark focused-password input; eight bullets represent a synthetic password, and the native keyboard is visible:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-dark-focus.png" width="320" alt="Signup after, compact Dark focused password showing eight synthetic-password bullets and native keyboard" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-dark-focus.png" width="320" alt="Signup after, compact Dark focused password showing eight synthetic-password bullets and native keyboard" />
 
 After, compact 375-point Light at native AXXXL, top position; uncapped title text wraps naturally:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-max-light-top.png" width="320" alt="Signup after, compact 375-point Light native AXXXL top view with naturally wrapping title" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-max-light-top.png" width="320" alt="Signup after, compact 375-point Light native AXXXL top view with naturally wrapping title" />
 
 After, compact 375-point Light at native AXXXL, later scroll position showing reachable lower controls:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-max-light-lower.png" width="320" alt="Signup after, compact 375-point Light native AXXXL lower controls reached by continuous scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-max-light-lower.png" width="320" alt="Signup after, compact 375-point Light native AXXXL lower controls reached by continuous scrolling" />
 
 After, compact 375-point Dark at native AXXXL, later scroll position showing reachable lower controls:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U15_SOURCE_COMMIT__/docs/pr-screenshots/u15/u15-after-compact-max-dark-lower.png" width="320" alt="Signup after, compact 375-point Dark native AXXXL lower controls reached by continuous scrolling" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/696473e455bbc700570d64690388dfcd9eb84161/docs/pr-screenshots/u15/u15-after-compact-max-dark-lower.png" width="320" alt="Signup after, compact 375-point Dark native AXXXL lower controls reached by continuous scrolling" />
 
 </details>
