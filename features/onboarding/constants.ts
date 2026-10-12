@@ -93,7 +93,7 @@ export const BODY_STATS_SCREEN = {
   manualSection: {
     heading: "Enter your health profile",
     description:
-      "We use gender, weight and age to provide you with the most accurate personalised workouts.",
+      "We use gender, weight and age to personalise your workouts.",
   },
   formFields: {
     gender: {

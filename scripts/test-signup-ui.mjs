@@ -398,11 +398,15 @@ test("presentation: pending spinner and primary action retain full contrast in b
   }
 });
 
-test("scope: neutral input opt-in is limited to the three approved screens and untouched input", () => {
+test("scope: neutral input opt-in is limited to the four approved screens and untouched input", () => {
   const callers = execFileSync("rg", ["-l", "authPresentation", "app", "components"], { cwd: root, encoding: "utf8" }).trim().split("\n").sort();
-  assert.deepEqual(callers, ["app/login.tsx", "app/onboarding/fitness-experience/one-rep-max.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
+  assert.deepEqual(callers, ["app/login.tsx", "app/onboarding/body-stats.tsx", "app/onboarding/fitness-experience/one-rep-max.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
   const oneRepMax = "app/onboarding/fitness-experience/one-rep-max.tsx";
   const controller = (input) => input.slice(input.indexOf("export default function OneRepMaxScreen()"), input.indexOf("\n  return ("));
   const baseline = execFileSync("git", ["show", `e68e9de49bca3965e4c6d0b0e26cb9c6ed1fda1e:${oneRepMax}`], { cwd: root, encoding: "utf8" });
   assert.equal(controller(source(oneRepMax)), controller(baseline));
+  const bodyStats = "app/onboarding/body-stats.tsx";
+  const bodyController = (input) => input.slice(0, input.indexOf("\n  return ("));
+  const bodyBaseline = execFileSync("git", ["show", `9f2811810329482b6871f11558f3e23c1bc1e65b:${bodyStats}`], { cwd: root, encoding: "utf8" });
+  assert.equal(bodyController(source(bodyStats)), bodyController(bodyBaseline));
 });

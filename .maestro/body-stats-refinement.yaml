@@ -1,0 +1,436 @@
+# Dedicated fictional guest only; full mode changes its local body draft.
+# Required MODE=full|layout|empty|inventory and SCREENSHOT_PREFIX=/absolute/existing-dir/prefix.
+# Full: FIRST_GENDER, LAST_GENDER (0 Male,1 Female,2 Other,3 Prefer not to say),
+# GENDER_LABEL matching LAST_GENDER. No reset/authentication/Health actions.
+appId: com.diegozegarra.primerep
+tags:
+  - body-stats-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: body-stats-scroll
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 60%
+          duration: 500
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: body-stats-gender
+      - assertVisible:
+          id: body-stats-gender-option-0
+      - assertVisible:
+          id: body-stats-gender-option-3
+      - tapOn:
+          id: body-stats-gender-option-${FIRST_GENDER}
+      - assertNotVisible:
+          id: body-stats-gender-option-${FIRST_GENDER}
+      - tapOn:
+          id: body-stats-gender
+      - assertVisible:
+          id: body-stats-gender-option-${FIRST_GENDER}
+          text: radio button, checked
+      - tapOn:
+          id: body-stats-gender-option-${LAST_GENDER}
+      - assertNotVisible:
+          id: body-stats-gender-option-${LAST_GENDER}
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, ${GENDER_LABEL}
+      - tapOn:
+          id: body-stats-gender
+      - assertVisible:
+          id: body-stats-gender-option-${LAST_GENDER}
+          text: radio button, checked
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-picker
+      - tapOn:
+          id: body-stats-gender
+      - assertNotVisible:
+          id: body-stats-gender-option-${LAST_GENDER}
+      - scrollUntilVisible:
+          element:
+            id: body-stats-unit-lb
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: body-stats-unit-lb
+      - scrollUntilVisible:
+          element:
+            id: body-stats-weight-input
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: body-stats-weight-input
+      - eraseText
+      - inputText: "180"
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "180"
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: body-stats-heading
+          direction: UP
+          timeout: 30000
+      - tapOn:
+          id: body-stats-heading
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "180"
+      - tapOn:
+          id: body-stats-unit-lb
+      - assertVisible:
+          id: body-stats-unit-lb
+          selected: true
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "180"
+      - tapOn:
+          id: body-stats-unit-kg
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "81.6"
+      - tapOn:
+          id: body-stats-unit-kg
+      - assertVisible:
+          id: body-stats-unit-kg
+          selected: true
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "81.6"
+      - tapOn:
+          id: body-stats-unit-lb
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "179.9"
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: body-stats-age-input
+      - eraseText
+      - inputText: "12"
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertVisible:
+          id: body-stats-age-input
+          text: "12"
+      - assertVisible:
+          id: body-stats-age-error
+          text: You need to be at least 13 to use PrimeRep.
+      - assertVisible:
+          id: body-stats-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-error
+      - tapOn:
+          id: body-stats-continue
+          enabled: false
+      - assertVisible: Body Stats \(2/9\)
+      - tapOn:
+          id: body-stats-age-input
+      - eraseText
+      - inputText: "30"
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertNotVisible:
+          id: body-stats-age-error
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+      - assertVisible:
+          id: body-stats-continue
+          enabled: true
+      - scrollUntilVisible:
+          element:
+            id: body-stats-heading
+          direction: UP
+          timeout: 30000
+      - swipe:
+          direction: DOWN
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-entered
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: DOWN
+          timeout: 30000
+      - tapOn:
+          id: body-stats-age-input
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertVisible:
+          id: body-stats-continue
+          enabled: true
+          above:
+            id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-keyboard
+      - tapOn:
+          id: body-stats-continue
+      - assertVisible: Fitness Experience \(3/9\)
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - openLink: primerepai://onboarding/body-stats
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, ${GENDER_LABEL}
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "179.9"
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: body-stats-heading
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: body-stats-description
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-description
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, Prefer not to say
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-gender
+      - tapOn:
+          id: body-stats-gender
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender-option-0
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-picker-upper
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender-option-1
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender-option-2
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: body-stats-gender-option-3
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-gender-option-3
+          text: radio button, checked
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-picker-lower
+      - tapOn:
+          id: body-stats-gender-option-3
+      - assertNotVisible:
+          id: body-stats-gender-option-3
+      - scrollUntilVisible:
+          element:
+            id: body-stats-unit-lb
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-unit-lb
+          selected: true
+      - assertVisible:
+          id: body-stats-unit-kg
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-units
+      - scrollUntilVisible:
+          element:
+            id: body-stats-weight-input
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "179.9"
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-weight
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - tapOn:
+          id: body-stats-age-input
+      - eraseText
+      - inputText: "12"
+      - assertVisible:
+          id: UIKeyboardLayoutStar.*
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 60%
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-error
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-continue
+          enabled: false
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-error
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: body-stats-age-input
+      - eraseText
+      - inputText: "30"
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 60%
+          duration: 500
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - assertNotVisible:
+          id: body-stats-age-error
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+      - assertVisible:
+          id: body-stats-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'inventory'}
+    commands:
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, Prefer not to say
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "179.9"
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+      - openLink: primerepai://onboarding/fitness-experience/one-rep-max
+      - assertVisible:
+          id: one-rep-max-unit-LB
+          selected: true
+      - assertVisible:
+          id: one-rep-max-input-bench-press
+          text: "100.1"
+      - assertVisible:
+          id: one-rep-max-input-back-squat
+          text: "225.1"
+      - scrollUntilVisible:
+          element:
+            id: one-rep-max-input-deadlift
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: one-rep-max-input-deadlift
+          text: "315"
+      - openLink: primerepai://onboarding/body-stats
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, Prefer not to say
+      - assertVisible:
+          id: body-stats-weight-input
+          text: "179.9"
+      - assertVisible:
+          id: body-stats-age-input
+          text: "30"
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'empty'}
+    commands:
+      - assertVisible:
+          id: body-stats-gender
+          text: Gender, Select gender
+      - assertVisible:
+          id: body-stats-weight-input
+          text: ""
+      - scrollUntilVisible:
+          element:
+            id: body-stats-age-input
+          direction: DOWN
+          timeout: 30000
+      - assertVisible:
+          id: body-stats-age-input
+          text: ""
+      - assertVisible:
+          id: body-stats-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-disabled
+      - openLink: primerepai://signup
+      - assertVisible:
+          id: email-input
