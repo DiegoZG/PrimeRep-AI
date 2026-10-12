@@ -398,7 +398,11 @@ test("presentation: pending spinner and primary action retain full contrast in b
   }
 });
 
-test("scope: neutral input opt-in is limited to Login, Signup and the untouched input", () => {
+test("scope: neutral input opt-in is limited to the three approved screens and untouched input", () => {
   const callers = execFileSync("rg", ["-l", "authPresentation", "app", "components"], { cwd: root, encoding: "utf8" }).trim().split("\n").sort();
-  assert.deepEqual(callers, ["app/login.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
+  assert.deepEqual(callers, ["app/login.tsx", "app/onboarding/fitness-experience/one-rep-max.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
+  const oneRepMax = "app/onboarding/fitness-experience/one-rep-max.tsx";
+  const controller = (input) => input.slice(input.indexOf("export default function OneRepMaxScreen()"), input.indexOf("\n  return ("));
+  const baseline = execFileSync("git", ["show", `e68e9de49bca3965e4c6d0b0e26cb9c6ed1fda1e:${oneRepMax}`], { cwd: root, encoding: "utf8" });
+  assert.equal(controller(source(oneRepMax)), controller(baseline));
 });

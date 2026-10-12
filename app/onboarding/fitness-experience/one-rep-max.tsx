@@ -209,17 +209,27 @@ export default function OneRepMaxScreen() {
           style={styles.keyboardAvoidingView}
           keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
         >
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
             <View style={styles.keyboardAvoidingView}>
               <ScrollView
+                testID="one-rep-max-scroll"
+                style={styles.scroll}
+                contentInsetAdjustmentBehavior="automatic"
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
                 showsVerticalScrollIndicator={false}
               >
+                <TouchableWithoutFeedback
+                  testID="one-rep-max-dismiss"
+                  accessible={false}
+                  onPress={dismissKeyboard}
+                >
                 <View style={styles.content}>
                   {/* Question */}
                   <Animated.View style={questionAnimatedStyle}>
                     <AnimatedText
+                      testID="one-rep-max-question"
+                      accessibilityRole="header"
                       style={[styles.question, { color: colors.text }]}
                     >
                       {ONE_REP_MAX_SCREEN.question}
@@ -229,9 +239,10 @@ export default function OneRepMaxScreen() {
                   {/* Description */}
                   <Animated.View style={descriptionAnimatedStyle}>
                     <Text
+                      testID="one-rep-max-description"
                       style={[
                         styles.description,
-                        { color: colors.placeholder },
+                        { color: colors.icon },
                       ]}
                     >
                       {ONE_REP_MAX_SCREEN.description}
@@ -250,16 +261,26 @@ export default function OneRepMaxScreen() {
                         {ONE_REP_MAX_SCREEN.calculatorSection.heading}
                       </Text>
                       <TouchableOpacity
+                        testID="one-rep-max-calculator"
                         accessibilityRole="button"
                         accessibilityLabel="Open one-rep max calculator"
                         onPress={() => handleOpenCalculator()}
                         activeOpacity={0.7}
                         style={[
                           styles.calculatorButton,
-                          { backgroundColor: colors.primaryButton },
+                          {
+                            backgroundColor: colors.inputBackground,
+                            borderColor: colors.inputBorder,
+                          },
                         ]}
                       >
-                        <Entypo name="calculator" size={20} color="#FFFFFF" />
+                        <View
+                          accessible={false}
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
+                        >
+                          <Entypo name="calculator" size={20} color={colors.text} />
+                        </View>
                       </TouchableOpacity>
                     </View>
 
@@ -277,19 +298,20 @@ export default function OneRepMaxScreen() {
                         return (
                           <TouchableOpacity
                             key={unit}
+                            testID={`one-rep-max-unit-${unit}`}
                             accessibilityRole="button"
                             accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"} for body weight and one-rep maxes`}
                             accessibilityState={{ selected }}
                             onPress={() => handleWeightUnitChange(unit)}
                             style={[
                               styles.unitOption,
-                              selected && { backgroundColor: colors.primaryButton },
+                              selected && { backgroundColor: colors.inputBorder },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.unitOptionText,
-                                { color: selected ? "#FFFFFF" : colors.text },
+                                { color: colors.text },
                               ]}
                             >
                               {unit}
@@ -322,6 +344,7 @@ export default function OneRepMaxScreen() {
                           <View key={exercise.id}>
                             <View style={styles.inputRow}>
                               <Text
+                                testID={`one-rep-max-label-${exercise.id}`}
                                 style={[
                                   styles.exerciseLabel,
                                   { color: colors.text },
@@ -331,6 +354,9 @@ export default function OneRepMaxScreen() {
                               </Text>
                               <View style={styles.inputContainer}>
                                 <AnimatedInput
+                                  testID={`one-rep-max-input-${exercise.id}`}
+                                  accessibilityLabel={`${exercise.name} one-rep max, ${weightUnit === "LB" ? "pounds" : "kilograms"}`}
+                                  authPresentation
                                   style={styles.weightInput}
                                   placeholder="-"
                                   value={value}
@@ -338,6 +364,7 @@ export default function OneRepMaxScreen() {
                                   keyboardType="numeric"
                                 />
                                 <Text
+                                  testID={`one-rep-max-unit-${exercise.id}`}
                                   style={[
                                     styles.unitLabel,
                                     { color: colors.text },
@@ -362,28 +389,28 @@ export default function OneRepMaxScreen() {
                     </View>
                   </Animated.View>
                 </View>
+                </TouchableWithoutFeedback>
               </ScrollView>
-
-              {/* Next Button */}
               <View
                 style={[
                   styles.buttonContainer,
                   { backgroundColor: colors.background },
                 ]}
               >
-                <AnimatedButton onPress={handleNext}>
-                  <View
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.primaryButton },
-                    ]}
-                  >
-                    <Text style={styles.primaryButtonText}>NEXT</Text>
-                  </View>
+                <AnimatedButton
+                  testID="one-rep-max-continue"
+                  accessibilityRole="button"
+                  accessibilityLabel="Continue"
+                  onPress={handleNext}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.primaryButton },
+                  ]}
+                >
+                  <Text style={styles.primaryButtonText}>Continue</Text>
                 </AnimatedButton>
               </View>
             </View>
-          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Animated.View>
     </ThemedView>
@@ -402,31 +429,33 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     paddingHorizontal: 24,
     paddingTop: 24,
+    flexGrow: 1,
     gap: 24,
   },
   question: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
     marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
     marginBottom: 8,
   },
   calculatorSection: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 16,
     marginBottom: 8,
   },
   unitControl: {
@@ -438,24 +467,33 @@ const styles = StyleSheet.create({
   unitOption: {
     flex: 1,
     minHeight: 44,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
   },
   unitOptionText: {
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
   },
   calculatorHeading: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 18,
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
   calculatorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    minWidth: 44,
+    minHeight: 44,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -463,31 +501,31 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingVertical: 16,
   },
   exerciseLabel: {
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    flex: 1,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    width: "100%",
   },
   weightInput: {
-    width: 100,
-    textAlign: "right",
+    flex: 1,
+    minWidth: 0,
+    minHeight: 56,
+    fontFamily: Fonts.sans,
+    textAlign: "left",
   },
   unitLabel: {
     fontSize: 14,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    minWidth: 30,
   },
   separator: {
     height: 1,
@@ -495,20 +533,25 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
+    minHeight: 56,
+    flexShrink: 0,
     borderRadius: 12,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });
