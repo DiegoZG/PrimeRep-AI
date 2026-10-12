@@ -1,0 +1,834 @@
+# Approved fictional guest only for light/dark/layout/restore; original compact is empty read-only.
+# Required MODE and SCREENSHOT_PREFIX, layout also SELECT_ID. No env defaults.
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 60000
+- openLink: primerepai://onboarding/workout-split
+- extendedWaitUntil:
+    visible:
+      id: workout-split-scroll
+    timeout: 15000
+- assertNotVisible: There was a problem loading the project.
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'light' || MODE == 'dark' || MODE == 'restore'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${MODE == 'light'}
+    commands:
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-push-pull-legs
+      - assertVisible:
+          id: workout-split-option-push-pull-legs
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-upper-lower
+      - assertVisible:
+          id: workout-split-option-upper-lower
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-push-pull-legs-full-body
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-full-body
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-upper-lower
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-upper-lower
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-push-pull-legs-upper-lower
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-lower
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-full-body
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-full-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-upper-lower-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-upper-lower-full-body
+      - assertVisible:
+          id: workout-split-option-upper-lower-full-body
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-lower
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-lower
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-ai-optimized
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-custom
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-custom
+      - extendedWaitUntil:
+          visible: Custom Split \(6/9\)
+          timeout: 15000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-read-only
+      - openLink: primerepai://onboarding/workout-split
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: workout-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - assertVisible:
+          id: workout-split-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+      - tapOn:
+          id: workout-split-continue
+      - extendedWaitUntil:
+          visible: Variety Level \(7/9\)
+          timeout: 15000
+      - openLink: primerepai://onboarding/workout-split
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'dark'}
+    commands:
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-full-body
+      - assertVisible:
+          id: workout-split-option-full-body
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-bro-split
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-bro-split
+      - assertVisible:
+          id: workout-split-option-bro-split
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-full-body
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-full-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-lower-focused-upper
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-lower-focused-upper
+      - assertVisible:
+          id: workout-split-option-lower-focused-upper
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-bro-split
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-bro-split
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-push-pull-legs-upper-body
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-body
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-lower-focused-upper
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-lower-focused-upper
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-ai-optimized
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-ai-optimized
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-custom
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: workout-split-option-custom
+      - extendedWaitUntil:
+          visible: Custom Split \(6/9\)
+          timeout: 15000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-read-only
+      - openLink: primerepai://onboarding/workout-split
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: workout-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - assertVisible:
+          id: workout-split-continue
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+      - tapOn:
+          id: workout-split-continue
+      - extendedWaitUntil:
+          visible: Variety Level \(7/9\)
+          timeout: 15000
+      - openLink: primerepai://onboarding/workout-split
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'restore'}
+    commands:
+      - tapOn:
+          id: workout-split-option-ai-optimized
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'empty'}
+    commands:
+      - assertVisible:
+          id: workout-split-option-ai-optimized
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-upper-lower
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-full-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-lower
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-upper-lower-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-upper-lower-full-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-full-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-bro-split
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-bro-split
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-lower-focused-upper
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-lower-focused-upper
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-push-pull-legs-upper-body
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-option-push-pull-legs-upper-body
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: workout-split-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: workout-split-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-disabled
+      - openLink: primerepai://signup
+      - assertVisible:
+          id: email-input
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: workout-split-question
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: workout-split-description
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 50%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper-companion
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper-bottom
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-ai-optimized
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-optimized-title
+      - swipe:
+          start: 50%, 40%
+          end: 50%, 55%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-optimized-title-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-description-ai-optimized
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-optimized-description
+      - scrollUntilVisible:
+          element:
+            id: workout-split-tag-text-push-pull-legs
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-recommended-tag
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-push-pull-legs
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-recommended-title
+      - scrollUntilVisible:
+          element:
+            id: workout-split-tag-text-custom
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-tag
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-custom
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-title
+      - scrollUntilVisible:
+          element:
+            id: workout-split-custom-chevron
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-custom-chevron
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-upper-lower
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-push-pull-legs-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-push-pull-legs-full-body
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-push-pull-legs-upper-lower
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-push-pull-legs-upper-lower
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-upper-lower-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-upper-lower-full-body
+      - swipe:
+          start: 50%, 40%
+          end: 50%, 55%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-upper-lower-full-body-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-full-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-full-body
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-bro-split
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-bro-split
+      - swipe:
+          start: 50%, 40%
+          end: 50%, 55%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-bro-split-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-lower-focused-upper
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-lower-focused-upper
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-push-pull-legs-upper-body
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-push-pull-legs-upper-body
+      - scrollUntilVisible:
+          element:
+            id: workout-split-option-description-push-pull-legs-upper-body
+          direction: DOWN
+          centerElement: false
+          visibilityPercentage: 20
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-last-description
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-last-description-1
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-last-description-2
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-last-description-3
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-${SELECT_ID}
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - tapOn:
+          id: workout-split-title-${SELECT_ID}
+      - assertVisible:
+          id: workout-split-option-${SELECT_ID}
+          text: radio button, checked
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: workout-split-continue
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - assertVisible:
+          id: workout-split-continue
+          enabled: true
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'glyph-proof'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-bro-split
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-bro-split-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-upper-lower-full-body
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-upper-lower-full-body-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-ai-optimized
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-title-ai-optimized-companion
+      - scrollUntilVisible:
+          element:
+            id: workout-split-description
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper-supplement
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-helper-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'target-proof'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: workout-split-title-${TARGET_ID}
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 60000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-target-probe
+      - swipe:
+          start: 50%, 40%
+          end: 50%, 55%
+          duration: 1500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-target-proof
