@@ -1104,3 +1104,52 @@ captures the invented Show/Hide states for driver debugging; it does not submit.
 
 VoiceOver, physical-device autofill/password managers, successful
 signup, and network-error behavior remain separate manual checks.
+
+### Welcome refinement
+
+Open `primerepai://onboarding/welcome` on an isolated guest, then run
+`maestro --device <isolated-guest-uuid> test .maestro/welcome-refinement.yaml`.
+The flow does not launch/reset the app or write a name. It scrolls to the
+greeting, exact expected name, and fully visible enabled Continue button;
+full mode verifies Continue reaches `Reason (1/9)` and returns through the
+public Welcome route without selecting a reason or advancing farther.
+Use `-e MODE=layout` for scrolling-only checks at maximum accessibility text.
+The greeting/name can exceed one viewport at that size, so their scroll
+threshold is 10%; Continue must be 100% visible. Stable selectors are
+`welcome-scroll`, `welcome-greeting`, `welcome-name`, and `welcome-continue`.
+
+U16 used the existing iOS 18.5 guest 16 Plus
+`C3D67687-978B-4319-80AF-26BB0A56B525` and compact SE
+`67BF52B6-AC88-4620-841C-2970B1D5AF0D`. Their empty first-name drafts were
+verified and never edited: first-name Next cannot persist an empty name, so
+typing into these existing drafts would not have a narrow public UI undo.
+Fresh BEFORE frames therefore show the genuine `there!` fallback. Both guests
+were restored to OS Light, `large`, empty Signup, hidden password, unchecked
+consent, and closed keyboard. No signed-in or physical device was touched.
+
+Long-name AFTER checks used a newly created blank disposable iPhone 16 Plus,
+`PrimeRep U16 Name Fixture` / `A21DA251-8A4F-45E3-8E6D-763EDD2277D3`, with
+only the existing native binary installed, no rebuild or cloned app data.
+Public first-name UI entered its own invented `Alexandria-Lee Montgomery`
+draft and navigated to Welcome. That fixture retains only this local test
+name and is left at Welcome with OS Light and `large`; no account was created.
+Run it with `-e 'EXPECTED_NAME=Alexandria-Lee Montgomery!'`.
+
+Eleven matrix checks returned exit code 0: full normal-text runs in Light/Dark
+on both original guests and the name fixture, layout runs at largest text in
+Light/Dark on the compact guest and name fixture, plus a full fixture run with
+Reduce Motion enabled through public Settings → Accessibility → Motion.
+The exact native switch value/checked state and raw Settings image confirmed
+it was on; afterward the same switch was restored and verified off. This
+checks settled content and navigation under that preference, not animation
+timing or complete motion suppression. An initial hot-reload Continue attempt
+did not navigate; a fresh public remount and complete rerun passed unchanged.
+
+Raw screenshot proof uses `simctl io <isolated-uuid> screenshot <temporary.png>`
+without compositing or editing. At maximum text, scrolling reaches the name
+and Continue while the uncapped message spans several viewports. The shared
+stack header's cyan Skip remains oversized at maximum text and is outside this
+Welcome-body change. VoiceOver, physical devices, and animation timing remain
+separate manual checks. No Skip, signup/login submit, reset mail, Health action,
+private container/storage write, Keychain reset, or backend fixture/API mutation
+is part of this flow.
