@@ -1,0 +1,326 @@
+# Fixture-only full/layout modes; original compact guest uses empty mode read-only.
+# Required MODE=full|layout|empty|helper and SCREENSHOT_PREFIX=/absolute/existing-dir/prefix.
+# Full requires FIRST, SECOND, THIRD, FINAL IDs; layout requires SELECT_ID.
+# Open the public Training Frequency route first. No defaults, reset or authentication.
+appId: com.diegozegarra.primerep
+tags:
+  - training-frequency-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: training-frequency-scroll
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-3-days
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-3-days
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${FIRST}
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-frequency-option-${FIRST}
+      - assertVisible:
+          id: training-frequency-option-${FIRST}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${SECOND}
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-frequency-option-${SECOND}
+      - assertVisible:
+          id: training-frequency-option-${SECOND}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${FIRST}
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-${FIRST}
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${THIRD}
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-frequency-option-${THIRD}
+      - assertVisible:
+          id: training-frequency-option-${THIRD}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${SECOND}
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-${SECOND}
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${FINAL}
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-frequency-option-${FINAL}
+      - assertVisible:
+          id: training-frequency-option-${FINAL}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${THIRD}
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-${THIRD}
+          text: radio button, unchecked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-every-day
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-continue
+          enabled: true
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+      - tapOn:
+          id: training-frequency-continue
+      - assertVisible: Workout Split \(6/9\)
+      - openLink: primerepai://onboarding/training-frequency
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${FINAL}
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-${FINAL}
+          text: radio button, checked
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${THIRD}
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-option-${THIRD}
+          text: radio button, unchecked
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 65%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-description
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-description
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 50%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-description-whole
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-1-day
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-1-day
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-2-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-2-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-tag-text-3-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-tag-3-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-3-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-3-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-tag-text-4-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-tag-4-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-4-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-4-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-5-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-5-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-6-days
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-6-days
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-title-every-day
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-every-day
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-option-${SELECT_ID}
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - tapOn:
+          id: training-frequency-option-${SELECT_ID}
+      - assertVisible:
+          id: training-frequency-option-${SELECT_ID}
+          text: radio button, checked
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 35%
+          duration: 500
+      - assertVisible:
+          id: training-frequency-continue
+          enabled: true
+      - assertNotVisible:
+          id: UIKeyboardLayoutStar.*
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'helper'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-description
+          direction: UP
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-description
+      - swipe:
+          start: 50%, 35%
+          end: 50%, 50%
+          duration: 500
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-description-whole
+- runFlow:
+    when:
+      true: ${MODE == 'empty'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-question
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: training-frequency-continue
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: training-frequency-continue
+          enabled: false
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-disabled
+      - openLink: primerepai://signup
+      - assertVisible:
+          id: email-input
