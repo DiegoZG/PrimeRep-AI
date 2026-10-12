@@ -42,34 +42,34 @@ The shared cyan Skip action and pre-existing maximum-accessibility-text header l
 
 Normal Light and Dark selected-state originals:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-light-selected.png" width="320" alt="Fitness Experience after, normal Light with an explicit neutral selected radio state" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-light-selected.png" width="320" alt="Fitness Experience after, normal Light with an explicit neutral selected radio state" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-dark-selected.png" width="320" alt="Fitness Experience after, normal Dark with an explicit neutral selected radio state" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-dark-selected.png" width="320" alt="Fitness Experience after, normal Dark with an explicit neutral selected radio state" />
 
 <details>
 <summary>Before: empty choice state and repeated purple selection treatments</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-before-light-initial.png" width="320" alt="Fitness Experience before, normal Light with no selected option" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-before-light-initial.png" width="320" alt="Fitness Experience before, normal Light with no selected option" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-before-light-selected.png" width="320" alt="Fitness Experience before, Light selected card with purple wash, border and checkbox" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-before-light-selected.png" width="320" alt="Fitness Experience before, Light selected card with purple wash, border and checkbox" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-before-dark-selected.png" width="320" alt="Fitness Experience before, Dark selected card with purple wash, border and checkbox" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-before-dark-selected.png" width="320" alt="Fitness Experience before, Dark selected card with purple wash, border and checkbox" />
 
 </details>
 
 <details>
 <summary>After: primary action, compact disabled state and maximum-text growth</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-light-bottom.png" width="320" alt="Fitness Experience after, normal Light with selected experience and purple Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-light-bottom.png" width="320" alt="Fitness Experience after, normal Light with selected experience and purple Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-dark-bottom.png" width="320" alt="Fitness Experience after, normal Dark with selected experience and purple Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-dark-bottom.png" width="320" alt="Fitness Experience after, normal Dark with selected experience and purple Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-compact-light-disabled.png" width="320" alt="Fitness Experience after, compact Light with no checked choice and neutral disabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-compact-light-disabled.png" width="320" alt="Fitness Experience after, compact Light with no checked choice and neutral disabled Continue" />
 
 Maximum-text Light and Dark lower views reached through continuous scrolling; the complete Continue label grows naturally:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-light-max-bottom.png" width="320" alt="Fitness Experience after, maximum-text Light with complete readable Continue label and natural button height" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-light-max-bottom.png" width="320" alt="Fitness Experience after, maximum-text Light with complete readable Continue label and natural button height" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U18_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u18/u18-after-dark-max-bottom.png" width="320" alt="Fitness Experience after, maximum-text Dark with complete readable Continue label and natural button height" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/dadc02bca70ba10873ca8b28a129a8bfe688f108/docs/pr-screenshots/u18/u18-after-dark-max-bottom.png" width="320" alt="Fitness Experience after, maximum-text Dark with complete readable Continue label and natural button height" />
 
 </details>
