@@ -32,7 +32,7 @@ Genuine unchanged before captures were completed and reviewed before the product
 
 Five native configurations pass: two normal Light/Dark full flows on iPhone 16 Plus, two Light/Dark maximum-text layout checks on that device, and one compact iPhone SE Light read-only check of the empty/disabled state. The normal flows verify Beginner selection, replacement selection with the previous choice unchecked, the last choice, enabled Continue, exact Body Stats navigation, and retained selection after returning. Maximum-text checks verify actual card activation, native checked state, scrolling, and the entire readable action; navigation at maximum text is not claimed. The compact guest check does not select an option and returns to empty Signup.
 
-Normal and compact checks used predecessor source `589a9e3413a1b08da3070f0c1aa94ca72dee32588cf362417457d7e058475a43`, before the final local label-width adjustment. Both maximum-text checks were rerun on final frozen source `945ce786db3b932c0a278fd655720d0d25d85d027b5e32674baab8ea2d8fc653`. The fictional 16 Plus fixture returned to Light and standard text with its structured-plan choice retained; the original compact guest returned to empty Signup. Reduce Motion was not changed. Ten approved unchanged originals are included below with immutable `U17_ASSET_COMMIT_FULL_SHA` URLs, replaced with the reviewed asset commit by the publisher; provenance and reproduction steps are in `docs/pr-screenshots/u17/README.md`.
+Normal and compact checks used predecessor source `589a9e3413a1b08da3070f0c1aa94ca72dee32588cf362417457d7e058475a43`, before the final local label-width adjustment. Both maximum-text checks were rerun on final frozen source `945ce786db3b932c0a278fd655720d0d25d85d027b5e32674baab8ea2d8fc653`. The fictional 16 Plus fixture returned to Light and standard text with its structured-plan choice retained; the original compact guest returned to empty Signup. Reduce Motion was not changed. Ten approved unchanged originals are included below with immutable `6bfbce015d6f28967d407fdd94f395935ec3adb5` URLs pinned to the reviewed asset commit; provenance and reproduction steps are in `docs/pr-screenshots/u17/README.md`.
 
 The existing shared onboarding header still has a cyan Skip action and pre-existing maximum-accessibility-text clipping limitations. Those shared-header issues remain outside U17's production scope. Simulator screenshots and native flows do not establish Android behavior, physical-device behavior, VoiceOver traversal, or native animation frame timing. The harness proves preserved motion configuration; a native OS Reduce Motion run is not claimed.
 
@@ -44,18 +44,18 @@ Only `app/onboarding/first-reason.tsx` changes production source. Supporting fil
 
 Normal Light and Dark selected-state captures precede the final local label-width adjustment:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-light-selected.png" width="320" alt="First Reason after, normal Light with Beginner checked and neutral cards" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-light-selected.png" width="320" alt="First Reason after, normal Light with Beginner checked and neutral cards" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-dark-selected.png" width="320" alt="First Reason after, normal Dark with Beginner checked and neutral cards" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-dark-selected.png" width="320" alt="First Reason after, normal Dark with Beginner checked and neutral cards" />
 
 <details>
 <summary>Before: empty choice state and cyan selected borders</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-before-light-initial.png" width="320" alt="First Reason before, Light with no selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-before-light-initial.png" width="320" alt="First Reason before, Light with no selection" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-before-light-selected.png" width="320" alt="First Reason before, Light Beginner selection with cyan border" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-before-light-selected.png" width="320" alt="First Reason before, Light Beginner selection with cyan border" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-before-dark-selected.png" width="320" alt="First Reason before, Dark Beginner selection with cyan border" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-before-dark-selected.png" width="320" alt="First Reason before, Dark Beginner selection with cyan border" />
 
 </details>
 
@@ -64,16 +64,16 @@ Normal Light and Dark selected-state captures precede the final local label-widt
 
 Normal Light and Dark bottom captures and the compact disabled-state capture precede the final local label-width adjustment:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-light-bottom.png" width="320" alt="First Reason after, normal Light with the last choice checked and enabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-light-bottom.png" width="320" alt="First Reason after, normal Light with the last choice checked and enabled Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-dark-bottom.png" width="320" alt="First Reason after, normal Dark with the last choice checked and enabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-dark-bottom.png" width="320" alt="First Reason after, normal Dark with the last choice checked and enabled Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-compact-light-disabled.png" width="320" alt="First Reason after, compact Light with no checked choice and neutral disabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-compact-light-disabled.png" width="320" alt="First Reason after, compact Light with no checked choice and neutral disabled Continue" />
 
 Final-source maximum-text Light and Dark lower views, reached through continuous scrolling; the action grows naturally and its complete label remains readable:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-light-max-bottom.png" width="320" alt="Final First Reason, maximum-text Light with the complete Continue label and natural button height" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-light-max-bottom.png" width="320" alt="Final First Reason, maximum-text Light with the complete Continue label and natural button height" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U17_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u17/u17-after-dark-max-bottom.png" width="320" alt="Final First Reason, maximum-text Dark with the complete Continue label and natural button height" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/6bfbce015d6f28967d407fdd94f395935ec3adb5/docs/pr-screenshots/u17/u17-after-dark-max-bottom.png" width="320" alt="Final First Reason, maximum-text Dark with the complete Continue label and natural button height" />
 
 </details>
