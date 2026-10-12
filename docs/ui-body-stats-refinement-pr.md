@@ -51,41 +51,41 @@ No API changes, database migrations, dependency updates, Health permission chang
 
 Before, normal Light with all required fields blank and LB selected:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-before-light-initial.png" width="320" alt="Original Body Stats in Light with blank required fields and disabled NEXT" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-before-light-initial.png" width="320" alt="Original Body Stats in Light with blank required fields and disabled NEXT" />
 
 After, normal Light with different data: fictional Female/179.9 LB/30 entered during testing:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-light-entered.png" width="320" alt="Final Body Stats in Light with neutral controls and fictional Female, 179.9 LB, age30 values" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-light-entered.png" width="320" alt="Final Body Stats in Light with neutral controls and fictional Female, 179.9 LB, age30 values" />
 
 <details>
 <summary>Original Dark empty state and real empty-weight keyboard</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-before-dark-initial.png" width="320" alt="Original Body Stats in Dark with blank required fields and disabled NEXT" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-before-dark-initial.png" width="320" alt="Original Body Stats in Dark with blank required fields and disabled NEXT" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-before-dark-keyboard-empty.png" width="320" alt="Original Body Stats in Dark with the actual numeric keyboard and cyan focus on empty weight" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-before-dark-keyboard-empty.png" width="320" alt="Original Body Stats in Dark with the actual numeric keyboard and cyan focus on empty weight" />
 
 </details>
 
 <details>
 <summary>Final Dark form and real Light/Dark keyboards</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-dark-entered.png" width="320" alt="Final Body Stats in Dark with fictional Prefer not to say, 179.9 LB, age30 values" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-dark-entered.png" width="320" alt="Final Body Stats in Dark with fictional Prefer not to say, 179.9 LB, age30 values" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-light-keyboard.png" width="320" alt="Final Body Stats in Light with the actual numeric keyboard and complete Continue frame" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-light-keyboard.png" width="320" alt="Final Body Stats in Light with the actual numeric keyboard and complete Continue frame" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-dark-keyboard.png" width="320" alt="Final Body Stats in Dark with the actual numeric keyboard and complete Continue frame" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-dark-keyboard.png" width="320" alt="Final Body Stats in Dark with the actual numeric keyboard and complete Continue frame" />
 
 </details>
 
 <details>
 <summary>Final cold maximum-text Light/Dark and compact Light empty state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-light-max-bottom.png" width="320" alt="Final Body Stats at cold maximum text in Light with readable lower fields and complete Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-light-max-bottom.png" width="320" alt="Final Body Stats at cold maximum text in Light with readable lower fields and complete Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-dark-max-bottom.png" width="320" alt="Final Body Stats at cold maximum text in Dark with readable lower fields and complete Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-dark-max-bottom.png" width="320" alt="Final Body Stats at cold maximum text in Dark with readable lower fields and complete Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/u21-after-compact-light-disabled.png" width="320" alt="Final Body Stats on compact Light with blank required fields and disabled neutral Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/u21-after-compact-light-disabled.png" width="320" alt="Final Body Stats on compact Light with blank required fields and disabled neutral Continue" />
 
 </details>
 
-[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/U21_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u21/README.md)
+[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/d11172b8549ce13caae96618d0b49a6c8ed1997b/docs/pr-screenshots/u21/README.md)
