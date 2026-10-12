@@ -4,35 +4,35 @@ Custom Split now makes Add workout neutral, reserves purple for enabled Continue
 
 Before, original Dark empty Custom Split:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-before-dark-initial.png" width="320" alt="Original Dark Custom Split with an empty workout list, minimum-one-day validation and disabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-before-dark-initial.png" width="320" alt="Original Dark Custom Split with an empty workout list, minimum-one-day validation and disabled Continue" />
 
 After, final Dark empty Custom Split:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-dark-empty.png" width="320" alt="Final Dark empty Custom Split with neutral Add workout, readable validation and disabled Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-dark-empty.png" width="320" alt="Final Dark empty Custom Split with neutral Add workout, readable validation and disabled Continue" />
 
 Both images show empty data on iPhone 16 Plus. BEFORE uses the original C3 guest; AFTER uses the separate approved A21 fictional fixture. They are not the same guest. No populated BEFORE exists; populated AFTER images show new fictional test days.
 
 Independent verification passes 37 focused cases, 669 named cases, and 670 standard Node results with the audit wrapper counted once. Five iOS configurations and separate exact-own-ID removal and split-choice restoration passed. All nine published originals match raw captures byte for byte.
 
-[Screenshot provenance, native matrix, state boundaries, and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/README.md)
+[Screenshot provenance, native matrix, state boundaries, and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/README.md)
 
 <details>
 <summary>Light empty comparison and original compact empty-state result</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-before-light-initial.png" width="320" alt="Original Light empty Custom Split with disabled Continue on the original C3 guest" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-before-light-initial.png" width="320" alt="Original Light empty Custom Split with disabled Continue on the original C3 guest" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-light-empty.png" width="320" alt="Final Light empty Custom Split with neutral Add workout and disabled Continue on the separate fictional A21 guest" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-light-empty.png" width="320" alt="Final Light empty Custom Split with neutral Add workout and disabled Continue on the separate fictional A21 guest" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-compact-light-disabled.png" width="320" alt="Final compact Light empty Custom Split with the complete disabled Continue action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-compact-light-disabled.png" width="320" alt="Final compact Light empty Custom Split with the complete disabled Continue action" />
 
 </details>
 
 <details>
 <summary>Final populated Light and Dark with new fictional test days</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-light-populated.png" width="320" alt="Final Light Custom Split with two new fictional Upper body days and a Custom day; data differs from empty BEFORE" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-light-populated.png" width="320" alt="Final Light Custom Split with two new fictional Upper body days and a Custom day; data differs from empty BEFORE" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-dark-populated.png" width="320" alt="Final Dark Custom Split with the same three new fictional days and separate named Edit and Remove actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-dark-populated.png" width="320" alt="Final Dark Custom Split with the same three new fictional days and separate named Edit and Remove actions" />
 
 The actual duplicate preset titles are Upper body - Workout 1 and Upper body - Workout 2. The Custom day has thirteen real muscle selections and Core remained off. Arbitrarily long names are component-harness coverage only: the unchanged original modal has no name input. These are not matched populated BEFORE/AFTER comparisons.
 
@@ -41,9 +41,9 @@ The actual duplicate preset titles are Upper body - Workout 1 and Upper body - W
 <details>
 <summary>Final cold maximum-text Light and Dark action reach</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-light-max-bottom.png" width="320" alt="Final Light Custom Split at cold maximum accessibility text with list tail, Edit, grown Add workout and full Continue above the safe area" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-light-max-bottom.png" width="320" alt="Final Light Custom Split at cold maximum accessibility text with list tail, Edit, grown Add workout and full Continue above the safe area" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U26_ASSET_COMMIT_SHA__/docs/pr-screenshots/u26/u26-after-dark-max-bottom.png" width="320" alt="Final Dark Custom Split at cold maximum accessibility text with the same growing actions above the safe area" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/2fb00e0aa7dc15a9b32428a1bb395b6282587178/docs/pr-screenshots/u26/u26-after-dark-max-bottom.png" width="320" alt="Final Dark Custom Split at cold maximum accessibility text with the same growing actions above the safe area" />
 
 The maximum-text Custom card is taller than a viewport. Whole title and thirteen-muscle glyphs were inspected across overlapping private originals and two bounded slow drags; these bottom frames alone do not show every glyph. Automated centering sometimes put a helper under the shared header or past its target, so actual top/title companions supplied the visible evidence. No font cap, fixed-height workaround, or all-app header perfection claim is made.
 
