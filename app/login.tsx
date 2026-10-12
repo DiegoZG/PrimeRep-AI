@@ -3,16 +3,20 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Text,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedInput } from "@/components/animated-input";
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -62,151 +66,161 @@ const LoginScreen = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
-      <ThemedView style={styles.content}>
-        <ThemedText type="title" style={styles.title}>
-          Welcome back
-        </ThemedText>
-        <ThemedText type="default" style={styles.subtitle}>
-          Enter your details to continue
-        </ThemedText>
-        {passwordReset === "success" ? (
-          <ThemedText accessibilityRole="alert" style={[styles.successMessage, { color: colors.primaryButton }]}>Your password was updated. Sign in with your new password.</ThemedText>
-        ) : null}
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWithIconContainer}>
-            <AnimatedInput
-              testID="email-input"
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!isSubmitting}
-              style={[styles.input, styles.inputWithLeftIcon]}
-            />
-            <View style={styles.leftIcon}>
-              <Ionicons
-                name="mail-outline"
-                size={18}
-                color={colors.placeholder}
-              />
-            </View>
-          </View>
-
-          <View
-            style={[styles.passwordContainer, styles.inputWithIconContainer]}
-          >
-            <AnimatedInput
-              testID="password-input"
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!isPasswordVisible}
-              autoCapitalize="none"
-              autoComplete="password"
-              editable={!isSubmitting}
-              style={[
-                styles.input,
-                styles.passwordInput,
-                styles.inputWithLeftIcon,
-              ]}
-            />
-            <View style={styles.leftIcon}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={colors.placeholder}
-              />
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
-              accessibilityState={{ disabled: isSubmitting }}
-              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-              style={styles.eyeIcon}
-              disabled={isSubmitting}
-            >
-              <Ionicons
-                name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color={colors.placeholder}
-              />
-            </Pressable>
-          </View>
-
-          <Pressable
-            testID="forgot-password-link"
-            accessibilityRole="button"
-            accessibilityLabel="Reset forgotten password"
-            accessibilityState={{ disabled: isSubmitting }}
-            onPress={() => router.push("/forgot-password")}
-            style={styles.forgotPasswordContainer}
-            disabled={isSubmitting}
-          >
-            <ThemedText type="link" style={styles.forgotPassword}>
-              Forgot password?
-            </ThemedText>
-          </Pressable>
-        </View>
-
-        {errorMessage && (
-          <ThemedText style={[styles.errorText, { color: "#FF3B30" }]}>
-            {errorMessage}
-          </ThemedText>
-        )}
-
-        <AnimatedButton
-          testID="login-button"
-          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
-          onPress={handleLogin}
-          disabled={isSubmitting}
-          style={[
-            styles.loginButton,
-            { backgroundColor: colors.primaryButton },
-            isSubmitting && styles.loginButtonDisabled,
-          ]}
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          testID="login-scroll"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.loginButtonText}>LOGIN</Text>
-          )}
-        </AnimatedButton>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <ThemedView style={styles.content}>
+              <ThemedText type="title" style={styles.title}>
+                Welcome back
+              </ThemedText>
+              <ThemedText type="default" style={[styles.subtitle, { color: colors.icon }]}>
+                Enter your details to continue
+              </ThemedText>
+              {passwordReset === "success" ? (
+                <ThemedText testID="password-reset-success" accessibilityRole="alert" style={[styles.successMessage, { color: colors.text }]}>Your password was updated. Sign in with your new password.</ThemedText>
+              ) : null}
 
-        <View style={styles.footer}>
-          <ThemedText type="default" style={styles.footerText}>
-            Don{"'"}t have an account?{" "}
-          </ThemedText>
-          <Pressable
-            onPress={() => router.push("/onboarding")}
-            disabled={isSubmitting}
-            accessibilityState={{ disabled: isSubmitting }}
-          >
-            <ThemedText
-              type="link"
-              style={[styles.signUpLink, { color: colors.primaryButton }]}
-            >
-              Sign up
-            </ThemedText>
-          </Pressable>
-        </View>
+              <View style={styles.inputContainer}>
+                <View style={styles.field}>
+                  <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+                  <AnimatedInput
+                    testID="email-input"
+                    authPresentation
+                    accessibilityLabel="Email"
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    editable={!isSubmitting}
+                    style={styles.input}
+                  />
+                </View>
 
-        <Pressable
-          onPress={() => router.push("/onboarding")}
-          disabled={isSubmitting}
-          accessibilityState={{ disabled: isSubmitting }}
-          style={styles.backToOnboardingContainer}
-        >
-          <ThemedText
-            type="link"
-            style={[styles.backToOnboarding, { color: colors.primaryButton }]}
-          >
-            Go back to onboarding
-          </ThemedText>
-        </Pressable>
-      </ThemedView>
+                <View style={styles.field}>
+                  <ThemedText style={styles.fieldLabel}>Password</ThemedText>
+                  <View style={styles.passwordContainer}>
+                    <AnimatedInput
+                      testID="password-input"
+                      authPresentation
+                      accessibilityLabel="Password"
+                      placeholder="Password"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!isPasswordVisible}
+                      autoCapitalize="none"
+                      autoComplete="password"
+                      editable={!isSubmitting}
+                      style={[
+                        styles.input,
+                        styles.passwordInput,
+                      ]}
+                    />
+                    <Pressable
+                      testID="password-visibility-button"
+                      accessibilityRole="button"
+                      accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
+                      accessibilityState={{ disabled: isSubmitting }}
+                      onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                      style={({ pressed }) => [styles.eyeIcon, pressed && { backgroundColor: colors.inputBorder }]}
+                      disabled={isSubmitting}
+                    >
+                      <Ionicons
+                        name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color={colors.icon}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <Pressable
+                  testID="forgot-password-link"
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset forgotten password"
+                  accessibilityState={{ disabled: isSubmitting }}
+                  onPress={() => router.push("/forgot-password")}
+                  style={({ pressed }) => [styles.forgotPasswordContainer, pressed && { backgroundColor: colors.inputBackground }]}
+                  disabled={isSubmitting}
+                >
+                  <ThemedText style={[styles.forgotPassword, { color: colors.icon }]}>
+                    Forgot password?
+                  </ThemedText>
+                </Pressable>
+              </View>
+
+              {errorMessage && (
+                <ThemedText testID="login-error" accessibilityRole="alert" style={[styles.errorText, { color: colorScheme === "dark" ? "#FF8B82" : "#B42318" }]}>
+                  {errorMessage}
+                </ThemedText>
+              )}
+
+              <AnimatedButton
+                testID="login-button"
+                accessibilityRole="button"
+                accessibilityLabel="Sign in"
+                accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+                onPress={handleLogin}
+                disabled={isSubmitting}
+                style={[
+                  styles.loginButton,
+                  { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.loginButtonText}>Sign in</ThemedText>
+                )}
+              </AnimatedButton>
+
+              <View style={styles.footer}>
+                <ThemedText type="default" style={styles.footerText}>
+                  Don{"'"}t have an account?{" "}
+                </ThemedText>
+                <Pressable
+                  testID="signup-link"
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign up"
+                  onPress={() => router.push("/onboarding")}
+                  disabled={isSubmitting}
+                  accessibilityState={{ disabled: isSubmitting }}
+                  style={({ pressed }) => [styles.tertiaryAction, pressed && { backgroundColor: colors.inputBackground }]}
+                >
+                  <ThemedText
+                    style={[styles.signUpLink, { color: colors.text }]}
+                  >
+                    Sign up
+                  </ThemedText>
+                </Pressable>
+              </View>
+
+              <Pressable
+                testID="onboarding-return-link"
+                accessibilityRole="button"
+                accessibilityLabel="Go back to onboarding"
+                onPress={() => router.push("/onboarding")}
+                disabled={isSubmitting}
+                accessibilityState={{ disabled: isSubmitting }}
+                style={({ pressed }) => [styles.backToOnboardingContainer, pressed && { backgroundColor: colors.inputBackground }]}
+              >
+                <ThemedText
+                  style={[styles.backToOnboarding, { color: colors.icon }]}
+                >
+                  Go back to onboarding
+                </ThemedText>
+              </Pressable>
+            </ThemedView>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -215,10 +229,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
+    paddingBottom: 24,
   },
   title: {
     marginBottom: 8,
@@ -227,51 +245,51 @@ const styles = StyleSheet.create({
   subtitle: {
     marginBottom: 32,
     textAlign: "center",
-    opacity: 0.7,
   },
   successMessage: {
     marginTop: -16,
     marginBottom: 20,
     textAlign: "center",
     fontSize: 14,
-    lineHeight: 20,
     fontWeight: "600",
   },
   inputContainer: {
     marginBottom: 24,
   },
   input: {
+    minHeight: 56,
+  },
+  field: {
     marginBottom: 16,
   },
-  inputWithIconContainer: {
-    position: "relative",
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   passwordContainer: {
     position: "relative",
   },
   passwordInput: {
-    paddingRight: 50,
-  },
-  inputWithLeftIcon: {
-    paddingLeft: 48,
-  },
-  leftIcon: {
-    position: "absolute",
-    left: 18,
-    top: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingRight: 60,
   },
   eyeIcon: {
     position: "absolute",
-    right: 16,
-    top: 16,
-    padding: 4,
+    right: 4,
+    top: 0,
+    bottom: 0,
+    width: 52,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
   },
   forgotPasswordContainer: {
-    alignItems: "flex-end",
-    marginTop: -8,
-    marginBottom: 8,
+    alignSelf: "flex-end",
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    borderRadius: 10,
   },
   forgotPassword: {
     fontSize: 14,
@@ -283,25 +301,24 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     width: "100%",
+    minHeight: 52,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
   },
-  loginButtonDisabled: {
-    opacity: 0.6,
-  },
   loginButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
+    columnGap: 4,
   },
   footerText: {
     fontSize: 14,
@@ -310,9 +327,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  tertiaryAction: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    borderRadius: 10,
+  },
   backToOnboardingContainer: {
     marginTop: 4,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 8,
+    borderRadius: 10,
   },
   backToOnboarding: {
     fontSize: 14,

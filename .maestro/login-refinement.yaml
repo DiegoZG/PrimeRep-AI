@@ -1,0 +1,89 @@
+# Run at normal text on an isolated guest whose Email and Password are empty.
+# No credentials, real sign-in, password-reset mail, account creation, app reset,
+# Health actions, or signed-in workout state changes. Empty-form validation
+# returns locally before logIn; this flow never types or presses Return.
+appId: com.diegozegarra.primerep
+tags:
+  - login-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: email-input
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: signup-link
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: signup-link
+- assertVisible: First name
+- openLink: primerepai://login
+- scrollUntilVisible:
+    element:
+      id: onboarding-return-link
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: onboarding-return-link
+- assertVisible: First name
+- openLink: primerepai://login
+- scrollUntilVisible:
+    element:
+      id: email-input
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: password-input
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: password-visibility-button
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: password-visibility-button
+- assertVisible: Hide password
+- tapOn:
+    id: password-visibility-button
+- assertVisible: Show password
+- scrollUntilVisible:
+    element:
+      id: login-button
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: login-button
+- assertVisible: Please enter both email and password
+- takeScreenshot: /private/tmp/u14-maestro-${APPEARANCE}-validation
+- scrollUntilVisible:
+    element:
+      id: signup-link
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: onboarding-return-link
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: forgot-password-link
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: forgot-password-link
+- assertVisible: Reset your password
+- tapOn: Back to login
+- scrollUntilVisible:
+    element:
+      id: email-input
+    direction: DOWN
+    timeout: 20000
