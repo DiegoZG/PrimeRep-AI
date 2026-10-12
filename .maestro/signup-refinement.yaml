@@ -1,0 +1,223 @@
+# Isolated guest only; verify empty fields and unchecked consent before running.
+# No launch/reset, credentials, Return, valid email, or real account creation.
+# The only submit actions use empty fields or an invented invalid email and
+# return through existing local validation before signUp. Consent toggles are
+# temporary component state and are restored without submitting.
+appId: com.diegozegarra.primerep
+tags:
+  - signup-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible: Create account
+- scrollUntilVisible:
+    element:
+      id: email-input
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: password-input
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: password-visibility-button
+    direction: DOWN
+    timeout: 15000
+- assertVisible: Show password
+- scrollUntilVisible:
+    element:
+      id: legal-acceptance-checkbox
+      text: checkbox, unchecked
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: signup-terms-link
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: signup-privacy-link
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: signup-button
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: signup-login-link
+    direction: DOWN
+    timeout: 15000
+- runFlow:
+    when:
+      true: ${typeof MODE != 'undefined' && MODE == 'layout'}
+    commands:
+      - takeScreenshot: "${typeof SCREENSHOT_PREFIX == 'undefined' ? '/private/tmp/u15-signup' : SCREENSHOT_PREFIX}-lower"
+- runFlow:
+    when:
+      true: ${typeof MODE == 'undefined' || MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: signup-terms-link
+          direction: UP
+          timeout: 15000
+      - tapOn:
+          id: signup-terms-link
+      - assertVisible:
+          id: legal-terms-screen
+      - tapOn: Back from Terms of Service
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, unchecked
+      - tapOn:
+          id: signup-privacy-link
+      - assertVisible:
+          id: legal-privacy-screen
+      - tapOn: Back from Privacy Policy
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, unchecked
+      - tapOn:
+          id: legal-acceptance-checkbox
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, checked
+      - tapOn:
+          id: signup-terms-link
+      - assertVisible:
+          id: legal-terms-screen
+      - tapOn: Back from Terms of Service
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, checked
+      - tapOn:
+          id: signup-privacy-link
+      - assertVisible:
+          id: legal-privacy-screen
+      - tapOn: Back from Privacy Policy
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, checked
+      - tapOn:
+          id: legal-acceptance-checkbox
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, unchecked
+      - scrollUntilVisible:
+          element:
+            id: email-input
+          direction: UP
+          timeout: 15000
+      - tapOn:
+          id: email-input
+      - assertVisible: space
+      - swipe:
+          start: 97%, 55%
+          end: 97%, 15%
+          duration: 500
+      - scrollUntilVisible:
+          element:
+            id: signup-button
+          direction: DOWN
+          timeout: 15000
+      - assertVisible: space
+      - tapOn:
+          id: signup-button
+      - assertVisible: Please enter both email and password
+      - scrollUntilVisible:
+          element:
+            id: email-input
+          direction: UP
+          timeout: 15000
+      - tapOn:
+          id: email-input
+      - inputText: not-an-email
+      - tapOn:
+          point: 97%, 30%
+      - assertNotVisible: space
+      - assertVisible: not-an-email
+      - tapOn:
+          id: email-input
+      - assertVisible: space
+      - swipe:
+          start: 97%, 45%
+          end: 97%, 90%
+          duration: 500
+      - assertNotVisible: space
+      - scrollUntilVisible:
+          element:
+            id: email-input
+          direction: UP
+          timeout: 15000
+      - assertVisible: not-an-email
+      - tapOn:
+          id: password-input
+      - inputText: draft123
+      - tapOn:
+          id: password-visibility-button
+      - assertVisible: Hide password
+      - assertVisible: draft123
+      - runFlow:
+          when:
+            true: ${typeof CAPTURE_DRAFT != 'undefined' && CAPTURE_DRAFT == 'true'}
+          commands:
+            - takeScreenshot: "${typeof SCREENSHOT_PREFIX == 'undefined' ? '/private/tmp/u15-signup' : SCREENSHOT_PREFIX}-password-visible"
+      - tapOn:
+          id: password-visibility-button
+      - assertVisible: Show password
+      - assertVisible: space
+      - runFlow:
+          when:
+            true: ${typeof CAPTURE_DRAFT != 'undefined' && CAPTURE_DRAFT == 'true'}
+          commands:
+            - takeScreenshot: "${typeof SCREENSHOT_PREFIX == 'undefined' ? '/private/tmp/u15-signup' : SCREENSHOT_PREFIX}-password-hidden"
+      - swipe:
+          start: 97%, 55%
+          end: 97%, 15%
+          duration: 500
+      - scrollUntilVisible:
+          element:
+            id: signup-button
+          direction: DOWN
+          timeout: 15000
+      - assertVisible: space
+      - tapOn:
+          id: signup-button
+      - assertVisible: Please enter a valid email address
+      - takeScreenshot: "${typeof SCREENSHOT_PREFIX == 'undefined' ? '/private/tmp/u15-signup' : SCREENSHOT_PREFIX}-validation"
+      - scrollUntilVisible:
+          element:
+            id: email-input
+          direction: UP
+          timeout: 15000
+      - tapOn:
+          id: email-input
+      - eraseText
+      - tapOn:
+          id: password-input
+      - eraseText
+      - tapOn:
+          point: 97%, 30%
+      - assertNotVisible: space
+      - assertNotVisible: not-an-email
+      - scrollUntilVisible:
+          element:
+            id: signup-login-link
+          direction: DOWN
+          timeout: 15000
+      - tapOn:
+          id: signup-login-link
+      - assertVisible: Welcome back
+      - openLink: primerepai://signup
+      - assertVisible: Create account
+      - assertVisible:
+          id: legal-acceptance-checkbox
+          text: checkbox, unchecked
+      - assertVisible: Show password
