@@ -1,0 +1,120 @@
+# Only run at normal text with a manually verified EMPTY account-owned draft.
+# Uses one disposable local day and existing public Deadlift/Lat Pulldown only.
+# No resetDraft, app restart, clearState, auth change, backend Save/Create,
+# activation, Health action, or active-workout completion/discard.
+# If interrupted, remove only this flow's disposable day through builder Options.
+appId: com.diegozegarra.primerep
+tags:
+  - program-day-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs/builder
+- scrollUntilVisible:
+    element:
+      id: program-add-day
+    direction: DOWN
+    timeout: 30000
+- assertNotVisible:
+    id: program-builder-day-1
+- tapOn:
+    id: program-add-day
+- scrollUntilVisible:
+    element:
+      id: program-builder-day-open-1
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: program-builder-day-open-1
+- assertVisible:
+    id: program-day-empty
+- takeScreenshot: /private/tmp/u12-${APPEARANCE}-empty
+- tapOn:
+    id: program-day-add-exercise
+- tapOn:
+    id: program-exercise-search
+- inputText: Deadlift
+- scrollUntilVisible:
+    element:
+      text: Deadlift, back
+    direction: DOWN
+    timeout: 20000
+- tapOn: Deadlift, back
+- assertVisible:
+    id: program-exercise-up-1
+    enabled: false
+- assertVisible:
+    id: program-exercise-down-1
+    enabled: false
+- takeScreenshot: /private/tmp/u12-${APPEARANCE}-populated
+- tapOn:
+    id: program-day-done
+- assertVisible:
+    id: program-builder-day-open-1
+- tapOn:
+    id: program-builder-day-open-1
+- tapOn:
+    id: program-exercise-block-1-accessory
+- assertVisible:
+    id: program-exercise-block-1-accessory
+    selected: true
+- tapOn:
+    id: program-exercise-block-1-main
+- tapOn:
+    id: program-day-done
+- tapOn:
+    id: program-builder-day-open-1
+- tapOn:
+    id: program-day-add-exercise
+- tapOn:
+    id: program-exercise-search
+- inputText: Lat Pulldown
+- scrollUntilVisible:
+    element:
+      text: Lat Pulldown, back
+    direction: DOWN
+    timeout: 20000
+- tapOn: Lat Pulldown, back
+- scrollUntilVisible:
+    element:
+      id: program-exercise-up-2
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: program-exercise-up-2
+- scrollUntilVisible:
+    element:
+      id: program-exercise-remove-1
+    direction: UP
+    timeout: 20000
+- assertVisible:
+    id: program-exercise-remove-1
+    text: Remove Lat Pulldown
+- tapOn:
+    id: program-exercise-remove-1
+- assertVisible:
+    id: program-exercise-remove-1
+    text: Remove Deadlift
+- tapOn:
+    id: program-exercise-remove-1
+- assertVisible:
+    id: program-day-empty
+- tapOn:
+    id: program-day-done
+- tapOn:
+    id: program-day-menu-1
+- tapOn:
+    id: program-day-request-remove
+- tapOn:
+    id: program-day-confirm-remove
+- assertNotVisible:
+    id: program-builder-day-1
+- tapOn:
+    id: program-builder-back
+- openLink: primerepai://
+- extendedWaitUntil:
+    visible:
+      id: home-resume-workout
+    timeout: 15000

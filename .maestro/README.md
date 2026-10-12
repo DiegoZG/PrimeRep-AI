@@ -457,6 +457,94 @@ in original Dark appearance and normal `large` text; the secondary is at Home
 in Light and `large`. No resetDraft, app-data reset, backend save, Health action,
 authentication change, or workout completion/discard was performed.
 
+### Program day editor refinement
+
+Run `maestro --device <simulator-uuid> test -e APPEARANCE=light .maestro/program-day-refinement.yaml`
+only at normal text in the already-authenticated native app, with the usual
+local backend and a manually verified empty account-owned program draft.
+Repeat in settled Dark appearance. Use iPhone 16 Plus for primary evidence and
+the 375-point secondary simulator for the small-screen check. Do not reset an
+existing draft, clear app data, change authentication, or restart to clear it.
+
+This local-only flow adds its own disposable Day 1 and selects existing public
+Deadlift and Lat Pulldown catalog records. It checks empty/populated layout,
+Done navigation, Main/Accessory selection, and exercise reorder/remove. Numeric
+replacement and keyboard-first-tap acceptance are verified separately through
+actual native UI, not claimed from this flow. It explicitly
+removes its own day through builder Options and returns Home. It never presses
+program Create/Save, clones or activates a program, touches Health, or completes
+or discards an active workout. If interrupted, inspect and remove only these
+known disposable additions; never reset user content.
+
+Flow authoring and syntax validation do not establish a native pass. Execution,
+software-keyboard-first-tap behavior, measured targets, maximum text, both
+themes, and restoration are recorded separately after verification. Physical
+iPhone, VoiceOver, existing private/current/scheduled drafts, and actual backend
+program saves remain manual unless explicitly tested.
+
+U12 baseline originals show both themes with an empty day and one public
+Deadlift at its default 3/8–12/90-second prescription. Maximum text in both
+themes exposes the former fixed-header clipping of Workout day/Done and the
+fixed initials tile. These captures used only a disposable RAM day, explicitly
+removed through builder confirmation before any text-trait restart. Normal
+`large` text and original Dark app appearance were restored afterward.
+
+The initial maximum-text picker visibility assertion failed because Deadlift
+was off-screen; filtering through the existing search and then selecting the
+existing catalog record succeeded. This navigation-driver limitation is not
+counted as a passing flow or as an app defect fixed in this UI slice. Native
+AFTER acceptance is recorded separately below.
+
+The final narrowed normal-text structural flow passed in Light and Dark on the
+430-point iPhone 16 Plus (2/2): empty/populated layout, Done/reopen,
+Main/Accessory selection, actual two-exercise reorder/removal, explicit own-day
+cleanup, and return Home with Resume intact. Numeric replacement was removed
+from this flow after bounded driver attempts placed the cursor before the
+existing value, producing `03` instead of replacing `3` with `0`. These failed
+driver attempts are not counted as passes.
+
+Separate actual native UI checks verified a visibly open software keyboard:
+Dark Sets `0` blocked the first Done tap with the correct range error; corrected
+Sets `4` and a generic cue survived first-tap Done and reopening. Light Sets `4`
+also survived first-tap Done and reopening. Tapping the Dark header or Light body
+title dismissed the keyboard without losing the draft. The own generic cue was
+cleared and disposable local days explicitly removed afterward.
+
+The first native Done press exposed a real Fabric render error from changing a
+pressed transform array to undefined. The U12 repair keeps the scale array in
+both states; repeated post-repair Done validation/navigation succeeded without
+that render error. Development error recovery remounted the app and cleared the
+RAM-only test day; this was not an intentional reset of user data. A later
+generic catalog-loading failure resolved after own-day cleanup and an ordinary
+authenticated bootstrap refresh. Its HTTP cause was not confirmed, and it is
+not presented as a U12 API fix.
+
+Actual normal-text targets measured Back/remove/reorder 44×44 points, Done
+73×44, Add 87×44, numeric field interiors 81×50, and block choices 176×44.
+Focused maximum-text field/Done visibility checks passed in both themes: four
+single-column value fields measured 358×92 points, Done 171×88, and Back 44×44.
+The full Workout day title wraps naturally in scrolling content. Field images
+are scrolled to show all four values; the Sets label is partly above the visible
+body viewport. They do not claim every label and the full hero fit together.
+The unchanged picker at maximum text needed keyboard dismissal and direct
+selection of its visible public result after the setup driver's visibility wait
+failed; this is not a full maximum-text structural-flow pass.
+
+The 375-point secondary focused field/Done check passed with two numeric columns
+measuring 144–145×50 points, Done 73×44, and Back 44×44. Its original screenshot
+and read-only hierarchy independently confirm the public Deadlift/defaults.
+The preceding setup driver reported a selector visibility failure and is not
+counted as a passing full small-screen flow. Its known local day was explicitly
+removed through builder confirmation.
+
+Both simulators are restored to original normal `large` text. Read-only Home
+screenshots visually confirm the same Upper A with 4/4 sets remains active on
+both. The primary is Dark at the verified-empty builder; the secondary is
+Light/Home. Blank program metadata and default choices were not edited by this
+slice's flows; own local days were explicitly removed before ordinary trait or
+bootstrap restarts. No program Create/Save, API/storage/permission change,
+Health action, account reset/logout, or workout completion/discard occurred.
+
 ### Workout Summary refinement
 
 Run `maestro --device <isolated-simulator-uuid> test -e APPEARANCE=light -e SUMMARY_SESSION_ID=<existing-completed-session-id> .maestro/workout-summary-refinement.yaml`
