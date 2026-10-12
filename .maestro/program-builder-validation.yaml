@@ -1,0 +1,31 @@
+# Run only after manually verifying an EMPTY, account-owned local draft:
+# blank name/description/aliases, no days, General fitness/Beginner/35 minutes.
+# This presses Create only to exercise local name validation before any API.
+# No launch/reset, fixture input, backend save, Health or workout mutation.
+appId: com.diegozegarra.primerep
+tags:
+  - program-builder-validation
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- openLink: primerepai://programs/builder
+- extendedWaitUntil:
+    visible:
+      id: program-name-input
+    timeout: 15000
+- assertNotVisible:
+    id: program-builder-day-1
+- scrollUntilVisible:
+    element:
+      id: program-save
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: program-save
+- assertVisible: Give your program a name.
+- tapOn:
+    id: program-save
+- assertVisible: Give your program a name.
+- takeScreenshot: /private/tmp/builder-validation-${APPEARANCE}

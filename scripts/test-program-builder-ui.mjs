@@ -180,18 +180,24 @@ for (const scheme of ["light", "dark"]) {
     const pending = deferred();
     const view = await builder({ scheme, update: () => pending.promise });
     const save = host(view.tree, "program-save");
-    for (const pressed of [false, true]) { assert.equal(styleOf(save, pressed).backgroundColor, view.colors.primaryButton); assert.ok(contrast(styleOf(save.findByType("Text")).color, styleOf(save, pressed).backgroundColor) >= 4.5); }
+    for (const pressed of [false, true]) {
+      assert.equal(styleOf(save, pressed).backgroundColor, view.colors.primaryButton);
+      assert.ok(contrast(styleOf(save.findByType("Text")).color, styleOf(save, pressed).backgroundColor) >= 4.5);
+      assert.deepEqual(plain(styleOf(save, pressed).transform), [{ scale: pressed ? 0.99 : 1 }]);
+    }
     await tap(save);
     const busy = host(view.tree, "program-save");
     assert.equal(busy.props.disabled, true);
     assert.equal(busy.props.accessibilityState.busy, true);
     assert.equal(styleOf(busy).opacity, undefined);
     assert.equal(styleOf(busy).backgroundColor, view.colors.inputBackground);
+    for (const pressed of [false, true]) assert.deepEqual(plain(styleOf(busy, pressed).transform), [{ scale: 1 }]);
     assert.ok(contrast(styleOf(busy.findByType("Text")).color, styleOf(busy).backgroundColor) >= 4.5);
     assert.equal(host(view.tree, "program-builder-back").props.disabled, true);
     await act(async () => busy.props.onPress());
     assert.equal(view.calls.updates.length, 1);
     await act(async () => pending.reject(new Error("offline")));
+    for (const pressed of [false, true]) assert.deepEqual(plain(styleOf(host(view.tree, "program-save"), pressed).transform), [{ scale: pressed ? 0.99 : 1 }]);
     const error = host(view.tree, "program-builder-error");
     assert.equal(styleOf(error).color, scheme === "light" ? "#B42318" : "#FF8B82");
     assert.ok(contrast(styleOf(error).color, view.colors.background) >= 4.5);

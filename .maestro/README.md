@@ -396,6 +396,39 @@ Home in normal light appearance; the primary has normal text and its original
 dark app preference, ready for reviewing the setup. No final activation,
 replacement selection, Health action, or workout completion was performed.
 
+### Program builder validation / pressed-transform repair
+
+Run `maestro --device <simulator-uuid> test -e APPEARANCE=light .maestro/program-builder-validation.yaml`
+only after manually verifying an already-authenticated, empty account-owned draft:
+blank name/description/aliases, General fitness, Beginner, 35 minutes and zero
+days. Repeat in settled Dark appearance. The absence of a visible day alone
+does not establish this prerequisite. Do not run on a private or complete draft.
+
+The flow follows the preserving direct builder route, then presses Create twice
+to exercise only the existing name validation before any program API request.
+It asserts `Give your program a name.` after both presses and captures the
+actual result. It does not enter fixtures, reset or restart the app, clear state,
+save a valid program, change authentication, touch Health, or finish/discard a
+workout. Its authored presence is not a pass unless executed and recorded.
+
+Native iPhone 16 Plus / iOS 18.5 / normal `large` text verification passed this
+flow in Light and Dark (2/2). Before the repair, one actual Create press on the
+verified empty draft reproduced `Cannot read property 'forEach' of null` in
+`processTransform.js` / React Fabric. After the stable transform-array repair,
+both presses in both themes showed only the expected name-validation error.
+The source hot reload automatically remounted into the existing Upper A 4/4
+active logger; this was crash recovery, not an intentional draft-cleanup reset.
+Empty metadata and default choices were verified again before the repaired
+presses. The original Dark appearance and normal text were restored, and Home
+still showed Upper A with 4/4 completed sets. No backend program was created.
+
+Keyboard-open first-tap Create, valid backend Create/Save, busy-state native
+interaction, physical-iPhone, VoiceOver, secondary-device and maximum-text
+acceptance were not newly exercised by this narrowly scoped hotfix. A bounded
+off-screen name-focus attempt did not visibly open the keyboard and is not
+counted as a keyboard pass. Existing focused tests cover pressed/released/busy
+transform shape independently of these two native validation-only passes.
+
 ### Program builder refinement
 
 Run `maestro --device <simulator-uuid> test -e APPEARANCE=light .maestro/program-builder-refinement.yaml`
