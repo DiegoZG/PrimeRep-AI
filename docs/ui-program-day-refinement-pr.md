@@ -10,28 +10,28 @@
 
 ## Screenshots
 
-The following Light/Dark After images were captured after the native transform repair and approved at original resolution. All 15 Before/After captures are genuine, unmodified originals: 14 from iPhone 16 Plus and one from the secondary iPhone SE. They show an explicitly disposable local Day 1 draft and public exercises, not private program or Health data. No program was saved, activated or seeded in the backend. Final image URLs will be pinned to the immutable feature commit before publication.
+The following Light/Dark After images were captured after the native transform repair and approved at original resolution. All 15 Before/After captures are genuine, unmodified originals: 14 from iPhone 16 Plus and one from the secondary iPhone SE. They show an explicitly disposable local Day 1 draft and public exercises, not private program or Health data. No program was saved, activated or seeded in the backend. Image URLs are pinned to the immutable feature commit.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-light-populated.png" width="320" alt="Light after: neutral exercise tile, readable prescription labels, outlined Add and checked Main selection" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-dark-populated.png" width="320" alt="Dark after: neutral exercise tile, readable prescription labels, outlined Add and checked Main selection" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-light-empty.png" width="320" alt="Light after: neutral empty-day guidance and purple Done as the sole primary action" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-dark-empty.png" width="320" alt="Dark after: neutral empty-day guidance and purple Done as the sole primary action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-light-populated.png" width="320" alt="Light after: neutral exercise tile, readable prescription labels, outlined Add and checked Main selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-dark-populated.png" width="320" alt="Dark after: neutral exercise tile, readable prescription labels, outlined Add and checked Main selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-light-empty.png" width="320" alt="Light after: neutral empty-day guidance and purple Done as the sole primary action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-dark-empty.png" width="320" alt="Dark after: neutral empty-day guidance and purple Done as the sole primary action" />
 
 <details>
 <summary>Before — Light and Dark</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-light-empty.png" width="320" alt="Light baseline: empty workout day and purple Add and Choose actions" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-dark-empty.png" width="320" alt="Dark baseline: empty workout day and competing purple actions" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-light-populated.png" width="320" alt="Light baseline: cyan exercise initials and small prescription labels" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-dark-populated.png" width="320" alt="Dark baseline: tinted initials and purple Main selection" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-light-empty.png" width="320" alt="Light baseline: empty workout day and purple Add and Choose actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-dark-empty.png" width="320" alt="Dark baseline: empty workout day and competing purple actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-light-populated.png" width="320" alt="Light baseline: cyan exercise initials and small prescription labels" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-dark-populated.png" width="320" alt="Dark baseline: tinted initials and purple Main selection" />
 
 </details>
 
 <details>
 <summary>Before — Maximum native text</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-light-max.png" width="320" alt="Light maximum-text baseline: truncated header and clipped Done and exercise initials" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-before-dark-max.png" width="320" alt="Dark maximum-text baseline: clipped header action and cramped prescription fields" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-light-max.png" width="320" alt="Light maximum-text baseline: truncated header and clipped Done and exercise initials" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-before-dark-max.png" width="320" alt="Dark maximum-text baseline: clipped header action and cramped prescription fields" />
 
 </details>
 
@@ -40,17 +40,17 @@ The following Light/Dark After images were captured after the native transform r
 
 These are different scroll positions, not a claim that the entire form fits in one viewport. Native text remains uncapped; at the largest sizes, a word can naturally wrap mid-word. The header keeps Done contained while the complete title and form scroll beneath it. All four values are visible in the field images; the Sets label is partly above the viewport because the form was scrolled to the fields, not because its text is capped.
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-light-max-hero.png" width="320" alt="Light maximum text after: fully visible Done, complete uncapped scrolling title and stacked neutral Add" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-dark-max-hero.png" width="320" alt="Dark maximum text after: complete scrolling title with natural word wrapping and contained Done" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-light-max-fields.png" width="320" alt="Light maximum-text form scrolled to all four vertically stacked prescription values; Sets label partly above the viewport" />
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-dark-max-fields.png" width="320" alt="Dark maximum-text form scrolled to all four vertical fields with fully contained Done" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-light-max-hero.png" width="320" alt="Light maximum text after: fully visible Done, complete uncapped scrolling title and stacked neutral Add" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-dark-max-hero.png" width="320" alt="Dark maximum text after: complete scrolling title with natural word wrapping and contained Done" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-light-max-fields.png" width="320" alt="Light maximum-text form scrolled to all four vertically stacked prescription values; Sets label partly above the viewport" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-dark-max-fields.png" width="320" alt="Dark maximum-text form scrolled to all four vertical fields with fully contained Done" />
 
 </details>
 
 <details>
 <summary>Secondary small-screen check — iPhone SE</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSET_COMMIT/docs/pr-screenshots/u12/u12-se-normal.png" width="320" alt="375-point Light layout: two prescription columns with all four labels and values visible and a contained Done action" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/25fbd2cbac9f53e361174ea9deba1f206328cee5/docs/pr-screenshots/u12/u12-se-normal.png" width="320" alt="375-point Light layout: two prescription columns with all four labels and values visible and a contained Done action" />
 
 </details>
 
