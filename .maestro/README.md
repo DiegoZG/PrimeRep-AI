@@ -1038,3 +1038,69 @@ Native SE normal-text bounds were 52 × 56 points for password visibility,
 normal `large` text, and empty Login after checks. VoiceOver, physical-device
 password-manager/autofill, successful sign-in and network failures, and real
 password-reset delivery remain separate manual checks, not screenshot passes.
+
+### Signup refinement
+
+Run `maestro --device <isolated-guest-uuid> test --no-reinstall-driver -e MODE=full -e SCREENSHOT_PREFIX=/private/tmp/u15-signup-light .maestro/signup-refinement.yaml`
+at normal text in the existing native development app. Verify empty Email and
+Password, hidden password, and unchecked consent before starting. Use only the
+isolated iOS 18.5 guest 16 Plus `C3D67687-978B-4319-80AF-26BB0A56B525`
+or compact SE `67BF52B6-AC88-4620-841C-2970B1D5AF0D`, never a signed-in
+device. The native simulator driver can run in the background; desktop lock
+and security settings are outside this workflow. No rebuild, installation,
+`clearState`, Keychain/container reset, login, onboarding Next, reset mail,
+Health action, account creation, or fixture/database mutation is needed.
+
+Full mode checks field/consent/CTA/footer reachability, legal navigation with
+both checkbox states, local empty/invalid-email feedback, password visibility,
+keyboard taps and drag dismissal retaining an invented draft, and Log in
+navigation. It types only `not-an-email` and the nonsecret disposable string
+`draft123`, never Return or a valid email. Every submit action returns through
+existing local validation before `signUp`. Checkbox toggles change temporary
+component state only; the flow restores unchecked consent before any submit
+and erases only its invented input before returning to empty Signup.
+
+For largest native accessibility text use `-e MODE=layout` after setting the
+isolated simulator to `accessibility-extra-extra-extra-large`. This mode scrolls
+to both fields, the eye control, unchecked consent, both legal links, Sign up,
+and Log in, then captures the lower controls. It does not claim legal-screen
+navigation or keyboard interactions at maximum text. Repeat full normal-text
+mode in Light/Dark on both guests and layout mode in both themes on the
+compact guest. Restore both guests to OS Light, `large` text, empty Signup,
+unchecked consent, hidden password, and closed keyboard; public Login→Signup
+navigation refreshes stale native text sizing after a content-size change.
+
+Selectors are `signup-scroll`, `email-input`, `password-input`,
+`password-visibility-button`, `legal-acceptance-checkbox`,
+`signup-terms-link`, `signup-privacy-link`, `signup-button`,
+`signup-login-link`, and `signup-error`. iOS exposes the checkbox state through its native value text,
+`checkbox, checked` / `checkbox, unchecked`; this flow asserts that value
+because the driver's boolean `checked` remains false even when the UI is checked.
+Native accessibility can report a control below the keyboard as visible;
+the flow scrolls upward within the visible form before each submit and asserts
+the keyboard immediately before the tap. Its downward dismissal gesture starts
+at the form's empty right edge and continues through the keyboard's dismissal
+distance. These gestures were verified on both isolated guest sizes.
+
+U15's six successful native runs returned exit code 0: full mode at normal text
+in Light/Dark on the 16 Plus and SE, plus layout mode at the largest native text
+size in Light/Dark on the SE. The full runs verified first-tap empty/invalid-email
+feedback with the software keyboard open, Show/Hide password, draft retention
+after outside taps and downward drags, legal navigation without changing consent,
+and cleanup to fresh empty Signup. Largest text wraps the uncapped intro beyond
+the first viewport, while scrolling reaches every field, legal control, CTA,
+and footer. Both guests were finally verified at OS Light, `large`, empty fields,
+unchecked consent, hidden password, and closed keyboard; signed-in devices were
+untouched.
+
+Compact native bounds were 52 × 56 points for the eye, 44 × 44 for consent,
+109 × 44 for Terms, 90 × 44 for Privacy, 327 × 52 for Sign up, and 56 × 44
+for Log in. A direct `simctl io <guest-uuid> screenshot <temporary.png>` frame
+and native value showed eight bullets after rehiding the invented `draft123`;
+the shown state rendered that same draft. Maestro's secure-field screenshot
+capture redacted both the password and keyboard area, so use direct simulator
+frames for visual proof of secure entry. `-e CAPTURE_DRAFT=true` optionally
+captures the invented Show/Hide states for driver debugging; it does not submit.
+
+VoiceOver, physical-device autofill/password managers, successful
+signup, and network-error behavior remain separate manual checks.

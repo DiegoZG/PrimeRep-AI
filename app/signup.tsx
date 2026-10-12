@@ -4,16 +4,20 @@ import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedInput } from "@/components/animated-input";
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -105,171 +109,184 @@ const SignUpScreen = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
-      <ThemedView style={styles.content}>
-        <ThemedText type="title" style={styles.title}>
-          Create account
-        </ThemedText>
-        <ThemedText type="default" style={styles.subtitle}>
-          Join PrimeRep AI and start your journey
-        </ThemedText>
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWithIconContainer}>
-            <AnimatedInput
-              placeholder="Email address"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!isSubmitting}
-              style={[styles.input, styles.inputWithLeftIcon]}
-            />
-            <View style={styles.leftIcon}>
-              <Ionicons
-                name="mail-outline"
-                size={18}
-                color={colors.placeholder}
-              />
-            </View>
-          </View>
-
-          <View
-            style={[styles.passwordContainer, styles.inputWithIconContainer]}
-          >
-            <AnimatedInput
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!isPasswordVisible}
-              autoCapitalize="none"
-              autoComplete="password-new"
-              editable={!isSubmitting}
-              style={[
-                styles.input,
-                styles.passwordInput,
-                styles.inputWithLeftIcon,
-              ]}
-            />
-            <View style={styles.leftIcon}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={colors.placeholder}
-              />
-            </View>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
-              accessibilityState={{ disabled: isSubmitting }}
-              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-              style={styles.eyeIcon}
-              disabled={isSubmitting}
-            >
-              <Ionicons
-                name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color={colors.placeholder}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.termsContainer}>
-          <TouchableOpacity
-            testID="legal-acceptance-checkbox"
-            style={styles.checkboxButton}
-            onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
-            disabled={isSubmitting}
-            accessibilityRole="checkbox"
-            accessibilityLabel="Accept Terms of Service and acknowledge Privacy Policy"
-            accessibilityState={{ checked: hasAcceptedTerms, disabled: isSubmitting }}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                hasAcceptedTerms && { backgroundColor: colors.primaryButton },
-              ]}
-            >
-              {hasAcceptedTerms && (
-                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-              )}
-            </View>
-          </TouchableOpacity>
-          <View style={styles.termsTextContainer}>
-            <ThemedText type="default" style={styles.termsText}>
-              I agree to the{" "}
-            </ThemedText>
-            <TouchableOpacity
-              testID="signup-terms-link"
-              accessibilityRole="link"
-              accessibilityLabel="Open Terms of Service"
-              accessibilityState={{ disabled: isSubmitting }}
-              onPress={() => router.push("/legal/terms")}
-              disabled={isSubmitting}
-            >
-              <ThemedText
-                type="link"
-                style={[styles.termsLink, { color: colors.primaryButton }]}
-              >
-                Terms of Service
-              </ThemedText>
-            </TouchableOpacity>
-            <ThemedText type="default" style={styles.termsText}> and acknowledge the </ThemedText>
-            <TouchableOpacity
-              testID="signup-privacy-link"
-              accessibilityRole="link"
-              accessibilityLabel="Open Privacy Policy"
-              accessibilityState={{ disabled: isSubmitting }}
-              onPress={() => router.push("/legal/privacy")}
-              disabled={isSubmitting}
-            >
-              <ThemedText type="link" style={[styles.termsLink, { color: colors.primaryButton }]}>Privacy Policy</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {errorMessage && (
-          <ThemedText style={[styles.errorText, { color: "#FF3B30" }]}>
-            {errorMessage}
-          </ThemedText>
-        )}
-
-        <AnimatedButton
-          onPress={handleSignUp}
-          disabled={isSubmitting}
-          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
-          style={[
-            styles.signUpButton,
-            { backgroundColor: colors.primaryButton },
-            isSubmitting && styles.signUpButtonDisabled,
-          ]}
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          testID="signup-scroll"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.signUpButtonText}>SIGN UP</Text>
-          )}
-        </AnimatedButton>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <ThemedView style={styles.content}>
+              <ThemedText type="title" style={styles.title}>
+                Create account
+              </ThemedText>
+              <ThemedText type="default" style={[styles.subtitle, { color: colors.icon }]}>
+                Join PrimeRep AI and start your journey
+              </ThemedText>
 
-        <View style={styles.footer}>
-          <ThemedText type="default" style={styles.footerText}>
-            Already have an account?{" "}
-          </ThemedText>
-          <TouchableOpacity
-            onPress={() => router.push("/login")}
-            disabled={isSubmitting}
-            accessibilityState={{ disabled: isSubmitting }}
-          >
-            <ThemedText
-              type="link"
-              style={[styles.logInLink, { color: colors.primaryButton }]}
-            >
-              Log in
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
+              <View style={styles.inputContainer}>
+                <View style={styles.field}>
+                  <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+                  <AnimatedInput
+                    testID="email-input"
+                    authPresentation
+                    accessibilityLabel="Email"
+                    placeholder="Email address"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    editable={!isSubmitting}
+                    style={styles.input}
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <ThemedText style={styles.fieldLabel}>Password</ThemedText>
+                  <View style={styles.passwordContainer}>
+                    <AnimatedInput
+                      testID="password-input"
+                      authPresentation
+                      accessibilityLabel="Password"
+                      placeholder="Password"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!isPasswordVisible}
+                      autoCapitalize="none"
+                      autoComplete="password-new"
+                      editable={!isSubmitting}
+                      style={[
+                        styles.input,
+                        styles.passwordInput,
+                      ]}
+                    />
+                    <Pressable
+                      testID="password-visibility-button"
+                      accessibilityRole="button"
+                      accessibilityLabel={isPasswordVisible ? "Hide password" : "Show password"}
+                      accessibilityState={{ disabled: isSubmitting }}
+                      onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                      style={({ pressed }) => [styles.eyeIcon, pressed && { backgroundColor: colors.inputBorder }]}
+                      disabled={isSubmitting}
+                    >
+                      <Ionicons
+                        name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color={colors.icon}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.termsContainer}>
+                <Pressable
+                  testID="legal-acceptance-checkbox"
+                  style={({ pressed }) => [styles.checkboxButton, pressed && { backgroundColor: colors.inputBackground }]}
+                  onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+                  disabled={isSubmitting}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="Accept Terms of Service and acknowledge Privacy Policy"
+                  accessibilityState={{ checked: hasAcceptedTerms, disabled: isSubmitting }}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      { borderColor: colors.icon },
+                      hasAcceptedTerms && { backgroundColor: colors.text, borderColor: colors.text },
+                    ]}
+                  >
+                    {hasAcceptedTerms && (
+                      <Ionicons name="checkmark" size={16} color={colors.background} />
+                    )}
+                  </View>
+                </Pressable>
+                <View style={styles.termsTextContainer}>
+                  <ThemedText type="default" style={styles.termsText}>
+                    I agree to the{" "}
+                  </ThemedText>
+                  <Pressable
+                    testID="signup-terms-link"
+                    accessibilityRole="link"
+                    accessibilityLabel="Open Terms of Service"
+                    accessibilityState={{ disabled: isSubmitting }}
+                    style={({ pressed }) => [styles.legalAction, pressed && { backgroundColor: colors.inputBackground }]}
+                    onPress={() => router.push("/legal/terms")}
+                    disabled={isSubmitting}
+                  >
+                    <ThemedText
+                      style={[styles.termsLink, { color: colors.text }]}
+                    >
+                      Terms of Service
+                    </ThemedText>
+                  </Pressable>
+                  <ThemedText type="default" style={styles.termsText}> and acknowledge the </ThemedText>
+                  <Pressable
+                    testID="signup-privacy-link"
+                    accessibilityRole="link"
+                    accessibilityLabel="Open Privacy Policy"
+                    accessibilityState={{ disabled: isSubmitting }}
+                    style={({ pressed }) => [styles.legalAction, pressed && { backgroundColor: colors.inputBackground }]}
+                    onPress={() => router.push("/legal/privacy")}
+                    disabled={isSubmitting}
+                  >
+                    <ThemedText style={[styles.termsLink, { color: colors.text }]}>Privacy Policy</ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+
+              {errorMessage && (
+                <ThemedText testID="signup-error" accessibilityRole="alert" style={[styles.errorText, { color: colorScheme === "dark" ? "#FF8B82" : "#B42318" }]}>
+                  {errorMessage}
+                </ThemedText>
+              )}
+
+              <AnimatedButton
+                testID="signup-button"
+                accessibilityRole="button"
+                accessibilityLabel="Sign up"
+                onPress={handleSignUp}
+                disabled={isSubmitting}
+                accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+                style={[
+                  styles.signUpButton,
+                  { backgroundColor: colors.primaryButton },
+                ]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.signUpButtonText}>Sign up</ThemedText>
+                )}
+              </AnimatedButton>
+
+              <View style={styles.footer}>
+                <ThemedText type="default" style={styles.footerText}>
+                  Already have an account?{" "}
+                </ThemedText>
+                <Pressable
+                  testID="signup-login-link"
+                  accessibilityRole="link"
+                  accessibilityLabel="Log in"
+                  onPress={() => router.push("/login")}
+                  disabled={isSubmitting}
+                  accessibilityState={{ disabled: isSubmitting }}
+                  style={({ pressed }) => [styles.tertiaryAction, pressed && { backgroundColor: colors.inputBackground }]}
+                >
+                  <ThemedText
+                    style={[styles.logInLink, { color: colors.text }]}
+                  >
+                    Log in
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </ThemedView>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -278,10 +295,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
+    paddingBottom: 24,
   },
   title: {
     marginBottom: 8,
@@ -290,38 +311,37 @@ const styles = StyleSheet.create({
   subtitle: {
     marginBottom: 32,
     textAlign: "center",
-    opacity: 0.7,
   },
   inputContainer: {
     marginBottom: 24,
   },
   input: {
+    minHeight: 56,
+  },
+  field: {
     marginBottom: 16,
   },
-  inputWithIconContainer: {
-    position: "relative",
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   passwordContainer: {
     position: "relative",
   },
   passwordInput: {
-    paddingRight: 50,
-  },
-  inputWithLeftIcon: {
-    paddingLeft: 48,
-  },
-  leftIcon: {
-    position: "absolute",
-    left: 18,
-    top: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingRight: 60,
   },
   eyeIcon: {
     position: "absolute",
-    right: 16,
-    top: 16,
-    padding: 4,
+    right: 4,
+    top: 0,
+    bottom: 0,
+    width: 52,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
   },
   termsContainer: {
     flexDirection: "row",
@@ -331,18 +351,16 @@ const styles = StyleSheet.create({
   checkboxButton: {
     width: 44,
     height: 44,
-    marginTop: -10,
-    marginBottom: -10,
     marginRight: 4,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 10,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: "#E5E5E5",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -350,15 +368,25 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     flexWrap: "wrap",
+    alignItems: "center",
   },
   termsText: {
     fontSize: 14,
-    lineHeight: 20,
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   termsLink: {
     fontSize: 14,
-    lineHeight: 20,
     textDecorationLine: "underline",
+    flexShrink: 1,
+  },
+  legalAction: {
+    minHeight: 44,
+    minWidth: 44,
+    maxWidth: "100%",
+    flexShrink: 1,
+    justifyContent: "center",
+    borderRadius: 10,
   },
   errorText: {
     fontSize: 14,
@@ -367,25 +395,24 @@ const styles = StyleSheet.create({
   },
   signUpButton: {
     width: "100%",
+    minHeight: 52,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
   },
-  signUpButtonDisabled: {
-    opacity: 0.6,
-  },
   signUpButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
+    columnGap: 4,
   },
   footerText: {
     fontSize: 14,
@@ -393,6 +420,14 @@ const styles = StyleSheet.create({
   logInLink: {
     fontSize: 14,
     fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  tertiaryAction: {
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    borderRadius: 10,
   },
 });
 

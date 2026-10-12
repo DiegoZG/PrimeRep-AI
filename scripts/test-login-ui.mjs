@@ -155,7 +155,10 @@ test("behavior: password-updated notice is present only for exact success param"
 test("scope: login controller and all other callers remain byte-identical to merged main", () => {
   const controller = (input) => input.slice(input.indexOf("  const handleLogin = async () => {"), input.indexOf("\n  return ("));
   assert.equal(controller(source("app/login.tsx")), controller(original("app/login.tsx")));
-  for (const file of ["app/signup.tsx", "app/forgot-password.tsx", "app/_layout.tsx", "utils/authContext.tsx", "services/authService.ts", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "constants/theme.ts", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
+  const signupController = (input) => input.slice(input.indexOf("const SignUpScreen = () => {"), input.indexOf("\n  return ("));
+  const signupBaseline = execFileSync("git", ["show", "42b3b5270769bfce446f1fe566932dc71a43f4ff:app/signup.tsx"], { cwd: root, encoding: "utf8" });
+  assert.equal(signupController(source("app/signup.tsx")), signupController(signupBaseline));
+  for (const file of ["app/forgot-password.tsx", "app/_layout.tsx", "utils/authContext.tsx", "services/authService.ts", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "constants/theme.ts", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
 });
 
 for (const scheme of ["light", "dark"]) test(`legacy: AnimatedInput omitted and false match historical ${scheme} focus, blur and error trees`, async () => {
@@ -285,10 +288,10 @@ test("presentation: title, notices and form actions remain uncapped and naturall
   await unmount(view.tree);
 });
 
-test("scope: opt-in stays exclusive to Login without changing state or auth handlers", () => {
+test("scope: opt-in stays exclusive to Login and Signup without changing state or auth handlers", () => {
   const route = source("app/login.tsx");
   const state = (input) => input.slice(input.indexOf("  const [email"), input.indexOf("\n  return ("));
   assert.equal(state(route), state(original("app/login.tsx")));
   const callers = execFileSync("rg", ["-l", "authPresentation", "app", "components"], { cwd: root, encoding: "utf8" }).trim().split("\n").sort();
-  assert.deepEqual(callers, ["app/login.tsx", "components/animated-input.tsx"]);
+  assert.deepEqual(callers, ["app/login.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
 });
