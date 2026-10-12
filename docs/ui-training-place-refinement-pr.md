@@ -4,33 +4,33 @@ Training Place keeps its three familiar equipment-access cards, with readable de
 
 Before, normal Dark with Large Gym selected:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-before-dark-selected.png" width="320" alt="Original Training Place in Dark with Large Gym selected through a purple border, fill, and checkbox" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-before-dark-selected.png" width="320" alt="Original Training Place in Dark with Large Gym selected through a purple border, fill, and checkbox" />
 
 After, normal Dark with the same Large Gym choice:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-dark-selected.png" width="320" alt="Final Training Place in Dark with Large Gym selected through a neutral border and animated check" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-dark-selected.png" width="320" alt="Final Training Place in Dark with Large Gym selected through a neutral border and animated check" />
 
 The actual-screen harness passes 23 cases; independent verification passes 655 named cases and 656 standard Node results with the audit runner counted once. All five iOS configurations and the additional restoration flow passed on the frozen screen. All ten published images match their raw originals byte for byte.
 
-[Screenshot provenance, native matrix, state boundaries, and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/README.md)
+[Screenshot provenance, native matrix, state boundaries, and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/README.md)
 
 <details>
 <summary>Original Light and Dark empty states</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-before-light-initial.png" width="320" alt="Original Training Place in Light before a choice is selected" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-before-light-initial.png" width="320" alt="Original Training Place in Light before a choice is selected" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-before-dark-initial.png" width="320" alt="Original Training Place in Dark before a choice is selected" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-before-dark-initial.png" width="320" alt="Original Training Place in Dark before a choice is selected" />
 
 </details>
 
 <details>
 <summary>Final normal Light selection and complete Light/Dark Continue frames</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-light-selected.png" width="320" alt="Final Training Place in Light with Large Gym selected through a neutral border and check" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-light-selected.png" width="320" alt="Final Training Place in Light with Large Gym selected through a neutral border and check" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-light-bottom.png" width="320" alt="Final Training Place in Light scrolled to the complete enabled Continue button above the safe area" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-light-bottom.png" width="320" alt="Final Training Place in Light scrolled to the complete enabled Continue button above the safe area" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-dark-bottom.png" width="320" alt="Final Training Place in Dark scrolled to the complete enabled Continue button above the safe area" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-dark-bottom.png" width="320" alt="Final Training Place in Dark scrolled to the complete enabled Continue button above the safe area" />
 
 The normal bottom captures intentionally scroll the question partly under the shared header so the complete action is visible.
 
@@ -39,11 +39,11 @@ The normal bottom captures intentionally scroll the question partly under the sh
 <details>
 <summary>Final cold maximum-text Light/Dark and compact Light empty state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-light-max-bottom.png" width="320" alt="Final Training Place at cold maximum accessibility text in Light with its complete grown Continue button visible" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-light-max-bottom.png" width="320" alt="Final Training Place at cold maximum accessibility text in Light with its complete grown Continue button visible" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-dark-max-bottom.png" width="320" alt="Final Training Place at cold maximum accessibility text in Dark with its complete grown Continue button visible" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-dark-max-bottom.png" width="320" alt="Final Training Place at cold maximum accessibility text in Dark with its complete grown Continue button visible" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U23_IMMUTABLE_COMMIT_PENDING/docs/pr-screenshots/u23/u23-after-compact-light-disabled.png" width="320" alt="Final compact Light Training Place with three unchecked choices and disabled neutral Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c471fa4ea8f681f770be040ae2c25095266be716/docs/pr-screenshots/u23/u23-after-compact-light-disabled.png" width="320" alt="Final compact Light Training Place with three unchecked choices and disabled neutral Continue" />
 
 At maximum text the long Large Gym card spans more than one viewport. Actual helper and all three titles/descriptions were inspected through overlapping private top, description, and selection captures, followed by the complete grown Continue frame. These published bottom images alone do not show every glyph. Actual Small Gym activation passed in Dark and Garage Gym activation passed in Light. The shared native header can obscure the first line of a centered accessibility snapshot; top and companion captures were inspected instead of relying only on visibility percentages. No font cap or production workaround was added.
 
