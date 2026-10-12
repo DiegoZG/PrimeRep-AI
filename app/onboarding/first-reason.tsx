@@ -175,12 +175,16 @@ export default function FirstReasonScreen() {
     <ThemedView style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="first-reason-scroll"
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
             {/* Question */}
             <AnimatedText
+              testID="first-reason-question"
+              accessibilityRole="header"
               style={[
                 styles.question,
                 { color: colors.text },
@@ -199,6 +203,11 @@ export default function FirstReasonScreen() {
                 return (
                   <Animated.View key={option.id} style={optionAnimatedStyle}>
                     <TouchableOpacity
+                      testID={`first-reason-option-${option.id}`}
+                      accessible
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${option.title}. ${option.description}`}
+                      accessibilityState={{ checked: isSelected }}
                       onPress={() => handleSelectReason(option.id)}
                       activeOpacity={0.8}
                     >
@@ -208,25 +217,41 @@ export default function FirstReasonScreen() {
                           {
                             backgroundColor: colors.inputBackground,
                             borderColor: isSelected
-                              ? colors.electricBlue
+                              ? colors.text
                               : colors.inputBorder,
-                            borderWidth: isSelected ? 2 : 1,
                           },
                         ]}
                       >
-                        <Text
-                          style={[styles.optionTitle, { color: colors.text }]}
+                        <View style={styles.optionCopy}>
+                          <Text
+                            testID={`first-reason-title-${option.id}`}
+                            style={[styles.optionTitle, { color: colors.text }]}
+                          >
+                            {option.title}
+                          </Text>
+                          <Text
+                            testID={`first-reason-description-${option.id}`}
+                            style={[
+                              styles.optionDescription,
+                              { color: colors.icon },
+                            ]}
+                          >
+                            {option.description}
+                          </Text>
+                        </View>
+                        <View
+                          testID={`first-reason-indicator-${option.id}`}
+                          style={styles.selectionIndicator}
+                          accessible={false}
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
                         >
-                          {option.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.optionDescription,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {option.description}
-                        </Text>
+                          {isSelected && (
+                            <View
+                              style={[styles.selectionCheck, { borderColor: colors.text }]}
+                            />
+                          )}
+                        </View>
                       </View>
                     </TouchableOpacity>
                   </Animated.View>
@@ -234,27 +259,33 @@ export default function FirstReasonScreen() {
               })}
             </View>
           </View>
-        </ScrollView>
-
-        {/* Next Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton onPress={handleNext} disabled={!selectedReason} accessibilityState={{ disabled: !selectedReason }}>
-            <View
+          <View style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="first-reason-continue"
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              onPress={handleNext}
+              disabled={!selectedReason}
+              accessibilityState={{ disabled: !selectedReason }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !selectedReason && { opacity: 0.5 },
+                {
+                  backgroundColor: selectedReason ? colors.primaryButton : colors.inputBackground,
+                  borderColor: selectedReason ? colors.primaryButton : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>NEXT</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text
+                style={[
+                  styles.primaryButtonText,
+                  { color: selectedReason ? "#FFFFFF" : colors.icon },
+                ]}
+              >
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -269,61 +300,79 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120, // Extra space for button to ensure last card border is visible
   },
   content: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 24, // Extra padding at bottom of content
+    flexGrow: 1,
   },
   question: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    marginBottom: 32,
-    lineHeight: 40,
+    marginBottom: 24,
   },
   optionsContainer: {
-    gap: 16,
+    gap: 12,
   },
   optionCard: {
-    borderRadius: 16,
-    padding: 20,
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
   },
+  optionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  selectionIndicator: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectionCheck: {
+    width: 6,
+    height: 10,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
+  },
   optionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    marginBottom: 8,
-    lineHeight: 24,
   },
   optionDescription: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 20,
   },
   buttonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
   },
   primaryButton: {
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 0,
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
   },
 });

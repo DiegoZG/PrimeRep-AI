@@ -1,0 +1,110 @@
+# Existing fictional guest fixture only; saves local reason choices.
+# Start on Reason using the installed native development build.
+# No launch/reset, authentication, onboarding submission, or health access.
+# Pass -e MODE=full|layout and -e SCREENSHOT_PREFIX=/absolute/output/prefix.
+appId: com.diegozegarra.primerep
+tags:
+  - first-reason-layout
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- assertVisible:
+    id: first-reason-scroll
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: first-reason-question
+          direction: UP
+          visibilityPercentage: 10
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: first-reason-option-improve
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - tapOn:
+          id: first-reason-option-improve
+      - assertVisible:
+          id: first-reason-option-improve
+          text: radio button, checked
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: first-reason-option-beginner
+          direction: UP
+          timeout: 15000
+      - tapOn:
+          id: first-reason-option-beginner
+      - assertVisible:
+          id: first-reason-option-beginner
+          text: radio button, checked
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-selected
+      - scrollUntilVisible:
+          element:
+            id: first-reason-option-improve
+          direction: DOWN
+          timeout: 15000
+      - tapOn:
+          id: first-reason-option-improve
+      - assertVisible:
+          id: first-reason-option-improve
+          text: radio button, checked
+      - assertNotVisible:
+          id: first-reason-option-beginner
+          text: radio button, checked
+- scrollUntilVisible:
+    element:
+      id: first-reason-option-structure
+    direction: DOWN
+    visibilityPercentage: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: first-reason-option-structure
+- assertVisible:
+    id: first-reason-option-structure
+    text: radio button, checked
+- scrollUntilVisible:
+    element:
+      id: first-reason-continue
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: first-reason-continue
+    enabled: true
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'full'}
+    commands:
+      - tapOn:
+          id: first-reason-continue
+      - assertVisible: Body Stats \(2/9\)
+      - openLink: primerepai://onboarding/first-reason
+      - assertVisible:
+          id: first-reason-scroll
+      - scrollUntilVisible:
+          element:
+            id: first-reason-option-structure
+          direction: DOWN
+          visibilityPercentage: 10
+          centerElement: true
+          timeout: 30000
+      - assertVisible:
+          id: first-reason-option-structure
+          text: radio button, checked
+      - waitForAnimationToEnd
