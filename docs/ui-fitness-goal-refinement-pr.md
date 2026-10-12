@@ -39,41 +39,41 @@ No API changes, database migrations, dependency updates, or special rollout are 
 
 Before, normal Dark with “Build muscle and get toned” selected:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-before-dark-selected.png" width="320" alt="Original Fitness Goal in Dark with Build muscle selected, purple card and uppercase Popular tag" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-before-dark-selected.png" width="320" alt="Original Fitness Goal in Dark with Build muscle selected, purple card and uppercase Popular tag" />
 
 After, normal Dark with a different goal, “Get stronger,” selected; the complete Continue frame appears in the bottom detail below:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-dark-selected.png" width="320" alt="Final Fitness Goal in Dark with Get stronger selected through a neutral border and checkmark" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-dark-selected.png" width="320" alt="Final Fitness Goal in Dark with Get stronger selected through a neutral border and checkmark" />
 
 <details>
 <summary>Original Light and Dark empty states</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-before-light-initial.png" width="320" alt="Original Fitness Goal in Light before a goal is selected" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-before-light-initial.png" width="320" alt="Original Fitness Goal in Light before a goal is selected" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-before-dark-initial.png" width="320" alt="Original Fitness Goal in Dark before a goal is selected" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-before-dark-initial.png" width="320" alt="Original Fitness Goal in Dark before a goal is selected" />
 
 </details>
 
 <details>
 <summary>Final normal Light selection and complete Light/Dark Continue frames</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-light-selected.png" width="320" alt="Final Fitness Goal in Light with neutral selected-card treatment" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-light-selected.png" width="320" alt="Final Fitness Goal in Light with neutral selected-card treatment" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-light-bottom.png" width="320" alt="Final Fitness Goal in Light scrolled to the complete enabled Continue button" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-light-bottom.png" width="320" alt="Final Fitness Goal in Light scrolled to the complete enabled Continue button" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-dark-bottom.png" width="320" alt="Final Fitness Goal in Dark scrolled to the complete enabled Continue button" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-dark-bottom.png" width="320" alt="Final Fitness Goal in Dark scrolled to the complete enabled Continue button" />
 
 </details>
 
 <details>
 <summary>Final cold maximum-text Light/Dark and compact Light empty state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-light-max-bottom.png" width="320" alt="Final Fitness Goal at cold maximum text in Light with the bottom action in view" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-light-max-bottom.png" width="320" alt="Final Fitness Goal at cold maximum text in Light with the bottom action in view" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-dark-max-bottom.png" width="320" alt="Final Fitness Goal at cold maximum text in Dark with the bottom action in view" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-dark-max-bottom.png" width="320" alt="Final Fitness Goal at cold maximum text in Dark with the bottom action in view" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/u20-after-compact-light-disabled.png" width="320" alt="Final Fitness Goal on compact Light with no selected goal and disabled neutral Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/u20-after-compact-light-disabled.png" width="320" alt="Final Fitness Goal on compact Light with no selected goal and disabled neutral Continue" />
 
 </details>
 
-[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/U20_ASSET_COMMIT_FULL_SHA/docs/pr-screenshots/u20/README.md)
+[Screenshot provenance and native configurations](https://github.com/DiegoZG/PrimeRep-AI/blob/4f01cf3361a8016ad57443e4a223ddb3fec5231d/docs/pr-screenshots/u20/README.md)
