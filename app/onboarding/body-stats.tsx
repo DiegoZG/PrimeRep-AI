@@ -190,224 +190,265 @@ export default function BodyStatsScreen() {
           style={styles.keyboardAvoidingView}
           keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
         >
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View style={styles.keyboardAvoidingView}>
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.content}>
-                  {/* Manual Entry Section */}
-                  <Animated.View style={manualSectionAnimatedStyle}>
-                    <AnimatedCard delay={0}>
-                      <View style={styles.manualSection}>
-                        <Text style={[styles.heading, { color: colors.text }]}>
-                          {BODY_STATS_SCREEN.manualSection.heading}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.description,
-                            { color: colors.placeholder },
-                          ]}
-                        >
-                          {BODY_STATS_SCREEN.manualSection.description}
-                        </Text>
-                      </View>
-                    </AnimatedCard>
-                  </Animated.View>
+          <ScrollView
+            testID="body-stats-scroll"
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            contentInsetAdjustmentBehavior="automatic"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+              <View style={styles.content}>
+                {/* Manual Entry Section */}
+                <Animated.View style={manualSectionAnimatedStyle}>
+                  <AnimatedCard delay={0}>
+                    <View style={styles.manualSection}>
+                      <Text testID="body-stats-heading" style={[styles.heading, { color: colors.text }]}>
+                        {BODY_STATS_SCREEN.manualSection.heading}
+                      </Text>
+                      <Text
+                        testID="body-stats-description"
+                        style={[
+                          styles.description,
+                          { color: colors.icon },
+                        ]}
+                      >
+                        {BODY_STATS_SCREEN.manualSection.description}
+                      </Text>
+                    </View>
+                  </AnimatedCard>
+                </Animated.View>
 
-                  {/* Form Fields */}
-                  <Animated.View style={formFieldsAnimatedStyle}>
-                    <AnimatedCard delay={0}>
-                      <View style={styles.formFields}>
-                        {/* Gender Field */}
-                        <View style={styles.fieldContainer}>
-                          <Text
-                            style={[styles.fieldLabel, { color: colors.text }]}
+                {/* Form Fields */}
+                <Animated.View style={formFieldsAnimatedStyle}>
+                  <AnimatedCard delay={0}>
+                    <View style={styles.formFields}>
+                      {/* Gender Field */}
+                      <View style={styles.fieldContainer}>
+                        <Text
+                          style={[styles.fieldLabel, { color: colors.text }]}
+                        >
+                          {BODY_STATS_SCREEN.formFields.gender.label}
+                        </Text>
+                        <TouchableOpacity
+                          testID="body-stats-gender"
+                          style={styles.genderControl}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Gender, ${gender || BODY_STATS_SCREEN.formFields.gender.placeholder}`}
+                          accessibilityState={{ expanded: showGenderPicker }}
+                          onPress={() =>
+                            setShowGenderPicker(!showGenderPicker)
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <View
+                            style={[
+                              styles.genderInput,
+                              {
+                                backgroundColor: colors.inputBackground,
+                                borderColor: showGenderPicker
+                                  ? colors.text
+                                  : colors.inputBorder,
+                              },
+                            ]}
                           >
-                            {BODY_STATS_SCREEN.formFields.gender.label}
-                          </Text>
-                          <TouchableOpacity
-                            onPress={() =>
-                              setShowGenderPicker(!showGenderPicker)
-                            }
-                            activeOpacity={0.8}
-                          >
-                            <View
+                            <Text
                               style={[
-                                styles.genderInput,
+                                styles.genderInputText,
                                 {
-                                  backgroundColor: colors.inputBackground,
-                                  borderColor: showGenderPicker
-                                    ? colors.electricBlue
-                                    : colors.inputBorder,
-                                  borderWidth: showGenderPicker ? 2 : 1,
+                                  color: gender
+                                    ? colors.text
+                                    : colors.icon,
                                 },
                               ]}
                             >
-                              <Text
-                                style={[
-                                  styles.genderInputText,
-                                  {
-                                    color: gender
-                                      ? colors.text
-                                      : colors.placeholder,
-                                  },
-                                ]}
-                              >
-                                {gender ||
-                                  BODY_STATS_SCREEN.formFields.gender
-                                    .placeholder}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.chevron,
-                                  { color: colors.placeholder },
-                                ]}
-                              >
-                                ▼
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                          {showGenderPicker && (
-                            <View
+                              {gender ||
+                                BODY_STATS_SCREEN.formFields.gender
+                                  .placeholder}
+                            </Text>
+                            <Text
+                              accessible={false}
+                              accessibilityElementsHidden
+                              importantForAccessibility="no-hide-descendants"
                               style={[
-                                styles.pickerContainer,
-                                {
-                                  backgroundColor: colors.inputBackground,
-                                  borderColor: colors.inputBorder,
-                                },
+                                styles.chevron,
+                                { color: colors.icon },
                               ]}
                             >
-                              {BODY_STATS_SCREEN.genderOptions.map(
-                                (option, index) => {
-                                  const isLastOption =
-                                    index ===
-                                    BODY_STATS_SCREEN.genderOptions.length - 1;
-                                  return (
-                                    <TouchableOpacity
-                                      key={option}
-                                      onPress={() => handleSelectGender(option)}
+                              ▼
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        {showGenderPicker && (
+                          <View
+                            style={[
+                              styles.pickerContainer,
+                              {
+                                backgroundColor: colors.inputBackground,
+                                borderColor: colors.inputBorder,
+                              },
+                            ]}
+                          >
+                            {BODY_STATS_SCREEN.genderOptions.map(
+                              (option, index) => {
+                                const isLastOption =
+                                  index ===
+                                  BODY_STATS_SCREEN.genderOptions.length - 1;
+                                return (
+                                  <TouchableOpacity
+                                    key={option}
+                                    testID={`body-stats-gender-option-${index}`}
+                                    accessibilityRole="radio"
+                                    accessibilityLabel={option}
+                                    accessibilityState={{ selected: gender === option, checked: gender === option }}
+                                    onPress={() => handleSelectGender(option)}
+                                    style={[
+                                      styles.pickerOption,
+                                      {
+                                        borderBottomWidth: isLastOption
+                                          ? 0
+                                          : 1,
+                                        borderBottomColor: isLastOption
+                                          ? "transparent"
+                                          : colors.inputBorder,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
                                       style={[
-                                        styles.pickerOption,
+                                        styles.pickerOptionText,
                                         {
-                                          borderBottomWidth: isLastOption
-                                            ? 0
-                                            : 1,
-                                          borderBottomColor: isLastOption
-                                            ? "transparent"
-                                            : colors.inputBorder,
+                                          color: colors.text,
+                                          fontWeight:
+                                            gender === option ? "600" : "400",
                                         },
                                       ]}
                                     >
-                                      <Text
-                                        style={[
-                                          styles.pickerOptionText,
-                                          {
-                                            color:
-                                              gender === option
-                                                ? colors.electricBlue
-                                                : colors.text,
-                                            fontWeight:
-                                              gender === option ? "600" : "400",
-                                          },
-                                        ]}
-                                      >
-                                        {option}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  );
-                                }
-                              )}
-                            </View>
-                          )}
-                        </View>
+                                      {option}
+                                    </Text>
+                                    <View
+                                      style={styles.choiceIndicator}
+                                      accessible={false}
+                                      accessibilityElementsHidden
+                                      importantForAccessibility="no-hide-descendants"
+                                    >
+                                      {gender === option && (
+                                        <View style={[styles.choiceCheck, { borderColor: colors.text }]} />
+                                      )}
+                                    </View>
+                                  </TouchableOpacity>
+                                );
+                              }
+                            )}
+                          </View>
+                        )}
+                      </View>
 
-                        {/* Weight Field */}
-                        <View style={styles.fieldContainer}>
-                          <Text
-                            style={[styles.fieldLabel, { color: colors.text }]}
-                          >
+                      {/* Weight Field */}
+                      <View style={styles.fieldContainer}>
+                        <View style={styles.weightLabelRow}>
+                          <Text style={[styles.fieldLabel, { color: colors.text }]}>
                             {BODY_STATS_SCREEN.formFields.weight.label}
                           </Text>
-                          <View style={styles.weightContainer}>
-                            <AnimatedInput
-                              style={styles.weightInput}
-                              placeholder={
-                                BODY_STATS_SCREEN.formFields.weight.placeholder
-                              }
-                              value={weight}
-                              onChangeText={handleWeightChange}
-                              keyboardType="numeric"
-                            />
-                            <TouchableOpacity
-                              onPress={handleToggleWeightUnit}
-                              activeOpacity={0.7}
-                            >
-                              <Text
-                                style={[
-                                  styles.weightUnit,
-                                  { color: colors.electricBlue },
-                                ]}
+                          <View style={[styles.unitControl, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}>
+                            {(["LB", "KG"] as const).map((unit) => (
+                              <TouchableOpacity
+                                key={unit}
+                                testID={`body-stats-unit-${unit.toLowerCase()}`}
+                                onPress={() => { if (unit !== weightUnit) handleToggleWeightUnit(); }}
+                                activeOpacity={0.7}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Use ${unit === "LB" ? "pounds" : "kilograms"} for body weight and one-rep maxes`}
+                                accessibilityState={{ selected: unit === weightUnit }}
+                                style={[styles.unitSegment, unit === weightUnit && { backgroundColor: colors.inputBorder }]}
                               >
-                                {weightUnit}
-                              </Text>
-                            </TouchableOpacity>
+                                <Text style={[styles.weightUnit, { color: colors.text }]}>{unit}</Text>
+                              </TouchableOpacity>
+                            ))}
                           </View>
                         </View>
-
-                        {/* Age Field */}
-                        <View style={styles.fieldContainer}>
-                          <Text
-                            style={[styles.fieldLabel, { color: colors.text }]}
-                          >
-                            {BODY_STATS_SCREEN.formFields.age.label}
-                          </Text>
-                          {ageError && (
-                            <Text
-                              accessibilityLiveRegion="polite"
-                              style={styles.fieldError}
-                            >
-                              {ageError}
-                            </Text>
-                          )}
-                          <AnimatedInput
-                            style={styles.input}
-                            placeholder={
-                              BODY_STATS_SCREEN.formFields.age.placeholder
-                            }
-                            value={age}
-                            onChangeText={handleAgeChange}
-                            keyboardType="numeric"
-                            error={Boolean(ageError)}
-                            accessibilityLabel="Age"
-                            aria-invalid={Boolean(ageError)}
-                            accessibilityHint={ageError || "Enter your age in whole years"}
-                          />
-                        </View>
+                        <AnimatedInput
+                          testID="body-stats-weight-input"
+                          authPresentation
+                          accessibilityLabel={`Weight in ${weightUnit === "LB" ? "pounds" : "kilograms"}`}
+                          style={styles.weightInput}
+                          placeholder={
+                            BODY_STATS_SCREEN.formFields.weight.placeholder
+                          }
+                          value={weight}
+                          onChangeText={handleWeightChange}
+                          keyboardType="numeric"
+                        />
                       </View>
-                    </AnimatedCard>
-                  </Animated.View>
-                </View>
-              </ScrollView>
 
-              {/* Next Button */}
-              <View style={styles.buttonContainer}>
-                <AnimatedButton onPress={handleNext} disabled={!isFormValid} accessibilityState={{ disabled: !isFormValid }}>
-                  <View
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.primaryButton },
-                      !isFormValid && { opacity: 0.5 },
-                    ]}
-                  >
-                    <Text style={styles.primaryButtonText}>NEXT</Text>
-                  </View>
-                </AnimatedButton>
+                      {/* Age Field */}
+                      <View style={styles.fieldContainer}>
+                        <Text
+                          style={[styles.fieldLabel, { color: colors.text }]}
+                        >
+                          {BODY_STATS_SCREEN.formFields.age.label}
+                        </Text>
+                        {ageError && (
+                          <Text
+                            testID="body-stats-age-error"
+                            accessibilityLiveRegion="polite"
+                            style={[styles.fieldError, { color: colorScheme === "dark" ? "#FF8B82" : "#B42318" }]}
+                          >
+                            {ageError}
+                          </Text>
+                        )}
+                        <AnimatedInput
+                          testID="body-stats-age-input"
+                          authPresentation
+                          style={styles.input}
+                          placeholder={
+                            BODY_STATS_SCREEN.formFields.age.placeholder
+                          }
+                          value={age}
+                          onChangeText={handleAgeChange}
+                          keyboardType="numeric"
+                          error={Boolean(ageError)}
+                          accessibilityLabel="Age"
+                          aria-invalid={Boolean(ageError)}
+                          accessibilityHint={ageError || "Enter your age in whole years"}
+                        />
+                      </View>
+                    </View>
+                  </AnimatedCard>
+                </Animated.View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
+            </TouchableWithoutFeedback>
+          </ScrollView>
+
+          {/* Next Button */}
+          <View testID="body-stats-footer" style={styles.buttonContainer}>
+            <AnimatedButton
+              testID="body-stats-continue"
+              onPress={handleNext}
+              disabled={!isFormValid}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              accessibilityState={{ disabled: !isFormValid }}
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: isFormValid ? colors.primaryButton : colors.inputBackground,
+                  borderColor: isFormValid ? colors.primaryButton : colors.inputBorder,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.primaryButtonText,
+                  { color: isFormValid ? "#FFFFFF" : colors.icon },
+                ]}
+              >
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
         </KeyboardAvoidingView>
       </Animated.View>
     </ThemedView>
@@ -424,9 +465,12 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+    paddingBottom: 24,
   },
   content: {
     paddingHorizontal: 24,
@@ -440,16 +484,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heading: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 32,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
   },
   syncButton: {
     borderRadius: 12,
@@ -491,19 +533,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
   fieldError: {
-    color: "#D14343",
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.sans,
     marginTop: -4,
   },
+  genderControl: {
+    minHeight: 56,
+  },
   genderInput: {
+    minHeight: 56,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderWidth: 1,
+    borderWidth: 2,
   },
   genderInputText: {
     fontSize: 16,
@@ -512,6 +558,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 12,
+    fontFamily: Fonts.sans,
     marginLeft: 8,
   },
   pickerContainer: {
@@ -521,30 +568,71 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   pickerOption: {
+    minHeight: 44,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-  },
-  pickerOptionText: {
-    fontSize: 16,
-    fontFamily: Fonts.sans,
-  },
-  weightContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  weightInput: {
+  pickerOptionText: {
+    fontSize: 16,
+    fontFamily: Fonts.sans,
     flex: 1,
+    minWidth: 0,
+  },
+  choiceIndicator: {
+    width: 24,
+    minHeight: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  choiceCheck: {
+    width: 8,
+    height: 14,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: "45deg" }],
+  },
+  weightLabelRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  unitControl: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  unitSegment: {
+    minHeight: 44,
+    minWidth: 52,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weightInput: {
+    width: "100%",
+    minHeight: 56,
+    fontFamily: Fonts.sans,
   },
   weightUnit: {
     fontSize: 16,
-    fontWeight: "400",
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    minWidth: 40,
   },
   input: {
     width: "100%",
+    minHeight: 56,
+    fontFamily: Fonts.sans,
   },
   buttonContainer: {
     paddingHorizontal: 24,
@@ -552,16 +640,20 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   primaryButton: {
+    minHeight: 56,
+    flexShrink: 0,
     borderRadius: 12,
     paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
+    alignSelf: "stretch",
+    textAlign: "center",
   },
 });
