@@ -30,41 +30,41 @@ This independent branch starts at `6ffc2364bf5203127b71829f4c527583b6063460`; it
 
 Before, normal Dark with 3 days per week selected:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-before-dark-selected.png" width="320" alt="Original Training Frequency in Dark with 3 days per week selected and emphasized recommendation badges" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-before-dark-selected.png" width="320" alt="Original Training Frequency in Dark with 3 days per week selected and emphasized recommendation badges" />
 
 After, normal Dark with the same 3 days per week selected; the full Continue frame is shown below:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-dark-selected.png" width="320" alt="Refined Training Frequency in Dark with 3 days per week selected through a neutral border and check" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-dark-selected.png" width="320" alt="Refined Training Frequency in Dark with 3 days per week selected through a neutral border and check" />
 
 <details>
 <summary>Original Light and Dark unselected states</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-before-light-initial.png" width="320" alt="Original Training Frequency in Light with all choices unchecked and NEXT disabled" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-before-light-initial.png" width="320" alt="Original Training Frequency in Light with all choices unchecked and NEXT disabled" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-before-dark-initial.png" width="320" alt="Original Training Frequency in Dark with all choices unchecked and NEXT disabled" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-before-dark-initial.png" width="320" alt="Original Training Frequency in Dark with all choices unchecked and NEXT disabled" />
 
 </details>
 
 <details>
 <summary>Final Light selection and complete Light/Dark Continue frames</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-light-selected.png" width="320" alt="Final Training Frequency in Light with 3 days per week selected and the whole question and helper visible" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-light-selected.png" width="320" alt="Final Training Frequency in Light with 3 days per week selected and the whole question and helper visible" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-light-bottom.png" width="320" alt="Final Light bottom frame with the complete enabled Continue and safe-area clearance" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-light-bottom.png" width="320" alt="Final Light bottom frame with the complete enabled Continue and safe-area clearance" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-dark-bottom.png" width="320" alt="Final Dark bottom frame with the complete enabled Continue and safe-area clearance" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-dark-bottom.png" width="320" alt="Final Dark bottom frame with the complete enabled Continue and safe-area clearance" />
 
 </details>
 
 <details>
 <summary>Final cold maximum-text Light/Dark and compact Light empty state</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-light-max-bottom.png" width="320" alt="Final Light maximum-text bottom frame with the entire grown Continue; 3 days remains selected above this viewport" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-light-max-bottom.png" width="320" alt="Final Light maximum-text bottom frame with the entire grown Continue; 3 days remains selected above this viewport" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-dark-max-bottom.png" width="320" alt="Final Dark maximum-text bottom frame with Every day checked and the entire grown Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-dark-max-bottom.png" width="320" alt="Final Dark maximum-text bottom frame with Every day checked and the entire grown Continue" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/u22-after-compact-light-disabled.png" width="320" alt="Final compact Light empty guest scrolled to the disabled neutral Continue" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/u22-after-compact-light-disabled.png" width="320" alt="Final compact Light empty guest scrolled to the disabled neutral Continue" />
 
 </details>
 
-[Screenshot provenance and configuration coverage](https://github.com/DiegoZG/PrimeRep-AI/blob/ASSETS_SHA_PENDING/docs/pr-screenshots/u22/README.md)
+[Screenshot provenance and configuration coverage](https://github.com/DiegoZG/PrimeRep-AI/blob/f5cdb71299b55960c415559a72f50d637d36360f/docs/pr-screenshots/u22/README.md)
