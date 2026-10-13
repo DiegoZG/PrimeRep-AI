@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -20,6 +21,7 @@ interface EquipmentCardProps {
   iconKey?: string;
   imageUrl?: string;
   category?: EquipmentCategory;
+  quiet?: boolean;
 }
 
 export function EquipmentCard({
@@ -34,6 +36,7 @@ export function EquipmentCard({
   iconKey,
   imageUrl,
   category,
+  quiet = false,
 }: EquipmentCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -69,11 +72,94 @@ export function EquipmentCard({
 
     // Priority 3: Category-based placeholder or first letter
     return (
-      <Text style={[styles.iconPlaceholderText, { color: colors.placeholder }]}>
+      <Text
+        style={[styles.iconPlaceholderText, { color: colors.placeholder }]}
+        {...(quiet ? { allowFontScaling: false, accessible: false } : {})}
+      >
         {name.charAt(0).toUpperCase()}
       </Text>
     );
   };
+
+  if (quiet) {
+    return (
+      <View
+        accessible={false}
+        style={[
+          styles.quietCard,
+          {
+            backgroundColor: colors.inputBackground,
+            borderColor: selected ? colors.primaryButton : colors.inputBorder,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={onPress}
+          accessibilityRole="checkbox"
+          accessibilityLabel={subtitle ? `${name}, ${subtitle}` : name}
+          accessibilityState={{ checked: selected }}
+          style={styles.quietSelection}
+          activeOpacity={0.7}
+        >
+          <View
+            accessible={false}
+            style={[
+              styles.iconPlaceholder,
+              { backgroundColor: colors.inputBorder },
+            ]}
+          >
+            {renderIcon()}
+          </View>
+          <View style={styles.equipmentInfo}>
+            <Text style={[styles.equipmentName, { color: colors.text }]}>
+              {name}
+            </Text>
+            {subtitle && (
+              <Text style={[styles.weightsText, { color: colors.icon }]}>
+                {subtitle}
+              </Text>
+            )}
+          </View>
+          <View
+            accessible={false}
+            style={[
+              styles.checkbox,
+              {
+                backgroundColor: selected ? colors.primaryButton : "transparent",
+                borderColor: selected ? colors.primaryButton : colors.inputBorder,
+              },
+            ]}
+          >
+            <AnimatedCheckmark visible={selected}>
+              <Ionicons
+                name="checkmark"
+                size={16}
+                color="#FFFFFF"
+                accessible={false}
+                allowFontScaling={false}
+              />
+            </AnimatedCheckmark>
+          </View>
+        </TouchableOpacity>
+        {subtitle && showEditButton && onPressEdit && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onPressEdit();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`${editLabel} ${name}`}
+            activeOpacity={0.7}
+            style={styles.quietEditButton}
+          >
+            <Text style={[styles.editButtonText, { color: colors.text }]}>
+              {editLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -148,6 +234,25 @@ export function EquipmentCard({
 }
 
 const styles = StyleSheet.create({
+  quietCard: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  quietSelection: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    gap: 12,
+  },
+  quietEditButton: {
+    alignSelf: "flex-start",
+    marginLeft: 60,
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
   equipmentRow: {
     flexDirection: "row",
     alignItems: "center",

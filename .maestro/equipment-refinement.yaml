@@ -1,0 +1,171 @@
+# Only owned fictional fixtures; never press Edit, NEXT, or permission/account actions.
+# MODE and SCREENSHOT_PREFIX are required; cold guest launch and OS theme/size are external.
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 60000
+- openLink: primerepai://onboarding/training-place/equipment
+- extendedWaitUntil:
+    visible: Equipment \(8/9\)
+    timeout: 15000
+- assertNotVisible: There was a problem loading the project.
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- scrollUntilVisible:
+    element:
+      text: Crossover Cable
+    direction: UP
+    visibilityPercentage: 100
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-initial
+- runFlow:
+    when:
+      true: ${MODE == 'max'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: 'Dumbbells, .*'
+          direction: DOWN
+          visibilityPercentage: 15
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-0
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-1
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-2
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-3
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-4
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-5
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-6
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-glyph-7
+- runFlow:
+    when:
+      true: ${MODE == 'max'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: Edit Dumbbells
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${MODE != 'max'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: Edit Dumbbells
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+- assertVisible: 'Dumbbells, .*125.*'
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-dumbbells-edit
+- scrollUntilVisible:
+    element:
+      text: See all Benches and racks
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-benches
+- scrollUntilVisible:
+    element:
+      text: See all Weight machines
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-middle
+- scrollUntilVisible:
+    element:
+      text: Edit Plates
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 30000
+- assertVisible: 'Plates, 1.25, 2.5, 5, 10, 15, 20, 25, 35, 45, 50'
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-plates-edit
+- runFlow:
+    when:
+      true: ${MODE == 'max'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: 'Plates, .*'
+          direction: UP
+          visibilityPercentage: 15
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-plates-glyph-0
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-plates-glyph-1
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-plates-glyph-2
+      - swipe:
+          start: 50%, 60%
+          end: 50%, 40%
+          duration: 600
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-plates-glyph-3
+- scrollUntilVisible:
+    element:
+      text: See all Bars and plates
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 30000
+- swipe:
+    start: 50%, 65%
+    end: 50%, 35%
+    duration: 600
+- assertVisible: '.*Search for equipment.*'
+- assertVisible: NEXT
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- waitForAnimationToEnd
+- takeScreenshot: ${SCREENSHOT_PREFIX}-footer-end
