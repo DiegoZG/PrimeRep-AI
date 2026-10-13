@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedSearch } from "@/components/animated-search";
@@ -34,6 +35,7 @@ export default function EquipmentScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
+  const insets = useSafeAreaInsets();
 
   // Load equipment on mount
   useEffect(() => {
@@ -257,6 +259,7 @@ export default function EquipmentScreen() {
 
                   return (
                     <EquipmentCard
+                      quiet
                       key={equipment.id}
                       id={equipment.id}
                       name={equipment.name}
@@ -283,17 +286,19 @@ export default function EquipmentScreen() {
                 {/* See all link */}
                 <TouchableOpacity
                   onPress={() => handleSeeAll(group.title)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`See all ${group.title}`}
                   style={styles.seeAllLink}
                 >
                   <Text
-                    style={[styles.seeAllText, { color: colors.placeholder }]}
+                    style={[styles.seeAllText, { color: colors.icon }]}
                   >
                     See all {group.title}
                   </Text>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
-                    color={colors.placeholder}
+                    color={colors.icon}
                   />
                 </TouchableOpacity>
               </View>
@@ -322,7 +327,10 @@ export default function EquipmentScreen() {
         <View
           style={[
             styles.buttonContainer,
-            { backgroundColor: colors.background },
+            {
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(40, insets.bottom + 12),
+            },
           ]}
         >
           <AnimatedButton onPress={handleNext}>
@@ -371,6 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingVertical: 8,
+    minHeight: 44,
   },
   seeAllText: {
     fontSize: 14,
