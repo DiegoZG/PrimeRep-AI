@@ -1,0 +1,44 @@
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Loading from Metro.*
+    timeout: 15000
+- assertVisible: Search Equipment
+- assertVisible:
+    id: onboarding-equipment-search
+- runFlow:
+    when:
+      true: ${MODE == "initial"}
+    commands:
+      - assertVisible: Loop Bands
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "overlap"}
+    commands:
+      - swipe:
+          start: 98%,80%
+          end: 98%,30%
+          duration: 800
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "query"}
+    commands:
+      - tapOn:
+          id: onboarding-equipment-search
+      - inputText: loop
+      - assertVisible: Loop Bands
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-query-keyboard
+      - eraseText:
+          charactersToErase: 4
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-erased-empty-keyboard
+      - tapOn: Bands & Accessories
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-restored-empty-dismissed
