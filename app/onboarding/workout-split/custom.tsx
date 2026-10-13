@@ -2,10 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import Animated, {
@@ -118,23 +118,32 @@ export default function CustomSplitScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView testID="custom-split-screen" style={styles.container}>
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
+          testID="custom-split-scroll"
+          style={styles.scroll}
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.question, { color: colors.text }]}>
+              <AnimatedText
+                testID="custom-split-heading"
+                style={[styles.question, { color: colors.text }]}
+              >
                 {CUSTOM_SPLIT_SCREEN.question}
               </AnimatedText>
             </Animated.View>
 
             {/* Description */}
             <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text
+                testID="custom-split-description"
+                style={[styles.description, { color: colors.icon }]}
+              >
                 {CUSTOM_SPLIT_SCREEN.description}
               </Text>
             </Animated.View>
@@ -156,6 +165,8 @@ export default function CustomSplitScreen() {
                     {/* Header */}
                     <View style={styles.workoutCardHeader}>
                       <Text
+                        testID={`custom-split-title-${workout.id}`}
+                        selectable
                         style={[
                           styles.workoutCardTitle,
                           { color: colors.text },
@@ -163,61 +174,42 @@ export default function CustomSplitScreen() {
                       >
                         {workout.name} - Workout {index + 1}
                       </Text>
-                      <TouchableOpacity
+                      <Pressable
+                        testID={`custom-split-remove-${workout.id}`}
                         accessibilityRole="button"
-                        accessibilityLabel={`Remove ${workout.name}`}
+                        accessibilityLabel={`Remove ${workout.name}, workout ${index + 1}`}
                         onPress={() => handleRemoveWorkout(workout.id)}
-                        activeOpacity={0.7}
-                        style={styles.deleteButton}
+                        style={({ pressed }) => [
+                          styles.deleteButton,
+                          { opacity: pressed ? 0.7 : 1 },
+                        ]}
                       >
                         <Ionicons
                           name="trash-outline"
                           size={20}
-                          color={colors.placeholder}
+                          color={colors.icon}
                         />
-                      </TouchableOpacity>
+                      </Pressable>
                     </View>
 
                     {/* Card Content - Clickable */}
-                    <TouchableOpacity
+                    <Pressable
+                      testID={`custom-split-edit-${workout.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${workout.name}, workout ${index + 1}`}
                       onPress={() => handleEditWorkout(workout.id)}
-                      activeOpacity={0.7}
+                      style={({ pressed }) => [
+                        styles.editButton,
+                        { opacity: pressed ? 0.7 : 1 },
+                      ]}
                     >
-                      {/* Muscle Icons Row */}
-                      <View style={styles.muscleIconsRow}>
-                        {workout.muscleGroups.slice(0, 6).map((muscleId) => {
-                          const muscleGroup =
-                            ADD_WORKOUT_MODAL.customMuscleGroups.find(
-                              (mg) => mg.id === muscleId
-                            );
-                          return (
-                            <View
-                              key={muscleId}
-                              style={[
-                                styles.muscleIconSmall,
-                                {
-                                  backgroundColor: colors.inputBorder,
-                                },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.muscleIconPlaceholderSmall,
-                                  { color: colors.placeholder },
-                                ]}
-                              >
-                                {muscleGroup?.name.charAt(0) || "?"}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-
                       {/* Muscle Groups List */}
                       <Text
+                        testID={`custom-split-muscles-${workout.id}`}
+                        selectable
                         style={[
                           styles.muscleGroupsList,
-                          { color: colors.placeholder },
+                          { color: colors.icon },
                         ]}
                       >
                         {workout.muscleGroups
@@ -230,7 +222,10 @@ export default function CustomSplitScreen() {
                           })
                           .join(", ")}
                       </Text>
-                    </TouchableOpacity>
+                      <Text style={[styles.editButtonText, { color: colors.text }]}>
+                        Edit workout
+                      </Text>
+                    </Pressable>
                   </View>
                 ))}
               </View>
@@ -238,52 +233,71 @@ export default function CustomSplitScreen() {
 
             {/* Add Workout Button */}
             <Animated.View style={buttonAnimatedStyle}>
-              <AnimatedButton onPress={handleAddWorkout}>
-                <View
-                  style={[
-                    styles.addButton,
-                    { backgroundColor: colors.primaryButton },
-                  ]}
-                >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
-                  <Text style={styles.addButtonText}>ADD WORKOUT</Text>
-                </View>
+              <AnimatedButton
+                testID="custom-split-add"
+                accessibilityRole="button"
+                accessibilityLabel="Add workout"
+                onPress={handleAddWorkout}
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
+                <Ionicons name="add" size={20} color={colors.text} />
+                <Text style={[styles.addButtonText, { color: colors.text }]}>
+                  Add workout
+                </Text>
               </AnimatedButton>
             </Animated.View>
           </View>
-        </ScrollView>
 
-        {/* Continue Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          {!data.customWorkouts?.length && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[styles.validationMessage, { color: "#D14343" }]}
-            >
-              Add at least one workout day to continue.
-            </Text>
-          )}
-          <AnimatedButton
-            onPress={handleContinue}
-            disabled={!data.customWorkouts?.length}
-            accessibilityState={{ disabled: !data.customWorkouts?.length }}
-          >
-            <View
+          {/* Continue Button */}
+          <View testID="custom-split-footer" style={styles.buttonContainer}>
+            {!data.customWorkouts?.length && (
+              <Text
+                testID="custom-split-validation"
+                accessibilityLiveRegion="polite"
+                style={[
+                  styles.validationMessage,
+                  { color: colorScheme === "dark" ? "#FF8B82" : "#B42318" },
+                ]}
+              >
+                Add at least one workout day to continue.
+              </Text>
+            )}
+            <AnimatedButton
+              testID="custom-split-continue"
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              onPress={handleContinue}
+              disabled={!data.customWorkouts?.length}
+              accessibilityState={{ disabled: !data.customWorkouts?.length }}
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
-                !data.customWorkouts?.length && styles.disabledButton,
+                {
+                  backgroundColor: data.customWorkouts?.length
+                    ? colors.primaryButton
+                    : colors.inputBackground,
+                  borderColor: data.customWorkouts?.length
+                    ? colors.primaryButton
+                    : colors.inputBorder,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>CONTINUE</Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text
+                style={[
+                  styles.primaryButtonText,
+                  { color: data.customWorkouts?.length ? "#FFFFFF" : colors.icon },
+                ]}
+              >
+                Continue
+              </Text>
+            </AnimatedButton>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
@@ -296,21 +310,25 @@ const styles = StyleSheet.create({
   animatedContainer: {
     flex: 1,
   },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
-  },
-  content: {
     paddingHorizontal: 24,
     paddingTop: 24,
+    paddingBottom: 32,
+    gap: 24,
+  },
+  content: {
     gap: 16,
   },
   workoutsList: {
     gap: 16,
-    marginTop: 8,
   },
   workoutCard: {
     borderRadius: 12,
+    borderCurve: "continuous",
     padding: 16,
     borderWidth: 1,
     gap: 12,
@@ -319,92 +337,89 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
   },
   workoutCardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    flex: 1,
+    minWidth: 0,
+    fontSize: 17,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
   },
   deleteButton: {
-    padding: 4,
-  },
-  muscleIconsRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  muscleIconSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
-  muscleIconPlaceholderSmall: {
-    fontSize: 12,
+  editButton: {
+    minHeight: 44,
+    gap: 12,
+    paddingVertical: 4,
+  },
+  editButtonText: {
+    fontSize: 15,
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
   muscleGroupsList: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 20,
   },
   question: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 26,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
-    marginBottom: 8,
   },
   description: {
     fontSize: 15,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    marginBottom: 24,
   },
   addButton: {
     borderRadius: 12,
-    paddingVertical: 16,
+    borderCurve: "continuous",
+    borderWidth: 1,
+    minHeight: 56,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   addButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
+    flexShrink: 1,
   },
   buttonContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
+    marginTop: "auto",
+    gap: 12,
   },
   primaryButton: {
     borderRadius: 12,
-    paddingVertical: 16,
+    borderCurve: "continuous",
+    borderWidth: 1,
+    minHeight: 56,
+    flexShrink: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-  },
-  disabledButton: {
-    opacity: 0.45,
   },
   validationMessage: {
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 10,
-    textAlign: "center",
+    fontFamily: Fonts.sans,
   },
   primaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
+    alignSelf: "stretch",
+    textAlign: "center",
   },
 });
