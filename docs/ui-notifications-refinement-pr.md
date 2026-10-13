@@ -6,11 +6,11 @@ Native maximum-text inspection found the predecessor's own Skip label clipped in
 
 Before, original Dark/large on the C3 guest:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-before-dark-large-initial.png" width="320" alt="Original Dark notification onboarding on C3 with four unsupported simulations and header Skip" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-before-dark-large-initial.png" width="320" alt="Original Dark notification onboarding on C3 with four unsupported simulations and header Skip" />
 
 After, final Dark/large on the separate A21 guest:
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-dark-initial.png" width="320" alt="Final Dark notification onboarding on A21 with three conditional labeled examples and complete Enable and neutral footer Skip" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-dark-initial.png" width="320" alt="Final Dark notification onboarding on A21 with three conditional labeled examples and complete Enable and neutral footer Skip" />
 
 Both normal comparison guests use iPhone 16 Plus, but they are different guests/devices. Examples are illustrative screen copy, not real delivered notifications or personal workout records. The final normal content fits one viewport; initial and bottom captures are genuinely identical within each theme, not different scroll positions. Seven other canonical captures are collapsed below.
 
@@ -78,30 +78,30 @@ The two Dark comparisons appear immediately below the summary. The remaining sev
 <details>
 <summary>Original Light/large and final Light/large on different 16 Plus guests</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-before-light-large-initial.png" width="320" alt="Genuine original Light/large notification onboarding on C3 before presentation changes" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-before-light-large-initial.png" width="320" alt="Genuine original Light/large notification onboarding on C3 before presentation changes" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-light-initial.png" width="320" alt="Final Light/large notification onboarding on the separate A21 guest with three illustrative examples and footer actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-light-initial.png" width="320" alt="Final Light/large notification onboarding on the separate A21 guest with three illustrative examples and footer actions" />
 
 </details>
 
 <details>
 <summary>Complete normal Light/Dark actions; identical to each theme's initial capture</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-light-bottom.png" width="320" alt="Final Light/large full Enable and Skip footer; content fits the viewport so this raw image is identical to the Light initial capture" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-light-bottom.png" width="320" alt="Final Light/large full Enable and Skip footer; content fits the viewport so this raw image is identical to the Light initial capture" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-dark-bottom.png" width="320" alt="Final Dark/large full Enable and Skip footer; content fits the viewport so this raw image is identical to the Dark initial capture" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-dark-bottom.png" width="320" alt="Final Dark/large full Enable and Skip footer; content fits the viewport so this raw image is identical to the Dark initial capture" />
 
 </details>
 
 <details>
 <summary>Fresh cold MAX Light/Dark and compact Light footer reach</summary>
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-light-max-bottom.png" width="320" alt="Final cold Light/MAX with complete naturally grown two-line Enable and neutral Skip glyphs above the home indicator" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-light-max-bottom.png" width="320" alt="Final cold Light/MAX with complete naturally grown two-line Enable and neutral Skip glyphs above the home indicator" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-dark-max-bottom.png" width="320" alt="Final cold Dark/MAX with complete naturally grown two-line Enable and neutral Skip glyphs above the home indicator" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-dark-max-bottom.png" width="320" alt="Final cold Dark/MAX with complete naturally grown two-line Enable and neutral Skip glyphs above the home indicator" />
 
-<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/u28-after-compact-light-bottom.png" width="320" alt="Final compact Light/large after scrolling, with wrapped illustrative copy and both intact footer actions" />
+<img src="https://raw.githubusercontent.com/DiegoZG/PrimeRep-AI/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/u28-after-compact-light-bottom.png" width="320" alt="Final compact Light/large after scrolling, with wrapped illustrative copy and both intact footer actions" />
 
 </details>
 
-[Screenshot provenance, measured native matrix, cleanup and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/__U28_ASSET_COMMIT_SHA__/docs/pr-screenshots/u28/README.md)
+[Screenshot provenance, measured native matrix, cleanup and reproduction](https://github.com/DiegoZG/PrimeRep-AI/blob/c36a435226959d829fe7048779652af343664a2f/docs/pr-screenshots/u28/README.md)
