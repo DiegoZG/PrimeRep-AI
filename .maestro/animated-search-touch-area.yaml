@@ -1,0 +1,78 @@
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Loading from Metro.*
+    timeout: 15000
+- runFlow:
+    when:
+      true: ${MODE == "initial"}
+    commands:
+      - assertVisible: ${HEADER}
+      - assertVisible:
+          id: ${SEARCH_ID}
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "focus"}
+    commands:
+      - assertVisible:
+          id: ${SEARCH_ID}
+      - tapOn:
+          point: ${OBSERVED_POINT}
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "search-query"}
+    commands:
+      - inputText: loop
+      - assertVisible: Loop Bands
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-query-keyboard
+      - eraseText:
+          charactersToErase: 4
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-erased-empty-keyboard
+      - tapOn:
+          point: 98%,40%
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-restored-empty-dismissed
+- runFlow:
+    when:
+      true: ${MODE == "see-all-query"}
+    commands:
+      - inputText: row
+      - assertVisible: Row Cable
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-query-keyboard
+      - eraseText:
+          charactersToErase: 3
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-erased-empty-keyboard
+      - tapOn:
+          point: 98%,40%
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-restored-empty-dismissed
+- runFlow:
+    when:
+      true: ${MODE == "overlap"}
+    commands:
+      - swipe:
+          start: 98%,80%
+          end: 98%,30%
+          duration: 800
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "equipment-navigation"}
+    commands:
+      - assertVisible: Equipment.*
+      - tapOn:
+          point: 50%,85%
+      - extendedWaitUntil:
+          visible: Search Equipment
+          timeout: 15000
+      - assertVisible:
+          id: onboarding-equipment-search
+      - assertNotVisible: ^space$
+      - takeScreenshot: ${SCREENSHOT_PREFIX}

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useRef, useState } from "react";
+import { Pressable, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -37,6 +37,10 @@ export function AnimatedSearch({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const focusInput = () => {
+    if (editable) inputRef.current?.focus();
+  };
 
   // Only initialize animation values when used as an editable input (not a button)
   const scale = useSharedValue(1);
@@ -86,11 +90,17 @@ export function AnimatedSearch({
         size={20}
         color={isFocused ? colors.primaryButton : colors.placeholder}
         style={styles.searchIcon}
+        {...(!onPress ? { accessible: false } : {})}
       />
       <TextInput
+        ref={inputRef}
         accessibilityLabel={accessibilityLabel}
         testID={testID}
-        style={[styles.input, { color: colors.text }]}
+        style={[
+          styles.input,
+          editable && !onPress && styles.editableInput,
+          { color: colors.text },
+        ]}
         placeholder={placeholder}
         placeholderTextColor={colors.placeholder}
         value={value}
@@ -125,17 +135,27 @@ export function AnimatedSearch({
 
   // Editable input with animations
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.inputBackground,
-        },
-        animatedStyle,
-      ]}
+    <Pressable
+      accessible={false}
+      focusable={false}
+      tabIndex={-1}
+      disabled={!editable}
+      accessibilityState={{ disabled: !editable }}
+      onPress={focusInput}
     >
-      {content}
-    </Animated.View>
+      <Animated.View
+        style={[
+          styles.container,
+          editable && styles.editableContainer,
+          {
+            backgroundColor: colors.inputBackground,
+          },
+          animatedStyle,
+        ]}
+      >
+        {content}
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -156,5 +176,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     fontFamily: Fonts.sans,
+  },
+  editableContainer: {
+    paddingVertical: 0,
+  },
+  editableInput: {
+    minHeight: 44,
+    paddingVertical: 12,
   },
 });
