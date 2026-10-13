@@ -1,115 +1,57 @@
-import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useContext, useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
+import React, { useContext, useEffect } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedButton } from "@/components/animated-button";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
+import { NOTIFICATIONS_SCREEN } from "@/features/onboarding/constants";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useScreenTransition } from "@/hooks/use-screen-transition";
 import { OnboardingContext } from "@/utils/onboardingContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
-import { NOTIFICATIONS_SCREEN } from "@/features/onboarding/constants";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { updateField } = useContext(OnboardingContext);
   const { requestPermission, isLoading } = useContext(NotificationsContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const insets = useSafeAreaInsets();
   const { opacity, translateX } = useScreenTransition();
 
-  // Timer state for the first notification card - starts at 7 minutes (07:00)
-  const [timerMinutes, setTimerMinutes] = useState(7);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-
-  // Question animation
   const questionOpacity = useSharedValue(0);
   const questionTranslateY = useSharedValue(20);
   const descriptionOpacity = useSharedValue(0);
   const descriptionTranslateY = useSharedValue(20);
-
-  // Card animations
   const card0Opacity = useSharedValue(0);
   const card0TranslateY = useSharedValue(20);
   const card1Opacity = useSharedValue(0);
   const card1TranslateY = useSharedValue(20);
   const card2Opacity = useSharedValue(0);
   const card2TranslateY = useSharedValue(20);
-  const card3Opacity = useSharedValue(0);
-  const card3TranslateY = useSharedValue(20);
 
-  const cardOpacities = [
-    card0Opacity,
-    card1Opacity,
-    card2Opacity,
-    card3Opacity,
-  ];
-  const cardTranslateYs = [
-    card0TranslateY,
-    card1TranslateY,
-    card2TranslateY,
-    card3TranslateY,
-  ];
-
-  // Timer effect - resets when screen loses focus, starts when screen gains focus
-  useFocusEffect(
-    useCallback(() => {
-      // Reset timer when screen comes into focus
-      setTimerMinutes(7);
-      setTimerSeconds(0);
-
-      // Start timer interval
-      const interval = setInterval(() => {
-        setTimerSeconds((prevSeconds) => {
-          if (prevSeconds === 59) {
-            setTimerMinutes((prevMinutes) => prevMinutes + 1);
-            return 0;
-          }
-          return prevSeconds + 1;
-        });
-      }, 1000);
-
-      // Cleanup: clear interval when screen loses focus
-      return () => clearInterval(interval);
-    }, [])
-  );
-
-  // Format timer as MM:SS
-  const formatTimer = (minutes: number, seconds: number): string => {
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  const cardOpacities = [card0Opacity, card1Opacity, card2Opacity];
+  const cardTranslateYs = [card0TranslateY, card1TranslateY, card2TranslateY];
 
   useEffect(() => {
-    // Question animation - starts after 200ms delay
     questionOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
     questionTranslateY.value = withDelay(200, withTiming(0, { duration: 400 }));
-
-    // Description animation - starts after 400ms delay
     descriptionOpacity.value = withDelay(400, withTiming(1, { duration: 400 }));
     descriptionTranslateY.value = withDelay(
       400,
       withTiming(0, { duration: 400 })
     );
-
-    // Cards animations - stagger starting at 600ms delay, 100ms apart
     cardOpacities.forEach((opacity, index) => {
       opacity.value = withDelay(
         600 + index * 100,
@@ -125,54 +67,31 @@ export default function NotificationsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const screenAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const questionAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: questionOpacity.value,
-      transform: [{ translateY: questionTranslateY.value }],
-    };
-  });
-
-  const descriptionAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: descriptionOpacity.value,
-      transform: [{ translateY: descriptionTranslateY.value }],
-    };
-  });
-
-  const card0AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: card0Opacity.value,
-      transform: [{ translateY: card0TranslateY.value }],
-    };
-  });
-
-  const card1AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: card1Opacity.value,
-      transform: [{ translateY: card1TranslateY.value }],
-    };
-  });
-
-  const card2AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: card2Opacity.value,
-      transform: [{ translateY: card2TranslateY.value }],
-    };
-  });
-
-  const card3AnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: card3Opacity.value,
-      transform: [{ translateY: card3TranslateY.value }],
-    };
-  });
+  const screenAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateX: translateX.value }],
+  }));
+  const questionAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: questionOpacity.value,
+    transform: [{ translateY: questionTranslateY.value }],
+  }));
+  const descriptionAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: descriptionOpacity.value,
+    transform: [{ translateY: descriptionTranslateY.value }],
+  }));
+  const card0AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: card0Opacity.value,
+    transform: [{ translateY: card0TranslateY.value }],
+  }));
+  const card1AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: card1Opacity.value,
+    transform: [{ translateY: card1TranslateY.value }],
+  }));
+  const card2AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: card2Opacity.value,
+    transform: [{ translateY: card2TranslateY.value }],
+  }));
+  const cardAnimatedStyles = [card0AnimatedStyle, card1AnimatedStyle, card2AnimatedStyle];
 
   const handleEnable = async () => {
     try {
@@ -190,53 +109,50 @@ export default function NotificationsScreen() {
     router.push("/onboarding/final");
   };
 
-  // Set up Skip button in header
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          testID="onboarding-notifications-skip"
-          onPress={handleSkip}
-          disabled={isLoading}
-          accessibilityRole="button"
-          accessibilityLabel="Skip notifications"
-          accessibilityState={{ disabled: isLoading, busy: isLoading }}
-          style={{ marginHorizontal: 16, opacity: isLoading ? 0.5 : 1 }}
-        >
-          <Text style={{ color: colors.electricBlue, fontSize: 16 }}>Skip</Text>
-        </TouchableOpacity>
-      ),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, navigation]);
-
   return (
     <ThemedView style={styles.container}>
-      <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
+      <Stack.Screen options={{ headerRight: () => null }} />
+      <Animated.View style={[styles.container, screenAnimatedStyle]}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          testID="onboarding-notifications-scroll"
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.content}>
-            {/* Heading */}
-            <Animated.View style={questionAnimatedStyle}>
-              <AnimatedText style={[styles.heading, { color: colors.text }]}>
-                {NOTIFICATIONS_SCREEN.heading}
-              </AnimatedText>
-            </Animated.View>
-
-            {/* Description */}
-            <Animated.View style={descriptionAnimatedStyle}>
-              <Text style={[styles.description, { color: colors.placeholder }]}>
-                {NOTIFICATIONS_SCREEN.description}
-              </Text>
-            </Animated.View>
-
-            {/* Notification Cards */}
-            <View style={styles.cardsContainer}>
-              {/* Card 1: Workout with timer */}
-              <Animated.View style={card0AnimatedStyle}>
+          <Animated.View style={questionAnimatedStyle}>
+            <AnimatedText
+              testID="onboarding-notifications-heading"
+              accessibilityRole="header"
+              style={[styles.heading, { color: colors.text }]}
+            >
+              {NOTIFICATIONS_SCREEN.heading}
+            </AnimatedText>
+          </Animated.View>
+          <Animated.View style={descriptionAnimatedStyle}>
+            <Text
+              testID="onboarding-notifications-description"
+              style={[styles.bodyText, { color: colors.icon }]}
+            >
+              {NOTIFICATIONS_SCREEN.description}
+            </Text>
+          </Animated.View>
+          <View style={styles.examplesSection}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.sectionTitle, { color: colors.text }]}
+            >
+              {NOTIFICATIONS_SCREEN.examplesHeading}
+            </Text>
+            <Text style={[styles.bodyText, { color: colors.icon }]}>
+              {NOTIFICATIONS_SCREEN.examplesDescription}
+            </Text>
+            {NOTIFICATIONS_SCREEN.notifications.map((notification, index) => (
+              <Animated.View key={notification.id} style={cardAnimatedStyles[index]}>
                 <View
+                  testID={`onboarding-notifications-example-${notification.id}`}
                   style={[
                     styles.notificationCard,
                     {
@@ -245,302 +161,185 @@ export default function NotificationsScreen() {
                     },
                   ]}
                 >
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardLeft}>
-                      <Text
-                        style={[styles.cardType, { color: colors.placeholder }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[0].title}
-                      </Text>
+                  <View style={styles.cardHeader}>
+                    <View
+                      accessible={false}
+                      style={[styles.iconTile, { borderColor: colors.inputBorder }]}
+                    >
+                      <Ionicons
+                        name="notifications-outline"
+                        size={20}
+                        color={colors.icon}
+                        accessible={false}
+                      />
+                    </View>
+                    <View style={styles.cardHeaderText}>
                       <Text style={[styles.cardTitle, { color: colors.text }]}>
-                        {NOTIFICATIONS_SCREEN.notifications[0].exercise}
+                        {notification.title}
                       </Text>
-                      <Text
-                        style={[styles.cardSubtitle, { color: colors.text }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[0].nextSet}
-                      </Text>
-                      <Text
-                        style={[styles.cardSubtitle, { color: colors.text }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[0].rest}
+                      <Text style={[styles.metadata, { color: colors.icon }]}>
+                        {notification.timestamp}
                       </Text>
                     </View>
-                    <Text
-                      style={[styles.cardTimestamp, { color: colors.text }]}
-                    >
-                      {formatTimer(timerMinutes, timerSeconds)}
-                    </Text>
                   </View>
+                  <Text style={[styles.bodyText, { color: colors.text }]}>
+                    {notification.message}
+                  </Text>
                 </View>
               </Animated.View>
-
-              {/* Card 2: Rest time is over - Back Squat */}
-              <Animated.View style={card1AnimatedStyle}>
-                <View
-                  style={[
-                    styles.notificationCard,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: colors.inputBorder,
-                    },
-                  ]}
-                >
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardLeft}>
-                      <View style={styles.cardHeader}>
-                        <View
-                          style={[
-                            styles.iconPlaceholder,
-                            { backgroundColor: colors.primaryButton },
-                          ]}
-                        >
-                          <Text style={styles.iconText}>G</Text>
-                        </View>
-                        <Text
-                          style={[styles.cardTitle, { color: colors.text }]}
-                        >
-                          {NOTIFICATIONS_SCREEN.notifications[1].title}
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.cardSubtitle, { color: colors.text }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[1].nextSet}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.cardTimestamp, { color: colors.text }]}
-                    >
-                      {NOTIFICATIONS_SCREEN.notifications[1].timestamp}
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-
-              {/* Card 3: Rest time is over - Deadlift */}
-              <Animated.View style={card2AnimatedStyle}>
-                <View
-                  style={[
-                    styles.notificationCard,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: colors.inputBorder,
-                    },
-                  ]}
-                >
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardLeft}>
-                      <View style={styles.cardHeader}>
-                        <View
-                          style={[
-                            styles.iconPlaceholder,
-                            { backgroundColor: colors.primaryButton },
-                          ]}
-                        >
-                          <Text style={styles.iconText}>G</Text>
-                        </View>
-                        <Text
-                          style={[styles.cardTitle, { color: colors.text }]}
-                        >
-                          {NOTIFICATIONS_SCREEN.notifications[2].title}
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.cardSubtitle, { color: colors.text }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[2].nextSet}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.cardTimestamp, { color: colors.text }]}
-                    >
-                      {NOTIFICATIONS_SCREEN.notifications[2].timestamp}
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-
-              {/* Card 4: Strength Score */}
-              <Animated.View style={card3AnimatedStyle}>
-                <View
-                  style={[
-                    styles.notificationCard,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: colors.inputBorder,
-                    },
-                  ]}
-                >
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardLeft}>
-                      <View style={styles.cardHeader}>
-                        <View
-                          style={[
-                            styles.iconPlaceholder,
-                            { backgroundColor: "#FF3B30" },
-                          ]}
-                        >
-                          <Text style={styles.iconText}>↑↑</Text>
-                        </View>
-                        <Text
-                          style={[styles.cardTitle, { color: colors.text }]}
-                        >
-                          {NOTIFICATIONS_SCREEN.notifications[3].title}
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.cardSubtitle, { color: colors.text }]}
-                      >
-                        {NOTIFICATIONS_SCREEN.notifications[3].message}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.cardTimestamp, { color: colors.text }]}
-                    >
-                      {NOTIFICATIONS_SCREEN.notifications[3].timestamp}
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-            </View>
+            ))}
           </View>
-        </ScrollView>
-
-        {/* Enable Button */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <AnimatedButton
-            testID="onboarding-notifications-enable"
-            onPress={() => void handleEnable()}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Enable notifications"
-            accessibilityState={{ disabled: isLoading, busy: isLoading }}
-          >
-            <View
-              style={[
-                styles.primaryButton,
-                { backgroundColor: colors.primaryButton },
+          <View testID="onboarding-notifications-footer" style={styles.footer}>
+            <AnimatedButton
+              testID="onboarding-notifications-enable"
+              onPress={() => void handleEnable()}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Enable notifications"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
+              style={styles.action}
+            >
+              <View
+                style={[
+                  styles.primaryButton,
+                  {
+                    backgroundColor: isLoading ? colors.inputBorder : colors.primaryButton,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.primaryButtonText,
+                    { color: isLoading ? colors.icon : "#FFFFFF" },
+                  ]}
+                >
+                  {isLoading ? "Enabling…" : "Enable notifications"}
+                </Text>
+              </View>
+            </AnimatedButton>
+            <Pressable
+              testID="onboarding-notifications-skip"
+              onPress={handleSkip}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Skip notifications"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
+              style={({ pressed }) => [
+                styles.skipButton,
+                {
+                  backgroundColor: pressed ? colors.inputBorder : colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                  opacity: isLoading ? 0.5 : 1,
+                },
               ]}
             >
-              <Text style={styles.primaryButtonText}>
-                {isLoading ? "ENABLING…" : "ENABLE"}
-              </Text>
-            </View>
-          </AnimatedButton>
-        </View>
+              <Text style={[styles.skipText, { color: colors.text }]}>Skip</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
       </Animated.View>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  animatedContainer: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
-  },
-  content: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    gap: 16,
+    gap: 20,
   },
   heading: {
     fontSize: 28,
     fontWeight: "700",
     fontFamily: Fonts.sans,
-    lineHeight: 36,
-    marginBottom: 8,
+    flexShrink: 1,
   },
-  description: {
-    fontSize: 15,
+  bodyText: {
+    fontSize: 16,
     fontWeight: "400",
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    marginBottom: 8,
+    flexShrink: 1,
   },
-  cardsContainer: {
-    gap: 12,
-    marginTop: 8,
+  examplesSection: { gap: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    fontFamily: Fonts.sans,
   },
   notificationCard: {
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-  },
-  cardContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  cardLeft: {
-    flex: 1,
-    gap: 4,
+    gap: 12,
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
   },
-  iconPlaceholder: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+  cardHeaderText: {
+    flexDirection: "column",
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  iconTile: {
+    minWidth: 40,
+    minHeight: 40,
+    borderWidth: 1,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-  iconText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    fontFamily: Fonts.sans,
-  },
-  cardType: {
-    fontSize: 12,
-    fontWeight: "400",
-    fontFamily: Fonts.sans,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
-  cardSubtitle: {
+  metadata: {
     fontSize: 14,
     fontWeight: "400",
     fontFamily: Fonts.sans,
+    flexShrink: 1,
   },
-  cardTimestamp: {
-    fontSize: 14,
-    fontWeight: "400",
+  skipButton: {
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: "stretch",
+    flexShrink: 0,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipText: {
+    fontSize: 16,
+    fontWeight: "600",
     fontFamily: Fonts.sans,
+    flexShrink: 1,
+    alignSelf: "stretch",
+    textAlign: "center",
   },
-  buttonContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
-  },
+  footer: { gap: 12 },
+  action: { marginTop: 8 },
   primaryButton: {
+    minHeight: 56,
     borderRadius: 12,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
+    alignSelf: "stretch",
+    textAlign: "center",
+    flexShrink: 1,
   },
 });
