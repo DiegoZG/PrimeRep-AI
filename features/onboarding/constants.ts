@@ -561,37 +561,28 @@ export const NOTIFICATIONS_SCREEN = {
   totalSteps: 9,
   heading: "Enable notifications",
   description:
-    "To get the full benefit of PrimeRep, turn on notifications to receive:",
+    "Allow PrimeRep to send notifications. You can turn on Coach reminders in Settings after creating your account.",
+  examplesHeading: "Notification examples",
+  examplesDescription:
+    "Examples only. Reminders depend on your settings and workout plan.",
   notifications: [
     {
-      id: "workout",
-      type: "workout",
-      title: "Workout",
-      exercise: "Deadlift",
-      nextSet: "Next: Set 2/3 - 10 reps - 80kg",
-      rest: "Rest",
-      timestamp: "07:00", // This will be dynamic, starting from 07:00
+      id: "upcoming-workout",
+      title: "PrimeRep",
+      message: "Today’s workout is ready.",
+      timestamp: "Example",
     },
     {
-      id: "rest-over-1",
-      type: "rest",
-      title: "Rest time is over",
-      nextSet: "Next set: Back Squat - 10 reps - 80kg",
-      timestamp: "now",
+      id: "training-week",
+      title: "PrimeRep",
+      message: "Review your training week.",
+      timestamp: "Example",
     },
     {
-      id: "rest-over-2",
-      type: "rest",
-      title: "Rest time is over",
-      nextSet: "Next set: Deadlift - 8 reps - 80kg",
-      timestamp: "now",
-    },
-    {
-      id: "strength-score",
-      type: "strength",
-      title: "Strength Score",
-      message: "Your Strength Score has increased by 4 points",
-      timestamp: "now",
+      id: "equipment-review",
+      title: "PrimeRep",
+      message: "Your program needs an equipment review.",
+      timestamp: "Example",
     },
   ],
 };

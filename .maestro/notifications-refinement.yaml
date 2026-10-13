@@ -1,0 +1,164 @@
+# Read-only approved guest matrix. NEVER tap Enable or Skip; both have real side effects.
+# MODE and SCREENSHOT_PREFIX are required CLI values with no shadowing defaults.
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 60000
+- openLink: primerepai://onboarding/notifications
+- extendedWaitUntil:
+    visible:
+      id: onboarding-notifications-heading
+    timeout: 15000
+- assertNotVisible: There was a problem loading the project.
+- assertNotVisible:
+    id: UIKeyboardLayoutStar.*
+- assertNotVisible: .*Strength Score.*
+- assertNotVisible: .*Rest time is over.*
+- runFlow:
+    when:
+      true: ${MODE == 'normal' || MODE == 'compact'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-heading
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: onboarding-notifications-description
+          text: Allow PrimeRep to send notifications. You can turn on Coach reminders in Settings after creating your account.
+      - assertVisible: Notification examples
+      - assertVisible: Examples only. Reminders depend on your settings and workout plan.
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-initial
+      - scrollUntilVisible:
+          element:
+            text: Today’s workout is ready.
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible: Example
+      - scrollUntilVisible:
+          element:
+            text: Review your training week.
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            text: Your program needs an equipment review.
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-enable
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: onboarding-notifications-enable
+          text: Enable notifications
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-enable
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-skip
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: onboarding-notifications-skip
+          text: Skip notifications
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
+- runFlow:
+    when:
+      true: ${MODE == 'layout'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-heading
+          direction: UP
+          visibilityPercentage: 100
+          timeout: 30000
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-top
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-description
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-settings
+      - scrollUntilVisible:
+          element:
+            text: Examples only. Reminders depend on your settings and workout plan.
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-clarification
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-example-upcoming-workout
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible: Today’s workout is ready.
+      - assertVisible: PrimeRep
+      - assertVisible: Example
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-example-upcoming-workout
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-example-training-week
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible: Review your training week.
+      - assertVisible: PrimeRep
+      - assertVisible: Example
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-example-training-week
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-example-equipment-review
+          direction: DOWN
+          centerElement: true
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible: Your program needs an equipment review.
+      - assertVisible: PrimeRep
+      - assertVisible: Example
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-example-equipment-review
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-enable
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: onboarding-notifications-enable
+          text: Enable notifications
+          enabled: true
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-enable
+      - scrollUntilVisible:
+          element:
+            id: onboarding-notifications-skip
+          direction: DOWN
+          visibilityPercentage: 100
+          timeout: 30000
+      - assertVisible:
+          id: onboarding-notifications-skip
+          text: Skip notifications
+          enabled: true
+      - waitForAnimationToEnd
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-bottom
