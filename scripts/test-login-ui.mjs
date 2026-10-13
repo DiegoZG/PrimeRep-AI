@@ -288,12 +288,12 @@ test("presentation: title, notices and form actions remain uncapped and naturall
   await unmount(view.tree);
 });
 
-test("scope: neutral input opt-in stays exclusive to the four approved screens without changing controllers", () => {
+test("scope: neutral input opt-in stays exclusive to the five approved screens without changing controllers", () => {
   const route = source("app/login.tsx");
   const state = (input) => input.slice(input.indexOf("  const [email"), input.indexOf("\n  return ("));
   assert.equal(state(route), state(original("app/login.tsx")));
   const callers = execFileSync("rg", ["-l", "authPresentation", "app", "components"], { cwd: root, encoding: "utf8" }).trim().split("\n").sort();
-  assert.deepEqual(callers, ["app/login.tsx", "app/onboarding/body-stats.tsx", "app/onboarding/fitness-experience/one-rep-max.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
+  assert.deepEqual(callers, ["app/login.tsx", "app/onboarding/body-stats.tsx", "app/onboarding/fitness-experience/one-rep-max.tsx", "app/onboarding/index.tsx", "app/signup.tsx", "components/animated-input.tsx"]);
   const oneRepMax = "app/onboarding/fitness-experience/one-rep-max.tsx";
   const controller = (input) => input.slice(input.indexOf("export default function OneRepMaxScreen()"), input.indexOf("\n  return ("));
   const baseline = execFileSync("git", ["show", `e68e9de49bca3965e4c6d0b0e26cb9c6ed1fda1e:${oneRepMax}`], { cwd: root, encoding: "utf8" });
