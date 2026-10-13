@@ -164,6 +164,8 @@ export default function SearchEquipmentScreen() {
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <AnimatedSearch
+            accessibilityLabel="Search for equipment"
+            testID="onboarding-equipment-search"
             placeholder="Search for equipment"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -197,13 +199,19 @@ export default function SearchEquipmentScreen() {
                   : "Failed to load equipment"}
               </ThemedText>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Retry"
                 onPress={() => ensureEquipmentLoaded({ force: true })}
-                style={[
+                style={({ pressed }) => [
                   styles.retryButton,
-                  { backgroundColor: colors.primaryButton },
+                  {
+                    borderColor: colors.inputBorder,
+                    backgroundColor: pressed ? colors.inputBackground : "transparent",
+                    opacity: pressed ? 0.7 : 1,
+                  },
                 ]}
               >
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={[styles.retryButtonText, { color: colors.text }]}>Retry</Text>
               </Pressable>
             </View>
           ) : Object.keys(groupedEquipment).length === 0 ? (
@@ -227,6 +235,7 @@ export default function SearchEquipmentScreen() {
                   return (
                     <EquipmentCard
                       key={eq.id}
+                      quiet
                       id={eq.id}
                       name={eq.name}
                       selected={isSelected}
@@ -284,13 +293,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   retryButton: {
+    minHeight: 44,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    borderWidth: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
   retryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
