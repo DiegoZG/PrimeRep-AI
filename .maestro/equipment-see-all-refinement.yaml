@@ -1,0 +1,45 @@
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Loading from Metro.*
+    timeout: 15000
+- assertVisible: Cable machines
+- assertVisible:
+    id: onboarding-equipment-see-all-search
+- runFlow:
+    when:
+      true: ${MODE == "initial"}
+    commands:
+      - assertVisible: Crossover Cable
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "overlap"}
+    commands:
+      - swipe:
+          start: 98%,80%
+          end: 98%,30%
+          duration: 800
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == "query"}
+    commands:
+      - tapOn:
+          id: onboarding-equipment-see-all-search
+      - inputText: row
+      - assertVisible: Row Cable
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-query-keyboard
+      - eraseText:
+          charactersToErase: 3
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-erased-empty-keyboard
+      - tapOn:
+          point: 98%,40%
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-restored-empty-dismissed
