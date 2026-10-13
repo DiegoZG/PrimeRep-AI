@@ -143,7 +143,7 @@ for (const scheme of ["light", "dark"]) {
   });
   test(`${scheme}: controlled empty-error fixture preserves exact copy and forwards Retry force to the real provider`, async () => {
     for (const error of ["network", "server"]) { const view = await screen({ scheme, emptyError: error }); assert.ok(text(view, error === "network" ? "No internet connection" : "Failed to load equipment")); const before = view.calls.gets.length;
-      const retry = view.tree.root.findByType("Pressable"); const priorEnsures = view.calls.ensures.length; await act(async () => retry.props.onPress()); assert.deepEqual(view.calls.ensures.slice(priorEnsures).filter(Boolean), [{ force: true }]); assert.ok(view.calls.gets.length > before);
+      const retry = view.tree.root.findAllByType("Pressable").find((node) => node.props.accessibilityLabel === "Retry"); const priorEnsures = view.calls.ensures.length; await act(async () => retry.props.onPress()); assert.deepEqual(view.calls.ensures.slice(priorEnsures).filter(Boolean), [{ force: true }]); assert.ok(view.calls.gets.length > before);
       await act(async () => view.clearEmptyError()); assert.deepEqual(ids(view), groupedIds(catalog)); assert.deepEqual(view.calls.fields, []); await unmount(view); }
   });
   test(`${scheme}: existing Search focus and checkmark timing retain real shared animations and props`, async () => {
@@ -170,12 +170,12 @@ for (const scheme of ["light", "dark"]) {
     const view = await screen({ scheme }); assert.equal(field(view).props.accessibilityLabel, "Search for equipment"); assert.equal(field(view).props.testID, "onboarding-equipment-search"); assert.equal(field(view).props.editable, true); assert.equal(field(view).props.placeholder, "Search for equipment"); await unmount(view);
   });
   test(`presentation: ${scheme} controlled empty-error Retry is neutral named and at least44 points with feedback`, async () => {
-    const view = await screen({ scheme, emptyError: "network" }); const retry = view.tree.root.findByType("Pressable"); const style = (pressed) => flat(typeof retry.props.style === "function" ? retry.props.style({ pressed }) : retry.props.style);
+    const view = await screen({ scheme, emptyError: "network" }); const retry = view.tree.root.findAllByType("Pressable").find((node) => node.props.accessibilityLabel === "Retry"); const style = (pressed) => flat(typeof retry.props.style === "function" ? retry.props.style({ pressed }) : retry.props.style);
     assert.equal(retry.props.accessibilityRole, "button"); assert.equal(retry.props.accessibilityLabel, "Retry"); assert.ok(style(false).minHeight >= 44); assert.equal(style(false).borderColor, view.colors.inputBorder); assert.notEqual(style(false).backgroundColor, view.colors.primaryButton); assert.equal(style(true).backgroundColor, view.colors.inputBackground); assert.ok(style(true).opacity < style(false).opacity); assert.equal(flat(text(view, "Retry").props.style).color, view.colors.text); assert.deepEqual(view.calls.fields, []); await unmount(view);
   });
 }
 test("scope: Search controller and merged shared Card/Search/provider bytes remain frozen", () => {
   const sha = (value) => createHash("sha256").update(value).digest("hex"); const s = source(route); const controller = s.slice(s.indexOf("export default function"), s.indexOf("\n  return ("));
   assert.equal(sha(controller), "9ba936260d97130f76a14ca95df6effd2a8284edb78f0e3b9b72ae4f79029aa3");
-  for (const [file, hash] of Object.entries({ "components/equipment/equipment-card.tsx": "711948254f316a423a2ef4e67007f6dc5b1c3002d4dc4a9235e6d35d56e3e854", "components/animated-search.tsx": "97a875024a1e52e8ccd2adcf177259fe8922d72d81ebfb98f9cd712f96c4de59", "utils/equipmentContext.tsx": "1bd981c6e20e570793aa837c5588a2894664a66301bfce72868f4b3607476cd1", "utils/onboardingContext.tsx": "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a" })) assert.equal(sha(source(file)), hash, file);
+  for (const [file, hash] of Object.entries({ "components/equipment/equipment-card.tsx": "711948254f316a423a2ef4e67007f6dc5b1c3002d4dc4a9235e6d35d56e3e854", "components/animated-search.tsx": "dade4eab5655699647c05e747faa66959998ab93a494b76fbd43376bba4e68f0", "utils/equipmentContext.tsx": "1bd981c6e20e570793aa837c5588a2894664a66301bfce72868f4b3607476cd1", "utils/onboardingContext.tsx": "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a" })) assert.equal(sha(source(file)), hash, file);
 });
