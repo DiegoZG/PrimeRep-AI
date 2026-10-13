@@ -146,6 +146,8 @@ export default function SeeAllScreen() {
         <View style={styles.searchContainer}>
           <AnimatedSearch
             placeholder="Search for equipment"
+            accessibilityLabel="Search for equipment"
+            testID="onboarding-equipment-see-all-search"
             value={searchQuery}
             onChangeText={setSearchQuery}
             editable={true}
@@ -178,13 +180,23 @@ export default function SeeAllScreen() {
                   : "Failed to load equipment"}
               </ThemedText>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Retry"
                 onPress={() => ensureEquipmentLoaded({ force: true })}
-                style={[
+                style={({ pressed }) => [
                   styles.retryButton,
-                  { backgroundColor: colors.primaryButton },
+                  {
+                    backgroundColor: pressed
+                      ? colors.inputBackground
+                      : colors.background,
+                    borderColor: colors.inputBorder,
+                    opacity: pressed ? 0.7 : 1,
+                  },
                 ]}
               >
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={[styles.retryButtonText, { color: colors.text }]}>
+                  Retry
+                </Text>
               </Pressable>
             </View>
           ) : filteredEquipment.length === 0 ? (
@@ -203,6 +215,7 @@ export default function SeeAllScreen() {
                 return (
                   <EquipmentCard
                     key={eq.id}
+                    quiet
                     id={eq.id}
                     name={eq.name}
                     selected={isSelected}
@@ -252,13 +265,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
   retryButton: {
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 24,
     paddingVertical: 12,
+    borderWidth: 1,
     borderRadius: 8,
     alignItems: "center",
   },
   retryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
