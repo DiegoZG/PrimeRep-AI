@@ -126,7 +126,12 @@ test("scope: the complete Welcome controller and motion configuration stay byte-
 });
 
 test("scope: merged auth, shared providers, theme, services and package/legal bytes stay unchanged; First Reason keeps its controller", () => {
-  for (const file of ["app/signup.tsx", "app/login.tsx", "app/forgot-password.tsx", "app/_layout.tsx", "app/onboarding/_layout.tsx", "app/onboarding/index.tsx", "utils/authContext.tsx", "utils/onboardingContext.tsx", "components/animated-input.tsx", "components/animated-button.tsx", "components/animated-card.tsx", "components/themed-view.tsx", "components/themed-text.tsx", "components/workout/WorkoutText.tsx", "hooks/use-screen-transition.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "assets/svg-components/logo.tsx", "constants/theme.ts", "constants/legal.ts", "constants/legal-release.json", "services/authService.ts", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
+  for (const file of ["app/signup.tsx", "app/login.tsx", "app/forgot-password.tsx", "app/_layout.tsx", "app/onboarding/_layout.tsx", "utils/authContext.tsx", "utils/onboardingContext.tsx", "components/animated-input.tsx", "components/animated-button.tsx", "components/animated-card.tsx", "components/themed-view.tsx", "components/themed-text.tsx", "components/workout/WorkoutText.tsx", "hooks/use-screen-transition.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "assets/svg-components/logo.tsx", "constants/theme.ts", "constants/legal.ts", "constants/legal-release.json", "services/authService.ts", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
+  const nameController = (input) => {
+    const withoutInsets = input.replace("  const insets = useSafeAreaInsets();\n", "");
+    return withoutInsets.slice(withoutInsets.indexOf("const OnboardingFirstScreen = () => {"), withoutInsets.indexOf("\n  return ("));
+  };
+  assert.equal(nameController(source("app/onboarding/index.tsx")), nameController(original("app/onboarding/index.tsx")));
   const reasonController = (input) => input.slice(input.indexOf("export default function FirstReasonScreen()"), input.indexOf("\n  return ("));
   assert.equal(reasonController(source("app/onboarding/first-reason.tsx")), reasonController(original("app/onboarding/first-reason.tsx")));
 });

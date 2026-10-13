@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   Keyboard,
@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedButton } from "@/components/animated-button";
 import { AnimatedCard } from "@/components/animated-card";
@@ -31,6 +32,7 @@ const OnboardingFirstScreen = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (preferredName.trim()) {
@@ -52,26 +54,37 @@ const OnboardingFirstScreen = () => {
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerRight: () => null }} />
       <Animated.View style={[styles.keyboardAvoidingView, screenAnimatedStyle]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
           keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
         >
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View style={styles.keyboardAvoidingView}>
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {/* Content */}
-                <AnimatedCard delay={100}>
+          <View style={styles.keyboardAvoidingView}>
+            <ScrollView
+              style={{ flex: 1 }}
+              testID="onboarding-name-scroll"
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingTop: 24, paddingBottom: Math.max(24, insets.bottom + 12) },
+              ]}
+              contentInsetAdjustmentBehavior="automatic"
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Content */}
+              <AnimatedCard delay={100}>
+                <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
                   <View style={styles.content}>
                     <Text style={styles.question}>
                       What&apos;s your first name?
                     </Text>
                     <AnimatedInput
+                      authPresentation
+                      accessibilityLabel="First name"
+                      testID="onboarding-name-input"
                       style={styles.input}
                       placeholder="Enter your first name"
                       value={preferredName}
@@ -81,19 +94,21 @@ const OnboardingFirstScreen = () => {
                       textContentType="givenName"
                     />
                   </View>
-                </AnimatedCard>
-              </ScrollView>
-
-              {/* Bottom Button */}
-              <View style={styles.buttonContainer}>
+                </TouchableWithoutFeedback>
+              </AnimatedCard>
+              <View style={[styles.buttonContainer, { marginTop: 12, paddingBottom: 0 }]}>
                 <AnimatedButton
                   onPress={handleNext}
                   disabled={!preferredName.trim()}
                   accessibilityState={{ disabled: !preferredName.trim() }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next"
+                  testID="onboarding-name-next"
                 >
                   <View
                     style={[
                       styles.primaryButton,
+                      { minHeight: 56 },
                       !preferredName.trim() && { opacity: 0.5 },
                     ]}
                   >
@@ -101,25 +116,68 @@ const OnboardingFirstScreen = () => {
                   </View>
                 </AnimatedButton>
 
+                <Pressable
+                  testID="onboarding-name-skip"
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip"
+                  onPress={() => router.push("/onboarding/final")}
+                  style={({ pressed }) => ({
+                    marginTop: 12,
+                    minHeight: 44,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.inputBorder,
+                    backgroundColor: pressed ? colors.inputBackground : "transparent",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <ThemedText style={{ fontSize: 16, fontWeight: "600", color: colors.text }}>
+                    Skip
+                  </ThemedText>
+                </Pressable>
+
                 {/* Login footer */}
                 <View
                   style={{
                     marginTop: 16,
                     flexDirection: "row",
+                    flexWrap: "wrap",
+                    columnGap: 8,
                     justifyContent: "center",
                     alignItems: "center",
                   }}
                 >
-                  <ThemedText type="default" style={{ fontSize: 14 }}>
+                  <ThemedText type="default" style={{ fontSize: 14, maxWidth: "100%", flexShrink: 1, textAlign: "center" }}>
                     Already have an account?{" "}
                   </ThemedText>
-                  <Pressable testID="onboarding-login-link" onPress={() => router.push("/login")}>
+                  <Pressable
+                    testID="onboarding-login-link"
+                    accessibilityRole="button"
+                    accessibilityLabel="Log in"
+                    onPress={() => router.push("/login")}
+                    style={({ pressed }) => ({
+                      minHeight: 44,
+                      minWidth: 44,
+                      maxWidth: "100%",
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 8,
+                      backgroundColor: pressed ? colors.inputBackground : "transparent",
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
                     <ThemedText
                       type="link"
                       style={{
                         fontSize: 14,
                         fontWeight: "600",
-                        color: colors.primaryButton,
+                        color: colors.text,
                       }}
                     >
                       Log in
@@ -127,8 +185,8 @@ const OnboardingFirstScreen = () => {
                   </Pressable>
                 </View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Animated.View>
     </ThemedView>

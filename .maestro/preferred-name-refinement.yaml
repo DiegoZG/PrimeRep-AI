@@ -1,0 +1,62 @@
+# Only root-approved fictional guests; never press Next, Log in, or Skip.
+# Inspect each bounded pan's raw frame before invoking the next mode.
+# MODE and SCREENSHOT_PREFIX are required CLI values; no shadowing defaults.
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible:
+      text: "Downloading.*"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible:
+      text: "Loading from Metro.*"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: onboarding-name-input
+    timeout: 15000
+- assertVisible:
+    id: onboarding-name-scroll
+- runFlow:
+    when:
+      true: ${MODE == 'keyboard'}
+    commands:
+      - takeScreenshot: ${SCREENSHOT_PREFIX}-keyboard
+- runFlow:
+    when:
+      true: ${MODE == 'pan1'}
+    commands:
+      - swipe:
+          start: 50%,40%
+          end: 50%,20%
+          duration: 800
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'pan2'}
+    commands:
+      - swipe:
+          start: 50%,45%
+          end: 50%,25%
+          duration: 800
+      - assertVisible:
+          id: onboarding-name-next
+          enabled: false
+      - assertVisible:
+          id: onboarding-name-skip
+      - assertVisible:
+          id: onboarding-login-link
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
+- runFlow:
+    when:
+      true: ${MODE == 'top'}
+    commands:
+      - swipe:
+          start: 5%,35%
+          end: 5%,75%
+          duration: 800
+      - takeScreenshot: ${SCREENSHOT_PREFIX}
