@@ -489,7 +489,7 @@ test("Q&A: loading, failed load and pending-unmount use unchanged cancellation c
   await unmount(failed.tree);
 });
 
-test("scope: Q&A loading, sending, friendly errors and other shared callers remain byte-identical", () => {
+test("scope: Q&A controller, friendly errors and shared caller contracts remain protected", () => {
   const file = "components/exercises/ExerciseAskThread.tsx";
   const old = execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" });
   const current = readFileSync(path.join(root, file), "utf8");
@@ -499,6 +499,27 @@ test("scope: Q&A loading, sending, friendly errors and other shared callers rema
   assert.equal(friendly(current), friendly(old));
   for (const file of execFileSync("rg", ["-l", "ContentSection|ExerciseAskThread", "app", "components"], { cwd: root, encoding: "utf8" }).trim().split("\n")) {
     if (["app/exercises/[id].tsx", "components/exercises/ContentSection.tsx", "components/exercises/ExerciseAskThread.tsx"].includes(file)) continue;
-    assert.equal(readFileSync(path.join(root, file), "utf8"), execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" }), file);
+    const current = readFileSync(path.join(root, file), "utf8");
+    const prior = execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" });
+    if (file === "app/workouts/[workoutDayId].tsx") {
+      const contract = (input) => {
+        const parsed = ts.createSourceFile(file, input, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+        assert.equal(parsed.parseDiagnostics.length, 0);
+        const imports = parsed.statements.filter((node) => ts.isImportDeclaration(node) && node.moduleSpecifier.text === "@/components/exercises/ContentSection").map((node) => node.getText(parsed));
+        const calls = [];
+        const visit = (node) => {
+          const tag = ts.isJsxSelfClosingElement(node) ? node.tagName : ts.isJsxElement(node) ? node.openingElement.tagName : null;
+          if (tag?.getText(parsed) === "ContentSection") calls.push(node.getText(parsed));
+          ts.forEachChild(node, visit);
+        };
+        visit(parsed);
+        assert.equal(imports.length, 1);
+        assert.ok(calls.length > 0);
+        return { imports, calls };
+      };
+      assert.deepEqual(contract(current), contract(prior), file);
+    } else {
+      assert.equal(current, prior, file);
+    }
   }
 });

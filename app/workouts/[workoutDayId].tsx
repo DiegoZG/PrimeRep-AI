@@ -9,6 +9,7 @@ import {
   SectionList,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -373,6 +374,9 @@ export default function WorkoutDayDetailScreen() {
     : [];
 
   // Render section header
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3 && Boolean(workout);
+
   const renderSectionHeader = ({ section }: { section: WorkoutSection }) => (
     <View style={styles.sectionHeader}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -412,7 +416,6 @@ export default function WorkoutDayDetailScreen() {
             {item.prescription.sets}
           </Text>
         </View>
-        <View style={styles.prescriptionDivider} />
         <View style={styles.prescriptionItem}>
           <Text style={[styles.prescriptionLabel, { color: colors.placeholder }]}>
             Reps
@@ -421,7 +424,6 @@ export default function WorkoutDayDetailScreen() {
             {item.prescription.reps}
           </Text>
         </View>
-        <View style={styles.prescriptionDivider} />
         <View style={styles.prescriptionItem}>
           <Text style={[styles.prescriptionLabel, { color: colors.placeholder }]}>
             Rest
@@ -440,9 +442,23 @@ export default function WorkoutDayDetailScreen() {
     </View>
   );
 
+  const renderWorkoutHeading = () => (
+    <View testID={largeText ? "workout-scroll-heading" : "workout-header-heading"} style={largeText ? styles.scrollHeading : styles.headerTitleContainer}>
+      <ThemedText type="title" style={styles.headerTitle}>
+        {workout?.title || "Workout"}
+      </ThemedText>
+      {workout && (
+        <Text style={[styles.headerSubtitle, { color: colors.placeholder }]}>
+          {getFormattedDate(workout.date)} • {workout.durationMinutes} min
+        </Text>
+      )}
+    </View>
+  );
+
   // Render header with actions (Skip Day only - Regenerate moved to Home)
   const renderListHeader = () => (
     <View style={styles.listHeader}>
+      {largeText && renderWorkoutHeading()}
       {/* Coach intent — renders nothing when absent */}
       <CoachCard intent={workout?.workoutIntent} colors={colors} />
       {!!workout?.unavailableMuscles?.length && (
@@ -470,9 +486,11 @@ export default function WorkoutDayDetailScreen() {
           {DURATION_OPTIONS.map((duration) => (
             <Pressable
               key={duration}
+              accessibilityRole="button"
+              accessibilityLabel={`${duration} minutes`}
               onPress={() => handleUpdateDuration(duration)}
               disabled={isActionLoading}
-              accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
+              accessibilityState={{ disabled: isActionLoading, busy: isActionLoading, selected: workout?.durationMinutes === duration }}
               style={[
                 styles.durationOption,
                 {
@@ -509,6 +527,8 @@ export default function WorkoutDayDetailScreen() {
       {/* Skip Day action button */}
       <Pressable
         testID="skip-day-button"
+        accessibilityRole="button"
+        accessibilityLabel="Skip Day"
         onPress={handleSkipDay}
         disabled={isActionLoading}
         accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
@@ -527,7 +547,7 @@ export default function WorkoutDayDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
+        edges={["top", "bottom"]}
       >
         <View style={styles.header}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back from workout" onPress={() => router.back()} style={styles.backButton}>
@@ -553,7 +573,7 @@ export default function WorkoutDayDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
+        edges={["top", "bottom"]}
       >
         <View style={styles.header}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back from unavailable workout" onPress={() => router.back()} style={styles.backButton}>
@@ -580,6 +600,8 @@ export default function WorkoutDayDetailScreen() {
             This workout may have been removed or updated.
           </ThemedText>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go Back"
             onPress={() => router.back()}
             style={[styles.retryButton, { backgroundColor: colors.primaryButton }]}
           >
@@ -593,30 +615,21 @@ export default function WorkoutDayDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={largeText ? styles.largeTextHeader : styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back from workout details"
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={largeText ? [styles.backButton, styles.largeTextBackButton] : styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <View style={styles.headerTitleContainer}>
-          <ThemedText type="title" style={styles.headerTitle}>
-            {workout?.title || "Workout"}
-          </ThemedText>
-          {workout && (
-            <Text style={[styles.headerSubtitle, { color: colors.placeholder }]}>
-              {getFormattedDate(workout.date)} • {workout.durationMinutes} min
-            </Text>
-          )}
-        </View>
-        <View style={styles.headerSpacer} />
+        {!largeText && renderWorkoutHeading()}
+        {!largeText && <View style={styles.headerSpacer} />}
       </View>
 
       {/* Action loading overlay */}
@@ -629,6 +642,9 @@ export default function WorkoutDayDetailScreen() {
       {/* Content */}
       {workout ? (
         <SectionList
+          testID="workout-detail-list"
+          style={{ flex: 1 }}
+          contentInsetAdjustmentBehavior="automatic"
           sections={sections}
           keyExtractor={(item, index) => `${item.exercise.id}-${index}`}
           renderItem={renderWorkoutItem}
@@ -643,9 +659,11 @@ export default function WorkoutDayDetailScreen() {
 
       {/* Start Workout button */}
       {workout && (
-        <View style={styles.startButtonContainer}>
+        <View testID="workout-start-footer" style={[styles.startButtonContainer, { backgroundColor: colors.background }]}>
           <Pressable
             testID="start-workout-button"
+            accessibilityRole="button"
+            accessibilityLabel="Start Workout"
             onPress={() => void startWorkout()}
             style={[styles.startButton, { backgroundColor: colors.primaryButton }]}
           >
@@ -723,6 +741,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
+    minHeight: 44,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -742,7 +761,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 24,
   },
   listHeader: {
     paddingBottom: 20,
@@ -772,6 +791,8 @@ const styles = StyleSheet.create({
   },
   durationOption: {
     flex: 1,
+    minHeight: 44,
+    minWidth: 44,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
@@ -782,6 +803,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
   },
   skipButton: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -796,6 +818,8 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop: 8,
@@ -803,8 +827,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    flexShrink: 1,
+    minWidth: 0,
   },
   sectionBadge: {
+    maxWidth: "100%",
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -819,6 +847,8 @@ const styles = StyleSheet.create({
   },
   prescriptionContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
     alignItems: "center",
     justifyContent: "space-around",
     paddingVertical: 8,
@@ -826,7 +856,10 @@ const styles = StyleSheet.create({
   },
   prescriptionItem: {
     alignItems: "center",
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: "auto",
+    minWidth: 80,
   },
   prescriptionLabel: {
     fontSize: 11,
@@ -841,11 +874,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
-  prescriptionDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: "rgba(150, 150, 150, 0.2)",
-  },
   itemSeparator: {
     height: 16,
   },
@@ -853,27 +881,41 @@ const styles = StyleSheet.create({
     height: 8,
   },
   startButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flexShrink: 0,
     paddingHorizontal: 20,
-    paddingBottom: 34,
+    paddingBottom: 12,
     paddingTop: 12,
-    backgroundColor: "transparent",
   },
   startButton: {
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 14,
     gap: 8,
   },
   startButtonText: {
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: "center",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+  },
+  largeTextHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    alignItems: "flex-start",
+  },
+  largeTextBackButton: {
+    width: 44,
+    height: 44,
+  },
+  scrollHeading: {
+    paddingBottom: 20,
+    gap: 4,
   },
 });
