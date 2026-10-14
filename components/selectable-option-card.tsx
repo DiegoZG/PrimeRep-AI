@@ -21,6 +21,7 @@ interface SelectableOptionCardProps extends Pick<TouchableOpacityProps,
   showChevron?: boolean;
   icon?: string; // Emoji or icon identifier
   specialBackground?: boolean; // Special background color for certain options
+  fullWidthDescription?: boolean;
 }
 
 export function SelectableOptionCard({
@@ -33,6 +34,7 @@ export function SelectableOptionCard({
   showChevron = false,
   icon,
   specialBackground = false,
+  fullWidthDescription = false,
   ...accessibilityProps
 }: SelectableOptionCardProps) {
   const colorScheme = useColorScheme();
@@ -76,6 +78,27 @@ export function SelectableOptionCard({
     return colors.inputBackground;
   };
 
+  const indicator = showChevron ? (
+    <Ionicons name="chevron-forward" size={20} color={colors.placeholder} />
+  ) : (
+    showCheckbox && (
+      <View
+        style={[
+          styles.checkbox,
+          {
+            backgroundColor: isSelected ? colors.primaryButton : "transparent",
+            borderColor: isSelected ? colors.primaryButton : colors.inputBorder,
+          },
+          ...(fullWidthDescription ? [styles.fixedIndicator] : []),
+        ]}
+      >
+        <AnimatedCheckmark visible={isSelected}>
+          {fullWidthDescription ? <View style={styles.checkmark} /> : <Text style={styles.checkmarkText}>✓</Text>}
+        </AnimatedCheckmark>
+      </View>
+    )
+  );
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} {...accessibilityProps}>
       <View
@@ -90,7 +113,7 @@ export function SelectableOptionCard({
       >
         <View style={styles.cardContent}>
           {/* Left side: Icon, Tag, Title, and Description */}
-          <View style={styles.leftContent}>
+          <View style={fullWidthDescription ? [styles.leftContent, styles.flexibleText] : styles.leftContent}>
             {/* Tag */}
             {tag && (
               <View
@@ -115,11 +138,12 @@ export function SelectableOptionCard({
             )}
 
             {/* Title Row with Icon */}
-            <View style={styles.titleRow}>
+            <View style={fullWidthDescription ? [styles.titleRow, styles.expandedTitleRow] : styles.titleRow}>
               {icon && <Text style={styles.iconText}>{icon}</Text>}
-              <Text style={[styles.optionTitle, { color: colors.text }]}>
+              <Text style={[styles.optionTitle, { color: colors.text }, ...(fullWidthDescription ? [styles.flexibleTitle] : [])]}>
                 {title}
               </Text>
+              {fullWidthDescription && indicator}
             </View>
 
             {/* Description */}
@@ -136,33 +160,7 @@ export function SelectableOptionCard({
           </View>
 
           {/* Right side: Checkbox or Chevron */}
-          {showChevron ? (
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.placeholder}
-            />
-          ) : (
-            showCheckbox && (
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: isSelected
-                      ? colors.primaryButton
-                      : "transparent",
-                    borderColor: isSelected
-                      ? colors.primaryButton
-                      : colors.inputBorder,
-                  },
-                ]}
-              >
-                <AnimatedCheckmark visible={isSelected}>
-                  <Text style={styles.checkmarkText}>✓</Text>
-                </AnimatedCheckmark>
-              </View>
-            )
-          )}
+          {!fullWidthDescription && indicator}
         </View>
       </View>
     </TouchableOpacity>
@@ -228,5 +226,27 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  flexibleText: {
+    minWidth: 0,
+  },
+  expandedTitleRow: {
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  flexibleTitle: {
+    flex: 1,
+    minWidth: 0,
+  },
+  fixedIndicator: {
+    flexShrink: 0,
+  },
+  checkmark: {
+    width: 7,
+    height: 12,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: "#FFFFFF",
+    transform: [{ rotate: "45deg" }],
   },
 });

@@ -497,7 +497,7 @@ export const VARIETY_LEVEL_SCREEN = {
   title: "Variety Level",
   step: 7,
   totalSteps: 9,
-  question: "How would you like us to select your exercises?",
+  question: "How much variety do you want?",
   description:
     "Choose how much variety you want in your workouts. You can always change this later.",
   options: [

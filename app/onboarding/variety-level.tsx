@@ -1,6 +1,7 @@
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -26,6 +27,9 @@ export default function VarietyLevelScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { opacity, translateX } = useScreenTransition();
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const largeText = fontScale > 1.3;
 
   const [selectedVariety, setSelectedVariety] = useState<string>(
     data.varietyLevel || ""
@@ -141,12 +145,38 @@ export default function VarietyLevelScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerRight: largeText ? () => null : () => (
+            <TouchableOpacity
+              onPress={() => router.push("/onboarding/final")}
+              style={{ marginHorizontal: 16, minHeight: 44, minWidth: 44, justifyContent: "center" }}
+            >
+              <Text style={{ color: colors.electricBlue, fontSize: 16 }}>
+                Skip
+              </Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <Animated.View style={[styles.animatedContainer, screenAnimatedStyle]}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          testID="variety-scroll"
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={largeText ? [styles.scrollContent, styles.largeTextScrollContent] : styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
+            {largeText && (
+              <TouchableOpacity
+                testID="variety-skip"
+                accessibilityRole="button"
+                onPress={() => router.push("/onboarding/final")}
+                style={styles.skipButton}
+              >
+                <Text style={[styles.skipText, { color: colors.text }]}>Skip</Text>
+              </TouchableOpacity>
+            )}
             {/* Question */}
             <Animated.View style={questionAnimatedStyle}>
               <AnimatedText style={[styles.question, { color: colors.text }]}>
@@ -175,6 +205,7 @@ export default function VarietyLevelScreen() {
                       isSelected={isSelected}
                       onPress={() => handleSelectVariety(option.id)}
                       showCheckbox={true}
+                      fullWidthDescription={largeText}
                       accessibilityLabel={`${option.title}. ${option.description}`}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: isSelected }}
@@ -186,10 +217,26 @@ export default function VarietyLevelScreen() {
               })}
             </View>
           </View>
+          {largeText && (
+            <View style={[styles.buttonContainer, { paddingBottom: Math.max(24, insets.bottom) }]}>
+              <AnimatedButton onPress={handleNext} disabled={!selectedVariety} accessibilityState={{ disabled: !selectedVariety }}>
+                <View
+                  style={[
+                    styles.primaryButton,
+                    styles.largeTextPrimaryButton,
+                    { backgroundColor: colors.primaryButton },
+                    !selectedVariety && { opacity: 0.5 },
+                  ]}
+                >
+                  <Text style={styles.primaryButtonText}>NEXT</Text>
+                </View>
+              </AnimatedButton>
+            </View>
+          )}
         </ScrollView>
 
         {/* Next Button */}
-        <View
+        {!largeText && <View
           style={[
             styles.buttonContainer,
             { backgroundColor: colors.background },
@@ -206,7 +253,7 @@ export default function VarietyLevelScreen() {
               <Text style={styles.primaryButtonText}>NEXT</Text>
             </View>
           </AnimatedButton>
-        </View>
+        </View>}
       </Animated.View>
     </ThemedView>
   );
@@ -263,5 +310,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
     textTransform: "uppercase",
+  },
+  largeTextScrollContent: {
+    paddingBottom: 0,
+  },
+  skipButton: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
+  skipText: {
+    fontSize: 16,
+    fontFamily: Fonts.sans,
+  },
+  largeTextPrimaryButton: {
+    minHeight: 44,
+    paddingHorizontal: 20,
   },
 });
