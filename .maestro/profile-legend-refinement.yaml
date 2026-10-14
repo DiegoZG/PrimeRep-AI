@@ -1,0 +1,26 @@
+# Requires approved fictional auth, isolated API8001, source-guarded owned8083
+# and public Profile entry; no auth, permissions, records or selection actions.
+# Set SCREENSHOT_PREFIX and LEGEND_PATTERN explicitly; no hidden defaults.
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: profile-screen
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Loading your profile.*
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- scrollUntilVisible:
+    element: ${LEGEND_PATTERN}
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 100
+    centerElement: true
+- takeScreenshot: ${SCREENSHOT_PREFIX}
