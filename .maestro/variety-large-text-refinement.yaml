@@ -1,0 +1,43 @@
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: variety-scroll
+    timeout: 15000
+- runFlow:
+    when:
+      true: ${MODE === "initial"}
+    commands:
+      - assertVisible: 'How much variety do you want\?'
+- runFlow:
+    when:
+      true: ${MODE === "content"}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: variety-option-consistent
+          direction: DOWN
+          timeout: 15000
+          speed: 75
+          visibilityPercentage: 30
+          centerElement: false
+- runFlow:
+    when:
+      true: ${MODE === "footer"}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: NEXT
+          direction: DOWN
+          timeout: 15000
+          speed: 75
+          visibilityPercentage: 100
+          centerElement: false
+- takeScreenshot: ${SCREENSHOT_PREFIX}

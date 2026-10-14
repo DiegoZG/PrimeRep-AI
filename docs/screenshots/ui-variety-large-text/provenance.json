@@ -1,0 +1,254 @@
+{
+  "base": "78c6d0cd1f7a3e182fb19b75b0a8e1e9205286b2",
+  "sources": {
+    "app/onboarding/variety-level.tsx": "b2f8058888a08987a5365eb6e39127b1effbc94102b00bb9fe7b70c9cd019e42",
+    "components/selectable-option-card.tsx": "b5444127f5519e0e4dfb7ceb6da0934d53602164a69675bc0f25678ee0d7f8a0",
+    "features/onboarding/constants.ts": "d8bc2ff823c1bc3d22aba4a29cc8dd47698d1474141b1d0504481bee04c42aed",
+    "scripts/test-variety-accessibility-ui.mjs": "52e6a6f1f656789d2a42e1d2b03d8f0b4335d8be76b3609b3c4965d105258db6",
+    "utils/onboardingContext.tsx": "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a"
+  },
+  "controller": {
+    "bytes": 3756,
+    "sha256": "708988e89643d136b2443c5cbbd394b3e602f5022da2c19f90788f422b479526"
+  },
+  "initialConfigurations": 6,
+  "beforeInitials": 6,
+  "afterInitials": 6,
+  "afterScrolledFooterSupplements": 3,
+  "supplementalFramesAreNotConfigurations": true,
+  "originalAndFinalGuestChoices": {
+    "Plus": "varied",
+    "SE": "unset"
+  },
+  "behavior": {
+    "optionTapCount": 2,
+    "persistenceRestartCount": 1,
+    "skipTapCount": 1,
+    "publicBackTapCount": 1,
+    "nextTapCount": 0,
+    "finalPlusPreference": "varied",
+    "SEPreference": "unset"
+  },
+  "stateOracle": "Native encoded radio value; other visible radios only, not hidden offscreen nodes",
+  "flow": {
+    "file": ".maestro/variety-large-text-refinement.yaml",
+    "sha256": "f9dbbba7607f684599d005754104fecc08c1c04412abb8f2489400ffb93fccc9",
+    "byteExact": true,
+    "modes": [
+      "initial",
+      "content",
+      "footer"
+    ],
+    "excludes": "OS settings, cold connection, inventories, selection, persistence, Skip and Back are separately recorded"
+  },
+  "entries": [
+    {
+      "name": "u50b-before-plus-light-large.png",
+      "configuration": "plus-light-large",
+      "kind": "before-initial",
+      "sha256": "f13df66a27fb18f54da33a938d9336be9423e16c5a9e7c731d0d23ca1754a07c",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 230232,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-light-large.png",
+      "configuration": "plus-light-large",
+      "kind": "after-initial",
+      "sha256": "3fdc7cb883bd012191baa5262a7cdd1d814a984a31faea7b0dd2a4357a367942",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 226854,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-before-plus-dark-large.png",
+      "configuration": "plus-dark-large",
+      "kind": "before-initial",
+      "sha256": "176e6c33422aed0b1c3b014e1a513be871d6a01c7a406c983bc54636aa9295b7",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 236901,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-dark-large.png",
+      "configuration": "plus-dark-large",
+      "kind": "after-initial",
+      "sha256": "a2e0e10737956a0003d06c44a67c605b433ea9d70aba5c8df495bdc41fd769f3",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 231094,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-before-plus-light-max.png",
+      "configuration": "plus-light-max",
+      "kind": "before-initial",
+      "sha256": "899e640cf549639359a2f01ba3d6eda258d3adb724d19f5abcfa666473cec491",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 177727,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-light-max.png",
+      "configuration": "plus-light-max",
+      "kind": "after-initial",
+      "sha256": "7b105ea71b05dafcd824d68495d58da7b79797051801bb3364e03ce9e212199b",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 181361,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-before-plus-dark-max.png",
+      "configuration": "plus-dark-max",
+      "kind": "before-initial",
+      "sha256": "d88f3f52832e68d7968aea113257416765d06a1ce642b7a62831717109f4aa8d",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 176901,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-dark-max.png",
+      "configuration": "plus-dark-max",
+      "kind": "after-initial",
+      "sha256": "24ca346390ce1441defef5c71de67ff765048c559dac98d08a46cf2491beb997",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 180411,
+      "guestChoice": "varied",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-before-compact-light-large.png",
+      "configuration": "compact-light-large",
+      "kind": "before-initial",
+      "sha256": "7fa9ed9e10a31fb0cc82d98dcd686787d6ee990236166da7577698d524cdc5da",
+      "width": 750,
+      "height": 1334,
+      "bytes": 116784,
+      "guestChoice": "unset",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-compact-light-large.png",
+      "configuration": "compact-light-large",
+      "kind": "after-initial",
+      "sha256": "f4d2c25c0b04e0abc318278774a72944723ff78a22ff1dabc6d77c6f8a496dbe",
+      "width": 750,
+      "height": 1334,
+      "bytes": 115379,
+      "guestChoice": "unset",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-before-compact-light-max.png",
+      "configuration": "compact-light-max",
+      "kind": "before-initial",
+      "sha256": "fd2f426e413c4d18091fb2a3ef6246c3130c380a0700ed4f2d2ded460965da73",
+      "width": 750,
+      "height": 1334,
+      "bytes": 68082,
+      "guestChoice": "unset",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-compact-light-max.png",
+      "configuration": "compact-light-max",
+      "kind": "after-initial",
+      "sha256": "6fb8cf78a7f2a1912c8ac44114ca95e8c929518253a5c19fa04c81a0874e33c9",
+      "width": 750,
+      "height": 1334,
+      "bytes": 76532,
+      "guestChoice": "unset",
+      "caption": "Cold initial viewport, same fixture and OS configuration; MAX/compact text can continue below fold.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-light-max-footer.png",
+      "configuration": "plus-light-max",
+      "kind": "after-scrolled-footer",
+      "sha256": "69e3d6d8f421cbf3e5a9e8fca22b2f1624e917644fa7c5c78be8f1525f0e2a2c",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 207778,
+      "guestChoice": "varied",
+      "caption": "Scrolled footer: full NEXT reachable; enlarged card title is above viewport, not a whole-card fit.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-plus-dark-max-footer.png",
+      "configuration": "plus-dark-max",
+      "kind": "after-scrolled-footer",
+      "sha256": "bfa3ea08eae9f671adc32f388d2163b81de3c5e17e0d47674b48b6ba5a6e8cc6",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 216841,
+      "guestChoice": "varied",
+      "caption": "Scrolled footer: full NEXT reachable; enlarged card title is above viewport, not a whole-card fit.",
+      "byteExact": true
+    },
+    {
+      "name": "u50b-after-compact-light-max-footer.png",
+      "configuration": "compact-light-max",
+      "kind": "after-scrolled-footer",
+      "sha256": "995aa5be6b8068f606c681c85cd1014048e082ae3c0dc57079e62195f7c89512",
+      "width": 750,
+      "height": 1334,
+      "bytes": 79212,
+      "guestChoice": "unset",
+      "caption": "Scrolled footer: full NEXT reachable; enlarged card title is above viewport, not a whole-card fit.",
+      "byteExact": true
+    }
+  ],
+  "excluded": [
+    "native hierarchies/commands",
+    "three private MAX content frames",
+    "private selected/persisted/Skip/Back frames",
+    "original failed-visibility diagnostic",
+    "stale-original connection diagnostic",
+    "private YAML direction-parse rejection before any gesture"
+  ],
+  "limitations": [
+    "iOS 18.5 simulators with installed SDK54 binary",
+    "No whole-card or whole-form MAX viewport fit claim",
+    "No Next tap or native Training Place certification",
+    "No physical-device, VoiceOver/audio or CI claim"
+  ],
+  "ownerStop": {
+    "session": 58564,
+    "pid": 33032,
+    "exit": 0,
+    "ownerPidAbsent": true,
+    "port8083Free": true,
+    "protectedListeners": {
+      "8000": 77326,
+      "8081": 77763,
+      "8082": 22150
+    },
+    "port8001Closed": true
+  },
+  "fixtureHandoff": "Separately authorized Final verification; final usual-8081 restoration deferred until that slice ends"
+}
