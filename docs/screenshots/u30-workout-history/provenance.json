@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "slice": "U30 Workout History readable enlarged details",
+  "baseCommit": "b630bd7dec5c0f839aa29b88c9f18c6229687f58",
+  "featureCommit": "cc598a7ae4f77de6783e8f68542d0ce9f2c653eb",
+  "sourceSHA256": {
+    "originalRoute": "5bbad8a6ac6e572bf433fc7862703465fc92564fedc7f74507936e9b0b0232f6",
+    "candidateRoute": "c2a5685cd9e8dba2ab73061a7aa632da2ef85e0448d707bb45f821a9adc2b5b8",
+    "harness": "4cc0c02193d6699ae535b026aad98fe6460fd2d4bb885b69813ee8171aa78cd1",
+    "controller": "379e5152133fc7305a6482d967bccd8f65b30d80338eec4bb2295d60e5b961ad",
+    "normalizedImportPrefix": "0a0033cd1cf68730aaffb2d0abd0951146fb150db931d7cc24450ebabe90b3d2"
+  },
+  "platform": {
+    "os": "iOS 18.5",
+    "expoSDK": 54,
+    "normalContentSize": "large",
+    "maxContentSize": "accessibility-extra-extra-extra-large",
+    "originalCaptureMethod": "Cold reconnect after public appearance/content-size configuration; approved existing Plus and SE simulators; fictional fixture only."
+  },
+  "acceptance": {
+    "engineering": "Author and independent GO: 37 focused / 1066 named and standard full tests; types/scoped lint/project lint/audit/self-test/clear 62-HTML exact-module export and whitespace pass. Project lint has two inherited warnings; broader eslint has inherited Buffer error plus 11 unrelated warnings.",
+    "native": "Root accepted revised cold five-configuration / 15 matrix frames and two separate Back/reopen frames; intact words, ISO dates and bounded date/count/kg reachability. Plus MAX scroll supplements show Session 13, not complete Session 14.",
+    "mutations": "No session-row, workout, editor, favorite, Health or notification mutation; only authorized named Back and public History reopen."
+  },
+  "counts": {
+    "original": 5,
+    "candidateMatrix": 15,
+    "navigation": 2,
+    "totalPNG": 22
+  },
+  "preserved": "Raw ISO dates, literal sets grammar, rounded kg, order, routes, test IDs and controller behavior unchanged; no API/provider/shared-theme/storage/dependency/Health changes.",
+  "inheritedMountedRouteGaps": [
+    "missing-token loading",
+    "cached rows after token removal",
+    "late old-account response overwrite"
+  ],
+  "limits": [
+    "Bounded values/reachability, not every frame/session or whole-card-at-once fit at MAX.",
+    "Renderer account probes are not an actual app-level ownership/isolation pass; inherited request gaps not fixed.",
+    "Native Retry/error/empty state acceptance unclaimed.",
+    "No physical-device, VoiceOver, Android, GitHub CI or native session-row action claim."
+  ],
+  "exclusions": [
+    "U29 Workout Detail frames",
+    "all first-draft frames",
+    "duplicate/transitional/warm/debug/private frames",
+    "transitional cold SE original",
+    "revised-se-light-max-later-stable.png duplicate first-metadata capture",
+    "immediate revised-plus-light-large-nav-reopened-history.png transition",
+    "private probes, credentials, logs, runtime inventories and reports"
+  ],
+  "runtimeBoundary": "Owned U30 Expo listener stopped after accepted matrix/navigation checks. Fictional auth and isolated fixture API retained for next gated audit; final fictional logout, usual-app guest restoration and scoped cleanup pending.",
+  "images": [
+    {
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "file": "cold-plus-light-large-history.png",
+      "position": "initial History viewport",
+      "caption": "Cold original History viewport; no session row was opened.",
+      "sha256": "7ea1fa88511c0270f21d6a2a178bfd3f48611f561458e07ad944dc152bf226a1",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "file": "cold-plus-dark-large-history.png",
+      "position": "initial History viewport",
+      "caption": "Cold original History viewport; no session row was opened.",
+      "sha256": "0198efb2ec6ee01a5e76c850cc5c5a32619727e3bf7c35cca83b350f09960007",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "file": "cold-plus-light-max-history.png",
+      "position": "initial History viewport",
+      "caption": "Cold original History viewport; no session row was opened.",
+      "sha256": "bc31aa8b767f70eff2fe44e8e7b51d56c473335c61bc461d241e2ebe105adc4d",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "file": "cold-plus-dark-max-history.png",
+      "position": "initial History viewport",
+      "caption": "Cold original History viewport; no session row was opened.",
+      "sha256": "2b5c2e975356a665fc19720f0f8b08c06235ba9d55a5f7f99da2e0832d68a8c2",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "file": "cold-se-light-max-history-stable.png",
+      "position": "initial History viewport",
+      "caption": "Cold original History viewport; no session row was opened.",
+      "sha256": "4a312ca112378aa0a30b93fb4ed1c8003ba5e22b164765590cb9a5c4995cedc0",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "revised-plus-light-large-initial.png",
+      "position": "initial History viewport",
+      "caption": "Cold initial History viewport; fixed heading and complete Session 14 title/date/3 sets/0 kg.",
+      "sha256": "5f3086dab56031b03b394164505b1f357a32fbff1937dbb7adaa6b037c6a248b",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "revised-plus-light-large-first-metadata.png",
+      "position": "scroll supplement",
+      "caption": "Metadata supplement to the normal comparison; no session row opened.",
+      "sha256": "2a5a8059fff5f493b0bac5b854b8cf6d81aa3b891e3c3737d83276c0c8f17cfd",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "revised-plus-light-large-later-stable.png",
+      "position": "later History viewport",
+      "caption": "Complete Session 1 / 2026-08-03 / 3 sets / 0 kg reached.",
+      "sha256": "20c88a22428ab1a06def8b85c9fd2b3f1b94a6edbe2344e274260214c0e94fb6",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "file": "revised-plus-dark-large-initial.png",
+      "position": "initial History viewport",
+      "caption": "Cold initial History viewport; fixed heading and complete Session 14 title/date/3 sets/0 kg.",
+      "sha256": "a58235b3d25a06d79bd13f81841b620b73bdff4babcbcb1c5cbc49c0e5c8f5b9",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "file": "revised-plus-dark-large-first-metadata.png",
+      "position": "scroll supplement",
+      "caption": "Metadata supplement to the normal comparison; no session row opened.",
+      "sha256": "f37534e9a54e5ef1231ea8ee14f6c9278780b8af040dde08b563d2d63f62e173",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "file": "revised-plus-dark-large-later-stable.png",
+      "position": "later History viewport",
+      "caption": "Complete Session 1 / 2026-08-03 / 3 sets / 0 kg reached.",
+      "sha256": "a5fe9b2692703b85dc6ae96e22703cf4a6b8aeb28e8d6052df447c5149850120",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "revised-plus-light-max-initial.png",
+      "position": "initial History viewport",
+      "caption": "Cold initial History viewport; intact Workout/History and Foundation/Session 14 words and ISO date; enlarged heading shares body scroll.",
+      "sha256": "f6b486cc15596dc3dbd3f7d9706f1e4827e382624498f9e2bb33bf79cb8ff37b",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "revised-plus-light-max-first-metadata.png",
+      "position": "scroll supplement",
+      "caption": "Complete Session 13 metadata, not a full Session 14; preceding row metadata may be clipped at the viewport boundary.",
+      "sha256": "ff56d5316445ee2fc192e09706cb89b9e8fd302512d922c8d0cf9b2911025cb5",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "revised-plus-light-max-later-stable.png",
+      "position": "later History viewport",
+      "caption": "Complete Session 10 title/date/count/volume reached; no whole-card-at-once or every-session claim.",
+      "sha256": "4c5f30b57f7e3b743a87dc6b63dcc4a15c1244162890ab291fc93a978734da10",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "revised-plus-dark-max-initial.png",
+      "position": "initial History viewport",
+      "caption": "Cold initial History viewport; intact Workout/History and Foundation/Session 14 words and ISO date; enlarged heading shares body scroll.",
+      "sha256": "03c02b163d0dab966a3589befd08cd03a90a59253965b81bd530482164cc35d1",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "revised-plus-dark-max-first-metadata.png",
+      "position": "scroll supplement",
+      "caption": "Complete Session 13 metadata, not a full Session 14; preceding row metadata may be clipped at the viewport boundary.",
+      "sha256": "e478f415bbcb4807f5ac58415f32c20af54bb9e71183cb546604a46d0e3f96fa",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "revised-plus-dark-max-later-stable.png",
+      "position": "later History viewport",
+      "caption": "Complete Session 10 title/date/count/volume reached; no whole-card-at-once or every-session claim.",
+      "sha256": "a31100ce277f8c5dec637496f96495178ea00e60b9dd58b5d71801dd92ccf67a",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "revised-se-light-max-initial.png",
+      "position": "initial History viewport",
+      "caption": "Cold initial History viewport; intact Workout/History and Foundation/Session 14 words and ISO date; enlarged heading shares body scroll.",
+      "sha256": "68ce30a4585c4427718ae711ecb0a3432098260d5bff65ba84081ce2fc4b8ea0",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "revised-se-light-max-first-metadata.png",
+      "position": "scroll supplement",
+      "caption": "Session 14 date/count/0 kg reachable; Session 13 follows below.",
+      "sha256": "b06ad9ca8c07074ced50d90a8fc030241c1a7c73a8dbf85cde1b8cfd81111fb1",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "revised-se-light-max-later-row.png",
+      "position": "later History viewport",
+      "caption": "Complete Session 12 / 2026-10-05 / 3 sets / 0 kg reached, with fixed Back.",
+      "sha256": "a1f990f33c681b9bb2cf2f828544aff5e0e6e383871239f08ed9d7a97e9cf841",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "revised-plus-light-large-nav-back-home.png",
+      "position": "Back navigation",
+      "caption": "After one named Back tap: Home next-workout content visible.",
+      "sha256": "eff693f6ff29e86fbadb5ab6d055f0ab9c3f3ed8fedef24bda25b9fd456a2311",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "revised-plus-light-large-nav-later-stable.png",
+      "position": "public History return",
+      "caption": "Stable History after public View workout history reopen; no session row opened.",
+      "sha256": "7b734885ecfe248c1244c02a2919d02a1e900f924e5db8b49051fc7434ce6951",
+      "width": 1290,
+      "height": 2796
+    }
+  ]
+}
