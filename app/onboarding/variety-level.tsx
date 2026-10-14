@@ -175,6 +175,11 @@ export default function VarietyLevelScreen() {
                       isSelected={isSelected}
                       onPress={() => handleSelectVariety(option.id)}
                       showCheckbox={true}
+                      accessibilityLabel={`${option.title}. ${option.description}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      aria-checked={isSelected}
+                      testID={`variety-option-${option.id}`}
                     />
                   </Animated.View>
                 );
