@@ -7,7 +7,9 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -193,13 +195,20 @@ export default function FavoritesScreen() {
     />
   );
 
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+  const heading = <View style={[styles.headerTitleContainer, largeText && styles.scrollHeading]}>
+    <Ionicons name="heart" size={24} color="#FF4B4B" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={largeText ? { alignSelf: "flex-start" } : undefined} />
+    <ThemedText type="title" style={[styles.headerTitle, !largeText && { flex: 1 }]}>Favorites</ThemedText>
+  </View>;
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View testID="favorites-header" style={[styles.header, largeText && styles.largeHeader]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back from favorites"
@@ -209,19 +218,19 @@ export default function FavoritesScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <View style={styles.headerTitleContainer}>
-          <Ionicons name="heart" size={24} color="#FF4B4B" />
-          <ThemedText type="title" style={styles.headerTitle}>
-            Favorites
-          </ThemedText>
-        </View>
-        <View style={styles.headerSpacer} />
+        {!largeText && heading}
+        {!largeText && <View style={styles.headerSpacer} />}
       </View>
 
       {/* Content */}
-      {!isLoggedIn ? (
-        <View style={styles.notLoggedInContainer}>
+      {!isLoggedIn || isLoading || dataOwnerKey !== accountKey || error ? (
+        <ScrollView testID="favorites-state-scroll" style={{ flex: 1 }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.stateScrollContent, largeText && { paddingHorizontal: 8 }]}>
+          {largeText && heading}
+          {!isLoggedIn ? <View style={[styles.notLoggedInContainer, largeText && { paddingHorizontal: 0 }]}>
           <View
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={[
               styles.notLoggedInIcon,
               { backgroundColor: colors.inputBackground },
@@ -236,30 +245,33 @@ export default function FavoritesScreen() {
             Create an account to save your favorite exercises and access them
             anytime
           </ThemedText>
-        </View>
-      ) : isLoading || dataOwnerKey !== accountKey ? (
-        <View style={styles.loadingContainer}>
+        </View> : isLoading || dataOwnerKey !== accountKey ? <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primaryButton} />
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
+        </View> : <View style={[styles.errorContainer, largeText && { paddingHorizontal: 0 }]}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading favorites"
             onPress={() => fetchFavorites()}
             style={[
               styles.retryButton,
-              { backgroundColor: colors.primaryButton },
+              { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
             ]}
           >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            <Ionicons name="refresh" size={20} color={colors.icon} />
+            <ThemedText style={[styles.retryButtonText, { color: colors.text }]}>Retry</ThemedText>
           </Pressable>
-        </View>
+        </View>}
+        </ScrollView>
       ) : (
         <FlatList
           data={exercises}
           keyExtractor={(item) => item.id}
           renderItem={renderExerciseRow}
-          contentContainerStyle={styles.listContent}
+          style={{ flex: 1 }}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.listContent, largeText && { paddingHorizontal: 8 }]}
+          ListHeaderComponent={largeText ? heading : null}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
@@ -269,8 +281,11 @@ export default function FavoritesScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+            <View style={[styles.emptyContainer, largeText && { paddingHorizontal: 0 }]}>
               <View
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 style={[
                   styles.emptyIcon,
                   { backgroundColor: colors.inputBackground },
@@ -306,8 +321,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
@@ -319,12 +335,29 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
+    minWidth: 0,
+    flexShrink: 1,
     fontWeight: "700",
     fontFamily: Fonts.sans,
   },
   headerSpacer: {
     width: 48,
+  },
+  largeHeader: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  scrollHeading: {
+    flex: 0,
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 8,
+    marginBottom: 20,
+  },
+  stateScrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -344,15 +377,22 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   retryButton: {
+    minWidth: 44,
+    minHeight: 44,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   retryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+    flexShrink: 1,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -379,6 +419,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
     marginBottom: 8,
+    textAlign: "center",
   },
   emptySubtitle: {
     fontSize: 15,
@@ -405,6 +446,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.sans,
     marginBottom: 8,
+    textAlign: "center",
   },
   notLoggedInSubtitle: {
     fontSize: 15,
