@@ -7,7 +7,9 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -166,13 +168,17 @@ export default function CategoryScreen() {
 
   const title = CATEGORY_TITLES[categoryType] || "Exercises";
 
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+  const heading = <ThemedText type="title" style={[styles.headerTitle, largeText && styles.scrollHeaderTitle]}>{title}</ThemedText>;
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View testID="category-header" style={[styles.header, largeText && styles.largeHeader]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back from exercise category"
@@ -182,36 +188,38 @@ export default function CategoryScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          {title}
-        </ThemedText>
-        <View style={styles.headerSpacer} />
+        {!largeText && heading}
+        {!largeText && <View style={styles.headerSpacer} />}
       </View>
 
       {/* Content */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primaryButton} />
-        </View>
-      ) : error && !exercises.length ? (
-        <View style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-          <Pressable
-            onPress={refresh}
-            style={[
-              styles.retryButton,
-              { backgroundColor: colors.primaryButton },
-            ]}
-          >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
-          </Pressable>
-        </View>
+      {isLoading || (error && !exercises.length) ? (
+        <ScrollView testID="category-state-scroll" style={{ flex: 1 }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.stateScrollContent, { paddingHorizontal: largeText ? 8 : 24 }]}>
+          {largeText && heading}
+          {isLoading ? <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primaryButton} />
+          </View> : <View style={styles.errorContainer}>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading exercises"
+              onPress={refresh}
+              style={[styles.retryButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+            >
+              <Ionicons name="refresh" size={20} color={colors.icon} />
+              <ThemedText style={[styles.retryButtonText, { color: colors.text }]}>Retry</ThemedText>
+            </Pressable>
+          </View>}
+        </ScrollView>
       ) : (
         <FlatList
           data={exercises}
           keyExtractor={(item) => item.id}
           renderItem={renderExerciseRow}
-          contentContainerStyle={styles.listContent}
+          style={{ flex: 1 }}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.listContent, largeText && { paddingHorizontal: 8 }]}
+          ListHeaderComponent={largeText ? heading : null}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
@@ -220,7 +228,7 @@ export default function CategoryScreen() {
               tintColor={colors.primaryButton}
             />
           }
-          ListFooterComponent={<CatalogPageFooter colors={colors} loading={loadingMore || refreshing} error={error} hasMore={hasMore} onLoad={error ? retry : loadMore} testID="category-exercise-load-more" />}
+          ListFooterComponent={<CatalogPageFooter colors={{ ...colors, primaryButton: colors.text }} loading={loadingMore || refreshing} error={error} hasMore={hasMore} onLoad={error ? retry : loadMore} testID="category-exercise-load-more" />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <ThemedText style={styles.emptyText}>
@@ -246,20 +254,35 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 28,
+    minWidth: 0,
+    flexShrink: 1,
+    fontSize: 24,
     fontWeight: "700",
     fontFamily: Fonts.sans,
   },
   headerSpacer: {
     width: 48,
+  },
+  largeHeader: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  scrollHeaderTitle: {
+    flex: 0,
+    marginBottom: 20,
+  },
+  stateScrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -270,7 +293,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
     gap: 16,
   },
   errorText: {
@@ -279,15 +301,22 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   retryButton: {
+    minWidth: 44,
+    minHeight: 44,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   retryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+    flexShrink: 1,
   },
   listContent: {
     paddingHorizontal: 20,

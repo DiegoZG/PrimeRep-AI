@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "slice": "U31 Exercise Category scalable layout",
+  "baseCommit": "b630bd7dec5c0f839aa29b88c9f18c6229687f58",
+  "featureCommit": "1677d6fbff4270481cc6466afb54eef442b30f32",
+  "sourceSHA256": {
+    "originalRoute": "f420c650b8ecff12538221a25c8344d1e5b0c012faf46239be7ad6d74c94fcf8",
+    "candidateRoute": "427f53577e3a73b601b37fae66615409eb81847e5c9dad9c0786f6ca332333d6",
+    "candidateHarness": "093747f271142b71f3631683eaeeae3ab8fa79ef2457d0ffc7034887717bf267",
+    "controller": "d2d88a6fbda5df7769157595294d9d580195ea11980a0576e02b5341572c635e",
+    "restoredImportPrefix": "273cbd410bebd1af63e7bd9ddf4313493385686db2c81d0f4513a34b446ac193",
+    "sharedPaginationHook": "02996015951a88622b88fc435607962e5fe88607e35cc0ee676949a0421887d9",
+    "sharedExerciseRow": "0bc14d29cd072e478af532de907737ba58beb31df2e8ae46029f87768a10df90",
+    "sharedCatalogPageFooter": "7657993c25a704a35bc2163a8590b01598f8edd0da3d7181d09f063bd2167805"
+  },
+  "platform": {
+    "os": "iOS 18.5",
+    "expoSDK": 54,
+    "normalContentSize": "large",
+    "maxContentSize": "accessibility-extra-extra-extra-large",
+    "method": "Public appearance/text size followed by cold reconnect of existing approved client; isolated fixture-account and seed-library UI. No app install/reset or permission change."
+  },
+  "counts": {
+    "original": 13,
+    "candidateMatrix": 13,
+    "backNavigation": 1,
+    "totalPNG": 27
+  },
+  "engineering": {
+    "originalBaseline": 43,
+    "focused": 57,
+    "full": 1086,
+    "skipped": 0,
+    "types": "pass",
+    "lint": "pass; two existing project warnings",
+    "auditAndSelfTest": "pass",
+    "webHTML": 62,
+    "exactEmittedModules": "pass",
+    "independentQA": "accepted"
+  },
+  "native": {
+    "matrix": "Five matched cold configurations accepted",
+    "heading": "Weights whole in examined MAX frames; Bodyweight all letters present naturally wrapped Bodyweig/ht on Plus and Bodywei/ght on SE, not whole-word fit",
+    "scroll": "One bounded body swipe per MAX configuration moves heading away, preserves fixed Back and reveals later rows",
+    "navigation": "One named Back tap on Plus Light normal returned actual Home",
+    "dataActions": "No exercise/favorite/pagination/refresh/Retry/session/editor/workout/Health/notification action",
+    "errorRetry": "Not induced; mocks only"
+  },
+  "preserved": [
+    "5390-byte controller and restored import prefix",
+    "category/filter fallback and routes",
+    "pagination/focus/favorite/account fences",
+    "shared useExercisePages/ExerciseRow/CatalogPageFooter",
+    "theme/fonts/dependencies/API/storage/auth/Health/program behavior",
+    "inherited guest loading and shared-row ellipsis/avatar clipping"
+  ],
+  "limits": [
+    "Not whole Bodyweight word fit at MAX",
+    "Not every frame,title,row or whole card fitting",
+    "Not native error/empty/Retry proof",
+    "Public AX metadata is not VoiceOver or row-action certification",
+    "No physical-device,Android or CI claim"
+  ],
+  "exclusions": [
+    "duplicate/transient/warm images",
+    "credentials",
+    "private logs/reports/runtime inventories",
+    "permission/probe/debug artifacts",
+    "other slices"
+  ],
+  "runtimeBoundary": "Owned U31 Expo listeners stopped. Fictional fixture account remains signed in and isolated API retained while explicit public-test logout approval is pending. No logout/guest restoration occurred during the blocked cleanup attempt. Final public logout, usual-app guest restoration and fixture cleanup not complete.",
+  "images": [
+    {
+      "file": "original-plus-light-large-bodyweight-initial.png",
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial Bodyweight viewport; original heading fixed (fragmented at MAX).",
+      "sha256": "c8a2dcc060b1b87834cef55aec6a7e185ed529e4dbd4ee28301c0d68d949a463",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-large-weights-stable.png",
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "b27e1b664b90c7df0b77e3cd29002cbdb85137d925001c857e52e136b6b63f10",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-large-bodyweight-initial.png",
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial Bodyweight viewport; original heading fixed (fragmented at MAX).",
+      "sha256": "c81b64f6860169bbeffaeb69611ad1fd6fac3d21d344cc20228decf412c5a82f",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-large-weights-stable.png",
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "3c141adbbd542af3f61ef241e771cc5eb3b4f615b1e251ca52523b0b132e6284",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-max-bodyweight-initial.png",
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial Bodyweight viewport; original heading fixed (fragmented at MAX).",
+      "sha256": "fef2e0093111e03603e970ff3c2551a14615c2ea03e235f6a26ccce5ec644639",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-max-bodyweight-scroll.png",
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; list moves while the fragmented MAX heading remains fixed.",
+      "sha256": "e9af388392397f66d4a025b3b8d56c71af4a1c87b72084a5b5fe0b3029353689",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-max-weights-stable.png",
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; original fixed heading fragments at MAX.",
+      "sha256": "23d25aaead635ee2969a0d51c8375744f392fddac26a75426cba487088f026a0",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-max-bodyweight-initial.png",
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial Bodyweight viewport; original heading fixed (fragmented at MAX).",
+      "sha256": "c67054967e19db63ed17ea1b81984abcadebafae139fd161d5ac9a847e464ac0",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-max-bodyweight-scroll.png",
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; list moves while the fragmented MAX heading remains fixed.",
+      "sha256": "12c84542e083091702d6c83a076f2c3feef77fcafd1e19263105013ff71cfcc2",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-max-weights-stable.png",
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; original fixed heading fragments at MAX.",
+      "sha256": "c5d3fe1a0f8fc04b3ea6f295492219695a79629cc11d45b0dc0de780a4575e98",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-se-light-max-bodyweight-initial.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial Bodyweight viewport; original heading fixed (fragmented at MAX).",
+      "sha256": "b3a32cb8678570b5cdd8b7a01d65430c6b4bf96434090a7e96baa548e7111d50",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "original-se-light-max-bodyweight-scroll.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; list moves while the fragmented MAX heading remains fixed.",
+      "sha256": "c832ac7ac4a22740fd11e42c306ec712deffc9c570be90ebb00f2ac106769e4e",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "original-se-light-max-weights-stable.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; original fixed heading fragments at MAX.",
+      "sha256": "6be61e45f25762581e5e94cc9071fed85593341bb04f74230a171601e37b85d9",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-plus-light-large-bodyweight-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "position": "Bodyweight initial",
+      "caption": "Cold normal initial viewport; calm fixed24-point heading and loaded body.",
+      "sha256": "17fc062e081eb95251504bd3edeff645784a26c66ecf0babc6a38ad0161bbccb",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-large-weights-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "18e78e5e789803a5352916fc41ddcb1219f1d8f98873871425be9a92f373aab6",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-large-bodyweight-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "position": "Bodyweight initial",
+      "caption": "Cold normal initial viewport; calm fixed24-point heading and loaded body.",
+      "sha256": "d8dbc22475e120dd63511b829286fbe50844526c278938502769767aca640559",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-large-weights-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "35d45e85bcddadce2d79e436459c660deaed6667053a1e9fb9947246f1f45714",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-max-bodyweight-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial viewport; all Bodyweight letters present with natural wrapping, not whole-word fit.",
+      "sha256": "2d01815e4db01b8445fe9a1790b54f7a21312d48ec5c061c381a6be5f9d42f7e",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-max-bodyweight-scroll.png",
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; enlarged heading moves away while Back stays fixed and later rows become visible.",
+      "sha256": "9f3287467eae996f570727af15ca6092d7a968ce2ce404c78713acb474e40938",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-max-weights-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "1fe179a463fa5eb63ffe13fbc912abfb5cac8ec4caa14ebdcb8e28225a9ed056",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-max-bodyweight-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial viewport; all Bodyweight letters present with natural wrapping, not whole-word fit.",
+      "sha256": "45295f52fe425366f6458a1c870d2b83423f5f83a7a109c7fc20525fd8d330b6",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-max-bodyweight-scroll.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; enlarged heading moves away while Back stays fixed and later rows become visible.",
+      "sha256": "c8e9a072e76544f930fbacb4c0d98cfcf02ca185dd315d027d4b1884a9685a07",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-max-weights-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "979734a085cc9603ce3c9ba3d234c20b9671848f8c718cee14a4538913ae5efb",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-se-light-max-bodyweight-initial.png",
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "position": "Bodyweight initial",
+      "caption": "Cold initial viewport; all Bodyweight letters present with natural wrapping, not whole-word fit.",
+      "sha256": "91c72ee443155ad16b72387ba26b5d176022c4a00ac67351994d605e27c9d9ee",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-se-light-max-bodyweight-scroll.png",
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "position": "Bodyweight scrolled",
+      "caption": "After one bounded body swipe; enlarged heading moves away while Back stays fixed and later rows become visible.",
+      "sha256": "94f61c843e4e4e5d345dbd664881107eb2ad7f639e37b937b31edf7b110146f6",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-se-light-max-weights-stable.png",
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "position": "Weights settled",
+      "caption": "Cold settled Weights route; complete heading present.",
+      "sha256": "b7064a3c15cf15d5384e2a4bbabfeb560b9ca32cfa7249032b894dca399fd2ac",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-plus-light-large-back-home.png",
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "position": "Back navigation",
+      "caption": "After one named Back tap on Plus Light normal: actual Home selected and next-workout content visible; no exercise/favorite/data action.",
+      "sha256": "5364228108228baca3d138ea610f09e1711c275f825b749173bf3f51c55210a8",
+      "width": 1290,
+      "height": 2796
+    }
+  ]
+}
