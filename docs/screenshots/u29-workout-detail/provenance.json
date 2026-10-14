@@ -1,0 +1,346 @@
+{
+  "schemaVersion": 1,
+  "slice": "U29 Workout Detail scalable layout",
+  "baseCommit": "b630bd7dec5c0f839aa29b88c9f18c6229687f58",
+  "featureCommit": "338863a580d75ace0b575fabf6f023754626e507",
+  "sourceSHA256": {
+    "originalRoute": "9c65cec2b9c45d0e9046464247a9155b27d23066d856d68a0d0e9619dc7c2e69",
+    "candidateRoute": "8d9b0590cd144b89611fdc67b220ca05148a67b6fce8831840779eda6a587628",
+    "detailHarness": "b868e63c452ab4f1aaee327fa756947d9acba550f85d5578170ec9dbb266898a",
+    "callerContractHarness": "951b9287b702818089a0451677ab653c537cfee33c3d696aa3c465200380f4e9",
+    "controller": "00b0eb5c47ee3bafd142b10dba0dc58d5c36897d675ec2b5eac5df1a27a55da9"
+  },
+  "platform": {
+    "os": "iOS 18.5",
+    "expoSDK": 54,
+    "normalContentSize": "large",
+    "maxContentSize": "accessibility-extra-extra-extra-large",
+    "method": "Cold client reconnect after each public appearance/content-size setting; existing approved Plus and SE simulators; fictional account and fixture workout; unchanged app build."
+  },
+  "acceptance": {
+    "engineering": "Author and independent GO: 74 focused,100 affected,1103 full; types/lint/audit/self-test/62-HTML exact-module export passed.",
+    "native": "Root accepted bounded cold five-configuration review. Final prescription values and full Start control visible in settled candidate bottoms; section counts readable in supplements. One named Back tap returned to Home and same detail was publicly reopened.",
+    "mutations": "No Start,Skip,duration,favorite,exercise,session,Health or notification action invoked."
+  },
+  "counts": {
+    "original": 12,
+    "candidate": 16,
+    "backNavigation": 2,
+    "totalPNG": 30
+  },
+  "limits": [
+    "Cold original normal final values are clear; cold MAX last digit is visible with very little clearance, not occluded.",
+    "Original MAX ranges/counts wrap poorly; compact MAX bounded swipes expose no prescription body. Not a claim against every possible gesture.",
+    "Candidate SE Accessories naturally wraps Accessorie / s; inherited shared exercise-row MAX ellipsis remains unchanged.",
+    "Not proof of every title, entire card, composited fixed layers in every intermediate frame, native Start behavior, VoiceOver, physical devices,Android or CI."
+  ],
+  "exclusions": [
+    "History frames",
+    "warm/exploratory/transient frames",
+    "private probe/preflight/failed diagnostics",
+    "private credentials,logs,runtime inventories and reports"
+  ],
+  "runtimeBoundary": "Fictional UI fixture retained for the separately authorized next slice; U29 Expo listener stopped before serving new source. Final fixture logout, usual-app guest restoration and scoped temporary cleanup remain pending. No cleanup-complete claim.",
+  "images": [
+    {
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "file": "cold-plus-light-large-workout-initial.png",
+      "position": "initial",
+      "caption": "Cold initial viewport; no scrolling implied.",
+      "sha256": "1c9a9f368df7ad96612f630e1d157e8f9a13a6753aa5bdf14f6b4319cd57257d",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "file": "cold-plus-light-large-workout-bottom.png",
+      "position": "final prescription/footer",
+      "caption": "Cold settled normal bottom; final 3 / 10-15 / 75s and the full Start control are visible.",
+      "sha256": "3230f0bb46043f4def66e96e0c380a69b3f7de0c1d085076c5c1ac9090a2d0e9",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "file": "cold-plus-dark-large-workout-initial.png",
+      "position": "initial",
+      "caption": "Cold initial viewport; no scrolling implied.",
+      "sha256": "21bc0d5fe9161c48e05d000958809e3316d8f1c8ab0e06961ce1ca62b28f7068",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "file": "cold-plus-dark-large-workout-bottom.png",
+      "position": "final prescription/footer",
+      "caption": "Cold settled normal bottom; final 3 / 10-15 / 75s and the full Start control are visible.",
+      "sha256": "d60917d03a9c6082ec7be2d72f7c32572ade26f70f9a985cd1bf24539fbf3ab4",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "file": "cold-plus-light-max-workout-initial.png",
+      "position": "initial",
+      "caption": "Cold initial viewport; no scrolling implied.",
+      "sha256": "4e2794784e6c32588c6d00c44060baf0db109ff15f8b09160ef71ee4799794da",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "file": "cold-plus-light-max-workout-bottom.png",
+      "position": "final prescription/footer",
+      "caption": "Cold settled bottom; final values visible, with very little MAX clearance above the floating footer.",
+      "sha256": "b00c5db5a39036afb7aa46a13221b3ca1d035ff18ed0df8e61ad8812725d4d03",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "file": "cold-plus-dark-max-workout-initial.png",
+      "position": "initial",
+      "caption": "Cold initial viewport; no scrolling implied.",
+      "sha256": "db601f8e28cfa64ec8cae19aa93d490984943382e5ca78b751bb93fbc455b8b5",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "file": "cold-plus-dark-max-workout-bottom.png",
+      "position": "final prescription/footer",
+      "caption": "Cold settled bottom; final values visible, with very little MAX clearance above the floating footer.",
+      "sha256": "e65911b73da3cbc16773888907927108b4f122a035c4180cdd53f71e516d6be1",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "file": "cold-se-light-max-workout-initial.png",
+      "position": "initial",
+      "caption": "Cold initial viewport; no scrolling implied.",
+      "sha256": "cc4e00f62b3909726878dbe3c65c7b49173b974164b7d8b4e7938046653e3c1b",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "file": "cold-se-light-max-workout-scroll-attempt.png",
+      "position": "bounded scroll attempt",
+      "caption": "After four ordinary upward swipes; no exercise/prescription body visible in this bounded capture.",
+      "sha256": "cc4e00f62b3909726878dbe3c65c7b49173b974164b7d8b4e7938046653e3c1b",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "file": "cold-plus-dark-max-main-header.png",
+      "position": "section/count supplement",
+      "caption": "Cold section title/count capture; original count extends beyond the right edge.",
+      "sha256": "2195235e0b2c13840f140ff6881f5765515816f5b06e3c0607e9e2280480e8ff",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "file": "cold-plus-dark-max-accessories-header.png",
+      "position": "section/count supplement",
+      "caption": "Cold section title/count capture; original count extends beyond the right edge.",
+      "sha256": "c310e45b770e8770c01a22c7f6768f0a2bb896224e155214466852c2aa9c36e4",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "plus-light-large-stable-initial.png",
+      "position": "initial",
+      "caption": "Accepted cold initial viewport; enlarged heading is within the scrollable body.",
+      "sha256": "6406f05e8a69aa1aa692c023aa5b53c084169bdd1519983f667148f6ed6a9f1e",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "plus-light-large-stable-bottom-stable.png",
+      "position": "final prescription/footer",
+      "caption": "Accepted settled bottom; final 3 / 10-15 / 75s, full Start button and home indicator visible.",
+      "sha256": "43599a8870fbdd0235717bd77dc677dcd44de61cf9c80db5ac6581c595c2206b",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "file": "plus-dark-large-initial.png",
+      "position": "initial",
+      "caption": "Accepted cold initial viewport; enlarged heading is within the scrollable body.",
+      "sha256": "b9c192e2ed249ce902d47288ae7daa22b7ae2271c545fb46c2c6e679bda311e7",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "file": "plus-dark-large-bottom-stable.png",
+      "position": "final prescription/footer",
+      "caption": "Accepted settled bottom; final 3 / 10-15 / 75s, full Start button and home indicator visible.",
+      "sha256": "645c55fbe6485e148ed1683e10d4a111b45a6ee1a8505c4e2775a58e4a558b06",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "plus-light-max-stable-initial.png",
+      "position": "initial",
+      "caption": "Accepted cold initial viewport; enlarged heading is within the scrollable body.",
+      "sha256": "5f26f82f5c8b8ac1635e98692eb87f460f508f450f1e86a941af1411f924284d",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "plus-light-max-stable-bottom-stable.png",
+      "position": "final prescription/footer",
+      "caption": "Accepted settled bottom; final 3 / 10-15 / 75s, full Start button and home indicator visible.",
+      "sha256": "9513db6519400b2c6d706e9a860b57b621fd7da4d7e04111e2744068cc196a72",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "plus-light-max-stable-main-header.png",
+      "position": "section/count supplement",
+      "caption": "Accepted MAX section/count readability supplement; not proof of composited fixed layers in every intermediate frame.",
+      "sha256": "eea487703f4f2876f9d6f680f41bfaa53a6d7c218c42f3e9a58584d44b183eec",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "file": "plus-light-max-stable-accessories-header.png",
+      "position": "section/count supplement",
+      "caption": "Accepted MAX section/count readability supplement; not proof of composited fixed layers in every intermediate frame.",
+      "sha256": "fd5e7945f8c992b995481f2e81ef6502a094d2cf8d8a3bea8846bd3f6a7dc571",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "plus-dark-max-initial.png",
+      "position": "initial",
+      "caption": "Accepted cold initial viewport; enlarged heading is within the scrollable body.",
+      "sha256": "3acd2c937aee2b038e93f841c51ce79d4aae5739fbf51143dc2501a013c843cf",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "plus-dark-max-bottom-stable.png",
+      "position": "final prescription/footer",
+      "caption": "Accepted settled bottom; final 3 / 10-15 / 75s, full Start button and home indicator visible.",
+      "sha256": "7c1f3db9a1ce5421b2e077a3e052bf391bb95acc8a40bcd24c6ad2a8fa3397e9",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "plus-dark-max-main-header.png",
+      "position": "section/count supplement",
+      "caption": "Accepted MAX section/count readability supplement; not proof of composited fixed layers in every intermediate frame.",
+      "sha256": "39affa8658a3973daa26674e8a378827d0bbb48332ea9a83e3a616089aa9ac39",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "file": "plus-dark-max-accessories-header.png",
+      "position": "section/count supplement",
+      "caption": "Accepted MAX section/count readability supplement; not proof of composited fixed layers in every intermediate frame.",
+      "sha256": "a1079d3cfba9ca49b1ddceb56781be7319c385d81e29d9d3df85a2ba1357e183",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "se-light-max-initial.png",
+      "position": "initial",
+      "caption": "Accepted cold initial viewport; enlarged heading is within the scrollable body.",
+      "sha256": "b4ba5309dc8f325dfd9a8ffb37c794bb1faf15b50a3f652270810041e211637f",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "se-light-max-bottom.png",
+      "position": "final prescription/footer",
+      "caption": "Accepted settled bottom; final 3 / 10-15 / 75s, full Start button and home indicator visible.",
+      "sha256": "2eac9dea8d1e7369517c8c31f6409c329aea2436be735dd511dc53fcf7c3e0d5",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "se-light-max-stable-main-header.png",
+      "position": "section/count supplement",
+      "caption": "Accepted MAX section/count readability supplement; not proof of composited fixed layers in every intermediate frame.",
+      "sha256": "f0c1bacb3ccbfb2ae8d53ca1caf8148eb279f77b43bb4deb8cc2578a7e6cd840",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "file": "se-light-max-accessories-heading-count.png",
+      "position": "section/count supplement",
+      "caption": "Full count follows the naturally wrapped Accessories word (Accessorie / s); not horizontal truncation.",
+      "sha256": "8c59ca3cb426daa5e0c5cb0fe8a58fb024e720aafab41b1163c5a265ade9a95a",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "plus-normal-back-home.png",
+      "position": "Back navigation",
+      "caption": "After one named Back tap: Home next-workout content visible.",
+      "sha256": "df5d4f25bf263bcf45365255d0ab1ac46dd4aa3f6090b110f8ea5cbf497e054d",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "file": "plus-normal-back-detail-return.png",
+      "position": "public detail return",
+      "caption": "After reopening the same detail publicly: Start control visible; no workout mutation.",
+      "sha256": "fb33cf0ed0bc9bca7e6e45c7d23f208603686b5e03d671d7a3c36e3242c08ad6",
+      "width": 1290,
+      "height": 2796
+    }
+  ]
+}
