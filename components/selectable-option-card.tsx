@@ -1,12 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, type TouchableOpacityProps, View } from "react-native";
 
 import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-interface SelectableOptionCardProps {
+interface SelectableOptionCardProps extends Pick<TouchableOpacityProps,
+  "accessibilityLabel" | "accessibilityRole" | "accessibilityState" | "aria-checked" | "testID"
+> {
   title: string;
   isSelected: boolean;
   onPress: () => void;
@@ -31,6 +33,7 @@ export function SelectableOptionCard({
   showChevron = false,
   icon,
   specialBackground = false,
+  ...accessibilityProps
 }: SelectableOptionCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -74,7 +77,7 @@ export function SelectableOptionCard({
   };
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} {...accessibilityProps}>
       <View
         style={[
           styles.optionCard,
