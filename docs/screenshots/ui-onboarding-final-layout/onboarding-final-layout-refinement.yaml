@@ -1,0 +1,49 @@
+appId: com.diegozegarra.primerep
+---
+- extendedWaitUntil:
+    visible:
+      id: auth-loaded
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: Downloading.*
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: onboarding-final-scroll
+    timeout: 15000
+- assertNotVisible: Skip
+- runFlow:
+    when:
+      true: ${MODE === "initial"}
+    commands:
+      - assertVisible:
+          id: onboarding-final-title
+- runFlow:
+    when:
+      true: ${MODE === "footer"}
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: onboarding-final-login
+          direction: DOWN
+          timeout: 15000
+          speed: 75
+          visibilityPercentage: 100
+          centerElement: false
+      - assertVisible:
+          id: onboarding-final-create-account
+- runFlow:
+    when:
+      true: ${MODE === "description"}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: Create your account to begin your fitness journey
+          direction: UP
+          timeout: 10000
+          speed: 75
+          visibilityPercentage: 95
+          centerElement: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ${SCREENSHOT_PREFIX}
