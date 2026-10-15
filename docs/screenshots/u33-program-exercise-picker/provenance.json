@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "status": "canonical selection accepted",
+  "baseCommit": "9eca913d75ae4daaaa989f3857d64635816d3760",
+  "featureCommit": "86b8dbae19cd9908f1adf3d1a641f7f14f685a41",
+  "sourceSHA256": {
+    "originalRoute": "31248c4e1008fb950594269ffecd16d0a9833393301a137542c1ed825116fce9",
+    "originalHarness": "612f0e42c813bbbd26f78b5bed77b365fa68234232e7c5f60c2435e873b7bd3b",
+    "candidateRoute": "4a015f0bef85eedba03ba33f82fd433a13e827f9d76683eca4bc48890cc9cf99",
+    "candidateHarness": "252b06b3bd47227fcc39ce1dd1f88e052807e7569ed84718389cb463404bb11e",
+    "controller": "25e593af7e343da30d047555413edfd5b71fe8c1a726baa7740b54302d81342a",
+    "restoredImportPrefix": "c39342880dbf9860a7d538155acc0b1ee0e5fc75404631c8da3663697bdacab0",
+    "app/programs/exercise-picker.tsx": "4a015f0bef85eedba03ba33f82fd433a13e827f9d76683eca4bc48890cc9cf99",
+    "utils/programDraftContext.tsx": "762761a628fe5b6e8c17548100230bc5f7b8ec7ed183c9791d38014817fbb76c",
+    "hooks/use-exercise-pages.ts": "02996015951a88622b88fc435607962e5fe88607e35cc0ee676949a0421887d9",
+    "components/program/ProgramHeader.tsx": "4959bd4948aa81d28b342aefdd513a6e14797bdd7d5b7f726c658ec7c70cb434",
+    "components/screen-state.tsx": "31bb083f19309cf2e44f2b93ddde2266fd57e40cc8191b3e57305c8320d4158f",
+    "components/explore/ExerciseRow.tsx": "0bc14d29cd072e478af532de907737ba58beb31df2e8ae46029f87768a10df90",
+    "components/themed-text.tsx": "06d02c5a33dd258563726e8586a4b588e2df7c087ac291be6a225f89bf1ac974",
+    "constants/theme.ts": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1",
+    "utils/exerciseTracking.ts": "aa6f39ee8ea4c96f80f023fdb2b05934fa69922684c54460f1406c5b0c8b46e6",
+    "services/exerciseService.ts": "9694d499b0535ee43b23594833aa2e09f4c9f390a7dd3ef8ce84e2451558f5e2"
+  },
+  "controllerBytes": 929,
+  "restoredImportBytes": 968,
+  "platform": {
+    "os": "iOS18.5",
+    "expoSDK": 54,
+    "client": "existing custom client",
+    "normalSize": "large",
+    "maxSize": "accessibility-extra-extra-extra-large",
+    "fixture": "Public guarded unsaved Day 1/zero exercises; real populated catalog; no row selection or Save"
+  },
+  "engineering": {
+    "originalBaseline": 35,
+    "focused": 49,
+    "full": 1301,
+    "skipped": 0,
+    "types": "pass",
+    "lint": "pass; two existing unrelated warnings",
+    "uiAuditAndSelfTest": "pass",
+    "webHTML": 62,
+    "exactEmittedModules": {
+      "author": 10,
+      "independent": 12
+    },
+    "independentQA": "accepted; 49 focused, two full-suite runs of 1,301 each, types/lint/audits/62HTML"
+  },
+  "counts": {
+    "originalPNG": 3,
+    "candidateLayoutPNG": 9,
+    "candidateActionPNG": 3,
+    "totalPNG": 15,
+    "originalConfigurations": 3,
+    "candidateConfigurations": 5
+  },
+  "method": "Original: three cold target configurations. Candidate: two guarded cold normal entries then warm picker-only size/appearance transitions, not five cold launches or matched startups. Plus MAX is candidate-only; original SE is cold MAX with a navigation retry, versus candidate SE warm MAX after normal entry.",
+  "bundles": {
+    "original": {
+      "sha256": "324454d621cbfeadc8755b9747f0ba46fae3399a55e98fa291d6b1b902f90311",
+      "bytes": 13574599
+    },
+    "candidate": {
+      "sha256": "65d5463089f7c189c6d5683c95fc160ac100e98923d478e18620555c380cb3a8",
+      "bytes": 13585127,
+      "sourceAtStartup": "9eca913d75ae4daaaa989f3857d64635816d3760",
+      "sourceMilestone": "86b8dbae19cd9908f1adf3d1a641f7f14f685a41",
+      "sourceTransition": "metadata-only commit; route/harness bytes and served asset unchanged"
+    }
+  },
+  "native": {
+    "layout": "Five configurations accepted; SE initial/custom-copy/later actual-row positions distinct. Plank/Abs visible in bounded supplements, not every-row fit. PlusMAX Create may clip at scroll top, not whole CTA in one frame.",
+    "actions": "Normal Plank search filtered the actual catalog. Exactly one named Clear restored an empty query/catalog rows; exactly one named Back returned to actual Workout day, Day 1/zero exercises. No row selection or Save.",
+    "publicAX": "Named Back/Search/custom/rows and enlarged heading role verified. iOS search/add glyph-only nodes remain; no glyph-removal or VoiceOver claim.",
+    "keyboard": "Software keyboard stayed hidden. Simulator menu returned stale IDs; no setting change established. Open-keyboard/first-tap/dismissal/native avoidance unverified; handled/on-drag props are renderer-only evidence."
+  },
+  "originalNavigationLimit": "SE Add exercise first logged a tap but stayed on Workout day; a freshly visible public retry reached the cold MAX picker. Coordinate scroll had no established effect; a body-intended swipe opened the custom form. No entry or Save; one approved Back returned. Failed/accidental frames excluded. No unreachable-list or exact UIKit cause inference.",
+  "correctnessFollowUp": "A captured selection handler repeatedly invoked can deduplicate an exercise but call Back twice in renderer tests. Unchanged and not a proven native defect; separate follow-up.",
+  "limits": [
+    "Shared-row longer-name ellipsis/avatar clipping at MAX unchanged",
+    "Selected green/row selection/reference-only/guest/loading/error/Retry/paging/account races are renderer-only",
+    "No program/custom-exercise Save, favorite/session/Health/permission/auth action or writecommand",
+    "No VoiceOver/physical-device/Android/CI certification",
+    "No every-row/title/card/whole-state one-frame or identical-gesture claim"
+  ],
+  "runtimeBoundary": "Original/candidate Expo stopped cleanly; temporary frontend port free. Fictional sign-ins/API and known unsaved Day 1/zero exercises retained. Plus Light/normal on Workout day after cleared search; SE Light/MAX on picker. Logout is approval-gated; no completed guest restoration/draft removal/fixture cleanup. Protected usual services and real checkouts unchanged.",
+  "exclusions": [
+    "setup/guard/private normal-SE frames",
+    "accidental custom-form/failed navigation frames",
+    "misleading first-row-named duplicate; canonical custom-copy bytes retained",
+    "transient/probe/debug/locked-capability frames",
+    "private credentials/logs/runtime inventories",
+    "other slices"
+  ],
+  "images": [
+    {
+      "file": "original-plus-light-large-picker-stable.png",
+      "sha256": "a10cbbeab8401863162d6a7337e362bba7f14cad425c2bd21c77855b90e9ebdd",
+      "caption": "Original, cold Plus Light normal (large): populated picker, no selected exercise.",
+      "phase": "original",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light normal",
+      "method": "cold target configuration",
+      "position": "settled normal viewport"
+    },
+    {
+      "file": "original-plus-dark-large-picker-stable.png",
+      "sha256": "8c2f55a563e85755e8bf46f90faa8d0c4ff3f0b30965bf9156999480bed1dbc7",
+      "caption": "Original, cold Plus Dark normal (large): populated picker, no selected exercise.",
+      "phase": "original",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Dark normal",
+      "method": "cold target configuration",
+      "position": "settled normal viewport"
+    },
+    {
+      "file": "original-se-light-max-picker-initial.png",
+      "sha256": "536658eac16261ca909dbea7bfb0c14770390816bbdcb60025868a3ace5306f8",
+      "caption": "Original, cold SE Light AX MAX: actual picker after a fresh visible Add exercise retry; heading ellipsized, custom CTA wraps across four lines. No catalog-row reachability or body-scroll success claim.",
+      "phase": "original",
+      "width": 750,
+      "height": 1334,
+      "configuration": "SE Light MAX",
+      "method": "cold target configuration",
+      "position": "initial viewport"
+    },
+    {
+      "file": "candidate-se-light-max-warm-picker-initial.png",
+      "sha256": "b1b88ec91adfa58963b1a3dedcc5947323586c936ebecc7fda6bdd0179fc6b72",
+      "caption": "SE Light MAX, warm size transition after guarded cold normal entry: whole Choose/exercise words, Day1 and search; fixed Back.",
+      "phase": "candidate",
+      "width": 750,
+      "height": 1334,
+      "configuration": "SE Light MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "initial viewport"
+    },
+    {
+      "file": "candidate-se-light-max-warm-picker-custom-copy.png",
+      "sha256": "58b6db20d193a2b9456a6748b880b1d374cda1a32a0791aa6eadd7a06cd634bf",
+      "caption": "SE Light MAX body scroll: full custom CTA words and subtitle; heading scrolled away, Back fixed. No row visibility claim.",
+      "phase": "candidate",
+      "width": 750,
+      "height": 1334,
+      "configuration": "SE Light MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "custom-copy body-scroll position; no row visibility claim"
+    },
+    {
+      "file": "candidate-se-light-max-warm-picker-row-supplement.png",
+      "sha256": "4a851dd2e6d5b8cd563a316adb808bad892e1075a62fc56127914724cc3c2f37",
+      "caption": "SE Light MAX right-gutter scroll supplement: actual complete Plank/Abs row with neutral unselected plus; subsequent shared-row ellipsis/avatar limits remain.",
+      "phase": "candidate",
+      "width": 750,
+      "height": 1334,
+      "configuration": "SE Light MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "later actual-row body-scroll supplement"
+    },
+    {
+      "file": "candidate-plus-light-large-cold-picker-stable.png",
+      "sha256": "9c2845fdd2357c3ddb20322db02c80a7a34c70e2ec68f6ec896801b3c9071828",
+      "caption": "Plus Light normal (large), cold normal entry: calm header/search/custom CTA and real rows; neutral unselected badges.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light normal",
+      "method": "guarded cold normal entry",
+      "position": "settled normal viewport"
+    },
+    {
+      "file": "candidate-plus-dark-large-warm-picker-stable.png",
+      "sha256": "441c74dc5291ba3f7866af57f308744708ffa26b73d9bd0896e3d2af3e62a44a",
+      "caption": "Plus Dark normal (large), warm appearance transition in same picker/day.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Dark normal",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "settled normal viewport"
+    },
+    {
+      "file": "candidate-plus-light-max-warm-picker-initial.png",
+      "sha256": "2e9eced4a46d685a54c28e2fd0dbda932148de901ff8de33be52c768e122d248",
+      "caption": "Candidate-only Plus Light MAX, warm transition: full heading words and custom CTA words; subtitle below viewport.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "initial viewport"
+    },
+    {
+      "file": "candidate-plus-light-max-warm-picker-first-row.png",
+      "sha256": "7ce8b0dacb81aa2a8a1589602ea0447d16ebcf6a46f0b2ea01e7d149f95fdce7",
+      "caption": "Candidate-only Plus Light MAX body scroll: complete Plank/Abs and subtitle readable, heading away/Back fixed. Create is clipped at scroll top, not whole CTA in one frame.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "later actual-row body-scroll supplement"
+    },
+    {
+      "file": "candidate-plus-dark-max-warm-picker-initial.png",
+      "sha256": "1711b0ea6415d2e905b681d298f24b775358517dc88c828b6029e0cd10cfda3e",
+      "caption": "Candidate-only Plus Dark MAX, warm transition: whole heading and custom CTA words, fixed Back.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Dark MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "initial viewport"
+    },
+    {
+      "file": "candidate-plus-dark-max-warm-picker-first-row.png",
+      "sha256": "d19b7e4acae977c8253785b628f9910ff1b5b23417b86e670759e8b404267648",
+      "caption": "Candidate-only Plus Dark MAX body scroll: actual complete Plank/Abs, subtitle readable, fixed Back/title away; inherited shared-row limits remain.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Dark MAX",
+      "method": "warm size/appearance transition after guarded cold normal entry",
+      "position": "later actual-row body-scroll supplement"
+    },
+    {
+      "file": "candidate-plus-light-large-search-plank.png",
+      "sha256": "e2dad4786a2cf03291c9b3052dc085a37cfe45021241eff4a04c304495a113b6",
+      "caption": "Plus Light normal read-only search supplement: query Plank filters to Plank; no row selection; software keyboard not onscreen.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light normal",
+      "method": "normal action supplement; no new startup claim",
+      "position": "filtered search supplement"
+    },
+    {
+      "file": "candidate-plus-light-large-search-cleared.png",
+      "sha256": "50925182fb911ee16d5c0ac60a91e9fb296d37f2e6cb5e5f72d7975b93970174",
+      "caption": "One named Clear exercise search restored actual empty query and visible catalog rows; no software keyboard-open/dismissal claim.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light normal",
+      "method": "normal action supplement; no new startup claim",
+      "position": "cleared-search supplement"
+    },
+    {
+      "file": "candidate-plus-light-large-back-workout-day.png",
+      "sha256": "5a36b6f77097f9a7f45c3d72c3496a9c6dfcd42314d33c0080965e256f38a42b",
+      "caption": "One named Back from Choose exercise returned to actual Workout day, Day1,0exercises; no row selection or Save.",
+      "phase": "candidate",
+      "width": 1290,
+      "height": 2796,
+      "configuration": "Plus Light normal",
+      "method": "normal action supplement; no new startup claim",
+      "position": "Back navigation destination"
+    }
+  ]
+}
