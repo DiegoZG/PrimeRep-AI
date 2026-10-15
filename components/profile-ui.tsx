@@ -1,37 +1,46 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useEffect, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "./themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Achievement } from "@/services/profileService";
 
+const ProfileTitleContext = createContext<string | null>(null);
+
 export function ProfileAvatar({ uri, name, size = 76 }: { uri: string | null; name: string; size?: number }) {
   const colors = Colors[useColorScheme() ?? "light"];
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [uri]);
   const initials = name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "P";
-  return <View accessibilityLabel={`${name || "Your"} profile photo`} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `${colors.primaryButton}18`, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-    {uri && !failed ? <Image source={{ uri }} cachePolicy="none" contentFit="cover" onError={() => setFailed(true)} style={{ width: size, height: size }} /> : <ThemedText style={{ color: colors.primaryButton, fontSize: size * 0.34, lineHeight: size * 0.55, fontWeight: "700" }}>{initials}</ThemedText>}
+  return <View accessible accessibilityLabel={`${name || "Your"} profile photo`} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `${colors.primaryButton}18`, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+    {uri && !failed ? <Image source={{ uri }} cachePolicy="none" contentFit="cover" onError={() => setFailed(true)} style={{ width: size, height: size }} /> : <ThemedText accessible={false} allowFontScaling={false} style={{ color: colors.primaryButton, fontSize: size * 0.34, lineHeight: size * 0.55, fontWeight: "700" }}>{initials}</ThemedText>}
   </View>;
 }
 
 export function ProfilePage({ title, onBack, children, action, testID }: { title: string; onBack: () => void; children: ReactNode; action?: ReactNode; testID?: string }) {
   const colors = Colors[useColorScheme() ?? "light"];
-  return <SafeAreaView testID={testID} edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+  return <ProfileTitleContext.Provider value={largeText ? title : null}><SafeAreaView testID={testID} edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
     <View style={[profileStyles.header, { borderBottomColor: colors.inputBorder, borderBottomWidth: StyleSheet.hairlineWidth }]}>
       <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel={`Back from ${title}`} testID="profile-page-back" style={profileStyles.iconButton}><Ionicons name="arrow-back" size={26} color={colors.text} /></Pressable>
-      <ThemedText accessibilityRole="header" style={{ flex: 1, fontSize: 22, lineHeight: 29, fontWeight: "700" }}>{title}</ThemedText>
+      {largeText ? <View style={{ flex: 1 }} /> : <ThemedText accessibilityRole="header" style={{ flex: 1, fontSize: 22, lineHeight: 29, fontWeight: "700" }}>{title}</ThemedText>}
       {action}
     </View>
     {children}
-  </SafeAreaView>;
+  </SafeAreaView></ProfileTitleContext.Provider>;
+}
+
+export function ProfilePageHeading() {
+  const title = useContext(ProfileTitleContext);
+  return title === null ? null : <ThemedText accessibilityRole="header" style={{ fontSize: 22, lineHeight: 29, fontWeight: "700" }}>{title}</ThemedText>;
 }
 
 export function ProfileScroll({ children }: { children: ReactNode }) {
-  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={profileStyles.pageContent}>{children}</ScrollView>;
+  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={profileStyles.pageContent}><ProfilePageHeading />{children}</ScrollView>;
 }
 
 export function AchievementRow({ item }: { item: Achievement }) {
