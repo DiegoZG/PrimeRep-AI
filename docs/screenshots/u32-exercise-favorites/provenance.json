@@ -1,0 +1,253 @@
+{
+  "baseCommit": "68184a81870cc8ac27548c1ce29ae708ba4cd9b1",
+  "featureCommit": "a9dbe74cc3564a56d7354c44e474023d6567a44b",
+  "sourceSHA256": {
+    "originalRoute": "0bd0cc14e11577cd035ed5a28d9753d5217cf608e36a5eab788110ae8eb0ff30",
+    "candidateRoute": "c4e6df4000806b8d3dad2e0dc942c2c80f7a8644ec70919b113daf0e7ec0c24d",
+    "candidateHarness": "dadb26a7bdbd5b0bbd7291a7bc820c310257348a6affd5fbd36f34aeea4486cf",
+    "controller": "925efc658c8867937767284e15bf6e0c72e8c4e2c206d4c5751015b6147a36d5",
+    "restoredImportPrefix": "23a86b89220c8e607e53a9255003ff3d31adc8c991579bb971a5a414d0596fd2",
+    "sharedExerciseRow": "0bc14d29cd072e478af532de907737ba58beb31df2e8ae46029f87768a10df90",
+    "sharedThemedText": "06d02c5a33dd258563726e8586a4b588e2df7c087ac291be6a225f89bf1ac974",
+    "sharedTheme": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1"
+  },
+  "platform": {
+    "os": "iOS18.5",
+    "expoSDK": 54,
+    "normalContentSize": "large",
+    "maxContentSize": "accessibility-extra-extra-extra-large",
+    "method": "Cold existing custom client after public appearance/text-size setting; authenticated EMPTY fixture,zero favorites."
+  },
+  "counts": {
+    "original": 9,
+    "candidateMatrix": 8,
+    "backNavigation": 1,
+    "totalPNG": 18
+  },
+  "engineering": {
+    "originalBaseline": 37,
+    "focused": 55,
+    "full": 1252,
+    "skipped": 0,
+    "types": "pass",
+    "lint": "pass; two existing warnings",
+    "auditAndSelfTest": "pass",
+    "webHTML": 62,
+    "exactEmittedModules": "pass",
+    "independentQA": "accepted"
+  },
+  "native": {
+    "state": "EMPTY only",
+    "boundedScroll": "One body swipe per candidate MAX; original SE copy-end requires three total bounded swipes",
+    "publicAX": "Full title/copy/Back retained; two original decorative glyph-only nodes absent in inspected cases",
+    "navigation": "One named Back tap returned actual Home",
+    "unclaimed": "Guest/loading/error/Retry/populated/row/favorite/refresh/nested actions are renderer-only"
+  },
+  "correctnessFollowUp": "Concurrent-removal snapshot rollback can restore another successfully removed row. Preserved/tested, not fixed; separate per-exercise reconciliation follow-up with fences. No parallel-mutation-safety claim.",
+  "limits": [
+    "No whole-empty-state one-frame/every-frame/title/card or perfect-fit claim",
+    "Preceding content can crop at scroll boundary",
+    "No measured numerical contrast",
+    "No VoiceOver/physical-device/Android/CI/native populated-list or touch-propagation certification"
+  ],
+  "exclusions": [
+    "locked-capability frames",
+    "transient/duplicate/warm/probe/debug frames",
+    "credentials",
+    "private reports/logs/runtime inventories",
+    "other slices"
+  ],
+  "runtimeBoundary": "Owned U32 Expo stopped; fictional sign-ins/API retained; prior denied logout not retried/bypassed and direct human approval pending. Final guest restoration/fixture cleanup incomplete. U33 public unsaved draft/day approval pending; no next-slice native/data action.",
+  "images": [
+    {
+      "file": "original-plus-light-large-stable.png",
+      "phase": "original",
+      "configuration": "Plus Light normal",
+      "position": "normal settled",
+      "caption": "Cold settled normal EMPTY state; full heading and message visible.",
+      "sha256": "eb2aaf2b158d0df0f875e747140a270bf7b3dc827cc496dc4e22f6bbafa7b752",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-large-stable.png",
+      "phase": "original",
+      "configuration": "Plus Dark normal",
+      "position": "normal settled",
+      "caption": "Cold settled normal EMPTY state; full heading and message visible.",
+      "sha256": "2e317d5597d2fd89a15335a1684ac55c1952bad74a4877455ee3a828194b9fc4",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-max-initial.png",
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "position": "initial",
+      "caption": "Cold original MAX initial viewport; fragmented fixed heading and narrow copy column.",
+      "sha256": "baf3bc890350465be280430b8386b5aba2fb213eb5525319600476c68e215235",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-light-max-stable.png",
+      "phase": "original",
+      "configuration": "Plus Light MAX",
+      "position": "after one body swipe",
+      "caption": "Original Plus after one body swipe: complete subtitle reachable while fragmented header remains fixed.",
+      "sha256": "f2b611a39e1ab08b24939e4c772a14177d978b43f1b85b26bff9781eebfcea6b",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-max-initial.png",
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "position": "initial",
+      "caption": "Cold original MAX initial viewport; fragmented fixed heading and narrow copy column.",
+      "sha256": "a3343f58048922dca39a11da4a361d6989b3f3770d5e09ce1025d86eb2c65ecd",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-plus-dark-max-stable.png",
+      "phase": "original",
+      "configuration": "Plus Dark MAX",
+      "position": "after one body swipe",
+      "caption": "Original Plus after one body swipe: complete subtitle reachable while fragmented header remains fixed.",
+      "sha256": "259d934a8ec2b874923815d264f3fde6c956c4659f80635ff18b309acd0b82bc",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "original-se-light-max-initial.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "initial",
+      "caption": "Cold original MAX initial viewport; fragmented fixed heading and narrow copy column.",
+      "sha256": "3d7f2756b8994a28aaa7985610bf1eae9975bfcdb19ad1b18c5cfb68f4b47134",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "original-se-light-max-stable.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "after one body swipe",
+      "caption": "Original SE after one body swipe: partial subtitle visible; final-copy supplement uses three total swipes.",
+      "sha256": "b9b0c238d6dde6815262b2a4d89eadf46687f4728587ba02e6ac92ece07ae055",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "original-se-light-max-copy-end.png",
+      "phase": "original",
+      "configuration": "SE Light MAX",
+      "position": "copy end after three total swipes",
+      "caption": "Original SE MAX copy end after three total bounded upward body swipes; a different scroll position from the one-swipe frames.",
+      "sha256": "006943ffe0b1d7252c080983e91bd51173c4781183fb679f0dcf7cf06ead8c89",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-plus-light-large-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "position": "normal settled",
+      "caption": "Cold settled normal EMPTY state; full heading and message visible.",
+      "sha256": "0d8f53a2ffebf03b0883b82ce7c5ec9cfd56419d1efb5af590996a54db13f260",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-large-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark normal",
+      "position": "normal settled",
+      "caption": "Cold settled normal EMPTY state; full heading and message visible.",
+      "sha256": "57f3090451ed79400c87901347d848ffe671effc97ed96d501e113c6e90e299e",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-max-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "position": "initial",
+      "caption": "Cold candidate MAX initial viewport; whole Favorites heading with red heart above it, not whole-state one-frame fit.",
+      "sha256": "d0c58883f20debad8ffbe4d97d88a5d6b777c29c910157402279f476d44f2c43",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-light-max-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Light MAX",
+      "position": "after one body swipe",
+      "caption": "After one bounded body swipe: heading/red heart move away, Back remains fixed, complete empty copy reachable; preceding content may crop at viewport boundary.",
+      "sha256": "05d552e2f2826d8fde0ee5b76aada5c06d1d37f5b7c22bac6eb9c4741ca88e20",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-max-initial.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "position": "initial",
+      "caption": "Cold candidate MAX initial viewport; whole Favorites heading with red heart above it, not whole-state one-frame fit.",
+      "sha256": "6d7d7e313e2ccb83b738f930c38f6cc40923e2606c5d0dd0391be3566f752ca5",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-plus-dark-max-stable.png",
+      "phase": "candidate",
+      "configuration": "Plus Dark MAX",
+      "position": "after one body swipe",
+      "caption": "After one bounded body swipe: heading/red heart move away, Back remains fixed, complete empty copy reachable; preceding content may crop at viewport boundary.",
+      "sha256": "5474a1c243c0a62697a3d75a5609d73214a88f9351435f02ef6ac66c108d107a",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "candidate-se-light-max-initial.png",
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "position": "initial",
+      "caption": "Cold candidate MAX initial viewport; whole Favorites heading with red heart above it, not whole-state one-frame fit.",
+      "sha256": "278f75788bdc2408f0d1239b5763cbef2dd17431db421b5d313e672f861df08d",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-se-light-max-stable.png",
+      "phase": "candidate",
+      "configuration": "SE Light MAX",
+      "position": "after one body swipe",
+      "caption": "After one bounded body swipe: heading/red heart move away, Back remains fixed, complete empty copy reachable; preceding content may crop at viewport boundary.",
+      "sha256": "3f927912a8e71c4486edc92816e5716bf46cff3d39fbda8e1f4b311713002bc2",
+      "width": 750,
+      "height": 1334
+    },
+    {
+      "file": "candidate-plus-light-large-back-home.png",
+      "phase": "candidate",
+      "configuration": "Plus Light normal",
+      "position": "Back navigation",
+      "caption": "Actual Home after one named Back tap on normal Plus; no auth/data action.",
+      "sha256": "089db8a516a0d305535d879fda8330b37f533311dc8599be3c00b36ad7c2fcaa",
+      "width": 1290,
+      "height": 2796
+    }
+  ],
+  "schemaVersion": 1,
+  "candidateNativeBundle": {
+    "sha256": "d60c4f944eea5131462af8d2fbe508f34873eb8b7808da82d5798d84d8ad758e",
+    "bytes": 13578892
+  },
+  "status": "canonical",
+  "originalNativeBundle": {
+    "sha256": "677320794926c56989573727d851d577236f36c361b7d3f12612a653c830ea1c",
+    "bytes": 13575865
+  }
+}
