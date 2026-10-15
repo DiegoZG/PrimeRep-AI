@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
-import { ProfileAvatar, ProfilePage, profileStyles as styles } from "@/components/profile-ui";
+import { ProfileAvatar, ProfilePage, ProfilePageHeading, profileStyles as styles } from "@/components/profile-ui";
 import { ScreenState } from "@/components/screen-state";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
@@ -130,6 +130,7 @@ function Editor() {
 
   return <ProfilePage title="Edit Profile" testID="profile-edit-screen" onBack={() => router.back()} action={<Pressable testID="profile-save" onPress={() => void save()} disabled={disabled} accessibilityRole="button" accessibilityLabel="Save profile" accessibilityState={{ disabled, busy }} style={[styles.link, { opacity: disabled ? 0.45 : 1 }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>{busy ? "Saving…" : "Save"}</ThemedText></Pressable>}>
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.pageContent}>
+      <ProfilePageHeading />
       {!form || !profile ? <ScreenState colors={colors} kind={loading ? "loading" : "error"} title={loading ? "Loading profile" : "Profile couldn’t load"} message={loadError ?? undefined} actionLabel={loading ? undefined : "Retry"} onAction={() => void refresh()} /> : <>
         <View style={{ alignItems: "center", gap: 12 }}><ProfileAvatar uri={photo.kind === "remove" ? null : photo.kind === "replace" ? photo.uri : avatar} name={[form.preferred_name, form.last_name].join(" ")} size={116} /><View style={{ alignSelf: "stretch", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 26, rowGap: 8 }}><Pressable testID="profile-change-photo" onPress={() => void choosePhoto()} disabled={busy || picking} accessibilityRole="button" accessibilityState={{ disabled: busy || picking, busy: picking }} style={[styles.link, { maxWidth: "100%", opacity: busy || picking ? 0.5 : 1 }]}><ThemedText style={{ color: colors.text, textAlign: "center" }}>{picking ? "Opening photos…" : "Change photo"}</ThemedText></Pressable>{(profile.avatar_version || photo.kind === "replace") && photo.kind !== "remove" ? <Pressable testID="profile-remove-photo" onPress={() => setPhoto({ kind: "remove" })} disabled={busy || picking} accessibilityRole="button" accessibilityState={{ disabled: busy || picking }} style={[styles.link, { maxWidth: "100%" }]}><ThemedText style={{ color: "#E5484D", textAlign: "center" }}>Remove</ThemedText></Pressable> : null}</View></View>
         {error ? <View testID="profile-save-error" accessibilityRole="alert"><ThemedText style={styles.error}>{error}</ThemedText></View> : null}

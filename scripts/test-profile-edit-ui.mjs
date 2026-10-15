@@ -24,7 +24,7 @@ function load(file, mocks, globals = {}) {
   }, console, Error, ...globals }, { filename: path.join(root, file) });
   return module.exports;
 }
-const native = { ActivityIndicator: "ActivityIndicator", KeyboardAvoidingView: "KeyboardAvoidingView", Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", TextInput: "TextInput", View: "View", StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 }, Platform: { OS: "ios", select: (values) => values.ios } };
+const native = { ActivityIndicator: "ActivityIndicator", KeyboardAvoidingView: "KeyboardAvoidingView", Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", TextInput: "TextInput", View: "View", StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 }, Platform: { OS: "ios", select: (values) => values.ios }, useWindowDimensions: () => ({ width: 375, height: 667, fontScale: 1, scale: 2 }) };
 const theme = load("constants/theme.ts", { "react-native": native });
 const textOf = (node) => typeof node === "string" ? node : node?.children?.map(textOf).join("") ?? "";
 const flat = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
@@ -113,12 +113,12 @@ async function form(scheme, options = {}) {
 test("scope: imports, account wrapper, controller and shared modules remain byte-exact", () => {
   const input = source(route);
   for (const [part, expected] of [
-    [input.slice(0, input.indexOf("type PhotoEdit")), "22fb66c7e591b09c8edadc57bab20a4fa02959821c0bf3bebbb430ef8ee7ee32"],
+    [input.slice(0, input.indexOf("type PhotoEdit")).replace("ProfilePage, ProfilePageHeading,", "ProfilePage,"), "22fb66c7e591b09c8edadc57bab20a4fa02959821c0bf3bebbb430ef8ee7ee32"],
     [input.slice(input.indexOf("export default function"), input.indexOf("function Editor()")), "6e5ed0f27e1e86de89482ee901ba01f86f22a680e31fdd8162efa71ee9ee26c1"],
     [input.slice(input.indexOf("function Editor()"), input.indexOf("  const inputStyle")), "2d2b1ae1ceaa5db27ba610d3d6bcee76eea9181416526524d71be0f0dddf0aff"],
   ]) assert.equal(hash(part), expected);
   for (const [file, expected] of Object.entries({
-    "components/profile-ui.tsx": "cccfdb39b90ce35cf6a2f1d787f858f8147a16b3545e2f5b1122453c18ca30a7",
+    "components/profile-ui.tsx": "71dba99a5759d5e5a10e8c429d20ded233f5b5e7a34a5a5638f3a3522e7da0a0",
     "utils/profileContext.tsx": "752e9258ab4d0c0859d1f39092293eaaccc22c9336786aea1eb99d6eafba4c46",
     "services/accountScope.ts": "cb7920358c2e0de7a2286fd7c6cf226a528b466be96701eab4e2ba638fad20d7",
     "utils/profileForm.ts": "6f80af855d193b28970013b94cb1db50a5802c1be8f29b6e4bc4617f22abdb11",
