@@ -8,8 +8,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { ThemedView } from "@/components/themed-view";
@@ -91,15 +93,19 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
 
   const allSelected = selectedWeights.size === options.length;
 
+  const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, mode === "settings" && { paddingTop: insets.top }]}>
       {mode === "settings" && (
         <View style={styles.settingsHeader}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={() => router.back()} hitSlop={10}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.settingsTitle, { color: colors.text }]}>{title}</Text>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Save ${title}`} accessibilityState={{ disabled: isSaving, busy: isSaving }} onPress={handleSave} disabled={isSaving} hitSlop={10}>
+          {!largeText && <Text accessibilityRole="header" style={[styles.settingsTitle, { color: colors.text }]}>{title}</Text>}
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Save ${title}`} accessibilityState={{ disabled: isSaving, busy: isSaving }} onPress={handleSave} disabled={isSaving} hitSlop={10} style={styles.saveButton}>
             <Text style={[styles.saveText, { color: colors.primaryButton }]}>
               {isSaving ? "Saving…" : "Save"}
             </Text>
@@ -107,15 +113,18 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
         </View>
       )}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        testID="equipment-weight-scroll"
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, mode === "settings" && { paddingBottom: 40 + insets.bottom }]}
+        contentInsetAdjustmentBehavior={mode === "onboarding" ? "automatic" : "never"}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          {mode === "onboarding" && (
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        <View style={[styles.header, largeText && styles.stackedHeader]}>
+          {(mode === "onboarding" || largeText) && (
+            <Text testID="equipment-weight-title" accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{title}</Text>
           )}
-          <TouchableOpacity onPress={handleToggleAll}>
-            <Text style={[styles.toggleAllText, { color: colors.primaryButton }]}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${allSelected ? "Deselect all" : "Select all"} ${title.toLowerCase()}`} onPress={handleToggleAll} style={styles.toggleAllButton}>
+            <Text style={[styles.toggleAllText, { color: colors.text }]}>
               {allSelected ? "Deselect all" : "Select all"}
             </Text>
           </TouchableOpacity>
@@ -127,6 +136,10 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
             return (
               <TouchableOpacity
                 key={weight}
+                accessible
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${weight} lb`}
+                accessibilityState={{ checked: isSelected }}
                 onPress={() => handleToggleWeight(weight)}
                 style={[styles.weightRow, { borderBottomColor: colors.inputBorder }]}
                 activeOpacity={0.7}
@@ -135,6 +148,8 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
                   {weight} lb
                 </Text>
                 <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={[
                     styles.checkbox,
                     {
@@ -144,7 +159,7 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
                   ]}
                 >
                   <AnimatedCheckmark visible={isSelected}>
-                    <Text style={styles.checkmarkText}>✓</Text>
+                    <Ionicons name="checkmark" size={16} color="#FFFFFF" accessible={false} allowFontScaling={false} />
                   </AnimatedCheckmark>
                 </View>
               </TouchableOpacity>
@@ -200,31 +215,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 56,
     paddingBottom: 12,
   },
-  settingsTitle: { fontSize: 20, fontWeight: "700", fontFamily: Fonts.sans },
+  backButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  saveButton: { minWidth: 54, minHeight: 44, flexShrink: 1, marginLeft: 12, alignItems: "flex-end", justifyContent: "center" },
+  settingsTitle: { flex: 1, marginHorizontal: 8, textAlign: "center", fontSize: 20, fontWeight: "700", fontFamily: Fonts.sans },
   saveText: { minWidth: 54, textAlign: "right", fontSize: 16, fontWeight: "700" },
+  scroll: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 40 },
   header: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 16,
+    columnGap: 12,
+    rowGap: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", fontFamily: Fonts.sans },
+  stackedHeader: { flexDirection: "column", alignItems: "flex-start" },
+  title: { flexShrink: 1, fontSize: 28, fontWeight: "700", fontFamily: Fonts.sans },
+  toggleAllButton: { minWidth: 44, minHeight: 44, maxWidth: "100%", paddingVertical: 8, justifyContent: "center" },
   toggleAllText: { fontSize: 16, fontWeight: "600", fontFamily: Fonts.sans },
   weightsList: { paddingHorizontal: 24 },
   weightRow: {
+    minHeight: 44,
+    minWidth: 44,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
-  weightText: { fontSize: 16, fontWeight: "400", fontFamily: Fonts.sans },
+  weightText: { flexShrink: 1, paddingRight: 12, fontSize: 16, fontWeight: "400", fontFamily: Fonts.sans },
   checkbox: {
     width: 24,
     height: 24,
@@ -233,5 +257,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checkmarkText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

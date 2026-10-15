@@ -1,0 +1,1071 @@
+{
+  "schemaVersion": 1,
+  "artifact": "Equipment weights — U36/U37/U42/U43",
+  "validation": "Exact canonical corpus validation, not native/CI acceptance",
+  "source": {
+    "originalBase": "f3ca6dcb227d016ac33b64b9359373704211fb6e",
+    "candidateBase": "2c6af9ae82735fb079433888d1170db5fdc49d57",
+    "originalEditorSHA256": "ec297aaf8b2623cc4e1375f304065a69ce325e290a1ddf32050506a10855f2b6",
+    "candidateEditorSHA256": "bcfa1066a431a16386707d28a56ab39d74378efa7b5081dd3661513bcee57e99",
+    "candidateHarnessSHA256": "a9b89d40221c536b10392758f8716769f2c43041845f7c3c919857b5b31fb8bf",
+    "candidateSourceMilestone": "c3b70ade8c423ec8fe68d5680684d07f3e7fb0c2",
+    "runtimeCommitQualification": "Original runtime used frozen baseline f3ca6dcb. Candidate runtime started on base 2c6af9ae with frozen bcfa/a9b8 bytes; source milestone c3b70ade was committed afterward without changing those bytes. No post-commit restart or distinct bundle recapture is claimed."
+  },
+  "guardedSections": {
+    "reconstructedOriginalImports": {
+      "bytes": 652,
+      "SHA256": "0ed4a8ce9e7e198b819b39633c443f42ee6a3701e294ea7d59b7ef0ee6a8532f"
+    },
+    "editorController": {
+      "bytes": 1952,
+      "SHA256": "36ca0e3f6d5209005bd91916e5f0cfd689c82c256609260a679f242316a2cbde"
+    },
+    "settingsController": {
+      "bytes": 229,
+      "SHA256": "d30fe01d3b50af004b9af23e4232b416134f912bdbaa9667903bf124121f346e"
+    },
+    "optionsAndProps": {
+      "bytes": 338,
+      "SHA256": "006db819507821cf343b68dc7ff917c95a9ddbd0b6775f9f6414d7cce9991ede"
+    },
+    "approvedImportAdditions": [
+      "useWindowDimensions from react-native",
+      "useSafeAreaInsets from react-native-safe-area-context"
+    ],
+    "controllerQualification": "Both original controller ranges include the preceding LF. The Settings loading/error/Retry rendering also remains byte-exact; all four thin hosts and their native Stack remain unchanged."
+  },
+  "verification": {
+    "originalFocused": 70,
+    "candidateFocused": 118,
+    "fullRuns": [
+      1595,
+      1595
+    ],
+    "typecheck": "pass",
+    "scopedLint": "pass",
+    "projectLint": {
+      "errors": 0,
+      "inheritedWarnings": 2
+    },
+    "auditAndSelftest": "pass",
+    "webExport": {
+      "HTML": 62,
+      "exactEmittedModules": 14,
+      "assetSHA256": "db015e15e3011012b0adf5dbd46873b7962e86b376fe20d0b664d30570ff10fc",
+      "sourceMapSHA256": "186c5f30050a3b8f4cdf1cd5f491a705e8c0b36e6025f4dd301911e33ca0b5ca",
+      "qualification": "Fresh process-specific cache and HTTPS placeholder URL; no API call. Web resolves the platform .web.ts color-scheme hook. Web emission is not native bundle certification."
+    },
+    "qualification": "Local engineering, not CI; focused cases overlap full runs."
+  },
+  "native": {
+    "original": {
+      "configurationCount": 16,
+      "canonicalPNGs": 32,
+      "coverage": {
+        "settings": 8,
+        "onboardingProperParent": 5,
+        "onboardingDirectOnly": 3
+      },
+      "captureManifestSHA256": "19dffcd78af36de2935f87da283f702e443712c21445e7d5f432cc4efc1cb51d",
+      "nativeManifestSHA256": "c1a01ec7ed6d0de09147f73f7de762883d9760d30d9e49d5884e7b965752d99e",
+      "bundleSHA256": "9d1fcaaa1e1c12b7d07617d952ff1c3791d44afe0de6b6f140f63097ddbc656c",
+      "entryMethod": "Plus Light normal and SE Light MAX began with ordinary cold public development-client reconnects; Dark appearance transitions kept the same font size. Repair SE Dark MAX had a separate cold reconnect. Guest normal follows approved public logout. U42LightMAX has actual cold-OS-MAX parent Edit entry after one fresh-bounds physical tap. Final3MAX cases each cold-bootstrap and use approved public direct child routes after bounded parent navigation/failed stale warm-metric setup was excluded. No claim of16 distinct cold starts or16 navigation acceptances."
+    },
+    "candidate": {
+      "configurationCount": 16,
+      "canonicalPNGs": 32,
+      "coverage": {
+        "settings": 8,
+        "onboardingProperParent": 2,
+        "onboardingDirectOnly": 6
+      },
+      "captureManifestSHA256": "bdd77fe77cd3664c5c14f873ceb681ce670eeab15d7f7f79d60130089316cb6d",
+      "nativeManifestSHA256": "f3e04781d69a65fe38c8eec69530bbf41bd82a3a6a147dc9511b236ff9ab73b2",
+      "bundleSHA256": "5f6a24adddf93fdeb3fcec0450dbb0faf5fc4b80f6f395b2f2b777e2805dd594",
+      "entryMethod": "Guest8 first. Two Light/normal actual parent entries; six cold direct entries after root explicitly revised candidate coverage because inherited parent footer occludes Edit targets. Original5parent/3direct remains unchanged; images match host/theme/font/selection/dimensions, not all navigation entry methods. Settings8 cold authenticated entries; same existing disposable SE fixture restored only via public login."
+    },
+    "observations": [
+      "Native normal bulk targets are69×44pt; MAX bulk targets230×84–85pt, using integer public accessibility bounds.",
+      "Settings Back is44×44pt; normal Save54×44pt and SE/MAX Save130×68pt, visible beneath the status inset. Existing10pt hit slop is additional, not a substitute for actual targets.",
+      "Full uncapped Settings MAX title stays within the327pt body scroller; the title scrolls away while Save remains visible.",
+      "Guest selected purple circles retain visible white checks at MAX. Public accessibility hierarchy reports the known selected row checked and adjacent unselected rows unchecked; this is not VoiceOver audio certification.",
+      "First/last labels125lb and50lb are visible at their canonical endpoints; no every-middle-glyph or all-controls-in-one-frame certification."
+    ],
+    "handoff": "Capture interactions ended after final Settings frames. The same disposable session was restored through ordinary public login; no private storage/auth injection, manual logout/draft cleanup or storage-verification pass is claimed. Runtime lifecycle remains separately root-owned; no shutdown is inferred from this corpus.",
+    "excluded": "Only the64 canonical body screenshots are published. Parent hit-path/setup failures, initial/supplementary guest frames, identity/auth screenshots, hierarchies and credential-bearing diagnostics are excluded."
+  },
+  "configurations": [
+    {
+      "slice": "U36",
+      "mode": "settings",
+      "route": "/settings/dumbbells",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u36-se-dark-max-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 72990,
+            "SHA256": "b8dab45073b256c157f346cf22ad6ded707f0745e5de74fa8e4c212c9d7386b3"
+          },
+          "candidate": {
+            "file": "candidate-u36-se-dark-max-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 81267,
+            "SHA256": "0e6586c6fc69802636e6deb9447ece655c811a578ad09b827cca26c9ea1874ad"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u36-se-dark-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 65928,
+            "SHA256": "be79bd5f80aad5ab3b29d88b7d13de8f927e8f6f369e111b8380a1da1389c899"
+          },
+          "candidate": {
+            "file": "candidate-u36-se-dark-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 78066,
+            "SHA256": "a204c9f55a01750dfd1a9891d6abff825cfbeb47c5853cbfab916429639d6c89"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U36",
+      "mode": "settings",
+      "route": "/settings/dumbbells",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u36-se-light-max-settled-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 72444,
+            "SHA256": "83a857b701b71cd534b42c8cea09f4daa3e422048f26456636d64393c6ef2a25"
+          },
+          "candidate": {
+            "file": "candidate-u36-se-light-max-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 81275,
+            "SHA256": "5761423e8ac46b71ae58b84e5b17bc3181fec9e225777e4390db6b9c8fbad98b"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u36-se-light-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 65525,
+            "SHA256": "905ad92dd25a2698ab7e82f5faa6b0751d8d19bf3e607d95744e0c67b1b82dfd"
+          },
+          "candidate": {
+            "file": "candidate-u36-se-light-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 77976,
+            "SHA256": "85e9cf81099cf00e5d552216600f322417a9e17899bdca0e3d48d49f966c9e78"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U36",
+      "mode": "settings",
+      "route": "/settings/dumbbells",
+      "device": "iPhone Plus",
+      "theme": "dark",
+      "text": "large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u36-plus-dark-normal-settled-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 153130,
+            "SHA256": "eaad79b07622016a04246cad6c1cc51d36441c119601884bd4a5fc61b7f79f68"
+          },
+          "candidate": {
+            "file": "candidate-u36-plus-dark-normal-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 174829,
+            "SHA256": "c3b61eb70fde88ae06bc7733bcd72dfc6b1ea5d9b43276b7f91ea18ddfe980cf"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u36-plus-dark-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 151393,
+            "SHA256": "db2c287f9922e50076dd53daa37bb3bd64cb7fd1aa9458078058c83ef580b2e6"
+          },
+          "candidate": {
+            "file": "candidate-u36-plus-dark-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 173361,
+            "SHA256": "4a49cab66d49c8efb4446d129edebe386477da1e5534ed769a6b57f469f83d0d"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U36",
+      "mode": "settings",
+      "route": "/settings/dumbbells",
+      "device": "iPhone Plus",
+      "theme": "light",
+      "text": "large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u36-plus-light-normal-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 173573,
+            "SHA256": "a1f306307dd3813ab3307fca2d6c73ba6cfea1b460d1ff92af86520388fe92da"
+          },
+          "candidate": {
+            "file": "candidate-u36-plus-light-normal-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 170668,
+            "SHA256": "5b6292b777656d16b6850c45d49af7d06ad1ec37b5c08152bc329c87cc35db78"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u36-plus-light-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 146113,
+            "SHA256": "6fbc3237bd7d8fd7acfab56e265c058c852e32116b3ad1e515bbccae1b564a24"
+          },
+          "candidate": {
+            "file": "candidate-u36-plus-light-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 169281,
+            "SHA256": "8e7a54f2849c2f10716dc75043d370a9bf4a4045b6cda3612b90db023cbde624"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U37",
+      "mode": "settings",
+      "route": "/settings/plates",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u37-se-dark-max-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 85937,
+            "SHA256": "9ae640fb37e2050002e7f419e781118670285bd613142548fc72a5bff986d5fd"
+          },
+          "candidate": {
+            "file": "candidate-u37-se-dark-max-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 82724,
+            "SHA256": "9e42584bca3da05d51947f3dcf8c45a9172f2d1289a4dc12b089edab5591c07f"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u37-se-dark-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 78574,
+            "SHA256": "ed1ab6b54f32fa7e4a7c6b7063da966ed6f42a630cbf02e61d6f4833320df91b"
+          },
+          "candidate": {
+            "file": "candidate-u37-se-dark-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 78892,
+            "SHA256": "319fe55b129e13f4301471c29268f9b6e94c92b5a63bbceeecb890ea6e6c5823"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U37",
+      "mode": "settings",
+      "route": "/settings/plates",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u37-se-light-max-settled-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 77156,
+            "SHA256": "de4b6e4afa0380535af77678add05326f7001414377e91341f58375cee6f6baa"
+          },
+          "candidate": {
+            "file": "candidate-u37-se-light-max-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 83229,
+            "SHA256": "3dfbcf3d48650b1974c0ba4c2c4719ac1ce2d8c3fe8c7afa9b7aa599631f236a"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u37-se-light-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 78302,
+            "SHA256": "19195cacdd2dbf715d5acd7481f678bde2a12adce6f94de19249e5bd60e5ab13"
+          },
+          "candidate": {
+            "file": "candidate-u37-se-light-max-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 78722,
+            "SHA256": "2cf73585ee60a328fff1a9498fedbf5a9d7bfe5430c01a44b4a16859450e7e8c"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U37",
+      "mode": "settings",
+      "route": "/settings/plates",
+      "device": "iPhone Plus",
+      "theme": "dark",
+      "text": "large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u37-plus-dark-normal-settled-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 130726,
+            "SHA256": "388f8bf12dd93b5e21ea0fb65ac1e8f33f685465df14297f4a07454f5813fe54"
+          },
+          "candidate": {
+            "file": "candidate-u37-plus-dark-normal-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 154732,
+            "SHA256": "db3240a130ab85c3b4a40d6ab5aa25b3739e66a8816dd0a58231524149d572b0"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u37-plus-dark-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 131020,
+            "SHA256": "c494971a68a71fcde7f9f6b2289f2d1649958b2f2f7dad9e1abb8f1e5b00fc1b"
+          },
+          "candidate": {
+            "file": "candidate-u37-plus-dark-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 154732,
+            "SHA256": "db3240a130ab85c3b4a40d6ab5aa25b3739e66a8816dd0a58231524149d572b0"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U37",
+      "mode": "settings",
+      "route": "/settings/plates",
+      "device": "iPhone Plus",
+      "theme": "light",
+      "text": "large",
+      "selectedValues": [],
+      "entry": {
+        "original": {
+          "kind": "settings-body",
+          "qualification": "Settings body capture; case-specific cold/warm entry is not itemized in this capture manifest. No navigation or Back activation pass is inferred."
+        },
+        "candidate": {
+          "kind": "settings-body",
+          "qualification": "Cold authenticated bootstrap → public Settings route"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u37-plus-light-normal-settled-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 126720,
+            "SHA256": "c4bc4cee63bb9b5e620603fa07b2624530d721c12994861c40aaf9ec9b2e0a99"
+          },
+          "candidate": {
+            "file": "candidate-u37-plus-light-normal-top.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 152165,
+            "SHA256": "d019ca1a72707f46e117a1747c6957063239f352ebaf6b352e5488417f0bc150"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u37-plus-light-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 126313,
+            "SHA256": "7eceed47ef33324d11d93b6953be4ec3f8a901e80a143868cb45f1a8188b3168"
+          },
+          "candidate": {
+            "file": "candidate-u37-plus-light-normal-bottom.png",
+            "width": 1290,
+            "height": 2796,
+            "bytes": 152165,
+            "SHA256": "d019ca1a72707f46e117a1747c6957063239f352ebaf6b352e5488417f0bc150"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U42",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-dumbbells",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [
+        2.5
+      ],
+      "entry": {
+        "original": {
+          "kind": "direct-no-back",
+          "qualification": "Ordinary cold guest bootstrap → public direct child route; no native Back visible; limited route-only entry, not parent navigation acceptance"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u42-se-dark-max-direct-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 75420,
+            "SHA256": "512f14cdca102b4be2f99bea16570e611ef3a529425973e59f12b71678a2b6b6"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-dark-max-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 75365,
+            "SHA256": "5de0283be3b0c8580293237ceffb7889f7d85239b017f1a1b310e8fd0616c94e"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u42-se-dark-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 68591,
+            "SHA256": "761384c14d70b40e27ea73e254e299be0190b2cb0f7704b82c7adc463e40e71b"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-dark-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76178,
+            "SHA256": "48c35100c551a358c8c5739a8c84d11de6f40e10e9ae809ef15261543eca1805"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U42",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-dumbbells",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "large",
+      "selectedValues": [
+        2.5
+      ],
+      "entry": {
+        "original": {
+          "kind": "proper-parent",
+          "qualification": "Public equipment parent → actual Edit control; native Back observed, not activated. U42LightMAX uses one fresh-bounds physical center tap"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u42-se-dark-normal-parent-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 73299,
+            "SHA256": "52c6c9d2e891031264d24fcb68a985dd0e21750177ee78c529c9357bb1846cfe"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-dark-normal-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 71958,
+            "SHA256": "c4b64f4c0b933d24194fbd3d9a38eb168d55cbbdde2577c0a5d0bb60c363b788"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u42-se-dark-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 63422,
+            "SHA256": "f676e4fbf22cd1864c2b6beaecb359204435aaf907fc564ae8e667165b09a3f8"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-dark-normal-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 69711,
+            "SHA256": "66f2fb27012d0fe270f97fa36231d7e2096e506048be183846e1586714e5e45f"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U42",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-dumbbells",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [
+        2.5
+      ],
+      "entry": {
+        "original": {
+          "kind": "proper-parent",
+          "qualification": "Public equipment parent → actual Edit control; native Back observed, not activated. U42LightMAX uses one fresh-bounds physical center tap"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u42-se-light-max-parent-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76717,
+            "SHA256": "0b9bb5d1d2c7bdd14e6ecbdbb607d57e9fad681a85774c893ba2a03375364b41"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-light-max-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76254,
+            "SHA256": "e0f2eb1de60882bc357e61eb5434cd6d17a487889dabb59a992b8d6c580c5af8"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u42-se-light-max-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 69857,
+            "SHA256": "fc08f0767c5aed26a920c6f7f65e7c2f64f03dc007545667107dcb2880718138"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-light-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76774,
+            "SHA256": "5c5a9a89bf5c4b3b406b5f4578b1a7e4030cd7fe782e80f40bb141ae95518fd7"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U42",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-dumbbells",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "large",
+      "selectedValues": [
+        2.5
+      ],
+      "entry": {
+        "original": {
+          "kind": "proper-parent",
+          "qualification": "Public equipment parent → actual Edit control; native Back observed, not activated. U42LightMAX uses one fresh-bounds physical center tap"
+        },
+        "candidate": {
+          "kind": "proper-parent",
+          "qualification": "Public parent → actual Edit; native Equipment(8/9) Back observed, not activated"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u42-se-light-normal-parent-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 71662,
+            "SHA256": "8fd394e8dd84b940ba0d9b35be1858cb2373180ba1d5a7a3de4cac974ba7072e"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-light-normal-parent-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 71547,
+            "SHA256": "57737accd679a49630c466360dc4b63a8298f6e11a5f4b4f7ee8679295935dcd"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u42-se-light-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 60065,
+            "SHA256": "65b910f0799c9fb75fee517e156b37e1ecb12aad8fbe1637d442dad1cb38ecea"
+          },
+          "candidate": {
+            "file": "candidate-u42-se-light-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 68493,
+            "SHA256": "2074299084c989aa1a9a8e1bf433136b5560434c798fc57606df1bc06d881564"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U43",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-plates",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [
+        1.25
+      ],
+      "entry": {
+        "original": {
+          "kind": "direct-no-back",
+          "qualification": "Ordinary cold guest bootstrap → public direct child route; no native Back visible; limited route-only entry, not parent navigation acceptance"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u43-se-dark-max-direct-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 79403,
+            "SHA256": "7f4ed9dea34afb35bd853691522ea76942b16b89b12379bbd1da06f18cba61a6"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-dark-max-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 79628,
+            "SHA256": "5814609d7f158c40e2b1f7a810665f60234ad055d9182b9fba77af58c198f15e"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u43-se-dark-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 69189,
+            "SHA256": "bf4343c9785e171cc0f9650eb6e6dc224e7046b33acb23f67f8cf56a2f1c5bba"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-dark-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76717,
+            "SHA256": "800f37c97eced5e6b68ba2f0bdd8fdddf405e08aeef44d06a0bfe21cbf83477d"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U43",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-plates",
+      "device": "iPhone SE",
+      "theme": "dark",
+      "text": "large",
+      "selectedValues": [
+        1.25
+      ],
+      "entry": {
+        "original": {
+          "kind": "proper-parent",
+          "qualification": "Public equipment parent → actual Edit control; native Back observed, not activated. U42LightMAX uses one fresh-bounds physical center tap"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u43-se-dark-normal-parent-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 71905,
+            "SHA256": "cfdee95368f0e5b9126b2c9c35d30b558a68f9a1d9bb7886163b90cf63398275"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-dark-normal-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 70381,
+            "SHA256": "e7364b1a55839b02bc45289ffbbbd23de416e4074e9b1f63718ed08dddf30f66"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u43-se-dark-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 61719,
+            "SHA256": "2158ce28226b38ea50da983e4a404db00eec00eab56f73de858dfd49e6bb2b31"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-dark-normal-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 67072,
+            "SHA256": "5a098fcc7359950096acccbfdd7da202fb9ba8f9efb2ef16108eca1f077ccf48"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U43",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-plates",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "accessibility-extra-extra-extra-large",
+      "selectedValues": [
+        1.25
+      ],
+      "entry": {
+        "original": {
+          "kind": "direct-no-back",
+          "qualification": "Ordinary cold guest bootstrap → public direct child route; no native Back visible; limited route-only entry, not parent navigation acceptance"
+        },
+        "candidate": {
+          "kind": "direct-no-back",
+          "qualification": "Cold guest bootstrap → public direct child; no native Back; body comparison only"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u43-se-light-max-direct-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 80262,
+            "SHA256": "e76be7cf1f4bfc72d6942b2c60b93c11be54ee2225493d4e4b400191d6b36477"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-light-max-direct-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 80689,
+            "SHA256": "de2bc438c357c05634782779b8113dff43f2c40bccb1ce830a1cfd8ae2305a9c"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u43-se-light-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 68873,
+            "SHA256": "440bc75d3c3f23388b9e7d6e9682b9851f0f1d2a7ba91c41f01e65d617e7d2fd"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-light-max-direct-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 76809,
+            "SHA256": "666a243bb09d0004b67f4c6d7fbf62dc53bbaf7469bad071f1af455b9e2dab37"
+          }
+        }
+      ]
+    },
+    {
+      "slice": "U43",
+      "mode": "onboarding",
+      "route": "/onboarding/training-place/edit-plates",
+      "device": "iPhone SE",
+      "theme": "light",
+      "text": "large",
+      "selectedValues": [
+        1.25
+      ],
+      "entry": {
+        "original": {
+          "kind": "proper-parent",
+          "qualification": "Public equipment parent → actual Edit control; native Back observed, not activated. U42LightMAX uses one fresh-bounds physical center tap"
+        },
+        "candidate": {
+          "kind": "proper-parent",
+          "qualification": "Public parent → actual Edit; native Equipment(8/9) Back observed, not activated"
+        }
+      },
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-u43-se-light-normal-parent-verified-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 69864,
+            "SHA256": "b187f8f5cada467ed8fecb6ddf56b83cc15e8afaad0c08132a082d6f5d7cc6ae"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-light-normal-parent-top.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 69961,
+            "SHA256": "46832726b976d43f2228d1c17d34f977d801afe649dec66e0ab3a555d7309edb"
+          }
+        },
+        {
+          "position": "bottom",
+          "original": {
+            "file": "original-u43-se-light-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 58087,
+            "SHA256": "8b1a0f3f7b57d2f1fecc85b08f7ec775b1e64f9dc93c0acfa3d37763e7a249a1"
+          },
+          "candidate": {
+            "file": "candidate-u43-se-light-normal-parent-bottom.png",
+            "width": 750,
+            "height": 1334,
+            "bytes": 65942,
+            "SHA256": "76b120e331c419eb3a14c0977ccff2e1d7d95f3682f18eeadf77915195571baa"
+          }
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Sixteen body/theme/font configurations per version, not sixteen navigation or cold-start passes; entry qualification is explicit per case.",
+    "Settings cold/warm entry is not itemized per case; aggregate accepted method remains separately recorded.",
+    "No native Save, bulk-selection, Back activation, VoiceOver, keyboard, physical-device, Android or CI pass is inferred.",
+    "Selected values describe the accepted fictional display state, not a persistence test.",
+    "Accurate checked props and decorative icons do not certify VoiceOver.",
+    "Transform-sensitive renderer provider repetition and captured late Save callbacks are unchanged, not demonstrated native defects or correctness fixes.",
+    "Original parent navigation hit-path friction and unrelated parent fixed-footer occlusion remain a separate follow-up; neither parent nor Stack was changed. Candidate direct entry is not counted as a parent-navigation pass."
+  ],
+  "sharedKeep": {
+    "app/settings/dumbbells.tsx": {
+      "bytes": 201,
+      "SHA256": "2a60d63e8c00e75b440d48c2a0487fa6331da9fa5a2fc8678336ad442f67e580"
+    },
+    "app/settings/plates.tsx": {
+      "bytes": 195,
+      "SHA256": "8ed11da55c75f51fad75369dec5c03fac87f11f114acc3f933487793e81a50ad"
+    },
+    "app/onboarding/training-place/edit-dumbbells.tsx": {
+      "bytes": 199,
+      "SHA256": "7964fc253f6c23923d2b7bb608ce2b8710f856b3363fa39579923dd4bf7b2bbd"
+    },
+    "app/onboarding/training-place/edit-plates.tsx": {
+      "bytes": 193,
+      "SHA256": "b0019538bb6e545bf47f87d5a3d4f766e9148b183c6bf039a7b74ac42283bea8"
+    },
+    "utils/onboardingContext.tsx": {
+      "bytes": 3784,
+      "SHA256": "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a"
+    },
+    "utils/equipmentWeightsContext.tsx": {
+      "bytes": 5024,
+      "SHA256": "8866ed699b4de2fca8a86001b7846872e8975132ddc4f1e186a0cfe496508a9f"
+    },
+    "services/equipmentWeightsService.ts": {
+      "bytes": 528,
+      "SHA256": "2feab29cb3a1ad4ddd14e8371502866167a7241a603c94bb8e2c4182a104a5ad"
+    },
+    "components/animated-checkmark.tsx": {
+      "bytes": 1095,
+      "SHA256": "27c0f4a1c077fdfde335ffa69f6f6c28430b9390966f74af69e3bea94508f578"
+    },
+    "components/themed-view.tsx": {
+      "bytes": 470,
+      "SHA256": "b95ec1df30abf73d26593db2b6e6280af33b39f3f3b6d960765e99fb6f6843c8"
+    },
+    "hooks/use-theme-color.ts": {
+      "bytes": 537,
+      "SHA256": "49ec7d86e952e315f8172e7994a879d3c63023f2955f667fedba6ab5c89c1710"
+    },
+    "constants/theme.ts": {
+      "bytes": 2182,
+      "SHA256": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1"
+    },
+    "app/onboarding/training-place/_layout.tsx": {
+      "bytes": 1922,
+      "SHA256": "e53a9b21736623f8c8c3fdb75769f847bf92b6e7574df49613623f4cb3d27b52"
+    },
+    "app.json": {
+      "bytes": 2458,
+      "SHA256": "7c3697289889a0b98f502fbdc54edc756392e32536edced909f98554a5160eb2"
+    },
+    "package-lock.json": {
+      "bytes": 558235,
+      "SHA256": "be06fec5788bccd640b7dfc461783acf9ce55c4d77d80eb6ddb87acbee01447d"
+    }
+  },
+  "versions": {
+    "expo": "54.0.25",
+    "expoRouter": "6.0.15",
+    "reactNative": "0.81.5",
+    "react": "19.1.0",
+    "nativeOS": "iOS 18.5",
+    "nativeClient": "Existing SDK54 custom development client",
+    "reactCompiler": true
+  }
+}
