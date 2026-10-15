@@ -1,0 +1,564 @@
+{
+  "artifact": "U35b Shared profile layout evidence",
+  "schemaVersion": 1,
+  "source": {
+    "base": "41a7c748c25cd984b59cabaab71c30445c61326b",
+    "baseTree": "aaf5639810b071f1939980793a96ffd3e5d12103",
+    "milestone": "1e9727bf775a38eb21a0dc1393a53ca47b3d7707",
+    "captureCommitQualification": "Candidate captures ran on base HEAD41a7c748 with six frozen working changes. Source milestone1e9727bf was created after capture; exact captured file hashes establish source equivalence, not that the later commit was served. No post-commit restart or capture is claimed.",
+    "sharedOriginalSHA256": "cccfdb39b90ce35cf6a2f1d787f858f8147a16b3545e2f5b1122453c18ca30a7",
+    "sharedCandidateSHA256": "71dba99a5759d5e5a10e8c429d20ded233f5b5e7a34a5a5638f3a3522e7da0a0",
+    "editOriginalSHA256": "940a0cd43d90916c923051449aa86f83e9e72abecbda4b840ec333cab01d5233",
+    "editCandidateSHA256": "ae4663fbac07088a5d66d333589119359b35878d98f72ba12c90d1285c43587a",
+    "harnessSHA256": "528894021241e8ae8d9670cc8bd01882d8afc8bbc5c03aa4095d85c174b42c25",
+    "milestoneTree": "4002388802ccc61c2a71c22861dee03c106ae700",
+    "files": {
+      "components/profile-ui.tsx": "71dba99a5759d5e5a10e8c429d20ded233f5b5e7a34a5a5638f3a3522e7da0a0",
+      "app/profile/edit.tsx": "ae4663fbac07088a5d66d333589119359b35878d98f72ba12c90d1285c43587a",
+      "scripts/test-profile-layout-ui.mjs": "528894021241e8ae8d9670cc8bd01882d8afc8bbc5c03aa4095d85c174b42c25",
+      "scripts/test-profile-edit-ui.mjs": "158abae03a8e5f83aaa5dca2a3599d098d26d18107b39e2f87e93cbf448d8491",
+      "scripts/test-profile-legend-ui.mjs": "1542032e42457816636e1cab1b2ff8cee7551b54b0850ebf82116329e17a8eaa",
+      "scripts/test-data-export-ui.mjs": "059206293bdccbac5249f02d3c877e4436883ba4cf6e3523986af79560636544"
+    }
+  },
+  "captureManifests": {
+    "originalSHA256": "19a2eb7decb4cae15465f41609daadfbefe93e8e38db5a7caabc4cdce7010a7c",
+    "candidateSHA256": "3029685018aa617277bdc39999f5d780083a30fbbb29616669ad66a90ec74c35"
+  },
+  "counts": {
+    "configurationsPerSide": 10,
+    "imagesPerSide": 18,
+    "coldGroupsPerSide": 5,
+    "original": {
+      "freshConfigurations": 9,
+      "reusedConfigurations": 1,
+      "freshImages": 16,
+      "reusedImages": 2
+    },
+    "qualification": "Ten matched configurations and18 images per side in five cold theme/font groups, not ten independent cold starts or a full cross-product.",
+    "candidate": {
+      "freshConfigurations": 10,
+      "reusedConfigurations": 0,
+      "freshImages": 18,
+      "reusedImages": 0
+    }
+  },
+  "configurations": [
+    {
+      "host": "profile",
+      "deviceClass": "iPhone Plus",
+      "theme": "dark",
+      "font": "normal",
+      "coldGroup": "g1",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-profile-plus-dark-normal-top.png",
+            "SHA256": "0b2534a6d2102cd82b0716d734e9182cce4a0af9c865cf424c1ae47933d0c0b4",
+            "bytes": 239082,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-profile-plus-dark-normal-top.png",
+            "SHA256": "465afeff60d9381038621ffdf234cef434e259c775de3ef85c6928dca9688623",
+            "bytes": 240236,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "originalEntry": "Public Profile tab from authenticated Home",
+      "candidateEntry": "Public Profile tab from authenticated Home"
+    },
+    {
+      "host": "achievements",
+      "deviceClass": "iPhone Plus",
+      "theme": "dark",
+      "font": "normal",
+      "coldGroup": "g1",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-achievements-plus-dark-normal-top.png",
+            "SHA256": "45b92a728a2e52456bf9f91347905fc17919af0e76cf138ec46aaaf1bac074be",
+            "bytes": 280950,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-achievements-plus-dark-normal-top.png",
+            "SHA256": "c4ecdd0e3b285a366f8cb04fa687ebf842895edf3de646b94abe2c939ac44ea4",
+            "bytes": 281154,
+            "width": 1290,
+            "height": 2796
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-achievements-plus-dark-normal-footer.png",
+            "SHA256": "8a9c8b33d8a38a5880956d5ab947875ec670390dd4c27e404c126f078f4b0152",
+            "bytes": 277176,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-achievements-plus-dark-normal-footer.png",
+            "SHA256": "a09772811c033375d490d62c61659854d0499cc1bdf26a369ccc21f2e783b61f",
+            "bytes": 277392,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://profile/achievements",
+      "candidateEntry": "Public primerepai://profile/achievements"
+    },
+    {
+      "host": "export",
+      "deviceClass": "iPhone Plus",
+      "theme": "dark",
+      "font": "normal",
+      "coldGroup": "g1",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-export-plus-dark-normal-top.png",
+            "SHA256": "2e93b1e55bcafca5803579e99c1577070ec875fc54d6c075cc0fc812270678bc",
+            "bytes": 339687,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-export-plus-dark-normal-top.png",
+            "SHA256": "1c5a4ae0bcb7e1e1756fa8c440a4293479b877d8aead5ecb7c4bfd1f34546d6a",
+            "bytes": 339865,
+            "width": 1290,
+            "height": 2796
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-export-plus-dark-normal-footer.png",
+            "SHA256": "9c16f3f459942a66227f047bf3c4095582500a2d93e6b7760b954ea96f9f2e2d",
+            "bytes": 352599,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-export-plus-dark-normal-footer.png",
+            "SHA256": "6365e7bb5e43e4b7026790dfa1612e1e8e0572e3e296c08e1fe3d02cd3957312",
+            "bytes": 352820,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://settings/export",
+      "candidateEntry": "Public primerepai://settings/export"
+    },
+    {
+      "host": "help",
+      "deviceClass": "iPhone Plus",
+      "theme": "light",
+      "font": "normal",
+      "coldGroup": "g2",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-help-plus-light-normal-top.png",
+            "SHA256": "c0bbbb123c073ab51e946892585165ab9465ed44acbfb90be5392f5a654c9275",
+            "bytes": 236136,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-help-plus-light-normal-top.png",
+            "SHA256": "837d74362871ddc0c82f76b2cc8f29c84eb3d41865cb93983604da48a127792e",
+            "bytes": 235896,
+            "width": 1290,
+            "height": 2796
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-help-plus-light-normal-footer.png",
+            "SHA256": "c0bbbb123c073ab51e946892585165ab9465ed44acbfb90be5392f5a654c9275",
+            "bytes": 236136,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-help-plus-light-normal-footer.png",
+            "SHA256": "837d74362871ddc0c82f76b2cc8f29c84eb3d41865cb93983604da48a127792e",
+            "bytes": 235896,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://settings/help",
+      "candidateEntry": "Public primerepai://settings/help"
+    },
+    {
+      "host": "edit",
+      "deviceClass": "iPhone SE",
+      "theme": "light",
+      "font": "normal",
+      "coldGroup": "g3",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-edit-se-light-normal-top.png",
+            "SHA256": "7c81bcbf50649990660ffe0911bad5d25f1ed5dc05a6ec24636016d339c8e786",
+            "bytes": 83572,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-edit-se-light-normal-top.png",
+            "SHA256": "491ba2ca89f056959f52381724afe2bf5e1ae0e78b9966e93d0a4f103f6ee011",
+            "bytes": 83465,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-edit-se-light-normal-footer.png",
+            "SHA256": "d7a43d1a8a4a4e43b0747c1aa7f932fd0994071b79939f93e7656a0d119cf3c9",
+            "bytes": 88988,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-edit-se-light-normal-footer.png",
+            "SHA256": "7d195479efa58ba16ee5cc7e56880c982b62487867f926e54a14645686a34411",
+            "bytes": 88873,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://profile/edit",
+      "candidateEntry": "Public primerepai://profile/edit"
+    },
+    {
+      "host": "edit",
+      "deviceClass": "iPhone SE",
+      "theme": "light",
+      "font": "max",
+      "coldGroup": "g4",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-edit-se-light-max-top.png",
+            "SHA256": "411b4fd6c78c9041197e69e37efc519c3738f3fb7d147d1e97ba479e174a5523",
+            "bytes": 74235,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-edit-se-light-max-top.png",
+            "SHA256": "8fad635b807661030d704a5917f562cfdb1d7297aee8ec9060ea87b80de65cc3",
+            "bytes": 71977,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-edit-se-light-max-footer.png",
+            "SHA256": "f7d2e5658dee95c41c9833a219c0cc3cec18e501551accf82c15e1735dca0483",
+            "bytes": 82707,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-edit-se-light-max-footer.png",
+            "SHA256": "bf2f2000c746a55830cfbbc9ebf00ed7f503c0c0ad863d88cd8768d6ca24e2f3",
+            "bytes": 92855,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://profile/edit",
+      "candidateEntry": "Public primerepai://profile/edit"
+    },
+    {
+      "host": "help",
+      "deviceClass": "iPhone SE",
+      "theme": "light",
+      "font": "max",
+      "coldGroup": "g4",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-help-se-light-max-top.png",
+            "SHA256": "2aad7f8cbd35f15560caa4a37e515e71574a2fec5e1b62ca10ddd6c5a7898a7f",
+            "bytes": 82593,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-help-se-light-max-top.png",
+            "SHA256": "be995751ba2bd2e6bd16c8b0511280856a301212df1eb1c58aa38e2e16689637",
+            "bytes": 88141,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-help-se-light-max-footer.png",
+            "SHA256": "15e1d7e0ad1bf98b8dddfa7528e4e40c9233d59b9800aacfb5833dd662630b27",
+            "bytes": 84135,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-help-se-light-max-footer.png",
+            "SHA256": "fbf52d3bb58cd8dc963c8e2d3a984c20a6bfef4216fc9d51d7b81f487c704b2c",
+            "bytes": 96949,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://settings/help",
+      "candidateEntry": "Public primerepai://settings/help"
+    },
+    {
+      "host": "profile",
+      "deviceClass": "iPhone SE",
+      "theme": "dark",
+      "font": "max",
+      "coldGroup": "g5",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "avatar-focused",
+          "original": {
+            "file": "original-profile-se-dark-max-avatar-focused.png",
+            "SHA256": "2a73c3683432990b8e3ab6fc0c7317e1b7a01df3ac149afd4fcb5d7025e8d897",
+            "bytes": 87049,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-profile-se-dark-max-avatar-focused.png",
+            "SHA256": "2284a3ee32e4642382f0c2bf55bdace7c5d29f019bd41856e521987bd1ed51c1",
+            "bytes": 86374,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "After Dark/MAX cold group: public root link primerepai:/// → Profile tab, then two upward body-gutter swipes; not a new cold start",
+      "candidateEntry": "After Dark/MAX cold group: public root link primerepai:/// → Profile tab, then two upward body-gutter swipes; not a new cold start"
+    },
+    {
+      "host": "achievements",
+      "deviceClass": "iPhone SE",
+      "theme": "dark",
+      "font": "max",
+      "coldGroup": "g5",
+      "originalEvidenceOrigin": "Fresh U35b original native capture.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-achievements-se-dark-max-top.png",
+            "SHA256": "59d74aba6d4b63d612c2ede3de2df12891039b2743ed03972be9a8734d10a0ec",
+            "bytes": 96103,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-achievements-se-dark-max-top.png",
+            "SHA256": "7b4e1b8f0e1a85ba2bf16d31710312bd84bb09556e79c78d3b13d837d9422414",
+            "bytes": 88673,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-achievements-se-dark-max-footer.png",
+            "SHA256": "a5c50960c8ae63878e6b6dc19126466c3a258caf893e76cc93eaf66954e66224",
+            "bytes": 96780,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-achievements-se-dark-max-footer.png",
+            "SHA256": "ce78a842521b77913ae91b4fed75ebfd1efb9150e7b6eb2b4c17aee617fd8018",
+            "bytes": 91723,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://profile/achievements",
+      "candidateEntry": "Public primerepai://profile/achievements"
+    },
+    {
+      "host": "export",
+      "deviceClass": "iPhone SE",
+      "theme": "dark",
+      "font": "max",
+      "coldGroup": "g5",
+      "originalEvidenceOrigin": "Reused accepted U38 SE Dark MAX Export; no new U35b original cold entry or accessibility measurements.",
+      "candidateEvidenceOrigin": "Fresh U35b candidate native capture.",
+      "images": [
+        {
+          "stage": "top",
+          "original": {
+            "file": "original-export-se-dark-max-top.png",
+            "SHA256": "1fdfe74ce7e1c124113f6a2778a67947897114f19605a8fdf1fa7a4f8f8dd9c4",
+            "bytes": 71593,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-export-se-dark-max-top.png",
+            "SHA256": "2c7342e306b3c8c15795e96b900c56b8e06e2f33ae91b955cf94ede5bdb230cc",
+            "bytes": 66111,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "stage": "footer",
+          "original": {
+            "file": "original-export-se-dark-max-footer.png",
+            "SHA256": "90b1c98c51e7956628566281c7e3b7c0bb169e27183849c28fe608b62faccf22",
+            "bytes": 87041,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-export-se-dark-max-footer.png",
+            "SHA256": "c209da8ae51f87bce0ba43d6419ec876ce58f1ebf08ad2665be23fd5d79e97c6",
+            "bytes": 92399,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "originalEntry": "Public primerepai://settings/export",
+      "candidateEntry": "Public primerepai://settings/export"
+    }
+  ],
+  "methods": {
+    "pairing": "Host/deviceclass/theme/OSfontsize/stage/native dimensions; retain distinct entry/endpoint methods per side, no identical-gesture claim.",
+    "avatarMAX": "Canonical Profile-tab MAX frame is avatar-focused, not initial top; original/candidate circle at matching76pt bounds after settled body-gutter scrolling. Initials fit in candidate; readable identity still scales.",
+    "reusedOriginal": "Only SE Dark MAX Export uses prior U38 candidate raw images at feature834049d, whose whole tracked tree matches merged41a7. Reused endpoint remains pixel-only.",
+    "assembly": "Exactly36 canonical unmodified PNGs; SHA256/bytecount/PNG IHDR verified before/after mechanicalcopy. Six source/testfiles plus README/provenance give44totaldiffpaths. No resizing/cropping/recompression/setup/hierarchy copies.",
+    "originalGroupOrder": [
+      "g1",
+      "g2",
+      "g3",
+      "g4",
+      "g5"
+    ],
+    "candidateGroupOrder": [
+      "g3",
+      "g4",
+      "g5",
+      "g1",
+      "g2"
+    ],
+    "candidateEndpoints": "Read-only pixels at actual footer endpoints, not numeric accessibility100%; full Export privacy paragraph fits sampled SE MAX body but archive CTA partly above viewport; no simultaneous fullCTA+warning fit claim.",
+    "original": "Nine fresh configurations,one accepted reused SE Dark MAX Export pair; reuse is not new cold-entry/accessibility evidence."
+  },
+  "verification": {
+    "focused": 196,
+    "shared": 49,
+    "legacy": 147,
+    "authorStandard": {
+      "tests": 1679,
+      "runs": 1
+    },
+    "independentCandidate": {
+      "focused": 196,
+      "standard": 1679,
+      "standardRuns": 1,
+      "types": "PASS",
+      "webHTML": 62,
+      "exactSourceModules": 21,
+      "findings": 0
+    },
+    "types": "PASS required for changed imports/context API",
+    "projectLint": {
+      "errors": 0,
+      "inheritedWarnings": 2
+    },
+    "scopedLint": "PASS",
+    "audit": "PASS",
+    "auditSelftest": "PASS",
+    "web": {
+      "HTML": 62,
+      "exactSourceModules": 18
+    },
+    "CI": "Not claimed",
+    "standardQualification": "Author and independent each ran standard1679 once; focused196 is a subset, not added to standard count.",
+    "acceptance": "Root accepted author engineering, independent functional/anti-pattern/quality gates and both native manifests."
+  },
+  "preservation": "Original shared imports496 reconstructed excluding only approved additions; avatar930 reconstructed excluding only approved a11y/glyph props; edit14010 reconstructed excluding headingimport/insertion; controller5543 exact; four other routes,AchievementRow1652/stylehelpers1182/providers/services/theme/copy exact.",
+  "limitations": [
+    "Full MAX title may wrap and scroll; no all-at-once fit claim.",
+    "No native Save/Cancel/Back destination/photo/FAQ/support/refresh/export/share or permission actions.",
+    "No keyboard/VoiceOver/Android/physical-device/CI certification.",
+    "Readable titles/names/body remain uncapped; only decorative initials stop scaling. Existing full-name label reused; no new role.",
+    "MAX Help/Achievements long final paragraphs may be partly above viewport; Export CTA partly above viewport at final privacy endpoint. No all-middle-copy/all-at-once fit claim."
+  ],
+  "runtime": {
+    "sdk": "54.0.0",
+    "iOS": "18.5",
+    "reactCompiler": true,
+    "originalManifestSHA256": "85274e9d793e146485bbe7b26260f2ea4ae66127c43f07b81ddfcd0fea4ca45e",
+    "originalBundleSHA256": "57f5b8e2ee1bd69a3c0c7c0c7d870af8758db9142ee57c96b684620254508f37",
+    "candidateManifestSHA256": "72af03c29f67c31e1602b333d12dd8c392e2aaa100478bdfca15dacef243fc42",
+    "candidateBundleSHA256": "3021a797835fac37266f354fc75b16868d77310d55ec00065b8305437bcaeac7",
+    "qualification": "Existing installed custom client; exact tracked-tree equivalence allowed original runtime reuse. No new client build or post-source-commit capture claim."
+  },
+  "guardSections": {
+    "sharedImportReconstruction": "496bytes/SHAaced57b64014d4c4cecdb7bbdc5372b6b582f791331c5574fa6538f4ab49d009",
+    "avatarReconstruction": "930bytes/SHA915a4590dd0505c82ac17da975d18cb8528ffdd3e4707d1da219e7278b34e1a0",
+    "editController": "5543bytes includingLF/SHA2d2b1ae1ceaa5db27ba610d3d6bcee76eea9181416526524d71be0f0dddf0aff",
+    "achievementRow": "1652bytes/SHA7acc1d9cc5fcb08729ab4d0f50edcd3b001fcb3e2b28cb63569734352de5b365",
+    "styleHelpers": "1182bytes/SHAc6fa40a3db0b0f47f5336de7f11acca74ad6d825e4c7d17e7b3a93f968c18129"
+  }
+}
