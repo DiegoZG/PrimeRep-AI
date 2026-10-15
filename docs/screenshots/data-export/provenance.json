@@ -1,0 +1,316 @@
+{
+  "artifact": "U38 Download my data presentation evidence",
+  "schemaVersion": 1,
+  "source": {
+    "base": "579d777c5bebbef88205da686066cfb2ce5a0a5a",
+    "baseTree": "ab7a7c82b7b6735ae63d5b12c7f2de76feb543e5",
+    "milestone": "6962e45e00461aba61cd72dc2106ef7fe9081231",
+    "originalRouteSHA256": "208785f51e68f79c0015b8d134b7f1a9b67bcfb8d0572b073d8e2a65ee5b69dc",
+    "candidateRouteSHA256": "e4008f2ca38d650f6c752262a97e7072c1a5504f3bd8b61cc4bf7fb951205b9c",
+    "candidateHarnessSHA256": "9465f9319f4949076cb228bff40ce891229b542e7796484e08e2087d460c029b",
+    "originalRuntimeTreeProof": {
+      "servedFeatureHEAD": "82baca6abd60402dc340eaf49054907093edef99",
+      "equivalentMergedMain": "579d777c5bebbef88205da686066cfb2ce5a0a5a",
+      "tree": "ab7a7c82b7b6735ae63d5b12c7f2de76feb543e5"
+    },
+    "milestoneTree": "8b1fff7479c35fbc319945e1a5716015491c30a7",
+    "runtimeCommitQualification": "Candidate captured on base579d with approved uncommitted frozen source; source-only milestone records identical route/harness bytes. No new post-commit runtime or capture claimed."
+  },
+  "preservation": {
+    "importBytes": 840,
+    "importsSHA256": "0ddd58d13c428689137bd3b9e86364fe8d344dc95adbc76648168ada0ee4ae58",
+    "controllerBytes": 1537,
+    "controllerSHA256": "24642e50e7bea7fb4b8513400e0c2c4e92b2aab7523a68800b33c5c34ae00921",
+    "prefixBytes": 2377,
+    "prefixSHA256": "a1138ed4e60f22037f9d6780f54cdf08e26339702e225c8e1393cb654387ab64",
+    "copyAndPrimaryBytes": 2455,
+    "copyAndPrimarySHA256": "9a468bc541e2fb6da4c561446806b89e6bcb74376ba375a67c5c841cec51f8ae",
+    "sharedPins": 20,
+    "wholeOriginalRouteReconstruction": "Four paint values reversed restores exact original6243 bytes/SHA208785f5."
+  },
+  "captureManifests": {
+    "originalSHA256": "b76900ff0d306813b928779d77a7c7de82a4c8017656742d09bf24c4c2d74061",
+    "candidateSHA256": "82c52055607864945c5d0fbb1b99702fa9a0445d27e42a35be7a547c83813766"
+  },
+  "runtime": {
+    "expo": "54.0.25",
+    "router": "6.0.15",
+    "reactNative": "0.81.5",
+    "react": "19.1.0",
+    "iOS": "18.5",
+    "originalManifestSHA256": "093f172ad6ec0f097a185db5c6a0cf7901b913931a156249b7ccb37a7fe6b090",
+    "originalBundleSHA256": "5f6a24adddf93fdeb3fcec0450dbb0faf5fc4b80f6f395b2f2b777e2805dd594",
+    "candidateManifestSHA256": "9fc400fe0fd1afcd5cc295458c688415fcb975f71801f79ed65c4703b34762b6",
+    "candidateBundleSHA256": "57f5b8e2ee1bd69a3c0c7c0c7d870af8758db9142ee57c96b684620254508f37"
+  },
+  "configurations": [
+    {
+      "deviceClass": "iPhone Plus",
+      "theme": "light",
+      "contentSize": "large",
+      "state": "Read-only idle; no archive action",
+      "originalEntry": "Existing custom development client, cold reconnect and public route entry; no rebuilt client or fresh Metro claim.",
+      "originalEndpointQualification": "Final privacy copy and unpressed create/save button visibly reached; no action execution claim.",
+      "candidateEntry": "Cold installed custom-client reconnect, public route entry; read-only idle.",
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-plus-light-normal-top.png",
+            "SHA256": "4666a1b384f8b0701c77e178d4897fbd54ecaa6c49951fa8a59015c18afda33a",
+            "bytes": 342698,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-plus-light-normal-top.png",
+            "SHA256": "9b475d08e1f1f976b9d8b5522873c67ef15cdfaaadf1a6522909c2237d5ccdcd",
+            "bytes": 341807,
+            "width": 1290,
+            "height": 2796
+          }
+        },
+        {
+          "position": "footer",
+          "original": {
+            "file": "original-plus-light-normal-footer.png",
+            "SHA256": "9252bad362411714c66abf31088f44cbc6f1034fe6fd44e06686602fddd3a34a",
+            "bytes": 356362,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-plus-light-normal-footer.png",
+            "SHA256": "d404229a5f3d1f9e95bc4a6f1fb75a4a3ced23d129f4831e39e0d24f9ddbdd7b",
+            "bytes": 355282,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "candidateEndpointQualification": "Final warning and unpressed primary action visible after read-only scroll; no new fit or action-execution claim."
+    },
+    {
+      "deviceClass": "iPhone Plus",
+      "theme": "dark",
+      "contentSize": "large",
+      "state": "Read-only idle; no archive action",
+      "originalEntry": "Existing custom development client, cold reconnect and public route entry; no rebuilt client or fresh Metro claim.",
+      "originalEndpointQualification": "Final privacy copy and unpressed create/save button visibly reached; no action execution claim.",
+      "candidateEntry": "Cold installed custom-client reconnect, public route entry; read-only idle.",
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-plus-dark-normal-top.png",
+            "SHA256": "fbf03c44291d16e1b3599d03ab595091d8d72a6cab7593e1a2d26a71c307aa6f",
+            "bytes": 338728,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-plus-dark-normal-top.png",
+            "SHA256": "8212f128afdd0a42080f4264591f475de8a3d42970642a12ec96e5e0c37f0f0a",
+            "bytes": 338972,
+            "width": 1290,
+            "height": 2796
+          }
+        },
+        {
+          "position": "footer",
+          "original": {
+            "file": "original-plus-dark-normal-footer.png",
+            "SHA256": "4283b0328a918c94a3b4cfec8bdf044569d5abdceed85354aa2730aea474cba8",
+            "bytes": 352617,
+            "width": 1290,
+            "height": 2796
+          },
+          "candidate": {
+            "file": "candidate-plus-dark-normal-footer.png",
+            "SHA256": "2a35991d52c1926219d93e2fb507b74ffc3f36e8545241b3997a18f94a4fe98f",
+            "bytes": 351348,
+            "width": 1290,
+            "height": 2796
+          }
+        }
+      ],
+      "candidateEndpointQualification": "Final warning and unpressed primary action visible after read-only scroll; no new fit or action-execution claim."
+    },
+    {
+      "deviceClass": "iPhone SE",
+      "theme": "light",
+      "contentSize": "large",
+      "state": "Read-only idle; no archive action",
+      "originalEntry": "Existing custom development client, cold reconnect and public route entry; no rebuilt client or fresh Metro claim.",
+      "originalEndpointQualification": "Final privacy copy and unpressed create/save button visibly reached; no action execution claim.",
+      "candidateEntry": "Cold installed custom-client reconnect, public route entry; read-only idle.",
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-se-light-normal-top.png",
+            "SHA256": "e89460a90b9c496c8af75b0c589f3bc0f6c732a236f7c8c77cae50549ba4962d",
+            "bytes": 161867,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-light-normal-top.png",
+            "SHA256": "14ec4d8bab90ab1a7b4615acdc5954133c43e892e4fecd568139903f8f13f5ce",
+            "bytes": 161560,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "position": "footer",
+          "original": {
+            "file": "original-se-light-normal-footer.png",
+            "SHA256": "b0186fddca1c5bb0d8620b2d1514cfc23dba7a3393983f446c4349356e716b01",
+            "bytes": 175692,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-light-normal-footer.png",
+            "SHA256": "4f9b3903b443a5882b9a9079c35766571b396e05ac2cd885ff8b6e163044708d",
+            "bytes": 175608,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "candidateEndpointQualification": "Final warning and unpressed primary action visible after read-only scroll; no new fit or action-execution claim."
+    },
+    {
+      "deviceClass": "iPhone SE",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "state": "Read-only idle; no archive action",
+      "originalEntry": "Existing custom development client, cold reconnect and public route entry; no rebuilt client or fresh Metro claim.",
+      "originalEndpointQualification": "Actual bottom reached by bounded body-only gestures. Warning386pt exceeds body316pt, so its first lines are above viewport at bottom; no full-warning/CTA simultaneous fit claim. Dark MAX endpoint verified by exact-device pixels only, not numeric accessibility bounds.",
+      "candidateEntry": "Cold installed custom-client reconnect, public route entry; read-only idle.",
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-se-light-max-top.png",
+            "SHA256": "cdd78c2e7a63866993b69149582f5f8ddcb4cb6a889524c4f00977e59c67a6be",
+            "bytes": 72064,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-light-max-top.png",
+            "SHA256": "9b06d4c5e351399472a78d8e098b595f0bf2d031fdc44c6a9d5cd70b48f94c6e",
+            "bytes": 72001,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "position": "footer",
+          "original": {
+            "file": "original-se-light-max-footer.png",
+            "SHA256": "1261b44fc13826fbb7611f7bda959b052cd135ee675519d2d4a280fa1d57591a",
+            "bytes": 87419,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-light-max-footer.png",
+            "SHA256": "eb31e04f637d1a1089eb6f694bd36cbc50729cf01dff412daaaf11b94a0602a8",
+            "bytes": 87568,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "candidateEndpointQualification": "Pixel-only actual endpoint: final privacy line and bottom padding observed after bounded body-contained gestures; no AX100%/numeric target bounds claim. Unchanged header/footer limits remain."
+    },
+    {
+      "deviceClass": "iPhone SE",
+      "theme": "dark",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "state": "Read-only idle; no archive action",
+      "originalEntry": "Existing custom development client, cold reconnect and public route entry; no rebuilt client or fresh Metro claim.",
+      "originalEndpointQualification": "Actual bottom reached by bounded body-only gestures. Warning386pt exceeds body316pt, so its first lines are above viewport at bottom; no full-warning/CTA simultaneous fit claim. Dark MAX endpoint verified by exact-device pixels only, not numeric accessibility bounds.",
+      "candidateEntry": "Cold installed custom-client reconnect, public route entry; read-only idle.",
+      "captures": [
+        {
+          "position": "top",
+          "original": {
+            "file": "original-se-dark-max-top.png",
+            "SHA256": "eaf6ab1aa53bdbad714a14cdd8fbe81d7606cf89fdc404bee6edf93978790709",
+            "bytes": 71432,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-dark-max-top.png",
+            "SHA256": "1fdfe74ce7e1c124113f6a2778a67947897114f19605a8fdf1fa7a4f8f8dd9c4",
+            "bytes": 71593,
+            "width": 750,
+            "height": 1334
+          }
+        },
+        {
+          "position": "footer",
+          "original": {
+            "file": "original-se-dark-max-footer.png",
+            "SHA256": "0811e4767338f2e1d986ea0377b0fa47c7b0d3e6b15293c152f789f65e702150",
+            "bytes": 86713,
+            "width": 750,
+            "height": 1334
+          },
+          "candidate": {
+            "file": "candidate-se-dark-max-footer.png",
+            "SHA256": "90b1c98c51e7956628566281c7e3b7c0bb169e27183849c28fe608b62faccf22",
+            "bytes": 87041,
+            "width": 750,
+            "height": 1334
+          }
+        }
+      ],
+      "candidateEndpointQualification": "Pixel-only actual endpoint: final privacy line and bottom padding observed after bounded body-contained gestures; no AX100%/numeric target bounds claim. Unchanged header/footer limits remain."
+    }
+  ],
+  "verification": {
+    "focused": 35,
+    "originalContracts": 32,
+    "newPaintCases": 3,
+    "foundation": 18,
+    "authorHealthOffline": 14,
+    "standard": {
+      "author": 1630,
+      "independent": 1630,
+      "runsEach": 1
+    },
+    "projectLint": {
+      "errors": 0,
+      "inheritedWarnings": 2
+    },
+    "scopedLint": "PASS",
+    "audit": "PASS",
+    "auditSelftest": "PASS",
+    "web": {
+      "html": 62,
+      "exactSourceModules": 14
+    },
+    "types": "SKIPPED: unchanged imports/types; not a pass",
+    "CI": "Not claimed"
+  },
+  "limitations": [
+    "No native archive/share/save destination or success/busy/error execution; success decoration is renderer-only.",
+    "Shared SE MAX header and endpoint visibility limits unchanged; separate U35b follow-up, not all-fit certification.",
+    "Original SE normal/Dark MAX numeric accessibility bounds excluded after mismatched geometry; exact-device pixels retained.",
+    "No keyboard, VoiceOver, physical-device, Android, OS reduced-motion or CI certification.",
+    "Candidate MAX endpoints are pixel-verified only; original valid LightMAX accessibility measurements are not reused as candidate measurements."
+  ],
+  "methods": {
+    "original": "Five configurations with cold font metrics, existing runtime reused from whole-tree-equivalent feature82baca; no new original Metro/cache/client build.",
+    "candidate": "Five cold-metric configurations with public installed-client reconnect and read-only route entry. MAX endpoints pixel-only from final privacy line/bottom padding after body-contained gestures; no100% accessibility or numeric target-bounds claim.",
+    "pairing": "Device class/theme/OS content size/idle state/top-footer/native dimensions; gestures and entry steps are not claimed identical.",
+    "assembly": "Exactly20 canonical unmodified PNGs; per-file SHA/bytes/IHDR verified before and after mechanical copy. Original body-endpoint capture renamed to canonical LightMAX footer without changing bytes."
+  }
+}
