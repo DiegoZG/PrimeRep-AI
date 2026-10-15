@@ -1,0 +1,354 @@
+{
+  "artifact": "U35 Edit Profile presentation evidence",
+  "schemaVersion": 1,
+  "source": {
+    "base": "00201d38f77e40c246547287bf67644a3eead3e9",
+    "milestone": "aced509c2f5dfdc2e8462834683e9514f15b1bf4",
+    "milestoneTree": "19a8f76baaa5bdff80e4be4cf7a77882f13cdcd4",
+    "originalRouteSHA256": "bebbaff7795a9085ee92d5710ddbe40ac037f195480f1211fa26ccde1664866a",
+    "candidateRouteSHA256": "940a0cd43d90916c923051449aa86f83e9e72abecbda4b840ec333cab01d5233",
+    "candidateHarnessSHA256": "9937b3f6367ba4893c4f39db393b53c6eecf4818d5ad63327418c1423fc65a7a",
+    "runtimeCommitQualification": "Candidate runtime began on base 00201. The source-only aced509 milestone was committed during capture with identical frozen route/harness bytes; no distinct post-commit bundle fetch/restart is claimed.",
+    "currentMainComposition": {
+      "main": "f3ca6dcb227d016ac33b64b9359373704211fb6e",
+      "mergedPR91Head": "afeebc9dc5073105268dceeac7968c11965e1569",
+      "overlap": [],
+      "qualification": "Independent local clone overlaid only the two U35 files on actual merged main; all 23 PR91 files and 19 PR90 files stayed exact. No candidate rebase/merge or native integrated-build/CI acceptance."
+    }
+  },
+  "guardedSections": {
+    "imports": {
+      "bytes": 1390,
+      "SHA256": "22fb66c7e591b09c8edadc57bab20a4fa02959821c0bf3bebbb430ef8ee7ee32"
+    },
+    "accountWrapper": {
+      "bytes": 163,
+      "SHA256": "6e5ed0f27e1e86de89482ee901ba01f86f22a680e31fdd8162efa71ee9ee26c1"
+    },
+    "controllerIncludingLF": {
+      "bytes": 5543,
+      "SHA256": "2d2b1ae1ceaa5db27ba610d3d6bcee76eea9181416526524d71be0f0dddf0aff"
+    },
+    "controllerExcludingLF": {
+      "bytes": 5542,
+      "SHA256": "22c49a2a538f658dcacadc881b69a49c133a8e010e2802ba56b27a770a40f996"
+    },
+    "qualification": "The controller sections differ only in whether the final LF is included; both match the original. Eleven shared KEEP modules remain byte-exact."
+  },
+  "versions": {
+    "expo": "54.0.25",
+    "expoRouter": "6.0.15",
+    "reactNative": "0.81.5",
+    "react": "19.1.0",
+    "reactTestRenderer": "19.1.0",
+    "nativeOS": "iOS 18.5",
+    "nativeClient": "Existing SDK54 custom development client",
+    "manifestSDK": "54.0.0",
+    "runtime": "exposdk:54.0.0",
+    "lockSHA256": "be06fec5788bccd640b7dfc461783acf9ce55c4d77d80eb6ddb87acbee01447d"
+  },
+  "runtimeBundles": {
+    "original": {
+      "bytes": 13582265,
+      "SHA256": "38dce6bb65cd77c2c686a60fe1dde51edcbedc9f8997fed77a63c40fffa95d59",
+      "qualification": "Restored runtime served fetch reverified the same frozen original bundle bytes."
+    },
+    "candidate": {
+      "bytes": 13585451,
+      "SHA256": "0dbe5bf1912568bd83f3b0969f0ca43d3600d0c9fe6e566c7d4cfc983cd2f4bf"
+    },
+    "checks": "Expected profile edit/isolated fixture API markers present; notification probe marker absent. No rebuild/install, private storage injection or source change during native verification."
+  },
+  "nativeConfigurations": [
+    {
+      "device": "iPhone Plus",
+      "appearance": "Light",
+      "text": "normal / OS large",
+      "entry": "cold bootstrap then public profile route",
+      "framesPerVersion": 2
+    },
+    {
+      "device": "iPhone Plus",
+      "appearance": "Dark",
+      "text": "normal / OS large",
+      "entry": "settled warm appearance transition on same untouched form",
+      "framesPerVersion": 2
+    },
+    {
+      "device": "iPhone SE",
+      "appearance": "Light",
+      "text": "cold MAX accessibility",
+      "entry": "cold bootstrap then public profile route",
+      "framesPerVersion": 4
+    }
+  ],
+  "nativeMethod": {
+    "canonicalCounts": {
+      "original": 8,
+      "candidate": 8
+    },
+    "fixture": "Owned fictional profile with placeholder avatar, no Remove action, unchanged Profile/Fixture names and 180 LB / age 31 / Male fields; untouched Save always disabled.",
+    "originalSetup": "Initial Plus cold attempt showed offline while fixture API was absent. After restoration, one observed Retry still failed its bounded 15-second photo wait. A single authorized cold bootstrap then loaded the actual form. Those setup/error frames are excluded; no clean first-startup pass or cause for the retained error is claimed.",
+    "originalScroll": "A bounded 30-second default scroll-to-weight failed and pixels remained at the photo. Explicit right-body-gutter gestures (98% x, 90%→60% y, 600ms) then reached actual content using adaptive groups 3/6/1/2/3/2, with intermediate positions excluded.",
+    "candidateScroll": "SE cold MAX used the established body-gutter gestures in bounded groups 10/2/5 for weight/gender/Cancel endpoint. Content positions match the original; gesture counts/methods are not presented as identical default-target tests.",
+    "interactionBoundary": "Public entry, theme/text setup and read-only scrolling only. No field, unit, gender, photo, Save, Cancel or Back activation; no new identity/login/logout or backend profile-write command.",
+    "lifecycle": "Only owned isolated runtimes were used. Root stopped the original Metro before candidate startup and the candidate Metro after captures; isolated API was retained. No usual developer services operated."
+  },
+  "verification": {
+    "author": {
+      "focused": 85,
+      "namedNodeTestFiles": 52,
+      "namedTests": 1385,
+      "standardTests": 1386,
+      "namedDiscovery": "Named command filters scripts/test-*.mjs by node:test content and excludes the UI-audit wrapper; default discovery adds one file-level wrapper test."
+    },
+    "independentQA": {
+      "focused": 85,
+      "foundation": 18,
+      "fullRuns": [
+        1386,
+        1386
+      ],
+      "qualification": "Independent named command included the audit wrapper; counts are labeled per actual discovery."
+    },
+    "actualMainComposition": {
+      "base": "f3ca6dcb227d016ac33b64b9359373704211fb6e",
+      "fullRuns": [
+        1477,
+        1477
+      ]
+    },
+    "audits": "UI-action audit and self-tests passed",
+    "lint": {
+      "errors": 0,
+      "inheritedWarnings": [
+        "animated-checkmark.tsx:34 scale dependency",
+        "hero-neon-line.tsx:60 opacity/translateX/width dependencies"
+      ],
+      "scoped": "clean"
+    },
+    "web": {
+      "htmlRoutes": 62,
+      "profileEditHTML": true,
+      "authorEmittedRouteSHA256": "940a0cd43d90916c923051449aa86f83e9e72abecbda4b840ec333cab01d5233",
+      "independentExactEmittedModules": 14,
+      "qualification": "Existing privateFiles.web.ts platform resolution checked against unchanged source; initial verifier assumption corrected without product/export repair."
+    },
+    "typecheck": "SKIPPED: U35 imports/types unchanged, per repository instructions. No typecheck-pass claim.",
+    "diffCheck": "passed"
+  },
+  "rendererCoverage": "Real route/shared UI/provider/form/weight/account helpers behind strict explicit mocks; both themes include with-avatar Remove and Opening photos… disabled snapshots. Proves retained contracts/props, not native two-action fit, transport cancellation, file deletion or photo integration.",
+  "preservedLimits": [
+    "Shared MAX header still shows Edit/Pro/file and occupies about the upper 53% of the compact screen; PF initials remain clipped inside the shared avatar. A separate shared ProfilePage/ProfileAvatar accessibility follow-up is proposed, not implemented.",
+    "Initial photo Pressable bounds [22,501][353,673] extend 6pt below the 667pt viewport in both versions; readable words do not prove whole-hit-target fit.",
+    "MAX gender frame has lower control bounds outside the viewport. MAX Cancel endpoint shows full Cancel and lower private-copy words; upper copy is above the viewport. Normal Plus frames show complete private copy.",
+    "Placeholder-avatar fixture has no Remove; no native two-action-row, picker opening/removal, dirty/pending Save, discard or persistence coverage.",
+    "Inherited picking/Cancel availability, unit-read-pending error/Retry, and mocked owner/provider-ordering observations remain unchanged.",
+    "No keyboard-open/dismissal, VoiceOver, physical-device, Android or CI certification."
+  ],
+  "acceptedReports": {
+    "original": {
+      "reportSHA256": "a93974d6deeb12d64998e81a167060a3ef20ff11b5d060935709eb154b4973bd",
+      "manifestSHA256": "f87b65e387c07679182eca79b0dc0df3d0b8590d9b91ba0e3e999bbbbe32109e"
+    },
+    "candidate": {
+      "reportSHA256": "a965db5c307c3f6f06a8f9df144567464f75493b05121944a23e3361f33789f1",
+      "manifestSHA256": "5b65f31ab6c3e3840da1143be2aa7ce9a3516e6147330cb02d1d1a1fbcd0e028"
+    }
+  },
+  "images": [
+    {
+      "version": "original",
+      "file": "original-plus-light-normal-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 164703,
+      "SHA256": "26a2dc3403dff16bf0a0d53dbad914d39fd8d3285e3124fb236c6d49984804e2",
+      "caption": "Original Plus Light normal after fixture/runtime restoration and one authorized cold bootstrap; actual untouched fictional profile, fixed shared header/disabled purple Save, PF placeholder, purple Change photo, no Remove, default fields and selected LB."
+    },
+    {
+      "version": "original",
+      "file": "original-plus-light-normal-bottom.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 177430,
+      "SHA256": "2cbbb7a59a392b925ca7af5e7eb45b4d8e1b6534ed8cc3d234eeab2d26cc1f57",
+      "caption": "Same untouched original Light form after successful scroll-to-Cancel;180LB/31/Male closed control, complete private copy and purple Cancel are visible; Save remains disabled; no action activated."
+    },
+    {
+      "version": "original",
+      "file": "original-plus-dark-normal-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 168425,
+      "SHA256": "4e896fb407cbcc214d613620b259ccf64fc13e586aa2a98889141711a3f39607",
+      "caption": "Original Plus Dark normal is a settled warm appearance transition on the same untouched form; actual top restored with bounded gutter scroll, purple Change photo, placeholder/no Remove, disabled purple Save and unchanged defaults."
+    },
+    {
+      "version": "original",
+      "file": "original-plus-dark-normal-bottom.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 180184,
+      "SHA256": "5f494b2b995c362c9b89e8e3a44180d5106998562e43d76bcaffd212a7d17dcf",
+      "caption": "Same original actual Dark form after successful scroll-to-Cancel; default body values, closed gender, full private copy and purple Cancel; no interaction with those controls."
+    },
+    {
+      "version": "original",
+      "file": "original-se-light-coldmax-photo.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 65788,
+      "SHA256": "7acec7a9b4a97db6e1628261a19fed4eea3f467e65f750129f762272f9f90240",
+      "caption": "Original SE Light cold MAX; uncapped shared header displays Edit/Pro/file without ellipsis, separate Back and complete disabled Save. PF initials clip inside shared avatar. Purple Change/photo words are readable, but the initial photo Pressable bounds end6pt below viewport. No Remove or two-action row coverage."
+    },
+    {
+      "version": "original",
+      "file": "original-se-light-coldmax-weight.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 75297,
+      "SHA256": "393e2776022987587aaf50a03e7d5e76ee1e9dfd8ca3f98cc18f7ed8e5ac9f97",
+      "caption": "Same SE cold MAX after explicit bounded body-gutter scrolling; full unchanged180 weight field, selected purple LB and KG are visible under the fixed header. This is actual screenshot reachability, not the failed default weight-target assertion."
+    },
+    {
+      "version": "original",
+      "file": "original-se-light-coldmax-gender.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 64818,
+      "SHA256": "f3e94854ca04d2e5c7911d4f7473fac98818c8150e566b647d37bbcd64a6a51c",
+      "caption": "Same SE cold MAX after two gutter swipes;31, Gender, Male text and closed chevron are visible. Lower gender-control bounds extend below viewport; not a whole-control-fit claim. No gender activation."
+    },
+    {
+      "version": "original",
+      "file": "original-se-light-coldmax-privacy-cancel-endpoint.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 74584,
+      "SHA256": "9241a91d3d547f26c14202a8e830d37dc59951c907d2867f4b012f7ac0cee312",
+      "caption": "Actual SE cold MAX endpoint after bounded gutter scrolling; complete purple Cancel and lower private-copy words body statistics/are private are visible. Upper copy is above viewport; no all-copy-in-one-frame claim. Cancel was not pressed."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-plus-light-normal-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 164759,
+      "SHA256": "ee2120fe7746c195f8534b323514ec625e246e7ceec0e27faf98f07b1bb12df0",
+      "caption": "Candidate Plus Light normal after observed authenticated cold bootstrap; neutral Change photo, shared normal header/disabled purple Save, PF placeholder/no Remove, unchanged fictional fields and selected purple LB."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-plus-light-normal-bottom.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 178174,
+      "SHA256": "a9db96feffd8161896ef8ddc638e9eff478f19217689cccb808c89bf53493cce",
+      "caption": "Same untouched Light form after successful scroll-to-Cancel; neutral Cancel, full private copy and unchanged180LB/31/Male closed gender. Save remains disabled; no control activated."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-plus-dark-normal-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 167741,
+      "SHA256": "973a3868fcf7c5fd11c291c1024d1c125d8648c40f9f19d1088cabc1c70d06bb",
+      "caption": "Candidate Plus Dark normal, settled warm appearance transition on the same form; neutral Change photo and unchanged shared header, avatar, disabled purple Save and defaults. Actual top restored with bounded gutter scroll."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-plus-dark-normal-bottom.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 179404,
+      "SHA256": "520eacc9f34a5e0467158d4e483d1337972cf638e625aa469a835e6a427f0940",
+      "caption": "Same actual Dark form after successful scroll-to-Cancel; neutral Cancel, complete private copy and unchanged body fields/closed gender under fixed header. No action activated."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-se-light-coldmax-photo.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 66713,
+      "SHA256": "6f2860881dd1faa0b23a0fc4e28f1bb85040726b8141a5f1ec0104ca2ad9246c",
+      "caption": "Candidate SE Light cold MAX; neutral centered Change/photo whole words. Existing shared Edit/Pro/file header word break, separate Back/disabled purple Save and clipped PF avatar initials remain. Photo Pressable ends6pt below initial viewport; no whole-hit-bounds or two-photo-action/Remove coverage."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-se-light-coldmax-weight.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 75556,
+      "SHA256": "6a9ea800f8adcf08d0e37af72a917a445cec40641ab36787d4a46956d27356ba",
+      "caption": "Same SE cold MAX after ten bounded body-gutter swipes; full unchanged180 input and LB/KG controls, selected LB remains purple. Actual visual reachability, not a default scroll-target assertion."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-se-light-coldmax-gender.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 65096,
+      "SHA256": "6895aa75de8af670989018db52df1aeb52ec663defe2f18430c6abf4cebc0848",
+      "caption": "Same SE cold MAX after two more gutter swipes;31/Gender/Male and closed chevron visible, with lower gender-control bounds below viewport. No whole-control-fit or opened-gender claim."
+    },
+    {
+      "version": "candidate",
+      "file": "candidate-se-light-coldmax-privacy-cancel-endpoint.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 75245,
+      "SHA256": "cfad1c733b856069f2eebb88502ca168949c14796a01a46e24957327cc0c64b2",
+      "caption": "Same SE cold MAX after five more gutter swipes; full neutral Cancel and lower private-copy words visible. Upper copy is above viewport; no all-copy-in-one-frame claim. Cancel was not pressed."
+    }
+  ],
+  "excluded": {
+    "original": [
+      {
+        "files": [
+          "plus-open-current.png",
+          "plus-restored-current.png",
+          "plus-after-once-retry.png"
+        ],
+        "reason": "Offline/loading/profile-error setup before successful cold bootstrap; not an actual profile form baseline."
+      },
+      {
+        "files": [
+          "plus-prior-known-u34.png",
+          "se-prior-known-u34.png"
+        ],
+        "reason": "Prior U34 state inspected only to preserve known in-memory drafts; not U35 profile evidence."
+      },
+      {
+        "files": [
+          "se-coldmax-after-weight-scroll.png"
+        ],
+        "reason": "Default30s scroll-to-weight failed and actual pixels stayed at photo; not weight reachability."
+      },
+      {
+        "files": [
+          "original-se-light-coldmax-cancel.png"
+        ],
+        "reason": "Three-gutter intermediate frame shows upper private copy only, despite Cancel-named filename; replaced by actual privacy-cancel-endpoint canonical image."
+      },
+      {
+        "pattern": "all other bootstrap/guard/intermediate/debug frames including plus-dark-partial-setup.png, se-coldmax-gutter-position.png and se-coldmax-body-position.png",
+        "reason": "Setup or intermediate position only; not canonical comparison images."
+      }
+    ],
+    "candidate": [
+      {
+        "files": [
+          "plus-prior-pristine-profile.png",
+          "se-prior-pristine-profile.png"
+        ],
+        "reason": "Retained original frames used only for known-pristine guard before cold termination; not candidate comparison evidence."
+      },
+      {
+        "pattern": "all bootstrap and intermediate/debug frames including plus-bootstrap-current.png, se-bootstrap-current.png and plus-dark-partial-setup.png",
+        "reason": "Setup/session guard or intermediate scroll position only; not one of the eight candidate form frames."
+      }
+    ]
+  },
+  "publicationScope": "Exactly two source/test files plus this README/provenance and 16 unmodified canonical PNGs; no generated bundles, setup captures, private paths or credentials."
+}
