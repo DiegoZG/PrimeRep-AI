@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "status": "Root accepted canonical publication packet",
+  "baseCommit": "9eca913d75ae4daaaa989f3857d64635816d3760",
+  "featureCommit": "a6438949fce0c46620b78d1316822d5e5ef9e200",
+  "verifiedCurrentMain": "00201d38f77e40c246547287bf67644a3eead3e9",
+  "sourceSHA256": {
+    "originalRoute": "700cc97a5398e883ebb5de968947dda2c2e524f01d0785ce4a396b6fd301273d",
+    "originalHarness": "4006ab527b66f9bc9b89b0c23c20fd242deafcda7f9233930d4bd4b19ce020cc",
+    "candidateRoute": "4673ac2d88e6b9e8d34bd813ca69f14b0f8d29eb8dab88bcc573d4b0121ab965",
+    "candidateHarness": "4e8471fdac6dd080559472b398dafcaa6663c4b0e4e3d34c52f3ac7bbb25d5d7",
+    "controller": "86e136a8bc5aee82984b5aca049502d70851f2576f680537d09648d2a43afe46",
+    "reconstructedImportPrefix": "31257928105ab7819305ce11fa68687ee2373473ea4c9d86ede084ee9718e96d",
+    "components/program/ProgramHeader.tsx": "4959bd4948aa81d28b342aefdd513a6e14797bdd7d5b7f726c658ec7c70cb434",
+    "components/screen-state.tsx": "31bb083f19309cf2e44f2b93ddde2266fd57e40cc8191b3e57305c8320d4158f",
+    "components/themed-text.tsx": "06d02c5a33dd258563726e8586a4b588e2df7c087ac291be6a225f89bf1ac974",
+    "constants/theme.ts": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1",
+    "constants/exerciseTaxonomy.ts": "bbd0025826396b6ee0a4f36c2ec3f435c75e8db445e2a489040551c759d44bd3",
+    "services/exerciseService.ts": "9694d499b0535ee43b23594833aa2e09f4c9f390a7dd3ef8ce84e2451558f5e2",
+    "utils/programDraftContext.tsx": "762761a628fe5b6e8c17548100230bc5f7b8ec7ed183c9791d38014817fbb76c",
+    "utils/authContext.tsx": "b1f62934043ff5894ed0f5a4f9e201f66bc6801a3bc4a6ca29c5509a7df2bb28",
+    "utils/equipmentContext.tsx": "1bd981c6e20e570793aa837c5588a2894664a66301bfce72868f4b3607476cd1",
+    "interfaces/programs.ts": "ecfa361e7084ab41441cb1306c680de791c0fcd42bf7bceb7ff1caab4e8178cf",
+    "package-lock.json": "be06fec5788bccd640b7dfc461783acf9ce55c4d77d80eb6ddb87acbee01447d"
+  },
+  "controllerBytes": 6550,
+  "reconstructedImportBytes": 1211,
+  "importException": "Only useWindowDimensions added; exact original prefix restored before hash comparison. Hook is unconditional after the controller and before early returns.",
+  "guardPreservation": "Original loading/error conditions, Retry callback and formDisabled expression remain pinned. State Back remains enabled; form Back follows saving. Validation, payloads, provider and service contracts unchanged.",
+  "platform": {
+    "os": "iOS 18.5",
+    "client": "existing installed custom client; no build/install/reset/new device",
+    "expo": "54.0.25",
+    "expoRouter": "6.0.15",
+    "reactNative": "0.81.5",
+    "react": "19.1.0",
+    "reactTestRenderer": "19.1.0",
+    "nativeManifestSDK": "54.0.0",
+    "normalSize": "large",
+    "maxSize": "accessibility-extra-extra-extra-large",
+    "fixture": "Public guarded unsaved Day 1/zero exercises; empty create form; real dayId forwarded by normal routes; no hidden draft/auth injection"
+  },
+  "engineering": {
+    "originalBaseline": 69,
+    "focused": 91,
+    "full": 1343,
+    "focusedIncludedInFull": true,
+    "authorPass": true,
+    "independent": {
+      "accepted": true,
+      "focused": 91,
+      "full": 1343,
+      "fullRuns": 2,
+      "exactEmittedModules": 12
+    },
+    "currentMainComposition": {
+      "accepted": true,
+      "main": "00201d38f77e40c246547287bf67644a3eead3e9",
+      "tests": 1392,
+      "runs": 2,
+      "mergedPR90Files": 19,
+      "exactNonOverlap": true
+    },
+    "skipped": 0,
+    "types": "pass",
+    "scopedLint": "pass; zero warnings",
+    "expoLint": "pass; two inherited warnings in animated-checkmark and hero-neon-line",
+    "uiAuditAndSelfTest": "pass",
+    "webHTML": 62,
+    "exportAPIURL": "Process-only HTTPS.invalid fixture URL; no .env/config change or API call",
+    "ci": "No CI pass claimed"
+  },
+  "counts": {
+    "originalPNG": 9,
+    "candidateFormPNG": 9,
+    "candidateActionPNG": 1,
+    "totalPNG": 19,
+    "originalConfigurations": 3,
+    "candidateConfigurations": 3,
+    "evidenceFiles": 21,
+    "totalDiffFiles": 23
+  },
+  "method": "Original and candidate: cold Plus Light normal, warm Plus Dark transition on the same untouched form, and cold SE Light MAX. Original Light includes API recovery; original SE follows excluded warm attempts and a named Add exercise retry. Candidate SE recovers one driver guard without another cold launch/reset. Not three clean cold-start passes or identical-gesture comparisons.",
+  "bundles": {
+    "original": {
+      "sha256": "4fe6fed8c44d020c155f9671deba2cb0bca9bdf497b1b6540494b2560eba50d0",
+      "bytes": 13578700
+    },
+    "candidate": {
+      "sha256": "a5d857440ded9ad8c9ba28e72b0a5becf54fcf8f86c3f8034d11813a0a207b40",
+      "bytes": 13582609,
+      "runtimeStartupHEAD": "9eca913d75ae4daaaa989f3857d64635816d3760",
+      "finalObservedHEAD": "a6438949fce0c46620b78d1316822d5e5ef9e200",
+      "sourceTransition": "Source-only commit during verification; frozen route/harness bytes stayed identical. No distinct post-commit restart or bundle capture claimed."
+    }
+  },
+  "native": {
+    "layout": "Native empty create form only. Plus normal shows neutral selected Strength/Chest and Bodyweight with purple Save. SE MAX shows full title and account scope together, then readable neutral checked Strength and reachable full Save while fixed Back persists.",
+    "actions": "Exactly one freshly observed named Back from empty SE MAX form returns to actual pre-PR90 picker inherited from base9eca; destination proof only, not current-main regression. No native field input or type/muscle/equipment selection mutation or Save.",
+    "saveReachability": "Candidate successful bounded scroll-to-Save in all three configurations. Original SE failed overshooting Bodyweight assertion ended at visibly complete Save; screenshot-backed endpoint only, not a successful target assertion. Candidate Instructions heading partly above viewport.",
+    "accessibility": "Named fixed Back44x44 and Strength selected=true observed in public AX. Renderer preserves selected/checked roles. This does not certify VoiceOver.",
+    "keyboard": "Open-keyboard, avoidance and dismissal unverified; safe-area/inset/handled/on-drag props are source/renderer evidence only.",
+    "unverified": [
+      "MAX equipment/Bodyweight coverage",
+      "every field/row fit",
+      "native edit/loading/error flows",
+      "native Save/update/archive",
+      "VoiceOver",
+      "physical device",
+      "Android",
+      "CI"
+    ],
+    "setupLimits": "Original API interruption produced OfflineScreen with stale driver hierarchy, excluded. Warm MAX readback did not visibly apply, excluded before authorized cold attempt. Candidate initial SE driver connection failure recovered with serialized public guards; no causal attribution or app defect inferred."
+  },
+  "runtimeHandoff": "Both owned Expo processes stopped exit0; no Expo listener remains. Isolated fixture API, fictional sign-ins and known unsaved Day1/zero-exercise drafts retained. No logout/cleanup completion claimed; usual services untouched.",
+  "correctnessFollowUps": {
+    "saveRequest": "Same-mounted renderer with mocked same-account route change can accept an older Save; not an observed native/Expo remount defect. Preserved, no behavior fix.",
+    "taxonomy": "Unsupported primary/duplicate secondary observations are adversarial mocked service data, not real server records. Preserved, no behavior fix.",
+    "unmount": "Tests establish no late navigation or captured save warnings, not every avoided setter or transport abortion."
+  },
+  "sourceManifestPins": {
+    "originalCanonicalManifest": "305eab951fca09e72ad4277f01f9d0a4d70afd57c20c9edf6c10b4d1beaca7dd",
+    "candidateCanonicalManifest": "1242fb21750b9f6c1e98d4518dc55dd129980ac19e2bb78582bc4f8cd829c7f5",
+    "candidateCorrectedReport": "cc27883b5b912da190bff096600b0558de865c11ec55a2487e3b9b34da2d9373"
+  },
+  "images": [
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-light-normal-form-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 259101,
+      "SHA256": "18200cbb53103a3edd605b1c589f069bf7553ff11378a002419774890b4b3fab",
+      "caption": "Original Plus Light normal after guarded cold entry and API recovery; empty name, selected purple Strength/Chest, primary and secondary choice groups."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-light-normal-equipment.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 245711,
+      "SHA256": "621e500e016f51b00e427beda214b65c938993270245ea58b4a83a49f0825e04",
+      "caption": "Same original Plus Light form after body scroll; empty equipment search, selected purple Bodyweight and visible unchecked equipment rows."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-light-normal-save-reachability.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 236954,
+      "SHA256": "8aa7fd7284d5f7909c58fe01d24c8f99d26a08b70ce4d66d71bf0c6c419c6cad",
+      "caption": "Same original Plus Light form after successful scroll-to-Save; empty optional instructions and complete purple Save and add button above home indicator, never pressed."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-dark-normal-true-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 267198,
+      "SHA256": "bb3839d15380c8bf3dcde01cde97e7b12724708b85939159889ec73b655f4076",
+      "caption": "Original Plus Dark normal, warm appearance transition on the same empty form, restored actual top with bounded right-gutter scroll; purple selected Strength/Chest."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-dark-normal-equipment.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 247980,
+      "SHA256": "f3479fc160837fa2114ccc79985043ae2e125929d516bcbcf8af197774d7aa75",
+      "caption": "Original Plus Dark normal after body scroll; empty equipment search and selected purple Bodyweight, visible unchecked equipment rows."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-plus-dark-normal-settled-save-reachability.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 235031,
+      "SHA256": "f0db3690bef7e5a23a649df8afa8806fc270535e884bf26ff6ec873d5d8413a4",
+      "caption": "Settled actual Dark appearance; successful scroll-to-Save exposes empty optional instructions and full purple Save and add button above home indicator, never pressed."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-se-light-coldmax-form-top.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 81909,
+      "SHA256": "334944a1bdbaae14a33f4fd3cca704a7c627202eb0c071ea3706c71be4fec607",
+      "caption": "Original SE Light maximum accessibility text after explicitly authorized cold MAX entry; actual Custom exercise route has fixed truncated title Cust… and subtitle Private to y…, separate Back, empty exercise name and wrapping field label."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-se-light-coldmax-strength.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 91977,
+      "SHA256": "b04125b995586ec5d3808fc044fce5359307a10d573004087e1c0855980c72b9",
+      "caption": "Same original SE cold MAX form after body scroll; complete selected purple Strength and remaining type choices readable, fixed truncated header persists."
+    },
+    {
+      "phase": "original",
+      "kind": "form",
+      "file": "original-se-light-coldmax-scroll-limit.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 92462,
+      "SHA256": "96903ff262c73e95de3e909d1c96dced94359d89d375f45dd09cb7e9f5637c0a",
+      "caption": "Actual SE cold MAX endpoint after bounded scroll-to-Bodyweight assertion failed and overshot; empty instructions field and full purple Save and/add are visibly reachable. This is screenshot-backed Save reachability only, not a successful Bodyweight assertion or MAX equipment coverage."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-light-normal-form-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 258069,
+      "SHA256": "857a2b01d19e12cb14727bc8ed7cdf7e53ec7d69ec905566fd037ffaffe275f8",
+      "caption": "Candidate Plus Light normal after guarded cold entry; empty name, neutral checked Strength/Chest and normal shared header."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-light-normal-equipment.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 245233,
+      "SHA256": "c1a8d18bcbe7ad6e62eb8159d73f85c25a96eecb47e4f34a413c1927ba1ea928",
+      "caption": "Same candidate Light form after successful scroll to Bodyweight; empty equipment search, neutral selected Bodyweight and visible unchecked rows."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-light-normal-save-reachability.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 226632,
+      "SHA256": "21496fac534d0197728e8fca5635e318265610f4c20c01e7b74fd7b3fbbfc53a",
+      "caption": "Same candidate Light form after successful scroll to Save; empty optional instructions and full sole purple Save and add above the home indicator, never pressed."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-dark-normal-form-top.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 265028,
+      "SHA256": "b4f57b78b8b659466379f4d702dce58d65987e0927804c2602fea408404589e1",
+      "caption": "Candidate Plus Dark normal, settled warm appearance transition on the same empty form; actual top restored with bounded right-gutter scroll, neutral checked Strength/Chest."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-dark-normal-equipment.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 239515,
+      "SHA256": "48036eaec375f3b9d4ca701e880c9db462573051f4cffba8278c2a5a96da9324",
+      "caption": "Settled actual Dark equipment section; empty equipment search, neutral selected Bodyweight and visible unchecked rows."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-plus-dark-normal-save-reachability.png",
+      "width": 1290,
+      "height": 2796,
+      "bytes": 224831,
+      "SHA256": "b78d531165f6e4afdff7d566b26405e9adb74afb00887a5de77be3d7baea0bb6",
+      "caption": "Settled actual Dark Save endpoint after successful target scroll; empty optional instructions and full purple Save and add above home indicator, never pressed."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-se-light-coldmax-title.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 75518,
+      "SHA256": "81a43de7bc90c8fe559d78c23da20602c00114760989939fdeb37db21e5dac34",
+      "caption": "Candidate SE Light cold MAX form; full Custom/exercise and Private to your/account visible together without ellipses, separate fixed Back, Exercise name begins below."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-se-light-coldmax-strength.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 80088,
+      "SHA256": "6c4a491d133221d7cc9ae79aaa4690c399e3bb66828081aa1ab5177254450f6c",
+      "caption": "Same SE cold MAX form after successful Strength target scroll; full neutral checked Strength and empty name readable, title/subtitle have scrolled away while Back remains fixed. Other type choices are not all in this frame."
+    },
+    {
+      "phase": "candidate",
+      "kind": "form",
+      "file": "candidate-se-light-coldmax-save-reachability.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 77626,
+      "SHA256": "9e2c54e3c6da9b7f2543cefcd425c70da8dbcde616ab01f7c486334c51684405",
+      "caption": "Same SE cold MAX form after successful bounded scroll-to-Save; empty instructions field, full purple Save and/add and fixed Back visible. Instructions heading is partly above viewport. No MAX equipment coverage claimed."
+    },
+    {
+      "phase": "candidate",
+      "kind": "back-supplement",
+      "file": "candidate-se-light-coldmax-back-picker.png",
+      "width": 750,
+      "height": 1334,
+      "bytes": 77810,
+      "SHA256": "4f3bac26d6cc0aa8334ffd86788eedcd27ad62869959b48a23e7b32097558cb0",
+      "caption": "After exactly one freshly observed named Back from the empty form, the actual pre-PR90 picker inherited from base9eca returns with Day1/search/custom-create. U34 intentionally leaves that picker untouched. Its MAX title/custom-copy truncation is outside U34 and does not depict a current-main regression after PR90; this is destination proof only."
+    }
+  ],
+  "excluded": {
+    "original": [
+      {
+        "files": [
+          "original-plus-dark-normal-save-reachability.png"
+        ],
+        "reason": "Immediate appearance-transition frame remained Light; not Dark evidence."
+      },
+      {
+        "files": [
+          "original-plus-dark-normal-form-top.png"
+        ],
+        "reason": "Dark partial body position with Type clipped; filename does not establish a top-of-form view; replaced by true-top canonical image."
+      },
+      {
+        "files": [
+          "original-se-light-max-form-top.png",
+          "original-se-light-max-settled-top.png",
+          "se-max-foreground-transition.png",
+          "se-after-foreground-current.png"
+        ],
+        "reason": "MAX system readback did not produce visually enlarged text after warm setting/one foreground attempt; these remain normal-size setup frames."
+      },
+      {
+        "files": [
+          "plus-builder-current.png"
+        ],
+        "reason": "OfflineScreen during missing isolated API listener; no form evidence."
+      },
+      {
+        "pattern": "all builder/day/picker/setup/debug images and stale hierarchy outputs",
+        "reason": "Setup/guard/navigation/failure material only; not canonical U34 form comparison."
+      }
+    ],
+    "candidate": [
+      {
+        "files": [
+          "plus-dark-partial-setup.png"
+        ],
+        "reason": "Intermediate body position while returning to top; not a canonical form-top image."
+      },
+      {
+        "files": [
+          "plus-prior-known-form.png",
+          "se-prior-known-form.png"
+        ],
+        "reason": "Retained original runtime frames used only to confirm known empty draft state before cold termination; not candidate evidence."
+      },
+      {
+        "pattern": "all builder/day/picker/setup/debug frames and initial se-coldmax-name driver failure output",
+        "reason": "Public setup/guard/navigation evidence only. Failed guard is not a pass and no canonical frame is inferred from it."
+      }
+    ]
+  }
+}
