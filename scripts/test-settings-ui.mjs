@@ -85,7 +85,10 @@ async function renderSettings(options = {}) {
   const element = (value = auth) => React.createElement(AuthContext.Provider, { value }, React.createElement(NotificationsContext.Provider, { value: notifications }, React.createElement(Screen)));
   let tree;
   await act(async () => { tree = create(element()); });
-  return { tree, calls, auth, element, colors: palettes[scheme] };
+  return { tree, calls, auth, element, colors: palettes[scheme], resize: async (next) => {
+    Object.assign(options, next);
+    await act(async () => { tree.update(element()); });
+  } };
 }
 const tap = async (node) => { await act(async () => { node.props.onPress(); }); };
 const change = async (node, value) => { await act(async () => { node.props.onValueChange(value); }); };
@@ -195,6 +198,42 @@ for (const scheme of ["light", "dark"]) {
       assert.deepEqual(calls.appearance, ["light", "dark", "system"]);
       await unmount(tree);
     }
+  });
+
+  test(`Settings live text resizing remeasures content without losing choices or the reminder draft in ${scheme}`, async () => {
+    const view = await renderSettings({ scheme, width: 430, fontScale: 1, coachEnabled: true });
+    const { tree, calls } = view;
+    await tap(byLabel(tree, "Use dark appearance"));
+    await tap(byLabel(tree, "Use kilograms"));
+    await act(async () => { tree.root.findByProps({ testID: "settings-coach-reminder-time" }).props.onChangeText("18:42"); });
+    let scroll = tree.root.findByType("ScrollView");
+    await view.resize({ width: 375 });
+    assert.equal(tree.root.findByType("ScrollView"), scroll);
+    for (const fontScale of [1.5, 3.12, 1]) {
+      await view.resize({ fontScale });
+      const nextScroll = tree.root.findByType("ScrollView");
+      assert.notEqual(nextScroll, scroll); scroll = nextScroll;
+      assert.equal(byLabel(tree, "Use dark appearance").props.accessibilityState.checked, true);
+      assert.equal(byLabel(tree, "Use kilograms").props.accessibilityState.checked, true);
+      assert.equal(tree.root.findByProps({ testID: "settings-coach-reminder-time" }).props.value, "18:42");
+      assert.equal(calls.coachLoads.length, 1);
+      assert.deepEqual(calls.appearance, ["dark"]); assert.deepEqual(calls.units, ["KG"]);
+      assert.equal(calls.coachSaves.length, 0);
+      assert.equal(byLabel(tree, "Back from Settings").props.accessibilityRole, "button");
+    }
+    await tap(tree.root.findByProps({ testID: "settings-save-coach-time" }));
+    assert.equal(calls.coachSaves[0][1].reminderTime, "18:42");
+    await unmount(tree);
+  });
+
+  test(`Settings text resizing preserves a load error without restarting the request in ${scheme}`, async () => {
+    const view = await renderSettings({ scheme, loadCoach: async () => { throw new Error("offline"); } });
+    const before = copy(view.tree.root.findByProps({ testID: "settings-coach-error" }));
+    await view.resize({ fontScale: 3.12 });
+    assert.equal(copy(view.tree.root.findByProps({ testID: "settings-coach-error" })), before);
+    assert.equal(view.calls.coachLoads.length, 1);
+    assert.equal(byLabel(view.tree, "Retry Coach notification settings").props.accessibilityRole, "button");
+    await unmount(view.tree);
   });
 
   test(`Settings preserves every destination and neutral pressed actions in ${scheme}`, async () => {
