@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-16",
+  "baselineCommit": "3eedc6fe3881e2d0efbdc1ba361e6c6bd5a16abb",
+  "candidateCapturedBeforeCommit": true,
+  "candidateSourceSha256": {
+    "components/equipment-weight-editor.tsx": "d1050fa92d887fc20458f62c485ad1b15bc33ae0988163a3028b9779aa9f0d52",
+    "scripts/test-equipment-weight-editor-ui.mjs": "28f8552a419c7dfd9d3547c5deb5a86f5d1be076a27c503d8afc6b91ffdb5718"
+  },
+  "device": "iPhone 16 Plus simulator, iOS 18.5, light appearance, normal text",
+  "account": "Fictional isolated UI fixture; no personal account or Health data",
+  "scenario": [
+    "Open Profile, Settings, then the equipment-weight editor",
+    "Tap Save and hold its HTTP success response locally",
+    "Tap Back and verify Settings is visible",
+    "Release the held success response"
+  ],
+  "screenshots": {
+    "before-late-save.png": {
+      "result": "Original Dumbbells editor incorrectly navigates back again to Profile",
+      "sha256": "228d712a7fa88fbb40952572ca15a349373a8cff0b4e5ca4578b83da17179c87"
+    },
+    "after-late-save.png": {
+      "result": "Fixed editor stays on Settings after the delayed response; no save alert",
+      "sha256": "5ffc9ae65e8a2cffc96def3ba022e3093f9763537163dd37babf7a9ff82fcec7"
+    }
+  },
+  "candidateNativeChecks": [
+    "Dumbbells: Save, Back, delayed success; remains on Settings",
+    "Plates: Save, Back, delayed success; remains on Settings",
+    "Dumbbells: normal Save, delayed success; returns to Settings once"
+  ],
+  "transport": "Real app, providers and Expo Router; loopback proxy intercepts equipment PUTs and echoes their captured bodies on release. No equipment PUT reaches the backend. This is navigation verification, not backend persistence verification.",
+  "harnessQualification": "An initial helper run failed because its HTTP POST omitted a body. The helper was corrected and the complete three-case native flow passed on rerun.",
+  "automatedVerification": {
+    "weightEditorTests": 150,
+    "allFrontendScriptTests": 1823,
+    "typecheck": "passed",
+    "uiActionAudit": "passed",
+    "webExport": "62 routes; HTTPS placeholder API URL",
+    "lint": "zero errors; two pre-existing warnings in animated-checkmark.tsx and hero-neon-line.tsx",
+    "diffCheck": "passed"
+  },
+  "limits": "Account changes, unmount, blur/refocus, stale failures, repeated taps and both themes are covered by renderer tests with explicit native/navigation mocks. Native captures are light/normal-text only. No new physical-device, Android or VoiceOver certification; no visual redesign."
+}

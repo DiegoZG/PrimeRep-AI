@@ -67,11 +67,11 @@ const close = async (view) => view.run(() => view.tree.unmount());
 class BoundedRenderError extends Error { constructor() { super("Equipment editor fixture stopped after12 provider renders in one action"); this.name = "BoundedRenderError"; } }
 
 async function screen(host, scheme, options = {}) {
-  const compiled = options.compiled ?? true, AuthContext = React.createContext(null);
+  const compiled = options.compiled ?? true, AuthContext = React.createContext(null), FocusContext = React.createContext(true);
   let account = { token: host.mode === "settings" ? "fixture-token-A" : null, isBootstrapping: false, isLoggedIn: host.mode === "settings" };
   let read = options.read ?? (async () => weights(options.weights));
   let write = options.write ?? (async (_token, value) => value);
-  let ready = false, budget = 12, onboarding, persisted, previousUpdate;
+  let ready = false, focused = true, budget = 12, onboarding, persisted, previousUpdate;
   const calls = { requests: [], storage: [], routes: [], alerts: [], warnings: [], renderCount: 0, maxFlushRenders: 0, identities: [], caught: [] };
   const run = async (callback) => { budget = 12; const start = calls.renderCount; await act(async () => callback()); calls.maxFlushRenders = Math.max(calls.maxFlushRenders, calls.renderCount - start); };
   const mocks = {
@@ -80,7 +80,13 @@ async function screen(host, scheme, options = {}) {
     "react-native-safe-area-context": { useSafeAreaInsets: () => options.insets ?? { top: 47, bottom: 34, left: 0, right: 0 } },
     "react-native-reanimated": { __esModule: true, default: { View: "Animated.View" }, useSharedValue: (value) => React.useRef({ value }).current, useAnimatedStyle: (compute) => compute(), withTiming: (value) => value, withSequence: (...values) => values.at(-1) },
     "@expo/vector-icons": { Ionicons: "Ionicons" },
-    "expo-router": { useRouter: () => ({ back: () => calls.routes.push(["back"]) }) },
+    "expo-router": {
+      useRouter: () => ({ back: () => calls.routes.push(["back"]) }),
+      useFocusEffect: (callback) => {
+        const isFocused = React.useContext(FocusContext);
+        React.useEffect(() => isFocused ? callback() : undefined, [callback, isFocused]);
+      },
+    },
     "@/utils/authContext": { AuthContext },
     "@/hooks/use-color-scheme": { useColorScheme: () => scheme },
     "@react-native-async-storage/async-storage": {
@@ -121,7 +127,7 @@ async function screen(host, scheme, options = {}) {
     }
     return null;
   }
-  const element = () => React.createElement(AuthContext.Provider, { value: account }, React.createElement(Boundary, null, React.createElement(draft.OnboardingProvider, null, React.createElement(saved.EquipmentWeightsProvider, null, React.createElement(Probe), ready && React.createElement(Screen)))));
+  const element = () => React.createElement(FocusContext.Provider, { value: focused }, React.createElement(AuthContext.Provider, { value: account }, React.createElement(Boundary, null, React.createElement(draft.OnboardingProvider, null, React.createElement(saved.EquipmentWeightsProvider, null, React.createElement(Probe), ready && React.createElement(Screen))))));
   let tree;
   await run(() => { tree = create(element()); });
   if (options.seed) await run(() => onboarding.updateMultipleFields(options.seed));
@@ -132,21 +138,21 @@ async function screen(host, scheme, options = {}) {
     get draft() { return onboarding.data; }, get persisted() { return persisted; }, get bounded() { return tree.root.findAllByType("BoundedStop").length > 0; },
     setRead: (next) => { read = next; }, setWrite: (next) => { write = next; },
     refresh: () => run(() => persisted.refresh()),
+    focus: (next) => { focused = next; return run(() => tree.update(element())); },
     account: (token, isBootstrapping = false) => { account = { token, isLoggedIn: Boolean(token), isBootstrapping }; return run(() => tree.update(element())); },
   };
 }
 
-test("scope: reconstruct original imports and pin unchanged options/controllers, four hosts and shared modules", () => {
+test("scope: pin unchanged options, four hosts and shared modules", () => {
   const input = source(editorFile), editorStart = input.indexOf("export function EquipmentWeightEditor"), settingsStart = input.indexOf("export function EquipmentWeightSettingsEditor");
   const imports = input.slice(0, input.indexOf("export const DUMBBELL_WEIGHTS"));
   for (const addition of ["  useWindowDimensions,\n", 'import { useSafeAreaInsets } from "react-native-safe-area-context";\n']) assert.equal(imports.split(addition).length, 2);
   for (const [value, bytes, expected] of [
-    [imports.replace("  useWindowDimensions,\n", "").replace('import { useSafeAreaInsets } from "react-native-safe-area-context";\n', ""), 652, "0ed4a8ce9e7e198b819b39633c443f42ee6a3701e294ea7d59b7ef0ee6a8532f"],
     [input.slice(input.indexOf("export const DUMBBELL_WEIGHTS"), editorStart), 338, "006db819507821cf343b68dc7ff917c95a9ddbd0b6775f9f6414d7cce9991ede"],
-    [input.slice(editorStart, input.indexOf("  const insets = useSafeAreaInsets();", editorStart)), 1952, "36ca0e3f6d5209005bd91916e5f0cfd689c82c256609260a679f242316a2cbde"],
     [input.slice(settingsStart, input.indexOf("  if (!persisted.hasLoaded)", settingsStart)), 229, "d30fe01d3b50af004b9af23e4232b416134f912bdbaa9667903bf124121f346e"],
   ]) { assert.equal(Buffer.byteLength(value), bytes); assert.equal(hash(value), expected); }
-  assert.equal(input.slice(input.indexOf("  const insets = useSafeAreaInsets();", editorStart), input.indexOf("  return (", editorStart)), "  const insets = useSafeAreaInsets();\n  const { fontScale } = useWindowDimensions();\n  const largeText = fontScale > 1.3;\n\n");
+  const insetsStart = input.indexOf("  const insets = useSafeAreaInsets();", editorStart);
+  assert.equal(input.slice(insetsStart, input.indexOf("  return (", insetsStart)), "  const insets = useSafeAreaInsets();\n  const { fontScale } = useWindowDimensions();\n  const largeText = fontScale > 1.3;\n\n");
   for (const [file, expected] of Object.entries({
     "app/settings/dumbbells.tsx": "2a60d63e8c00e75b440d48c2a0487fa6331da9fa5a2fc8678336ad442f67e580",
     "app/settings/plates.tsx": "8ed11da55c75f51fad75369dec5c03fac87f11f114acc3f933487793e81a50ad",
@@ -251,15 +257,56 @@ for (const scheme of ["light", "dark"]) for (const host of hosts) {
       await settle(view, current, weights()); assert.deepEqual(selected(view), weights()[host.field]); await close(view);
     });
 
-    for (const reject of [false, true]) test(`${host.slice} ${scheme}: inherited stale PUT ${reject ? "failure" : "success"} after token A→B→A still resolves editor Back`, async () => {
+    for (const reject of [false, true]) test(`${host.slice} ${scheme}: stale PUT ${reject ? "failure" : "success"} after token A→B→A cannot navigate or alert`, async () => {
       const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise }); await tap(view, saveButton(view));
       await view.account("fixture-token-B"); await view.account("fixture-token-A"); await settle(view, pending, reject ? Error("stale fixture write") : weights({ [host.field]: optionsFor(host) }), reject);
-      assert.deepEqual(view.calls.routes, [["back"]]); assert.deepEqual(view.calls.alerts, []); assert.deepEqual(plain(view.persisted[host.field]), weights()[host.field]); await close(view);
+      assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.alerts, []); assert.deepEqual(plain(view.persisted[host.field]), weights()[host.field]); await close(view);
     });
 
-    test(`${host.slice} ${scheme}: inherited pending Save completion after unmount still calls captured Back`, async () => {
+    for (const reject of [false, true]) test(`${host.slice} ${scheme}: pending Save ${reject ? "failure" : "success"} after unmount cannot navigate or alert`, async () => {
       const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise }); await tap(view, saveButton(view)); await close(view);
-      await settle(view, pending, weights()); assert.deepEqual(view.calls.routes, [["back"]]); assert.deepEqual(view.calls.alerts, []);
+      await settle(view, pending, reject ? Error("late write failure") : weights(), reject); assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.alerts, []);
+    });
+
+    for (const reject of [false, true]) test(`${host.slice} ${scheme}: Back invalidates pending Save ${reject ? "failure" : "success"} before blur`, async () => {
+      const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise });
+      await tap(view, saveButton(view)); await tap(view, backButton(view));
+      assert.deepEqual(view.calls.routes, [["back"]]);
+      await settle(view, pending, reject ? Error("late write failure") : weights(), reject);
+      assert.deepEqual(view.calls.routes, [["back"]]); assert.deepEqual(view.calls.alerts, []); await close(view);
+    });
+
+    for (const reject of [false, true]) test(`${host.slice} ${scheme}: blurred Save ${reject ? "failure" : "success"} cannot navigate or alert`, async () => {
+      const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise });
+      await tap(view, saveButton(view)); await view.focus(false);
+      await settle(view, pending, reject ? Error("late write failure") : weights(), reject);
+      assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.alerts, []); await close(view);
+    });
+
+    test(`${host.slice} ${scheme}: an old Save cannot navigate or clear a newer pending Save after refocus`, async () => {
+      const old = deferred(), current = deferred(); let writes = 0;
+      const view = await screen(host, scheme, { write: () => ++writes === 1 ? old.promise : current.promise });
+      await tap(view, saveButton(view)); await view.focus(false); await view.focus(true);
+      assert.equal(saveButton(view).props.disabled, false); await tap(view, saveButton(view));
+      await settle(view, old, weights());
+      assert.equal(saveButton(view).props.disabled, true); assert.deepEqual(view.calls.routes, []);
+      await settle(view, current, weights());
+      assert.equal(saveButton(view).props.disabled, false); assert.deepEqual(view.calls.routes, [["back"]]); await close(view);
+    });
+
+    test(`${host.slice} ${scheme}: repeated Save in one event submits once`, async () => {
+      const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise });
+      const save = saveButton(view).props.onPress;
+      await view.run(() => { void save(); void save(); });
+      assert.equal(view.calls.requests.filter(([, request]) => request.method === "PUT").length, 1);
+      await settle(view, pending, weights()); assert.deepEqual(view.calls.routes, [["back"]]); await close(view);
+    });
+
+    test(`${host.slice} ${scheme}: auth bootstrap invalidates a pending Save`, async () => {
+      const pending = deferred(), view = await screen(host, scheme, { write: () => pending.promise });
+      await tap(view, saveButton(view)); await view.account("fixture-token-A", true);
+      await view.account("fixture-token-A", false); await settle(view, pending, weights());
+      assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.alerts, []); await close(view);
     });
   } else {
     test(`${host.slice} ${scheme}: compiler-enabled real provider preserves explicit empty initial selection and automatically persists only fixture storage`, async (t) => {
@@ -395,8 +442,8 @@ for (const scheme of ["light", "dark"]) for (const host of hosts) {
       await tap(view, allButton(view)); await tap(view, row(view, optionsFor(host)[0]));
       assert.deepEqual(view.calls.requests[1][1].body, weights());
       await tap(view, backButton(view)); assert.deepEqual(view.calls.routes, [["back"]]);
-      await settle(view, pending, weights()); assert.deepEqual(view.calls.routes, [["back"], ["back"]]);
-      assert.equal(saveButton(view).props.disabled, false); await close(view);
+      await settle(view, pending, weights()); assert.deepEqual(view.calls.routes, [["back"]]);
+      assert.deepEqual(view.calls.alerts, []); await close(view);
     });
 
     test(`${host.slice} ${scheme}: large title breakpoint is strict and does not cap scaling`, async () => {
