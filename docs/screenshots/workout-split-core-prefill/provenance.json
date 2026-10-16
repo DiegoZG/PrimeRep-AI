@@ -1,0 +1,103 @@
+{
+  "artifact": "Workout-split Core prefill functional regression evidence",
+  "schemaVersion": 1,
+  "source": {
+    "base": "6407c61569b4b8d3de93657750d9394f29d03e66",
+    "baseTree": "241400a3d74652ed7cbe7a753c83e30922474639",
+    "milestone": "f8b4947098f45db0d72789f3bfdb22b941a88a48",
+    "originalServedFeature": "34b15588e4d402c3a247a29255b5a1a9a22b903f",
+    "originalTreeEqualsMergedBase": true,
+    "originalRouteSHA256": "83a76c1c20cd7dfa2fa65872cf5c8dcb488061ab88f78fb64d26fad8dbfff16b",
+    "candidateRouteSHA256": "4684c8d1bcc7bc6c8e18a7338258a9bff5e4f4270798d0b1e3ac29221f2f6e75",
+    "candidateHarnessSHA256": "76633cb46e5ae706b0b6f48fc8c7ad38e205eae2884f1569028c3f83ed95a7ee",
+    "captureCommitQualification": "Candidate captures ran on base6407 with two frozen working files. Source milestonef8b49470 was created after capture; exact file hashes establish equivalence, not that the later commit was served. No separate post-commit restart or capture is claimed.",
+    "milestoneTree": "321b45e2d0eacced37ba9bf1380aefbf1420b7bb"
+  },
+  "preservation": {
+    "method": "Inverse only one selectedOptions initializer reconstructs exact original17969bytes/controller4922.",
+    "imports": "885bytes/SHA68390b11cccf6dcb6244d9d39b68b9d933124909592e107a0437b7d7425aa5b0",
+    "originalController": "4922bytes/SHA98fc19ab4e69f40751478ece21f2826a54967907ff5afadd450f28a300f8c58f",
+    "renderAndStyles": "12162bytes/SHA5da0ccb748323bc5d5c78cc4c59b57d2263ed3aa53fa269ff34b7605a7c76dca",
+    "helperSHA256": "f983b0d4f3da7f607be9e90c6547230dd385ea038031f79bf7f79d23a212cd2f",
+    "qualification": "Effects/hydration/purehandler/payload/helpers/context/style/import/type unchanged; no U27 styling. All six merged U35b source/test pins exact."
+  },
+  "nativeConfiguration": {
+    "deviceClass": "iPhone Plus",
+    "theme": "Light",
+    "text": "normal",
+    "scenario": "Disposable guest-local saved Upper body with Core, seven muscles",
+    "matrixClaim": "One matched pair only"
+  },
+  "captureManifests": {
+    "originalSHA256": "b0bbec8c5d0899463901fede9be4ed7ecae423e440aff1b69504b0c411a2943a",
+    "candidateSHA256": "adc18bceaa6e3a74e0914c74be359d1b400128737decb34c2c6077c143786c24"
+  },
+  "images": {
+    "before": {
+      "file": "before-core-prefill-light-normal.png",
+      "SHA256": "d808b7db7d30ecf99e1fcf875b87c52240ad242410f8f79c3469e33713a5ef59",
+      "bytes": 204236,
+      "width": 1290,
+      "height": 2796
+    },
+    "after": {
+      "file": "after-core-prefill-light-normal.png",
+      "SHA256": "58d58f7b4252dd45153da67002e6d30840f7136886365b1b18e3df48fc843ea2",
+      "bytes": 205223,
+      "width": 1290,
+      "height": 2796
+    }
+  },
+  "nativeMethod": {
+    "original": "Saved seven-muscle guest draft; edit shows CoreOFF; dismiss without Update preserves parent seven muscles/Abs/Lower back. No opening-only persisted loss claim.",
+    "candidate": "Same saved seven-muscle guest day opens CoreON without Core-switch tap; exactly ONE Update then public edit reopen retains seven muscles/CoreON (canonical after). Explicit deselect/reselect makes local CoreOFF; dismiss without Update preserves parent seven muscles, then reopen is CoreON again. Final parent retains same day.",
+    "stateEvidence": "Actual pixels plus visible public parent card and reviewed route sequence. Grouped modal AX does not independently prove Switch.checked.",
+    "persistenceQualification": "Guest-local draft only; no private storage inspection, real-disk persistence, database or network-trace audit implied.",
+    "actionBoundary": "Candidate allowed one Update only; no new Add/remove/Continue or guest reset. Additional private action/setup frames and hierarchies excluded from canonical pair."
+  },
+  "verification": {
+    "focused": 67,
+    "authorStandard": {
+      "tests": 1746,
+      "runs": 1,
+      "focusedIncluded": true
+    },
+    "independentReported": {
+      "focused": 67,
+      "standard": 1746,
+      "runs": 1,
+      "exactWebModules": 15,
+      "findings": 0
+    },
+    "scopedLint": "PASS",
+    "projectLint": {
+      "errors": 0,
+      "inheritedWarnings": 2
+    },
+    "audit": "PASS",
+    "auditSelftest": "PASS",
+    "web": {
+      "HTML": 62,
+      "authorExactModules": 14
+    },
+    "types": "SKIPPED per AGENTS: imports/explicittypes unchanged, not a pass",
+    "CI": "Not claimed",
+    "acceptance": "Root accepted author and independent functional/anti-pattern/quality gates and original/candidate native reports/manifests.",
+    "standardQualification": "Author and independent each one1746 run;67 focused cases are included, not additional."
+  },
+  "limits": [
+    "No Dark/MAX, keyboard, physical-device, VoiceOver, Android or CI coverage claim.",
+    "Existing accessibility grouping and faded enabled Update behavior are outside this fix.",
+    "Mocked identity/root hiding and virtual persistence tests do not execute real auth/storage/native flows. Ordinary restore persistence logs are checkpointed before modal-write assertions."
+  ],
+  "rollout": "Separate functional fix first; merge before opening U27 styling because both touch the modal route and harness. No dependency/configuration/migration/rollout flag change.",
+  "runtime": {
+    "sdk": "54.0.0",
+    "reactCompiler": true,
+    "originalManifestSHA256": "b8ef24ed940569b45de144725a6d17b776eb45204f8d5bf68c9f223fc767acf7",
+    "originalBundleSHA256": "3021a797835fac37266f354fc75b16868d77310d55ec00065b8305437bcaeac7",
+    "candidateManifestSHA256": "1f2428f7cd20b83667ba6eb97918b9b4915831caa657b399adb33cb2eb4be990",
+    "candidateBundleSHA256": "4c3621b7d058b781ff11888eab9e04ade4ec4a8d551a7bc272f398778b926989"
+  },
+  "assembly": "Exactly two unmodified canonical PNGs plus README/provenance; source route+harness gives six totaldiff paths. Raw SHA/bytes/IHDR checked before/after mechanicalcopy; no resizing/cropping/recompression."
+}
