@@ -1911,28 +1911,28 @@ export default function ActiveWorkoutScreen() {
 
       <Modal transparent visible={feedbackEditorVisible} animationType="none" onRequestClose={() => setFeedbackEditorVisible(false)}>
         <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "#00000066" }}>
-          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
-            <ThemedText type="title" style={{ fontSize: 21 }}>How did that feel?</ThemedText>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+          <ScrollView accessibilityViewIsModal style={{ flexGrow: 0, maxHeight: "90%", backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: Math.max(insets.bottom, 20), gap: 14 }}>
+            <ThemedText accessibilityRole="header" type="title" style={{ fontSize: 21 }}>How did that feel?</ThemedText>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {(["easy", "right", "hard"] as const).map((effort) => (
-                <Pressable key={effort} testID={`player-feedback-effort-${effort}`} onPress={() => setFeedbackDraft((draft) => ({ ...draft, effort }))} style={{ flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: "center", backgroundColor: feedbackDraft.effort === effort ? colors.primaryButton : colors.inputBackground }}>
+                <Pressable key={effort} testID={`player-feedback-effort-${effort}`} accessibilityRole="button" accessibilityLabel={effort[0].toUpperCase() + effort.slice(1)} accessibilityState={{ selected: feedbackDraft.effort === effort }} onPress={() => setFeedbackDraft((draft) => ({ ...draft, effort }))} style={{ flexGrow: 1, flexShrink: 1, flexBasis: "auto", minWidth: 44, minHeight: 44, maxWidth: "100%", paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: feedbackDraft.effort === effort ? colors.primaryButton : colors.inputBackground }}>
                   <ThemedText style={{ color: feedbackDraft.effort === effort ? "#FFF" : colors.text, fontWeight: "700", textTransform: "capitalize" }}>{effort}</ThemedText>
                 </Pressable>
               ))}
             </View>
             <ThemedText style={{ color: colors.placeholder }}>Optional RIR</ThemedText>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {[0, 1, 2, 3, 4, 5].map((rir) => (
-                <Pressable key={rir} onPress={() => setFeedbackDraft((draft) => ({ ...draft, rir: draft.rir === rir ? null : rir }))} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: feedbackDraft.rir === rir ? colors.primaryButton : colors.inputBackground }}>
+                <Pressable key={rir} testID={`player-feedback-rir-${rir}`} accessibilityRole="button" accessibilityLabel={`${rir} ${rir === 1 ? "rep" : "reps"} in reserve`} accessibilityState={{ selected: feedbackDraft.rir === rir }} onPress={() => setFeedbackDraft((draft) => ({ ...draft, rir: draft.rir === rir ? null : rir }))} style={{ minWidth: 44, minHeight: 44, maxWidth: "100%", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: feedbackDraft.rir === rir ? colors.primaryButton : colors.inputBackground }}>
                   <ThemedText style={{ color: feedbackDraft.rir === rir ? "#FFF" : colors.text, fontWeight: "700" }}>{rir}</ThemedText>
                 </Pressable>
               ))}
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 18 }}>
-              <Pressable onPress={() => setFeedbackEditorVisible(false)}><ThemedText style={{ color: colors.placeholder, fontWeight: "700" }}>Cancel</ThemedText></Pressable>
-              <Pressable testID="player-save-feedback" onPress={saveExerciseFeedback}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText></Pressable>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 18 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Cancel exercise feedback" onPress={() => setFeedbackEditorVisible(false)} style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", alignItems: "center" }}><ThemedText style={{ color: colors.placeholder, fontWeight: "700" }}>Cancel</ThemedText></Pressable>
+              <Pressable testID="player-save-feedback" accessibilityRole="button" accessibilityLabel="Save exercise feedback" onPress={saveExerciseFeedback} style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center", alignItems: "center" }}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Save</ThemedText></Pressable>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
