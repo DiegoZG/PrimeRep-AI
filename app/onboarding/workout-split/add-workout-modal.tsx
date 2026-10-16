@@ -7,7 +7,6 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Animated, {
@@ -193,28 +192,41 @@ export default function AddWorkoutModal() {
 
   return (
     <ThemedView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={canGoBack ? () => router.back() : undefined}
-      >
-        <TouchableWithoutFeedback onPress={(event) => event.stopPropagation()}>
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                backgroundColor: colors.inputBackground,
-              },
-              modalAnimatedStyle,
-            ]}
-          >
-            <View style={styles.modalContent}>
+      <View style={styles.backdrop}>
+        {/* Keep the dismiss target behind the modal so body drags can scroll. */}
+        <TouchableOpacity
+          accessible={false}
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={canGoBack ? () => router.back() : undefined}
+        />
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              backgroundColor: colors.inputBackground,
+            },
+            modalAnimatedStyle,
+          ]}
+        >
+          <View style={styles.modalContent}>
+            <ScrollView
+              style={styles.optionsList}
+              contentContainerStyle={styles.optionsListContent}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
               {/* Header */}
               <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>
                   {ADD_WORKOUT_MODAL.title}
                 </Text>
-                <TouchableOpacity onPress={handleAdd}>
+                <TouchableOpacity
+                  onPress={handleAdd}
+                  style={styles.primaryAction}
+                  accessibilityRole="button"
+                  accessibilityLabel={isEditing ? "Update" : "Add"}
+                >
                   <Text
                     style={[
                       styles.addButton,
@@ -230,7 +242,7 @@ export default function AddWorkoutModal() {
               </View>
 
               {/* Description */}
-              <Text style={[styles.description, { color: colors.placeholder }]}>
+              <Text style={[styles.description, { color: colors.icon }]}>
                 {ADD_WORKOUT_MODAL.description}
               </Text>
 
@@ -242,14 +254,17 @@ export default function AddWorkoutModal() {
                     <TouchableOpacity
                       key={tab.id}
                       onPress={() => setActiveTab(tab.id)}
+                      accessibilityRole="tab"
+                      accessibilityLabel={tab.label}
+                      accessibilityState={{ selected: isActive }}
                       style={[
                         styles.tab,
                         {
                           backgroundColor: isActive
-                            ? colors.inputBackground
-                            : colors.inputBorder,
+                            ? colors.inputBorder
+                            : colors.inputBackground,
                           borderColor: isActive
-                            ? colors.primaryButton
+                            ? colors.text
                             : colors.inputBorder,
                         },
                       ]}
@@ -259,8 +274,8 @@ export default function AddWorkoutModal() {
                           styles.tabText,
                           {
                             color: isActive
-                              ? colors.primaryButton
-                              : colors.placeholder,
+                              ? colors.text
+                              : colors.icon,
                           },
                         ]}
                       >
@@ -272,152 +287,156 @@ export default function AddWorkoutModal() {
               </View>
 
               {/* Options List */}
-              <ScrollView
-                style={styles.optionsList}
-                contentContainerStyle={styles.optionsListContent}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-              >
-                {activeTab === "workout-split" &&
-                  ADD_WORKOUT_MODAL.workoutSplitOptions.map((option) => {
-                    const isSelected = selectedOptions.has(option.id);
-                    const isCore = option.id === "core";
+              {activeTab === "workout-split" &&
+                ADD_WORKOUT_MODAL.workoutSplitOptions.map((option) => {
+                  const isSelected = selectedOptions.has(option.id);
+                  const isCore = option.id === "core";
 
+                  return (
+                    <TouchableOpacity
+                      key={option.id}
+                      accessible={!isCore}
+                      accessibilityRole={isCore ? undefined : "checkbox"}
+                      accessibilityLabel={isCore ? undefined : option.title}
+                      accessibilityHint={isCore ? undefined : option.description}
+                      accessibilityState={isCore ? undefined : { checked: isSelected }}
+                      onPress={() =>
+                        isCore ? null : handleToggleOption(option.id)
+                      }
+                      style={[styles.optionRow, { borderBottomColor: colors.inputBorder }]}
+                      activeOpacity={isCore ? 1 : 0.7}
+                    >
+                      <View style={styles.optionContent}>
+                        <Text
+                          style={[styles.optionTitle, { color: colors.text }]}
+                        >
+                          {option.title}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.optionDescription,
+                            { color: colors.icon },
+                          ]}
+                        >
+                          {option.description}
+                        </Text>
+                      </View>
+                      {isCore ? (
+                        <Switch
+                          value={coreEnabled}
+                          onValueChange={setCoreEnabled}
+                          disabled={selectedOptions.size === 0}
+                          accessibilityLabel={option.title}
+                          accessibilityState={{ disabled: selectedOptions.size === 0 }}
+                          hitSlop={{ top: 7, bottom: 7 }}
+                          trackColor={{
+                            false: colors.inputBorder,
+                            true: colors.inputBorder,
+                          }}
+                          ios_backgroundColor={colors.inputBorder}
+                          thumbColor={coreEnabled ? colors.primaryButton : colors.placeholder}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.checkbox,
+                            {
+                              backgroundColor: isSelected
+                                ? colors.primaryButton
+                                : "transparent",
+                              borderColor: isSelected
+                                ? colors.primaryButton
+                                : colors.inputBorder,
+                            },
+                          ]}
+                        >
+                          <AnimatedCheckmark visible={isSelected}>
+                            <Text accessible={false} allowFontScaling={false} style={styles.checkmarkText}>✓</Text>
+                          </AnimatedCheckmark>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              {activeTab === "custom" && (
+                <View style={styles.muscleGroupGrid}>
+                  {ADD_WORKOUT_MODAL.customMuscleGroups.map((muscleGroup) => {
+                    const isSelected = selectedMuscleGroups.has(
+                      muscleGroup.id
+                    );
                     return (
                       <TouchableOpacity
-                        key={option.id}
+                        key={muscleGroup.id}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={muscleGroup.name}
+                        accessibilityState={{ checked: isSelected }}
                         onPress={() =>
-                          isCore ? null : handleToggleOption(option.id)
+                          handleToggleMuscleGroup(muscleGroup.id)
                         }
-                        style={styles.optionRow}
-                        activeOpacity={isCore ? 1 : 0.7}
+                        style={[
+                          styles.muscleGroupCard,
+                          {
+                            backgroundColor: colors.inputBackground,
+                            borderColor: isSelected
+                              ? colors.text
+                              : colors.inputBorder,
+                            borderWidth: isSelected ? 2 : 1,
+                          },
+                        ]}
+                        activeOpacity={0.7}
                       >
-                        <View style={styles.optionContent}>
+                        {/* Stable initials fallback until licensed imagery is available. */}
+                        <View
+                          style={[
+                            styles.muscleIconPlaceholder,
+                            {
+                              backgroundColor: colors.inputBorder,
+                            },
+                          ]}
+                        >
                           <Text
-                            style={[styles.optionTitle, { color: colors.text }]}
-                          >
-                            {option.title}
-                          </Text>
-                          <Text
+                            accessible={false}
                             style={[
-                              styles.optionDescription,
+                              styles.placeholderText,
                               { color: colors.placeholder },
                             ]}
                           >
-                            {option.description}
+                            {muscleGroup.name.slice(0, 2).toUpperCase()}
                           </Text>
                         </View>
-                        {isCore ? (
-                          <Switch
-                            value={coreEnabled}
-                            onValueChange={setCoreEnabled}
-                            disabled={selectedOptions.size === 0}
-                            trackColor={{
-                              false: colors.inputBorder,
-                              true: colors.primaryButton,
-                            }}
-                            thumbColor="#FFFFFF"
-                          />
-                        ) : (
+                        {/* Muscle group name */}
+                        <Text
+                          style={[
+                            styles.muscleGroupName,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {muscleGroup.name}
+                        </Text>
+                        {/* Checkbox indicator */}
+                        {isSelected && (
                           <View
                             style={[
-                              styles.checkbox,
+                              styles.cardCheckbox,
                               {
-                                backgroundColor: isSelected
-                                  ? colors.primaryButton
-                                  : "transparent",
-                                borderColor: isSelected
-                                  ? colors.primaryButton
-                                  : colors.inputBorder,
+                                backgroundColor: colors.primaryButton,
                               },
                             ]}
                           >
                             <AnimatedCheckmark visible={isSelected}>
-                              <Text style={styles.checkmarkText}>✓</Text>
+                              <Text accessible={false} allowFontScaling={false} style={styles.checkmarkText}>✓</Text>
                             </AnimatedCheckmark>
                           </View>
                         )}
                       </TouchableOpacity>
                     );
                   })}
-                {activeTab === "custom" && (
-                  <View style={styles.muscleGroupGrid}>
-                    {ADD_WORKOUT_MODAL.customMuscleGroups.map((muscleGroup) => {
-                      const isSelected = selectedMuscleGroups.has(
-                        muscleGroup.id
-                      );
-                      return (
-                        <TouchableOpacity
-                          key={muscleGroup.id}
-                          onPress={() =>
-                            handleToggleMuscleGroup(muscleGroup.id)
-                          }
-                          style={[
-                            styles.muscleGroupCard,
-                            {
-                              backgroundColor: isSelected
-                                ? "rgba(106, 79, 245, 0.12)"
-                                : colors.inputBackground,
-                              borderColor: isSelected
-                                ? colors.primaryButton
-                                : colors.inputBorder,
-                              borderWidth: isSelected ? 2 : 1,
-                            },
-                          ]}
-                          activeOpacity={0.7}
-                        >
-                          {/* Stable initials fallback until licensed imagery is available. */}
-                          <View
-                            style={[
-                              styles.muscleIconPlaceholder,
-                              {
-                                backgroundColor: colors.inputBorder,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.placeholderText,
-                                { color: colors.placeholder },
-                              ]}
-                            >
-                              {muscleGroup.name.slice(0, 2).toUpperCase()}
-                            </Text>
-                          </View>
-                          {/* Muscle group name */}
-                          <Text
-                            style={[
-                              styles.muscleGroupName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            {muscleGroup.name}
-                          </Text>
-                          {/* Checkbox indicator */}
-                          {isSelected && (
-                            <View
-                              style={[
-                                styles.cardCheckbox,
-                                {
-                                  backgroundColor: colors.primaryButton,
-                                },
-                              ]}
-                            >
-                              <AnimatedCheckmark visible={isSelected}>
-                                <Text style={styles.checkmarkText}>✓</Text>
-                              </AnimatedCheckmark>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-          </Animated.View>
-        </TouchableWithoutFeedback>
-      </TouchableOpacity>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </Animated.View>
+      </View>
     </ThemedView>
   );
 }
@@ -445,11 +464,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
   headerTitle: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 240,
+    minWidth: 240,
+    maxWidth: "100%",
     fontSize: 20,
     fontWeight: "700",
     fontFamily: Fonts.sans,
@@ -458,6 +484,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+  },
+  primaryAction: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   description: {
     fontSize: 14,
@@ -468,11 +500,17 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 20,
   },
   tab: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: "auto",
+    minWidth: 44,
+    minHeight: 44,
+    maxWidth: "100%",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -486,19 +524,18 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     flex: 1,
-    marginTop: 8,
   },
   optionsListContent: {
     flexGrow: 1,
     paddingBottom: 40,
   },
   optionRow: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
   },
   optionContent: {
     flex: 1,
@@ -536,23 +573,26 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   muscleGroupCard: {
-    width: "22%",
-    aspectRatio: 0.85,
+    flexBasis: "auto",
+    flexGrow: 1,
+    minWidth: 128,
+    minHeight: 44,
+    maxWidth: "100%",
     borderRadius: 12,
     padding: 8,
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
     position: "relative",
     borderWidth: 1,
   },
   muscleIconPlaceholder: {
-    width: "100%",
-    flex: 1,
+    minWidth: 32,
+    minHeight: 32,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
-    minHeight: 60,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   placeholderText: {
     fontSize: 10,
@@ -564,7 +604,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     fontFamily: Fonts.sans,
-    textAlign: "center",
+    textAlign: "left",
   },
   cardCheckbox: {
     position: "absolute",

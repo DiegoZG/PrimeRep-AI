@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "scope": "U27 Add-workout modal presentation; 7 canonical raw PNGs, no image edits",
+  "source": {
+    "base": "de63685a33df98b211bf71b282083817cab014b9",
+    "baseTree": "c35b9c98b1ab7af959b3015a4d803ab51b927890",
+    "sourceCommit": "241668ba647683e030a1b2cdeccc031aae8107e0",
+    "sourceTree": "b6e39803eac467fdfcf00c3892d21dfcf0d20abe",
+    "before": {
+      "servedHead": "6e30c0b8e34404bf23203dd5f6b4b692346190ce",
+      "treeEqualsMergedBase": true,
+      "routeSha256": "4684c8d1bcc7bc6c8e18a7338258a9bff5e4f4270798d0b1e3ac29221f2f6e75"
+    },
+    "after": {
+      "captureBaseHead": "de63685a33df98b211bf71b282083817cab014b9",
+      "workingFiles": 2,
+      "routeSha256": "67397c3050040c35116844f3b82678c1bf966e84e826c8009b643b726a17abb0",
+      "harnessSha256": "76ef66d5f6ccda85506fe16422053d15e67c1d6e880e4dd6d743381c5b225277",
+      "chronology": "Source commit created after capture. Frozen file hashes establish equivalence; no served-source-commit or post-commit restart claim."
+    },
+    "controller": {
+      "bytes": 5123,
+      "sha256": "e78a19c54defe5d30f3ed97bab83a219efc53b387d870c9780733daedcc009e9",
+      "unchanged": true
+    },
+    "imports": {
+      "bytes": 857,
+      "sha256": "615f150467f29aa3a995b8658a0a0cb04329dcebc86bc997937f30c4c4be8d03",
+      "onlyChange": "Remove TouchableWithoutFeedback; reinserting exact line reconstructs original885-byte prefix68390b11cccf6dcb6244d9d39b68b9d933124909592e107a0437b7d7425aa5b0"
+    }
+  },
+  "verification": {
+    "localNotCI": true,
+    "author": {
+      "focused": 79,
+      "standard": 1758,
+      "standardRuns": 1,
+      "typecheck": "PASS actual tsc --noEmit",
+      "lintErrors": 0,
+      "inheritedLintWarnings": 2,
+      "audit": "PASS",
+      "auditSelftest": "PASS",
+      "syntax": "PASS",
+      "diff": "PASS",
+      "webHtml": 62,
+      "exactEmittedModules": 15,
+      "reportSha256": "3d6416f1c82d18995ce5a972ca462d041f7fdcbfb9df59d5ad3f13bf9bd520b3",
+      "emittedProofSha256": "7acdd6d285da022d3e784c3a474137bee9a661671b0b6ceebd155cbd0ae7db64"
+    },
+    "independent": {
+      "focused": 79,
+      "standard": 1758,
+      "standardRuns": 1,
+      "typecheck": "PASS",
+      "lintErrors": 0,
+      "inheritedLintWarnings": 2,
+      "threeReviewGates": "PASS",
+      "webHtml": 62,
+      "exactEmittedModules": 15,
+      "reportSha256": "ae7dc34108e53f0f83d2b6b616c8397e9bca54ee6fb03c01fc6817c3d30a5490"
+    },
+    "countQualification": "Focused79 included within1758, not additive.",
+    "inheritedWarnings": [
+      "AnimatedCheckmark effect scale dependency",
+      "HeroNeonLine effect opacity/translateX/width dependencies"
+    ]
+  },
+  "native": {
+    "device": "iPhone 16 Plus",
+    "os": "iOS18.5",
+    "logicalViewport": [
+      430,
+      932
+    ],
+    "pngDimensions": [
+      1290,
+      2796
+    ],
+    "client": "SDK54 custom client; ReactCompiler enabled",
+    "canonicalBefore": 3,
+    "canonicalAfter": 4,
+    "scenarios": 3,
+    "beforeMethod": "Three fresh captures: retained normal metrics for Light normal (not a cold start), cold reconnects for Dark normal and Light MAX.",
+    "afterMethod": "Four fresh captures in three cold configuration groups; additional final cold normal restore. Not seven cold starts or a full theme/font matrix.",
+    "normal": "OS Large category",
+    "max": "Accessibility Extra Extra Extra Large",
+    "selection": "Same disposable guest saved Upper+Core; Dark Chest+Back and two Core toggles temporary, dismissed without Update.",
+    "scroll": "Final plain-description drag0-to11%; four forward gestures reached100% Core endpoint. Selected Upper white glyph visible. Shallow0-to11-to0 reverse retained open sheet and full Update.",
+    "reverseLimit": "Three fast full reverse drags natively dismissed to unchanged parent; no full-bottom return-to-Update acceptance or inferred cause.",
+    "beforeEndpoint": "Original MAX top only; no safe visible options viewport, no before endpoint.",
+    "finalParent": "Same one saved guest day with seven muscles; temporary editor choices not persisted.",
+    "actionsNotTaken": [
+      "Add",
+      "Update",
+      "Continue",
+      "API persistence",
+      "authentication",
+      "Health permissions",
+      "private storage inspection"
+    ],
+    "targetLimit": "Core visual frame51x31pt; source hitSlop not independent44pt target measurement.",
+    "privacy": "Only canonical raw guest-fixture pixels; no setup images, hierarchies, account identifiers or private runtime endpoints published."
+  },
+  "acceptedEvidenceHashes": {
+    "originalManifest": "9f9bff61ab3b66c3f95a3bde3d38ef5c9229b62aaae0d3c55c89b6fe519f9d00",
+    "finalManifest": "369f673b608a1270717a22cee630c1e9e04161e071165407a0891bd757e64e86",
+    "finalReport": "477998161fefc1682020f777637aba243f680aaee9259cd0e0af97d437823837",
+    "beforeRuntimeManifest": "a8056093d26f21f660b2397fc2846f8a4b6e3f38c4e343e5bfaea2ce43ea1f56",
+    "beforeRuntimeBundle": "4c3621b7d058b781ff11888eab9e04ade4ec4a8d551a7bc272f398778b926989",
+    "afterRuntimeManifest": "a8e4968536e602b6e968563569069f00d6769e15efe260c3009ccb3e38e56c7b",
+    "afterRuntimeBundle": "2ec3e95d1620e1f83a29f4c2651b47fc22a8fbce54c18d806c90fe3377052f58"
+  },
+  "limits": [
+    "No SE/compact device, full theme/font grid, keyboard, VoiceOver, physical-device or CI certification.",
+    "Dark normal after Trapezius tile extends below viewport; not all15 visible at once.",
+    "Existing empty Add/Update remains faded but enabled.",
+    "Core-prefill initializer/effects/handlers/helpers/providers/copy/theme/dependencies remain unchanged.",
+    "No API migration or new dependency; intermediate candidate diagnostics excluded."
+  ],
+  "images": [
+    {
+      "file": "original-plus-light-normal-edit-top.png",
+      "stage": "before",
+      "bytes": 206167,
+      "sha256": "d76c9cb4447a48ff3883b46a564794743e681dfa215ff043369a5d7da3e3058f",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial",
+      "caption": "Saved Upper body selected and Core ON; Update visible and untouched. Fresh native capture, not reused prior phase."
+    },
+    {
+      "file": "original-plus-dark-normal-custom-selected.png",
+      "stage": "before",
+      "bytes": 220375,
+      "sha256": "8aef5dc56695775fb624468c3d023f12b1962c21d86c13ad2c59da672006f94b",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "dark",
+      "contentSize": "large",
+      "position": "initial",
+      "caption": "Custom tab with ONLY temporary Chest and Back selections; purple borders and white checks visible. All 15 cards visible at normal; Hamstrings wraps awkwardly. Dismissed without Update."
+    },
+    {
+      "file": "original-plus-light-max-edit-top.png",
+      "stage": "before",
+      "bytes": 235962,
+      "sha256": "c4c9b22b9f930a35ae9c26921585599bdc5f9d1e32fb282288d8d41773a9e26a",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "initial; endpoint unreachable",
+      "caption": "Cold MAX: fixed title, description and tabs consume the sheet; Update clips off right edge and no options/Core row is visible. Actual baseline layout failure. No endpoint capture or meaningless scroll attempted."
+    },
+    {
+      "file": "candidate-plus-light-normal-edit-top.png",
+      "stage": "after",
+      "bytes": 209159,
+      "sha256": "8941a6a5001ba3601579c24cf21622bea4c53b28e3e7e64768dc9ef7ed62490a",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial",
+      "caption": "Cold normal editor: Upper checked, Core ON, neutral tabs/track; Update inside sheet. No Update pressed."
+    },
+    {
+      "file": "candidate-plus-dark-normal-custom-selected.png",
+      "stage": "after",
+      "bytes": 228739,
+      "sha256": "bc84cf935896f49b27c9f535c64743ac29c5c92cdf9c8d8256237f8135b59ae0",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "dark",
+      "contentSize": "large",
+      "position": "initial",
+      "caption": "Cold normal Custom tab: temporary Chest and Back checked with white checks; full Hamstrings label. Last Trapezius tile extends below viewport; not all15 fit one frame. No Update."
+    },
+    {
+      "file": "candidate-plus-light-max-edit-top.png",
+      "stage": "after",
+      "bytes": 239307,
+      "sha256": "47510cff941aa0674fb7476a19d5dbab1c5f3e71b1b5a0d8728e8201ea2ec7da",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "initial / 0%",
+      "caption": "Cold MAX uncapped title wraps whole words; Update fully inside next row; entire content scrolls. Not all content in one frame."
+    },
+    {
+      "file": "candidate-plus-light-max-edit-bottom.png",
+      "stage": "after",
+      "bytes": 208811,
+      "sha256": "e06035224bc1a8304fc7137d84487b83b6cc968b105684c66956c4402e7794be",
+      "width": 1290,
+      "height": 2796,
+      "device": "iPhone 16 Plus",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "actual bottom / 100%",
+      "caption": "Actual MAX bottom: Core ON and entire Include abs and lower back. copy visible within viewport; title scrolled away."
+    }
+  ]
+}

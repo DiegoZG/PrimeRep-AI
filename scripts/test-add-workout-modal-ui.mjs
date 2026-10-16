@@ -22,8 +22,8 @@ const deferred = () => { let resolve; const promise = new Promise((yes) => { res
 const flat = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
 const textOf = (node) => typeof node === "string" ? node : node?.children?.map(textOf).join("") ?? "";
 const native = {
-  View: "View", Text: "Text", ScrollView: "ScrollView", Switch: "Switch", TouchableOpacity: "TouchableOpacity", TouchableWithoutFeedback: "TouchableWithoutFeedback", Pressable: "Pressable",
-  StyleSheet: { create: (value) => value }, Platform: { OS: "ios", select: (values) => values.ios ?? values.default },
+  View: "View", Text: "Text", ScrollView: "ScrollView", Switch: "Switch", TouchableOpacity: "TouchableOpacity", Pressable: "Pressable",
+  StyleSheet: { create: (value) => value, absoluteFillObject: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } }, Platform: { OS: "ios", select: (values) => values.ios ?? values.default },
 };
 function load(file, mocks, input = source(file)) {
   const module = { exports: {} };
@@ -45,6 +45,7 @@ const seed = { preferredName: "Alex", reason: "structure", selectedEquipment: ["
 const existing = { id: "keep-A", name: "Pull", type: "workout-split", muscleGroups: ["back", "biceps"] };
 const custom = { id: "keep-B", name: "Saved custom name", type: "custom", muscleGroups: ["quads", "calves"] };
 const controls = (tree) => tree.root.findAll((node) => typeof node.type === "string" && ["TouchableOpacity", "Pressable"].includes(node.type));
+const dismissTarget = (view) => controls(view.tree).find((node) => node.props.activeOpacity === 1 && flat(node.props.style).position === "absolute");
 const choice = (tree, name) => controls(tree).reverse().find((node) => node.props.accessibilityLabel === name || node.findAllByType("Text").some((text) => textOf(text) === name));
 const action = (view) => choice(view.tree, view.params.workoutId ? "Update" : "Add");
 const selected = (node) => node.props.accessibilityState?.checked ?? node.findAllByType("AnimatedView").some((child) => flat(child.props.style).opacity === 1);
@@ -326,20 +327,28 @@ for (const scheme of ["light", "dark"]) {
       await unmount(view);
     }
   });
-  test(`behavior: ${scheme} backdrop cancel and inner propagation preserve unsaved payload`, async () => {
+  test(`behavior: ${scheme} backdrop cancel and sibling-isolated inner content preserve unsaved payload`, async () => {
     const view = await render({ scheme });
     await tap(choice(view.tree, "Legs"));
-    let stopped = false;
-    await act(async () => view.tree.root.findByType("TouchableWithoutFeedback").props.onPress({ stopPropagation: () => { stopped = true; } }));
-    assert.equal(stopped, true);
+    const scroll = view.tree.root.findByType("ScrollView");
+    for (let ancestor = scroll.parent; ancestor; ancestor = ancestor.parent) {
+      assert.notEqual(ancestor.type, "TouchableOpacity");
+      assert.notEqual(ancestor.type, "TouchableWithoutFeedback");
+    }
+    const panel = view.tree.root.findAllByType("AnimatedView").find((node) => flat(node.props.style).height === "100%");
+    const backdrop = dismissTarget(view);
+    assert.equal(backdrop.parent, panel.parent);
+    assert.equal(panel.parent.type, "View");
+    assert.ok(panel.parent.children.indexOf(backdrop) < panel.parent.children.indexOf(panel));
+    assert.equal(scroll.findAllByType("TouchableOpacity").includes(backdrop), false);
+    unchanged(view);
     assert.deepEqual(view.calls.routes, []);
-    const backdrop = controls(view.tree).find((node) => node.props.activeOpacity === 1 && flat(node.props.style).flex === 1);
     await tap(backdrop);
     unchanged(view);
     assert.deepEqual(view.calls.routes, ["back"]);
     await unmount(view);
     const noBack = await render({ scheme, canGoBack: false });
-    assert.equal(controls(noBack.tree).find((node) => node.props.activeOpacity === 1 && flat(node.props.style).flex === 1).props.onPress, undefined);
+    assert.equal(dismissTarget(noBack).props.onPress, undefined);
     await tap(action(noBack));
     unchanged(noBack);
     assert.deepEqual(noBack.calls.routes, ["back"]);
@@ -374,21 +383,174 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-test("scope: reversing only the approved lazy initializer restores the exact original controller and whole route", () => {
+test("scope: presentation changes preserve the merged Core controller and original initializer inversion", () => {
   const input = source(route);
   const lazy = '  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(() => {\n    const splitId = editingWorkout?.type === "workout-split"\n      ? inferSplitSelectionFromMuscleGroups(editingWorkout.muscleGroups).splitId\n      : undefined;\n    return new Set(splitId ? [splitId] : []);\n  });';
   const previous = '  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(\n    new Set()\n  );';
   assert.equal(input.split(lazy).length, 2);
-  assert.equal(sha(input), "4684c8d1bcc7bc6c8e18a7338258a9bff5e4f4270798d0b1e3ac29221f2f6e75");
+  const merged = execFileSync("git", ["show", `de63685a33df98b211bf71b282083817cab014b9:${route}`], { cwd: root, encoding: "utf8" });
+  assert.equal(sha(merged), "4684c8d1bcc7bc6c8e18a7338258a9bff5e4f4270798d0b1e3ac29221f2f6e75");
+  const restoredImports = input.replace("  TouchableOpacity,\n", "  TouchableOpacity,\n  TouchableWithoutFeedback,\n");
+  assert.equal(restoredImports.slice(0, restoredImports.indexOf("\n  return (")), merged.slice(0, merged.indexOf("\n  return (")));
+  const currentController = input.slice(input.indexOf("export default function"), input.indexOf("\n  return ("));
+  assert.equal(currentController.length, 5123);
+  assert.equal(sha(currentController), "e78a19c54defe5d30f3ed97bab83a219efc53b387d870c9780733daedcc009e9");
   const restored = input.replace(lazy, previous);
   const controller = restored.slice(restored.indexOf("export default function"), restored.indexOf("\n  return ("));
   assert.equal(controller.length, 4922);
   assert.equal(sha(controller), "98fc19ab4e69f40751478ece21f2826a54967907ff5afadd450f28a300f8c58f");
-  assert.equal(sha(restored), "83a76c1c20cd7dfa2fa65872cf5c8dcb488061ab88f78fb64d26fad8dbfff16b");
-  assert.equal(sha(input.slice(0, input.indexOf("export default function"))), "68390b11cccf6dcb6244d9d39b68b9d933124909592e107a0437b7d7425aa5b0");
-  assert.equal(sha(input.slice(input.indexOf("\n  return ("))), "5da0ccb748323bc5d5c78cc4c59b57d2263ed3aa53fa269ff34b7605a7c76dca");
+  assert.equal(sha(merged.replace(lazy, previous)), "83a76c1c20cd7dfa2fa65872cf5c8dcb488061ab88f78fb64d26fad8dbfff16b");
+  assert.equal(sha(restoredImports.slice(0, restoredImports.indexOf("export default function"))), "68390b11cccf6dcb6244d9d39b68b9d933124909592e107a0437b7d7425aa5b0");
+  assert.equal(sha(merged.slice(merged.indexOf("\n  return ("))), "5da0ccb748323bc5d5c78cc4c59b57d2263ed3aa53fa269ff34b7605a7c76dca");
   assert.equal(sha(original(route)), "83a76c1c20cd7dfa2fa65872cf5c8dcb488061ab88f78fb64d26fad8dbfff16b");
 });
+
+for (const scheme of ["light", "dark"]) for (const fontScale of [1, 3.1]) {
+  test(`presentation: ${scheme} scale${fontScale} keeps one scroll, wrapping header/tabs and enabled 44-point primary`, async () => {
+    const view = await render({ scheme, fontScale });
+    try {
+      const scrolls = view.tree.root.findAllByType("ScrollView");
+      assert.equal(scrolls.length, 1);
+      const scroll = scrolls[0];
+      assert.ok(scroll.findAllByType("Text").some((node) => textOf(node) === content.title));
+      assert.ok(scroll.findAllByType("Text").some((node) => textOf(node) === content.description));
+      const description = scroll.findAllByType("Text").find((node) => textOf(node) === content.description);
+      assert.equal(flat(description.props.style).color, view.colors.icon);
+      const title = scroll.findAllByType("Text").find((node) => textOf(node) === content.title);
+      assert.equal(flat(title.parent.props.style).flexWrap, "wrap");
+      assert.equal(flat(title.props.style).flexShrink, 1);
+      assert.equal(flat(title.props.style).flexBasis, 240);
+      assert.equal(flat(title.props.style).minWidth, 240);
+      assert.equal(flat(title.props.style).maxWidth, "100%");
+      const primary = action(view);
+      assert.ok(scroll.findAllByType("TouchableOpacity").includes(primary));
+      assert.equal(primary.props.accessibilityRole, "button");
+      assert.equal(primary.props.accessibilityLabel, "Add");
+      assert.equal(primary.props.disabled, undefined);
+      assert.notEqual(primary.props.accessibilityState?.disabled, true);
+      assert.equal(flat(primary.props.style).minWidth, 44);
+      assert.equal(flat(primary.props.style).minHeight, 44);
+      assert.equal(flat(primary.findByType("Text").props.style).color, view.colors.primaryButton);
+      assert.equal(flat(primary.findByType("Text").props.style).opacity, 0.5);
+      assert.equal(scroll.props.showsVerticalScrollIndicator, true);
+      assert.equal(scroll.props.nestedScrollEnabled, true);
+      for (const item of content.tabs) {
+        const control = choice(view.tree, item.label);
+        assert.equal(control.props.accessibilityRole, "tab");
+        assert.equal(control.props.accessibilityState.selected, item.id === "workout-split");
+        assert.equal(flat(control.parent.props.style).flexWrap, "wrap");
+        assert.equal(flat(control.props.style).minWidth, 44);
+        assert.equal(flat(control.props.style).minHeight, 44);
+        assert.equal(flat(control.props.style).flexBasis, "auto");
+        assert.equal(flat(control.props.style).maxWidth, "100%");
+        assert.equal(flat(control.props.style).borderColor, item.id === "workout-split" ? view.colors.text : view.colors.inputBorder);
+        assert.equal(flat(control.findByType("Text").props.style).color, item.id === "workout-split" ? view.colors.text : view.colors.icon);
+      }
+      for (const text of scroll.findAllByType("Text")) {
+        assert.equal(text.props.numberOfLines, undefined);
+        assert.equal(text.props.maxFontSizeMultiplier, undefined);
+        if (textOf(text) === "✓") {
+          assert.equal(text.props.accessible, false);
+          assert.equal(text.props.allowFontScaling, false);
+        } else assert.notEqual(text.props.allowFontScaling, false);
+      }
+      unchanged(view);
+    } finally { await unmount(view); }
+  });
+
+  test(`presentation: ${scheme} scale${fontScale} degrouped content exposes real checkbox and neutral Core switch states`, async () => {
+    const view = await render({ scheme, fontScale });
+    try {
+      const backdrop = dismissTarget(view);
+      const inner = backdrop.parent;
+      assert.equal(backdrop.props.accessible, false);
+      assert.equal(inner.type, "View");
+      assert.notEqual(inner.props.accessible, true);
+      assert.equal(inner.props.onPress, undefined);
+      assert.equal(view.tree.root.findAllByType("TouchableWithoutFeedback").length, 0);
+      for (const node of [backdrop, inner]) {
+        assert.notEqual(node.props.accessibilityElementsHidden, true);
+        assert.notEqual(node.props.importantForAccessibility, "no-hide-descendants");
+      }
+      const coreRow = choice(view.tree, "Core");
+      assert.equal(coreRow.props.accessible, false);
+      assert.equal(coreRow.props.accessibilityRole, undefined);
+      assert.equal(coreRow.props.accessibilityLabel, undefined);
+      assert.equal(core(view.tree).props.accessibilityLabel, "Core");
+      assert.equal(core(view.tree).props.accessibilityState.disabled, true);
+      assert.equal(core(view.tree).props.thumbColor, view.colors.placeholder);
+      const pull = choice(view.tree, "Pull");
+      assert.equal(pull.props.accessibilityRole, "checkbox");
+      assert.equal(pull.props.accessibilityLabel, "Pull");
+      assert.equal(pull.props.accessibilityState.checked, false);
+      assert.equal(flat(pull.props.style).borderBottomColor, view.colors.inputBorder);
+      const pullDescription = pull.findAllByType("Text").find((node) => textOf(node) === splits.find((item) => item.id === "pull").description);
+      assert.equal(flat(pullDescription.props.style).color, view.colors.icon);
+      await tap(pull);
+      assert.equal(choice(view.tree, "Pull").props.accessibilityState.checked, true);
+      assert.equal(core(view.tree).props.accessibilityState.disabled, false);
+      await toggleCore(view, true);
+      assert.equal(core(view.tree).props.value, true);
+      assert.equal(core(view.tree).props.thumbColor, view.colors.primaryButton);
+      assert.deepEqual(plain(core(view.tree).props.trackColor), { false: view.colors.inputBorder, true: view.colors.inputBorder });
+      assert.equal(core(view.tree).props.ios_backgroundColor, view.colors.inputBorder);
+      assert.deepEqual(plain(core(view.tree).props.hitSlop), { top: 7, bottom: 7 });
+      for (const check of view.tree.root.findAllByType("Text").filter((node) => textOf(node) === "✓")) {
+        assert.equal(check.props.accessible, false);
+        assert.equal(check.props.allowFontScaling, false);
+      }
+      unchanged(view);
+    } finally { await unmount(view); }
+  });
+
+  test(`presentation: ${scheme} scale${fontScale} custom choices grow naturally and keep accurate checked names`, async () => {
+    const view = await render({ scheme, fontScale });
+    try {
+      await tab(view, "Custom");
+      assert.equal(choice(view.tree, "Custom").props.accessibilityState.selected, true);
+      for (const item of muscles) {
+        const control = choice(view.tree, item.name), style = flat(control.props.style);
+        assert.equal(control.props.accessibilityRole, "checkbox");
+        assert.equal(control.props.accessibilityLabel, item.name);
+        assert.equal(control.props.accessibilityState.checked, false);
+        assert.equal(style.width, undefined);
+        assert.equal(style.aspectRatio, undefined);
+        assert.equal(style.height, undefined);
+        assert.equal(style.minWidth, 128);
+        assert.equal(style.minHeight, 44);
+        assert.equal(style.flexBasis, "auto");
+        assert.equal(style.maxWidth, "100%");
+        assert.equal(style.flexGrow, 1);
+        assert.equal(style.alignItems, "flex-start");
+        assert.equal(style.gap, 8);
+        assert.equal(flat(control.parent.props.style).flexWrap, "wrap");
+        const initials = control.findAllByType("Text").find((node) => textOf(node) === item.name.slice(0, 2).toUpperCase());
+        assert.equal(initials.props.accessible, false);
+        const placeholder = flat(initials.parent.props.style);
+        assert.equal(placeholder.minWidth, 32);
+        assert.equal(placeholder.minHeight, 32);
+        assert.equal(placeholder.height, undefined);
+        assert.equal(placeholder.width, undefined);
+        const name = control.findAllByType("Text").find((node) => textOf(node) === item.name);
+        assert.equal(name.props.numberOfLines, undefined);
+        assert.notEqual(name.props.allowFontScaling, false);
+        assert.equal(flat(name.props.style).textAlign, "left");
+      }
+      await tap(choice(view.tree, muscles[0].name));
+      const selectedControl = choice(view.tree, muscles[0].name);
+      assert.equal(selectedControl.props.accessibilityState.checked, true);
+      assert.equal(flat(selectedControl.props.style).backgroundColor, view.colors.inputBackground);
+      assert.equal(flat(selectedControl.props.style).borderColor, view.colors.text);
+      const check = selectedControl.findAllByType("Text").find((node) => textOf(node) === "✓");
+      assert.equal(check.props.accessible, false);
+      assert.equal(check.props.allowFontScaling, false);
+      let badge = check.parent;
+      while (badge.type !== "View") badge = badge.parent;
+      assert.equal(flat(badge.props.style).backgroundColor, view.colors.primaryButton);
+      unchanged(view);
+    } finally { await unmount(view); }
+  });
+}
 test("scope: only this modal's constant section and real helper mappings match baseline", () => {
   const baseline = load("features/onboarding/constants.ts", {}, original("features/onboarding/constants.ts"));
   assert.deepEqual(plain(content), plain(baseline.ADD_WORKOUT_MODAL));
@@ -487,7 +649,7 @@ for (const scheme of ["light", "dark"]) test(`saved Core ${scheme} explicit dese
     await tap(choice(view.tree, "Upper body")); assert.equal(core(view.tree).props.value, false);
     await toggleCore(view, true); await tap(choice(view.tree, "Pull")); assert.equal(core(view.tree).props.value, true);
     await tab(view, "Custom"); await tap(choice(view.tree, "Chest")); await tab(view, "Workout split"); assert.equal(selected(choice(view.tree, "Pull")), true); assert.equal(core(view.tree).props.value, true);
-    const backdrop = controls(view.tree).find((node) => node.props.activeOpacity === 1 && flat(node.props.style).flex === 1); await tap(backdrop);
+    const backdrop = dismissTarget(view); await tap(backdrop);
     unchanged(view); assert.deepEqual(view.calls.routes, ["back"]);
   } finally { await unmount(view); }
 });
