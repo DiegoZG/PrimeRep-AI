@@ -1,0 +1,88 @@
+{
+  "scope": "U54b adaptive workout logger host and readable column presentation",
+  "source": {
+    "base": "084d5407ddaed88a6a50754ac6b17c533ca2061f",
+    "sourceCommit": "12eb766e98d0af385d25a65de1f8253be05978de",
+    "routeSha256": "a3b92bca1b4ce520587ff271bfaabd207c3f5950b0ffc4b8934742d2c2585044",
+    "harnessSha256": "9863bb54f943aa98d41cf043da3668b50c2f837511f4f65ece683b6ae1d7ea7c",
+    "originalRouteSha256": "83422e821a9b0a6a21fd1919fd00c174ef54c57e7e6a196b979969ab757d35c4",
+    "originalRuntimeHead": "d41f4f4752f74224f62bc5404672a3c5d8e16cf2",
+    "originalRuntimeTree": "5efc859e26560abb2f64b02de0160a3e078e6a8f",
+    "chronology": "Original retained feature runtime had exact tracked-tree equality with merged base. Candidate captured base plus frozen working changes; source commit was created after captures. File hashes establish captured-source equivalence; no post-commit restart claimed.",
+    "controller": {
+      "bytes": 56471,
+      "sha256": "aebf47a9c2472e1f5121a362376db1a93aa33ebac7abb6994dbb124b9bbc74e8"
+    },
+    "modalSuffix": {
+      "bytes": 9729,
+      "sha256": "6ecbe55d61b8d5a8207141ec86b03c1e5a3b5b3c5a6cabeaa0e1ee409a1dd758"
+    },
+    "preservation": "Original controller/imports reconstruct after removing only approved dimensions additions and readonly moved JSX declarations; all11sharedKEEP pins and complete U54a feedback exact. No provider, service, shared row-input or theme edits."
+  },
+  "verification": {
+    "localNotCI": true,
+    "focused": 31,
+    "standard": 1789,
+    "focusedIncludedInStandard": true,
+    "finalStandardRuns": {
+      "author": 1,
+      "independent": 1
+    },
+    "typecheck": "PASS",
+    "scopedLintErrors": 0,
+    "projectLintErrors": 0,
+    "inheritedWarnings": 2,
+    "audits": "PASS",
+    "webHtml": 62,
+    "exactWebModulesAuthor": 18
+  },
+  "capture": {
+    "before": {
+      "configurations": 4,
+      "coldEntries": 4,
+      "pngs": 6,
+      "manifestSha256": "56e90a4cc57ef362a2a3195b1c4f06f9479bbf25e6fae0f937cf2921cb8b1d36",
+      "reportSha256": "92331ba5c783a81502c5462cc1d42723bedfe1964ce6db690a9c22f5b676caca"
+    },
+    "after": {
+      "configurations": 4,
+      "coldEntries": 4,
+      "pngs": 7,
+      "manifestSha256": "758e1b2e7ad226e682a9edc6ded2ea546edb54621dcda92fd42494a53ca54f9e",
+      "reportSha256": "412919c9053b3a0f23ce706d60c35a099b24926670679bfdd6a248a6e51ec073"
+    },
+    "method": "Serial exact-device SDK54 simulator captures independent of display foreground; all13frames fresh, canonical raw PNG bytes, no resize or editing. Manifest hash/byte/IHDR dimensions verified at assembly; rejected intermediate captures excluded.",
+    "axes": [
+      "Plus Light normal",
+      "Plus Dark normal",
+      "SE Light normal",
+      "SE Light maximum accessibility text"
+    ],
+    "fixture": "Same isolated fictional active workout, zero of three confirmed sets; no personal account data.",
+    "observations": {
+      "normal": "Fixed geometry preserved. SE initial Add set clipping unchanged, reachable at100% before/after.",
+      "maximum": "Original279ptbody with99%bounded bottom; candidate647ptwhole scroller, mid47%aligned #/LB/Reps+firstrow,100%endpoint and0%return. Different positions, not simultaneous fit.",
+      "keyboard": "SE normal blank-weight focus, no typing: actual-body gap tap dismissed keyboard and kept values empty/0of3/noenteredSave. Outer-padding gutter tap did not dismiss; separate follow-up, no introduced cause established. Upward gutter gesture is not standard downward interactive-dismissal proof."
+    },
+    "limits": [
+      "No native Save/finish/durable-transport/VoiceOver/physical-device/Android/CI certification",
+      "Short-height branch and other unit/equipment combinations renderer-tested only",
+      "No full device/theme/font crossproduct or all-content-in-one-frame claim"
+    ]
+  },
+  "images": [
+    {"file":"before-plus-light-normal-top.png","phase":"before","configuration":"plus-light-normal","theme":"light","contentSize":"large","position":"initial/all-content","sha256":"834180b5d72757cb58e7050cbe8d2346a2be21da786aa1b85483c26ca76bf4a1","bytes":224273,"dimensions":[1290,2796]},
+    {"file":"before-plus-dark-normal-top.png","phase":"before","configuration":"plus-dark-normal","theme":"dark","contentSize":"large","position":"initial/all-content","sha256":"180b9787d6bdeb1e8e0e6623798144ca7a13fb8ba9a1997147cf7bc2b54f16dc","bytes":229906,"dimensions":[1290,2796]},
+    {"file":"before-se-light-normal-top.png","phase":"before","configuration":"se-light-normal","theme":"light","contentSize":"large","position":"initial","sha256":"e086e44553e8b348d25251739ccd582663a36995deb1b483de37e90c93154fff","bytes":116693,"dimensions":[750,1334]},
+    {"file":"before-se-light-normal-endpoint.png","phase":"before","configuration":"se-light-normal","theme":"light","contentSize":"large","position":"actual-body-endpoint-100-percent","sha256":"25e59b0db81c7ab1d1b6afd97633947f5ce72adb76813963d5a01f11cb566a47","bytes":113668,"dimensions":[750,1334]},
+    {"file":"before-se-light-max-top.png","phase":"before","configuration":"se-light-max","theme":"light","contentSize":"accessibility-extra-extra-extra-large","position":"initial","sha256":"109a0474cd3b757edc188050eece56fe94cddbb843c9c4e9694fe2c43d3eeda9","bytes":100376,"dimensions":[750,1334]},
+    {"file":"before-se-light-max-endpoint.png","phase":"before","configuration":"se-light-max","theme":"light","contentSize":"accessibility-extra-extra-extra-large","position":"bounded-bottom-content-99-percent","sha256":"0dd8796e99558163474136f5c462078e6f79fffb2e723d3d13031372747d612f","bytes":109798,"dimensions":[750,1334]},
+    {"file":"after-plus-light-normal-top.png","phase":"after","configuration":"plus-light-normal","theme":"light","contentSize":"large","position":"initial/all-content","sha256":"57a110000ad6158cb707cca759d88f140f19c211ac6ce3c5ddbc5abb0948f5da","bytes":223651,"dimensions":[1290,2796]},
+    {"file":"after-plus-dark-normal-top.png","phase":"after","configuration":"plus-dark-normal","theme":"dark","contentSize":"large","position":"initial/all-content","sha256":"df0660868243652c90ce76b06fe1f09c2be0e9823df1b9954cdf3d7b5deb365c","bytes":229757,"dimensions":[1290,2796]},
+    {"file":"after-se-light-normal-top.png","phase":"after","configuration":"se-light-normal","theme":"light","contentSize":"large","position":"initial","sha256":"6d7b3b0a1dcbaa30f3d0c8976746faa93c1e370f7edc170f873d8613ecb45375","bytes":117084,"dimensions":[750,1334]},
+    {"file":"after-se-light-normal-endpoint.png","phase":"after","configuration":"se-light-normal","theme":"light","contentSize":"large","position":"actual-body-endpoint-100-percent","sha256":"206ab15246227e644bcba4e87962b56b0f262c670f8e03dce2dd18de468ca007","bytes":114257,"dimensions":[750,1334]},
+    {"file":"after-se-light-max-top.png","phase":"after","configuration":"se-light-max","theme":"light","contentSize":"accessibility-extra-extra-extra-large","position":"initial","sha256":"42d54d4c8f67a8be65cc53eac60cfb5d24a847c8fa6109e910b3c82f0f08af35","bytes":96876,"dimensions":[750,1334]},
+    {"file":"after-se-light-max-legend-first-row.png","phase":"after","configuration":"se-light-max","theme":"light","contentSize":"accessibility-extra-extra-extra-large","position":"legend-first-row-47-percent","sha256":"a6b868eaa59b848dd30f79b2c5f4b308b42df03981eda62f579ab374ec85b1b2","bytes":121755,"dimensions":[750,1334]},
+    {"file":"after-se-light-max-endpoint.png","phase":"after","configuration":"se-light-max","theme":"light","contentSize":"accessibility-extra-extra-extra-large","position":"actual-whole-scroll-endpoint-100-percent","sha256":"26548d590b34ed7d76075536d5bd10be3ebfd591570e3c8ac7b0a1e0663a5891","bytes":96108,"dimensions":[750,1334]}
+  ]
+}
