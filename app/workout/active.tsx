@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
@@ -213,6 +213,8 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontScale, height } = useWindowDimensions();
+  const expandedLayout = fontScale > 1.3 || height - insets.top - insets.bottom < 480;
   const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
   const colors = { ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" };
@@ -1445,15 +1447,12 @@ export default function ActiveWorkoutScreen() {
     {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>Save entered sets ({currentEnteredCount})</ThemedText>}
   </Pressable> : null;
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      {/* Header */}
+  const header = <>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: expandedLayout ? "space-between" : undefined,
           paddingHorizontal: 20,
           paddingVertical: 12,
           borderBottomWidth: 1,
@@ -1469,16 +1468,16 @@ export default function ActiveWorkoutScreen() {
         >
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <Pressable
+        {!expandedLayout ? <Pressable
           style={{ flex: 1, alignItems: "center" }}
           onPress={() => setSheetVisible(true)}
         >
-          <ThemedText type="defaultSemiBold" maxFontSizeMultiplier={1.5}>{workout.title}</ThemedText>
-          <ThemedText maxFontSizeMultiplier={1.5} style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
+          <ThemedText type="defaultSemiBold">{workout.title}</ThemedText>
+          <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
             {formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}
             {exercises.length} • {confirmedCount}/{totalSets} sets
           </ThemedText>
-        </Pressable>
+        </Pressable> : null}
         <Pressable
           testID="player-exercise-list-button"
           accessibilityRole="button"
@@ -1491,7 +1490,18 @@ export default function ActiveWorkoutScreen() {
         </Pressable>
       </View>
 
-      {/* Overall progress bar */}
+      {expandedLayout ? <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open exercise list for ${workout.title}`}
+          style={{ minHeight: 44, alignItems: "center", paddingHorizontal: 20, paddingBottom: 12 }}
+          onPress={() => setSheetVisible(true)}
+        >
+          <ThemedText type="defaultSemiBold" style={{ textAlign: "center" }}>{workout.title}</ThemedText>
+          <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
+            {formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}
+            {exercises.length} • {confirmedCount}/{totalSets} sets
+          </ThemedText>
+        </Pressable> : null}
       <View style={{ height: 3, backgroundColor: colors.inputBorder }}>
         <View
           style={{
@@ -1501,16 +1511,95 @@ export default function ActiveWorkoutScreen() {
           }}
         />
       </View>
+  </>;
+  const footer = (
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingBottom: 12,
+          paddingTop: 12,
+          backgroundColor: colors.background,
+          borderTopWidth: 1,
+          borderTopColor: colors.inputBorder,
+        }}
+      >
+        {!expandedLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View style={{ marginBottom: 8 }}>{saveEnteredAction}</View> : null}
+        {finishStatus !== "idle" ? (
+          <ThemedText style={{ textAlign: "center", color: finishStatus === "failed" ? "#DC2626" : colors.placeholder, fontSize: 13, marginBottom: 8 }}>
+            {finishStatus === "syncing"
+              ? "Finishing workout…"
+              : finishStatus === "failed"
+                ? "Couldn't finish this workout. Your sets are safe."
+                : finishStatus === "pendingSets"
+                  ? "Your sets are still saving — finish will resume automatically."
+                  : "Saved on this device — finish when online."}
+          </ThemedText>
+        ) : null}
+        {finishStatus === "pendingOffline" || finishStatus === "pendingSets" || finishStatus === "failed" ? (
+          <Pressable
+            testID="player-continue-logging"
+            accessibilityRole="button"
+            onPress={() => void continueLogging()}
+            style={{ paddingVertical: 14, minHeight: 48, alignItems: "center", backgroundColor: colors.primaryButton, borderRadius: 12, marginBottom: 8 }}
+          >
+            <ThemedText type="defaultSemiBold" style={{ color: "#FFFFFF" }}>
+              Continue logging
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        <Pressable
+          testID="player-finish"
+          onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
+          disabled={finishStatus === "syncing" || isSavingEntries || !canFinish}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || !canFinish, busy: finishStatus === "syncing" }}
+          style={{
+            backgroundColor: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? colors.primaryButton : colors.background,
+            borderWidth: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? 0 : 1,
+            borderColor: colors.inputBorder,
+            paddingVertical: keyboardVisible ? 8 : 16,
+            minHeight: 44,
+            borderRadius: 14,
+            alignItems: "center",
+            opacity: finishStatus === "syncing" ? 0.6 : 1,
+          }}
+        >
+          {finishStatus === "syncing" ? (
+            <ActivityIndicator color={colors.placeholder} />
+          ) : (
+            <ThemedText
+              type="defaultSemiBold"
+              style={{
+                color: !canFinish ? colors.placeholder : finishStatus === "idle" && allEnteredSets.length === 0 ? "#FFFFFF" : colors.text,
+                fontSize: 16,
+                textAlign: "center",
+              }}
+            >
+              {finishStatus === "idle" ? `Finish Workout (${confirmedCount}/${totalSets})` : "Retry Finish"}
+            </ThemedText>
+          )}
+        </Pressable>
+      </View>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      {!expandedLayout ? <View key="fixed-header">{header}</View> : null}
 
       {/* Main content */}
       <ScrollView
+        key="main-scroll"
+        testID="player-main-scroll"
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        {expandedLayout ? <View key="scroll-header" style={{ marginHorizontal: -20, marginTop: -20, marginBottom: 20 }}>{header}</View> : null}
+        <TouchableWithoutFeedback key="logger-body" onPress={Keyboard.dismiss} accessible={false}>
         <View pointerEvents={finishStatus === "idle" && !isSavingEntries ? "auto" : "none"}
           onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}>
         {storageError ? (
@@ -1562,7 +1651,7 @@ export default function ActiveWorkoutScreen() {
                   borderColor: colors.inputBorder,
                 }}
               >
-                <ThemedText maxFontSizeMultiplier={1.5} style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>
+                <ThemedText allowFontScaling={false} accessible={false} style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>
                   {initials}
                 </ThemedText>
               </View>
@@ -1656,30 +1745,29 @@ export default function ActiveWorkoutScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  <ThemedText maxFontSizeMultiplier={1.5} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>SET</ThemedText>
+                  <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <ThemedText
-                      maxFontSizeMultiplier={1.5}
+                      accessibilityLabel={expandedLayout ? `${weightColumnLabel} (${weightUnit})` : undefined}
                       style={{
                         fontSize: 11,
                         color: colors.placeholder,
                         fontWeight: "500",
                         fontFamily: Fonts.sans,
-                        textTransform: "uppercase",
+                        textTransform: expandedLayout ? "none" : "uppercase",
                       }}
                     >
-                      {weightColumnLabel}
+                      {expandedLayout ? weightColumnLabel === "Weight each" ? `${weightUnit} each` : weightColumnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : weightColumnLabel}
                     </ThemedText>
                   </View>
                   <ThemedText
-                    maxFontSizeMultiplier={1.5}
                     style={{
                       flex: 1,
                       fontSize: 11,
                       color: colors.placeholder,
                       fontWeight: "500",
                       fontFamily: Fonts.sans,
-                      textTransform: "uppercase",
+                      textTransform: expandedLayout ? "none" : "uppercase",
                     }}
                   >
                     Reps
@@ -1755,76 +1843,11 @@ export default function ActiveWorkoutScreen() {
         ) : null}
         </View>
         </TouchableWithoutFeedback>
+        {expandedLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
       </ScrollView>
 
-      {/* Finish button */}
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingBottom: 12,
-          paddingTop: 12,
-          backgroundColor: colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.inputBorder,
-        }}
-      >
-        {keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View style={{ marginBottom: 8 }}>{saveEnteredAction}</View> : null}
-        {finishStatus !== "idle" ? (
-          <ThemedText style={{ textAlign: "center", color: finishStatus === "failed" ? "#DC2626" : colors.placeholder, fontSize: 13, marginBottom: 8 }}>
-            {finishStatus === "syncing"
-              ? "Finishing workout…"
-              : finishStatus === "failed"
-                ? "Couldn't finish this workout. Your sets are safe."
-                : finishStatus === "pendingSets"
-                  ? "Your sets are still saving — finish will resume automatically."
-                  : "Saved on this device — finish when online."}
-          </ThemedText>
-        ) : null}
-        {finishStatus === "pendingOffline" || finishStatus === "pendingSets" || finishStatus === "failed" ? (
-          <Pressable
-            testID="player-continue-logging"
-            accessibilityRole="button"
-            onPress={() => void continueLogging()}
-            style={{ paddingVertical: 14, minHeight: 48, alignItems: "center", backgroundColor: colors.primaryButton, borderRadius: 12, marginBottom: 8 }}
-          >
-            <ThemedText type="defaultSemiBold" style={{ color: "#FFFFFF" }}>
-              Continue logging
-            </ThemedText>
-          </Pressable>
-        ) : null}
-        <Pressable
-          testID="player-finish"
-          onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
-          disabled={finishStatus === "syncing" || isSavingEntries || !canFinish}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || !canFinish, busy: finishStatus === "syncing" }}
-          style={{
-            backgroundColor: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? colors.primaryButton : colors.background,
-            borderWidth: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? 0 : 1,
-            borderColor: colors.inputBorder,
-            paddingVertical: keyboardVisible ? 8 : 16,
-            minHeight: 44,
-            borderRadius: 14,
-            alignItems: "center",
-            opacity: finishStatus === "syncing" ? 0.6 : 1,
-          }}
-        >
-          {finishStatus === "syncing" ? (
-            <ActivityIndicator color={colors.placeholder} />
-          ) : (
-            <ThemedText
-              type="defaultSemiBold"
-              style={{
-                color: !canFinish ? colors.placeholder : finishStatus === "idle" && allEnteredSets.length === 0 ? "#FFFFFF" : colors.text,
-                fontSize: 16,
-                textAlign: "center",
-              }}
-            >
-              {finishStatus === "idle" ? `Finish Workout (${confirmedCount}/${totalSets})` : "Retry Finish"}
-            </ThemedText>
-          )}
-        </Pressable>
-      </View>
+      {!expandedLayout ? <View key="fixed-footer">{footer}</View> : null}
+      {expandedLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
       </KeyboardAvoidingView>
 
       <Modal visible={finishReviewVisible} transparent animationType="none" onRequestClose={() => setFinishReviewVisible(false)}>
