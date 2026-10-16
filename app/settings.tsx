@@ -59,7 +59,7 @@ export default function SettingsScreen() {
   const colors = Colors[scheme];
   const { width, fontScale } = useWindowDimensions();
   const stackedPreferences = width < 390 || fontScale >= 1.3;
-  const stackedAppearance = fontScale >= 1.5;
+  const stackedAppearance = width < 350 || fontScale >= 1.3;
   const scrollingTitle = fontScale >= 2;
   const destructiveColor = scheme === "dark" ? "#F18C86" : "#D14343";
   const switchTrack = scheme === "dark" ? colors.inputBackground : colors.inputBorder;
@@ -376,40 +376,38 @@ export default function SettingsScreen() {
             { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
           ]}
         >
-          <View style={[styles.preferenceRow, stackedPreferences && styles.stackedPreferenceRow]}>
+          <View style={[styles.preferenceRow, stackedAppearance && styles.stackedPreferenceRow]}>
             <ThemedText style={styles.preferenceLabel}>Appearance</ThemedText>
             <View
               accessibilityRole="radiogroup"
+              accessibilityLabel="Appearance"
               style={[
                 styles.inlinePreferenceControl,
-                stackedPreferences && styles.stackedPreferenceControl,
-                stackedAppearance && styles.stackedAppearanceControl,
+                styles.appearancePreferenceControl,
                 { backgroundColor: colors.background, borderColor: colors.inputBorder },
               ]}
             >
               {(["system", "light", "dark"] as const).map((preference) => {
                 const selected = themePreference === preference;
                 const disabled = !isAppearanceReady || isSavingAppearance;
-                const label = preference.charAt(0).toUpperCase() + preference.slice(1);
+                const icon = preference === "system" ? "contrast-outline" : preference === "light" ? "sunny-outline" : "moon-outline";
                 return (
                   <Pressable
                     key={preference}
                     testID={`settings-appearance-${preference}`}
                     accessibilityRole="radio"
-                    accessibilityLabel={`Use ${label.toLowerCase()} appearance`}
+                    accessibilityLabel={`Use ${preference} appearance`}
+                    accessibilityHint={preference === "system" ? "Follow your device's appearance" : undefined}
                     accessibilityState={{ checked: selected, disabled }}
                     onPress={() => void handleThemePreference(preference)}
                     disabled={disabled}
                     style={({ pressed }) => [
                       styles.preferenceOption,
-                      stackedAppearance && styles.stackedAppearanceOption,
+                      styles.appearancePreferenceOption,
                       { backgroundColor: selected || pressed ? colors.inputBorder : "transparent", opacity: disabled ? 0.5 : 1 },
                     ]}
                   >
-                    <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={18} color={selected ? colors.text : colors.icon} accessible={false} />
-                    <ThemedText style={[styles.preferenceText, { color: selected ? colors.text : colors.icon }]}>
-                      {label}
-                    </ThemedText>
+                    <Ionicons name={icon} size={22} color={selected ? colors.text : colors.icon} accessible={false} />
                   </Pressable>
                 );
               })}
@@ -852,14 +850,12 @@ const styles = StyleSheet.create({
     maxWidth: undefined,
     width: "100%",
   },
-  stackedAppearanceControl: {
-    flexDirection: "column",
-    gap: 3,
-  },
-  stackedAppearanceOption: {
+  appearancePreferenceControl: {
     flex: 0,
-    justifyContent: "flex-start",
-    paddingHorizontal: 12,
+    width: 156,
+  },
+  appearancePreferenceOption: {
+    minWidth: 44,
   },
   preferenceOption: {
     flex: 1,

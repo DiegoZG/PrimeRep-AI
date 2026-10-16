@@ -120,15 +120,22 @@ for (const scheme of ["light", "dark"]) {
 
   test(`Settings preference radios keep visible, neutral selection and persistence in ${scheme}`, async () => {
     const { tree, colors, calls } = await renderSettings({ scheme, unit: "KG" });
+    const appearanceIcons = { "Use system appearance": "contrast-outline", "Use light appearance": "sunny-outline", "Use dark appearance": "moon-outline" };
     for (const [label, checked] of [["Use system appearance", true], ["Use light appearance", false], ["Use dark appearance", false], ["Use pounds", false], ["Use kilograms", true]]) {
       const radio = byLabel(tree, label);
       assert.equal(radio.props.accessibilityRole, "radio");
       assert.equal(radio.props.accessibilityState.checked, checked);
-      assert.equal(radio.findByType("Ionicons").props.name, checked ? "checkmark-circle" : "ellipse-outline");
+      assert.equal(radio.findByType("Ionicons").props.name, appearanceIcons[label] ?? (checked ? "checkmark-circle" : "ellipse-outline"));
       assert.equal(radio.findByType("Ionicons").props.color, checked ? colors.text : colors.icon);
       assert.equal(flat(radio.props.style).backgroundColor, checked ? colors.inputBorder : "transparent");
       assert.ok(flat(radio.props.style).minHeight >= 44);
       assert.equal(flat(radio.props.style, true).backgroundColor, colors.inputBorder);
+      if (appearanceIcons[label]) {
+        assert.equal(radio.findAllByType("ThemedText").length, 0);
+        assert.equal(radio.findByType("Ionicons").props.accessible, false);
+        assert.equal(radio.findByType("Ionicons").props.size, 22);
+        assert.ok(flat(radio.props.style).minWidth >= 44);
+      }
     }
     await tap(byLabel(tree, "Use dark appearance"));
     await tap(byLabel(tree, "Use pounds"));
@@ -143,9 +150,10 @@ for (const scheme of ["light", "dark"]) {
     for (const [width, fontScale] of [[320, 1], [375, 1], [430, 1], [375, 1.5], [375, 3]]) {
       const { tree } = await renderSettings({ scheme, width, fontScale, coachEnabled: true });
       const appearance = byLabel(tree, "Use system appearance").parent;
-      assert.equal(flat(appearance.props.style).flexDirection, fontScale >= 1.5 ? "column" : "row");
-      assert.equal(flat(appearance.parent.props.style).flexDirection, width < 390 || fontScale >= 1.3 ? "column" : "row");
-      if (width < 390 || fontScale >= 1.3) assert.equal(flat(appearance.props.style).maxWidth, undefined);
+      assert.equal(flat(appearance.props.style).flexDirection, "row");
+      assert.equal(flat(appearance.props.style).width, 156);
+      assert.equal(appearance.props.accessibilityLabel, "Appearance");
+      assert.equal(flat(appearance.parent.props.style).flexDirection, width < 350 || fontScale >= 1.3 ? "column" : "row");
       const title = tree.root.findAllByType("ThemedText").find((node) => node.children.join("") === "Settings");
       assert.equal(title.parent.parent.type, fontScale >= 2 ? "ScrollView" : "View");
       assert.equal(title.props.accessibilityRole, "header");
@@ -165,6 +173,26 @@ for (const scheme of ["light", "dark"]) {
       assert.equal(scroll.props.keyboardShouldPersistTaps, "handled");
       assert.equal(scroll.props.keyboardDismissMode, "interactive");
       assert.deepEqual(plain(tree.root.findByType("SafeAreaView").props.edges), ["top", "bottom"]);
+      await unmount(tree);
+    }
+  });
+
+  test(`Settings appearance icons retain all three named selection states in ${scheme}`, async () => {
+    for (const preference of ["system", "light", "dark"]) {
+      const { tree, calls, colors } = await renderSettings({ scheme, appearance: preference });
+      for (const value of ["system", "light", "dark"]) {
+        const option = byLabel(tree, `Use ${value} appearance`);
+        assert.equal(option.props.testID, `settings-appearance-${value}`);
+        assert.equal(option.props.accessibilityState.checked, value === preference);
+        assert.equal(flat(option.props.style).backgroundColor, value === preference ? colors.inputBorder : "transparent");
+        assert.equal(option.findAllByType("ThemedText").length, 0);
+      }
+      assert.equal(byLabel(tree, "Use system appearance").props.accessibilityHint, "Follow your device's appearance");
+      for (const value of ["light", "dark", "system"]) {
+        await tap(byLabel(tree, `Use ${value} appearance`));
+        assert.equal(byLabel(tree, `Use ${value} appearance`).props.accessibilityState.checked, true);
+      }
+      assert.deepEqual(calls.appearance, ["light", "dark", "system"]);
       await unmount(tree);
     }
   });
@@ -248,6 +276,14 @@ test("Settings disabled appearance and unsupported notification controls remain 
   assert.equal(tree.root.findByProps({ testID: "settings-push-notifications" }).props.disabled, true);
   assert.equal(flat(tree.root.findByProps({ testID: "settings-push-notifications" }).props.style).opacity, 0.5);
   await unmount(tree);
+  const busy = await renderSettings({ appearanceBusy: true });
+  for (const value of ["system", "light", "dark"]) {
+    const option = byLabel(busy.tree, `Use ${value} appearance`);
+    assert.equal(option.props.disabled, true);
+    assert.equal(option.props.accessibilityState.disabled, true);
+    assert.equal(flat(option.props.style).opacity, 0.5);
+  }
+  await unmount(busy.tree);
 });
 
 test("Settings Coach opt-in still requires OS access and only then saves preference", async () => {
