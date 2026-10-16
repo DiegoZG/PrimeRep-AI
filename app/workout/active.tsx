@@ -1594,7 +1594,7 @@ export default function ActiveWorkoutScreen() {
         testID="player-main-scroll"
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
       >

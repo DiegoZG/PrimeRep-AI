@@ -311,7 +311,7 @@ for (const scheme of ["light", "dark"]) {
 }
 
 const enteredRow = { exerciseId: "bridge", setNumber: 1, reps: "9", weight: "25", confirmed: false, hasUnsavedInput: true, syncing: false, syncStatus: "synced", logId: null };
-const mainScroll = (view) => { const scroll = hosts(view, "ScrollView").find((node) => node.props.keyboardShouldPersistTaps === "always"); assert.ok(scroll); return scroll; };
+const mainScroll = (view) => { const scroll = hosts(view, "ScrollView").find((node) => node.props.keyboardShouldPersistTaps === "handled"); assert.ok(scroll); return scroll; };
 
 for (const scheme of ["light", "dark"]) {
   test(`host baseline ${scheme}: normal fixed chrome and aligned legend retain real logger access`, async () => {
@@ -444,7 +444,12 @@ for (const scheme of ["light", "dark"]) {
 }
 
 test("scope: adaptive host only; exact original controller, footer callbacks, body and all modals remain pinned", () => {
-  const input = source(route), start = input.indexOf('\n      <Modal transparent visible={feedbackEditorVisible}'), end = input.indexOf('\n      </Modal>', start) + '\n      </Modal>'.length;
+  const current = source(route);
+  assert.equal(current.split('keyboardShouldPersistTaps="handled"').length, 2);
+  const input = current.replace('keyboardShouldPersistTaps="handled"', 'keyboardShouldPersistTaps="always"');
+  const mergedOriginal = execFileSync("git", ["show", `c33630b7d1451cece520ce36bb57573493c95c5a:${route}`], { cwd: root, encoding: "utf8" });
+  assert.equal(input, mergedOriginal);
+  const start = input.indexOf('\n      <Modal transparent visible={feedbackEditorVisible}'), end = input.indexOf('\n      </Modal>', start) + '\n      </Modal>'.length;
   const baseline = execFileSync("git", ["show", `084d5407ddaed88a6a50754ac6b17c533ca2061f:${route}`], { cwd: root, encoding: "utf8" });
   const prior = execFileSync("git", ["show", `f55fad5baecc5263d8cba9cd2d770242936c8268:${route}`], { cwd: root, encoding: "utf8" });
   const declarations = input.indexOf('\n  const header = <>');
@@ -495,4 +500,57 @@ test("scope: adaptive host only; exact original controller, footer callbacks, bo
     "constants/theme.ts": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1",
   };
   for (const [file, expected] of Object.entries(pins)) assert.equal(sha(source(file)), expected, file);
+});
+
+test("keyboard baseline: existing target filtering distinguishes descendant and actual body taps", async () => {
+  for (const scheme of ["light", "dark"]) {
+    const view = await render({ scheme, hostControls: true });
+    try {
+      await view.keyboard(true);
+      for (const fontScale of [1, 3.1]) {
+        await view.window({ fontScale });
+        const scroll = mainScroll(view), body = hosts(view, "View").find((node) => node.props.pointerEvents === "auto");
+        assert.equal(scroll.props.keyboardShouldPersistTaps, "handled");
+        assert.equal(scroll.props.disableScrollViewPanResponder, undefined);
+        assert.equal(scroll.props.onStartShouldSetResponderCapture, undefined);
+        const descendant = {}, owner = {}, before = view.calls.keyboard.length;
+        await act(async () => {
+          scroll.props.onTouchEnd({ target: descendant, currentTarget: owner });
+          body.props.onTouchEnd({ target: descendant, currentTarget: owner });
+        });
+        assert.equal(view.calls.keyboard.length, before);
+        await act(async () => scroll.props.onTouchEnd({ target: owner, currentTarget: owner }));
+        await act(async () => body.props.onTouchEnd({ target: owner, currentTarget: owner }));
+        assert.deepEqual(view.calls.keyboard.slice(before), ["dismiss", "dismiss"]);
+        assert.equal(hosts(view, "TouchableWithoutFeedback").length, 1);
+      }
+      unchanged(view);
+    } finally { await unmount(view); }
+  }
+});
+
+test("keyboard baseline: actual input updates and one feedback press survive descendant touch callbacks", async () => {
+  for (const scheme of ["light", "dark"]) {
+    const view = await render({ scheme, hostControls: true, realRows: true, sets: [{ ...enteredRow, weight: "", reps: "", hasUnsavedInput: false }] });
+    try {
+      await view.keyboard(true);
+      const input = (id) => hosts(view, "TextInput").find((node) => node.props.testID === id);
+      assert.equal(input("player-weight-input-bridge-1").props.editable, true);
+      assert.equal(input("player-reps-input-bridge-1").props.editable, true);
+      await act(async () => input("player-weight-input-bridge-1").props.onChangeText("12.5"));
+      await act(async () => input("player-reps-input-bridge-1").props.onChangeText("9"));
+      const sets = plain(view.local().sets);
+      assert.equal(input("player-weight-input-bridge-1").props.value, "12.5");
+      assert.equal(input("player-reps-input-bridge-1").props.value, "9");
+      await act(async () => mainScroll(view).props.onTouchEnd({ target: {}, currentTarget: {} }));
+      assert.deepEqual(view.calls.keyboard, []);
+      assert.equal(byId(view, "player-save-entered-sets").props.disabled, false);
+      await tap(byId(view, "player-feedback-bridge"));
+      assert.equal(modal(view).props.visible, true);
+      await tap(named(view, "Cancel"));
+      assert.equal(visibleModals(view).length, 0);
+      assert.deepEqual(view.local().sets, sets);
+      assert.deepEqual(view.calls.batches, []); assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.unexpected, []);
+    } finally { await unmount(view); }
+  }
 });
