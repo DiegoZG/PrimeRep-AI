@@ -44,9 +44,12 @@ export default function AddWorkoutModal() {
     : null;
 
   const [activeTab, setActiveTab] = useState<string>("workout-split");
-  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(
-    new Set()
-  );
+  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(() => {
+    const splitId = editingWorkout?.type === "workout-split"
+      ? inferSplitSelectionFromMuscleGroups(editingWorkout.muscleGroups).splitId
+      : undefined;
+    return new Set(splitId ? [splitId] : []);
+  });
   const [coreEnabled, setCoreEnabled] = useState<boolean>(false);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<Set<string>>(
     new Set()
