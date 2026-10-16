@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
   ActivityIndicator,
@@ -17,6 +17,7 @@ import { AnimatedCheckmark } from "@/components/animated-checkmark";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AuthContext } from "@/utils/authContext";
 import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
 import { OnboardingContext } from "@/utils/onboardingContext";
 
@@ -35,6 +36,7 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
   const router = useRouter();
   const { data, updateField } = useContext(OnboardingContext);
   const persisted = useContext(EquipmentWeightsContext);
+  const { token, isBootstrapping } = useContext(AuthContext);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const options = kind === "dumbbell" ? DUMBBELL_WEIGHTS : PLATE_WEIGHTS;
@@ -50,6 +52,18 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
     () => new Set(initial)
   );
   const [isSaving, setIsSaving] = useState(false);
+  const saveLifecycle = useRef({ active: false, version: 0, saving: false });
+
+  useFocusEffect(useCallback(() => {
+    const lifecycle = saveLifecycle.current;
+    lifecycle.active = !isBootstrapping && token !== null && mode === "settings";
+    setIsSaving(false);
+    return () => {
+      lifecycle.active = false;
+      lifecycle.version += 1;
+      lifecycle.saving = false;
+    };
+  }, [isBootstrapping, mode, token]));
 
   useEffect(() => {
     if (mode !== "onboarding") return;
@@ -75,6 +89,11 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
   };
 
   const handleSave = async () => {
+    const lifecycle = saveLifecycle.current;
+    if (!lifecycle.active || lifecycle.saving) return;
+    const version = ++lifecycle.version;
+    const isCurrentSave = () => lifecycle.active && lifecycle.version === version;
+    lifecycle.saving = true;
     setIsSaving(true);
     try {
       const selected = Array.from(selectedWeights).sort((a, b) => a - b);
@@ -83,12 +102,22 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
           kind === "dumbbell" ? selected : persisted.dumbbellWeights,
         plateWeights: kind === "plate" ? selected : persisted.plateWeights,
       });
-      router.back();
+      if (isCurrentSave()) router.back();
     } catch {
-      Alert.alert("Could not save", "Please try again.");
+      if (isCurrentSave()) Alert.alert("Could not save", "Please try again.");
     } finally {
-      setIsSaving(false);
+      if (isCurrentSave()) {
+        lifecycle.saving = false;
+        setIsSaving(false);
+      }
     }
+  };
+
+  const handleBack = () => {
+    saveLifecycle.current.active = false;
+    saveLifecycle.current.version += 1;
+    saveLifecycle.current.saving = false;
+    router.back();
   };
 
   const allSelected = selectedWeights.size === options.length;
@@ -101,7 +130,7 @@ export function EquipmentWeightEditor({ kind, mode }: Props) {
     <ThemedView style={[styles.container, mode === "settings" && { paddingTop: insets.top }]}>
       {mode === "settings" && (
         <View style={styles.settingsHeader}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={handleBack} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
           </TouchableOpacity>
           {!largeText && <Text accessibilityRole="header" style={[styles.settingsTitle, { color: colors.text }]}>{title}</Text>}
