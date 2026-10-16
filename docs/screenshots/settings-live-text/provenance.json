@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-16",
+  "baseCommit": "6ecb96c87d47c3a896af8abf76a5e2cb497b983f",
+  "candidateCapturedBeforeCommit": true,
+  "candidateSourceSha256": {
+    "app/settings.tsx": "a6f3edb85df6fe03896ea0a06676515cb92f9f623f85e6f9f7db6cbb395c545d",
+    "scripts/test-settings-ui.mjs": "554734c8087a7c51280d622312fcf012cb29052e9bc4f3bbf185954bfbf88c0f",
+    "scripts/test-data-export-ui.mjs": "21eefc802c85d800f8ada188200754d443178f3f5d8bf0e684eed596b0017805"
+  },
+  "device": "iPhone 16 Plus simulator, iOS 18.5; existing fictional isolated UI fixture",
+  "finding": "Changing Dynamic Type while Settings is mounted leaves stale native text measurements. Reopening the unchanged Settings route at the same maximum size renders correctly. The fix refreshes only scrollable content on fontScale changes, not the Settings controller.",
+  "screenshots": {
+    "before-live-max.png": {
+      "state": "Unchanged main; live large to accessibility-extra-extra-extra-large; clipped headings and unit glyphs",
+      "sha256": "04cdfb9c6f9514d3be8ad97699384bb20ef26c29e0374597d4bfe7507a23f0a6"
+    },
+    "after-live-max-light.png": {
+      "state": "Candidate; same live size change in light appearance; complete Preferences, Notifications and LB/KG text",
+      "sha256": "92fb4dd219aa6bf99851a10b7e724c25900bb5170ae38bd5f284ba155e886575"
+    },
+    "after-live-max-dark.png": {
+      "state": "Candidate; dark appearance at maximum text",
+      "sha256": "d5922b6b3c5fc79325e418bdd7ed5dc7e5ecb222d5d45756ded51a828184fdcf"
+    },
+    "after-normal-return.png": {
+      "state": "Candidate; live return to original large text category and System appearance",
+      "sha256": "917f9b730b384ad9b2512c924585b7e1bb07734a9f305a0fe11a273bae9e776c"
+    }
+  },
+  "verification": {
+    "settingsRendererCases": 27,
+    "fullFrontendScriptCases": 1829,
+    "baselineRedCheck": "The same 27 Settings tests against unchanged base source produce exactly two expected live-resize failures; all pass against the candidate",
+    "stateChecks": "Appearance, units, pending reminder draft and load error survive resizing; Coach is not reloaded and no preference save is triggered; reminder draft still submits correctly afterward",
+    "lint": "zero errors; two inherited warnings",
+    "uiActionAudit": "passed",
+    "webExport": "62 routes; HTTPS placeholder API URL",
+    "typecheck": "skipped: imports and explicit types unchanged",
+    "diffCheck": "passed"
+  },
+  "nativeReachability": "At maximum text size, read-only scrolling reaches Download my data, Log out and Delete account; Back remains visible. None of those actions was activated.",
+  "scope": "One production key plus explanatory comment. No font cap, styling, copy, icon, handler, API, storage or shared-component changes. A text-size change recreates native scroll content, resetting its scroll position and keyboard focus; controlled choices/drafts remain in the mounted screen state.",
+  "nativeQualification": "Initial navigation attempts at maximum size encountered a large system workout dialog; navigation was completed safely at normal size with Keep Workout Active. A helper regex was corrected to distinguish the dialog from the workout Back label. The passing comparison starts on Settings at normal size and then changes Dynamic Type live.",
+  "limits": "Plus simulator only; no new physical-device, VoiceOver audio or Android certification, and no whole-app Dynamic Type claim. Content beyond the viewport remains scrollable rather than fitting in one image. Appearance was toggled only on the fictional fixture and restored; no Health choices or workout logging were changed."
+}

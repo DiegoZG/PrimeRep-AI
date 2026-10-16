@@ -362,6 +362,8 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView
+        // Recreate native text measurements when Dynamic Type changes while this screen is open.
+        key={fontScale}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
