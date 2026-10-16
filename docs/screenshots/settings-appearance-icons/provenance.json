@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-16",
+  "baseCommit": "3eedc6fe3881e2d0efbdc1ba361e6c6bd5a16abb",
+  "candidateCapturedBeforeCommit": true,
+  "candidateSourceSha256": {
+    "app/settings.tsx": "9eb1fe5f6ef91b950fde94adaa42e5b9e1dd3a40341b88188a9ee6970f112239",
+    "scripts/test-settings-ui.mjs": "47b1a0dc2277e1c46b122f6fc6d39631a7be2a44cec4dab3e66bf76b178b569a",
+    "scripts/test-data-export-ui.mjs": "3b847dc90e16fe2824ff33fb59c43402f701131940f157e38e6b00021418a267"
+  },
+  "device": "iPhone 16 Plus simulator, iOS 18.5",
+  "account": "Existing fictional isolated UI fixture; no personal account or Health data",
+  "screenshots": {
+    "before-light.png": {
+      "source": "Earlier equipment-save guard capture on 213f3010dcc959d1b1503f001a3fb5fd58336d51. Its Settings source is byte-identical to this PR's base: 6af4a6312b7341951c423a8525de5f56a516c1c34b0b18912bad2eebebc15ede. Not a fresh baseline run.",
+      "sha256": "5ffc9ae65e8a2cffc96def3ba022e3093f9763537163dd37babf7a9ff82fcec7"
+    },
+    "after-light.png": {
+      "state": "System selected, OS light, normal text",
+      "sha256": "7f6b769049e2f4af69b5e01b6df34a8a2826bcbfcc99d1372cc41fb28c65d8cd"
+    },
+    "after-dark.png": {
+      "state": "Dark selected, normal text",
+      "sha256": "15c87c3da5ac633fcd0b91a49eeef61175789bc4d671b999894dd962d4705298"
+    },
+    "after-large-text.png": {
+      "state": "System selected, OS light, maximum accessibility text",
+      "sha256": "627d45985f850705587604479135bbadf8aa6c0458451f0e5137922de26dbb28"
+    }
+  },
+  "nativeChecks": [
+    "All three named appearance choices remain reachable",
+    "Tap Light, Dark, and System using the existing controls",
+    "Capture normal light and dark appearances",
+    "Capture maximum text size; icon strip remains horizontal and reachable",
+    "Restore original System preference and large text category, then shut down the fixture simulator"
+  ],
+  "verification": {
+    "focusedSettingsAndExportCases": 58,
+    "allFrontendScriptCases": 1793,
+    "lint": "zero errors; two inherited warnings",
+    "uiActionAudit": "passed",
+    "webExport": "62 routes; HTTPS placeholder API URL",
+    "typecheck": "skipped: no imports or explicit types changed",
+    "diffCheck": "passed"
+  },
+  "limits": "Native checks use one Plus simulator, not a physical device or VoiceOver session. Narrow widths are covered by renderer tests. Existing maximum-text clipping in other Settings labels and Units is outside this icon-only change; the large-text screenshot is not a claim that the whole screen is fully remediated. No backend or appearance-persistence controller changes."
+}
