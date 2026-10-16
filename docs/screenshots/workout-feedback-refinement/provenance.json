@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "scope": "U54a feedback modal accessibility only; 4before+5after raw canonical PNGs, no image editing",
+  "source": {
+    "base": "f55fad5baecc5263d8cba9cd2d770242936c8268",
+    "baseTree": "b60db44ef9e0004c590f7051ecb524bb8931fa7c",
+    "sourceCommit": "770ad3a6df9cdeaa7315736cf0dd3f3f214f7aaf",
+    "sourceTree": "14dce9a65bff2ef59ac98d47d6b3232e0bd30091",
+    "before": {
+      "servedHead": "a94c0a032b422536e70f181030f34e8d9b548873",
+      "treeEqualsMergedBase": true,
+      "activeSha256": "e0cd91d9bc7d98c7e784a93d40b7877e04ae7157dd30da10a1e2d46d47e6fe7b"
+    },
+    "after": {
+      "captureBaseHead": "f55fad5baecc5263d8cba9cd2d770242936c8268",
+      "workingFiles": 2,
+      "activeSha256": "83422e821a9b0a6a21fd1919fd00c174ef54c57e7e6a196b979969ab757d35c4",
+      "harnessSha256": "1142c8512db849021c5a7653b131ebd35f9a4e1dabd913d08372a30df3b67a00",
+      "chronology": "Source commit created after native captures. Frozen file hashes establish equivalence; no served-new-commit or post-commit restart claim."
+    },
+    "unchangedOutsideModal": {
+      "prefixBytes": 89959,
+      "prefixSha256": "b918ee626e7697981dda2719b1dba98ba6e3cdb2e4031b2eb057c6d71fd3d8b3",
+      "suffixBytes": 28,
+      "suffixSha256": "f15fdcd2063be04e3152543ffc41f6ae82251eafc354cc878448daca797027bc",
+      "sharedDependencies": 11,
+      "proof": "Replacing only feedback block reconstructs entire original route; imports/controller/logger/queue/store/services/theme/WorkoutText remain exact."
+    }
+  },
+  "verification": {
+    "localNotCI": true,
+    "focusedWithinStandard": true,
+    "author": {
+      "focused": 21,
+      "standard": 1779,
+      "standardRuns": 1,
+      "typecheck": "SKIPPED; production imports/types unchanged, not PASS",
+      "lintErrors": 0,
+      "inheritedWarnings": 2,
+      "audits": "PASS",
+      "syntaxDiff": "PASS",
+      "webHtml": 62,
+      "exactEmittedSourceModules": 18,
+      "reportSha256": "d458c5af8cdcfda35e65b6508817699370edc31e32aa7ccdc79ddfe7ba63c9bb",
+      "emittedProofSha256": "d8ca8151b1329aecbdcd900fd363761560ba589c5e32a3758f0699a6e6a39195"
+    },
+    "independent": {
+      "focused": 21,
+      "standard": 1779,
+      "standardRuns": 1,
+      "typecheck": "SKIPPED, not PASS",
+      "lintErrors": 0,
+      "inheritedWarnings": 2,
+      "threeReviewGates": "PASS",
+      "webHtml": 62,
+      "exactEmittedSourceModules": 15,
+      "reportSha256": "d82e159b227a859f8e478dcb7b2f164de39235de2d7d0082513ecdc44f5d8a4e"
+    },
+    "warnings": [
+      "AnimatedCheckmark scale effect dependency",
+      "HeroNeonLine opacity/translateX/width effect dependencies"
+    ],
+    "rendererLimit": "Full actual route with strict in-memory lifecycle boundaries and restored offline session. Initial autosave is checkpointed; no transport/SQLite/account/Health race certification."
+  },
+  "native": {
+    "devices": {
+      "plus": {
+        "model": "iPhone16Plus",
+        "os": "iOS18.5",
+        "logicalViewport": [
+          430,
+          932
+        ]
+      },
+      "se": {
+        "model": "iPhoneSE3",
+        "os": "iOS18.5",
+        "logicalViewport": [
+          375,
+          667
+        ]
+      }
+    },
+    "configurations": 4,
+    "beforePngs": 4,
+    "afterPngs": 5,
+    "reusedPngs": 0,
+    "textCategories": {
+      "normal": "large",
+      "max": "accessibility-extra-extra-extra-large"
+    },
+    "method": "Original normal groups used newly installed owned clients; Dark/MAX cold reconnects. Candidate four configurations cold-reconnected; final compact normal restoration separate. Exact-device settled raw screenshots, not global desktop capture or a full matrix.",
+    "selection": "Right/RIR2 temporary in all canonical frames. Original selected appearance is pixel-only (AX had no selected flag); candidate native selected assertions agree with pixels.",
+    "measuredNormalTargets": {
+      "rir": [
+        44,
+        44
+      ],
+      "effortMinHeight": 44,
+      "cancel": [
+        77,
+        44
+      ],
+      "save": [
+        62,
+        44
+      ],
+      "plusBottomClearance": 34
+    },
+    "max": "Whole effort words and growing digits across top/endpoint. One plain-content drag reached actual100%; named Cancel/Save fully inside667pt viewport. RIR5/actions require scroll; not all content simultaneously visible.",
+    "endpointQualification": "Original View-only feedback had no scroller/endpoint; fifth after image is additional reachability evidence, not a fabricated pair.",
+    "localChecks": "Compact normal RIR2 off/on and namedCancel/reopen clearing unsaved choices passed; Save not pressed.",
+    "fixture": "Isolated fictional active-workout fixture. Same unlogged fixture retained; temporary selections cancelled. No native feedbackSave/set/finish/Health action or candidate provisioning/data mutation.",
+    "finalStateQualification": "Both owned devices restored Light/normal with feedback closed. A stale cross-device final hierarchy was excluded; exact compact-device pixels used instead."
+  },
+  "acceptedHashes": {
+    "originalManifest": "54acadd376511628f8daa8508fb783085e9e56ea73f564a56af09035aaeab478",
+    "candidateManifest": "d916e7bc0726e1f645aaf9ed417655b3ac0aa92b22f0196ab7f5a701d6e5f8d8",
+    "candidateReport": "b72cb85858cd6ede9881edb55ea1af9eb5c2b6b19096861f577d49b81f05e595",
+    "originalRuntimeManifest": "1a9c841918f06efc7314e1c66b34a60ec5575ff184466f54a3861704b82508f6",
+    "originalRuntimeBundle": "2ec3e95d1620e1f83a29f4c2651b47fc22a8fbce54c18d806c90fe3377052f58",
+    "candidateRuntimeManifest": "7f7ab16b7ded8bf9ed799aee73eff21c860bc5e737fa9fd19a77c847b4937399",
+    "candidateRuntimeBundle": "019288f690abc7ac25edc32c47115dfc12bf40ddc40210d7ea99b54202d6fc14"
+  },
+  "limits": [
+    "U54b unchanged MAX logger footer/host-entry overlap required two body scrolls in both phases; no header/column/font-cap closure claim.",
+    "No native feedbackSave/persistence, set logging, finish/abandon, Health export/permission, VoiceOver, keyboard-in-sheet, physical-device, CI or full matrix certification.",
+    "Existing nullableSave, effort/RIR callbacks, queue payloads and meaningful purple colors preserved; no dependencies, migrations or API change.",
+    "Only canonical raw fictional-fixture pixels published; no private paths/deviceUUID/session/user IDs/credentials/endpoints/setup/hierarchies/proofs in public metadata."
+  ],
+  "images": [
+    {
+      "file": "original-plus-light-normal-feedback.png",
+      "stage": "before",
+      "bytes": 248425,
+      "sha256": "22dcd70bac574d408d2893a0dc833e4f95c0c2dbf018c10d3ef0e78a7e969d3f",
+      "width": 1290,
+      "height": 2796,
+      "device": "plus",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "original-plus-dark-normal-feedback.png",
+      "stage": "before",
+      "bytes": 260455,
+      "sha256": "792c122f8aa6474e858597f6dc22a4cb78e190057230f9775cf71535ca2ddfd8",
+      "width": 1290,
+      "height": 2796,
+      "device": "plus",
+      "theme": "dark",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "original-se-light-normal-feedback.png",
+      "stage": "before",
+      "bytes": 113098,
+      "sha256": "a8c48ea1b7057a5c1b9f449d9e26973e0e8878df9b97b33e797c0824f002b6f5",
+      "width": 750,
+      "height": 1334,
+      "device": "se",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "original-se-light-max-feedback.png",
+      "stage": "before",
+      "bytes": 110107,
+      "sha256": "acaa6b02f912a88b8c8b7c4abfd457a18594f67f49a440054058e03750661060",
+      "width": 750,
+      "height": 1334,
+      "device": "se",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "initial / only sheet frame; no scroller"
+    },
+    {
+      "file": "candidate-plus-light-normal-feedback.png",
+      "stage": "after",
+      "bytes": 247905,
+      "sha256": "617f03ba9e45261a2489f849b055acc8a4fb3f59b3a891b4a7ac169a8b3d6013",
+      "width": 1290,
+      "height": 2796,
+      "device": "plus",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "candidate-plus-dark-normal-feedback.png",
+      "stage": "after",
+      "bytes": 258765,
+      "sha256": "0aaaa58058b27a456b1609b26c3af12586cdc40051eef6c86b0f64a3382e1fcf",
+      "width": 1290,
+      "height": 2796,
+      "device": "plus",
+      "theme": "dark",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "candidate-se-light-normal-feedback.png",
+      "stage": "after",
+      "bytes": 112047,
+      "sha256": "367e1b24a9f66104a5c9d4f337578bb13d332879a4bb29ff167fd9c2518881a8",
+      "width": 750,
+      "height": 1334,
+      "device": "se",
+      "theme": "light",
+      "contentSize": "large",
+      "position": "initial"
+    },
+    {
+      "file": "candidate-se-light-max-feedback-top.png",
+      "stage": "after",
+      "bytes": 100366,
+      "sha256": "e023ee6eb93c61244d29bc6939c8e26894ad576d90287c9262bc6203041afeb2",
+      "width": 750,
+      "height": 1334,
+      "device": "se",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "top / 0%"
+    },
+    {
+      "file": "candidate-se-light-max-feedback-endpoint.png",
+      "stage": "after",
+      "bytes": 86381,
+      "sha256": "3b659593e3198154b589bcf7fdefd29205caab2627341fd0170de33b343d8300",
+      "width": 750,
+      "height": 1334,
+      "device": "se",
+      "theme": "light",
+      "contentSize": "accessibility-extra-extra-extra-large",
+      "position": "actual endpoint / 100%"
+    }
+  ]
+}
