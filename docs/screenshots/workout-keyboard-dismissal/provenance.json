@@ -1,0 +1,77 @@
+{
+  "scope": "U54c functional one-prop keyboard tap policy; no visual redesign",
+  "source": {
+    "base": "c33630b7d1451cece520ce36bb57573493c95c5a",
+    "sourceCommit": "ea141bcfd0fa963304a64b56f62d02fa525731c9",
+    "originalRouteSha256": "a3b92bca1b4ce520587ff271bfaabd207c3f5950b0ffc4b8934742d2c2585044",
+    "candidateRouteSha256": "714c67f5667055a9b8de4b7cf9988c66d5dea6dcdbe8855a76abdd66bad900b8",
+    "harnessSha256": "f1c3a539a0f1717bfd41208d4c7d71fa12654719b12c98759cd0d1898e6145d6",
+    "completeInverse": "Exactly one handled-to-always prop reversal restores all95561originalbytes; no other production byte changed, including controllers/U54b host/U54a modal/shared dependencies",
+    "originalRuntimeHead": "79fac607fc4f4cb2bec9c30b80c0d5f2c4f485b0",
+    "originalRuntimeTree": "90540d845d2263b65d919a4959046e5064243757",
+    "chronology": "Original retained feature runtime tree exactly equals merged base. Candidate captured base plus frozen working changes. Source commit was created after captures; file hashes establish equivalence, not served-new-commit or post-commit restart.",
+    "installedReactNative": "0.81.5",
+    "basis": "Installed ScrollView handled documentation and bubble/capture/release paths, with enabled child Pressability priority"
+  },
+  "verification": {
+    "localNotCI": true,
+    "focused": 33,
+    "standard": 1791,
+    "focusedIncludedInStandard": true,
+    "finalStandardRuns": {
+      "author": 1,
+      "independent": 1
+    },
+    "typecheck": "SKIPPED: production imports/types unchanged",
+    "scopedLintErrors": 0,
+    "projectLintErrors": 0,
+    "inheritedWarnings": 2,
+    "audits": "PASS",
+    "webHtml": 62,
+    "exactWebModulesAuthor": 18
+  },
+  "capture": {
+    "before": {
+      "configurations": 1,
+      "coldEntries": 1,
+      "pngs": 2,
+      "device": "SE Light/normal",
+      "manifestSha256": "bf48153929154e803ce3a0ccaec38d5cf7c573afc80484e05dc3f14cd76bc937"
+    },
+    "after": {
+      "configurations": 2,
+      "coldEntries": 2,
+      "pngs": 6,
+      "devices": [
+        "SE Light/normal",
+        "Plus Light/normal"
+      ],
+      "manifestSha256": "3ad0970ddf43f7ffa5bc91744745b166903bcdb9968bf533cdb3d5598f498a54",
+      "reportSha256": "65a4433d016df22eb6d2c3ca4291ed4a4afcabaaeaf8ca0cac7a3f437b5ab537"
+    },
+    "method": "Exact-device headless SDK54 simulator public flows. Eight canonical raw PNGs, no resize or editing; SHA/bytes/IHDR dimensions verified. One existing same-candidate input-caret frame retained without repeating action.",
+    "comparison": "Original SE after-gutter keyboard remains versus candidate SE after-gutter keyboard closed. Same97%horizontal/30%vertical tap, intentionally different result. Plus is candidate-only before/after, not matched original coverage.",
+    "observations": {
+      "gutter": "SE and Plus Light/normal verified gutter tap dismisses candidate keyboard.",
+      "input": "SE one weight-to-reps tap: visible blue caret/numeric keyboard; no typing or independent AX.focused claim.",
+      "child": "Exactly one KG tap while keyboard active selects KG, keyboard remains; LB restored through public UI.",
+      "localWrites": "Explicit local preference LB-to-KG-to-LB write and possible ordinary active-session autosave. Not a zero-local-write test. Same fictional0of3 workout, weights unchanged, no Health or server-set write.",
+      "restoration": "Both devices LB/Light/normal, keyboard/feedback hidden, same0of3, weights hint-only and no entered-set Save control."
+    },
+    "limits": [
+      "No original Plus counterpart or fullmatrix/allfresh claim",
+      "No native Save,typing,drag,finish,durable transport,physical-device,VoiceOver,Android,MAX/Dark or CI certification",
+      "Renderer native mocks do not execute responder arbitration; KG child check is not native Save-first-tap proof"
+    ]
+  },
+  "images": [
+    {"file":"before-se-before-gutter.png","phase":"before","case":"se-light-large","position":"keyboard-before-97percent30percent-gutter-tap","sha256":"e861fad994782b49e904728ba887047e8158320e1637cfea4b866fd427c17ee3","bytes":114315,"dimensions":[750,1334]},
+    {"file":"before-se-after-gutter.png","phase":"before","case":"se-light-large","position":"keyboard-after-97percent30percent-gutter-tap","sha256":"89095ab9d90611feb2447554e19db3b887c80098dc72e81e99176a9e82871de0","bytes":114349,"dimensions":[750,1334]},
+    {"file":"after-se-before-gutter.png","phase":"after","case":"se-light-large","position":"before-97percent30percent-gutter-tap","sha256":"e8b95590fef44330aca951c385d9c48bfe890ed8d69f0820cb2c50bc9a1bfc7b","bytes":115279,"dimensions":[750,1334]},
+    {"file":"after-se-after-gutter.png","phase":"after","case":"se-light-large","position":"after-97percent30percent-gutter-tap","sha256":"f2db2eaf1afd18db341d6ab9f6b7075c054bbafa392a8d7841f44efbf42b9444","bytes":116578,"dimensions":[750,1334]},
+    {"file":"after-plus-before-gutter.png","phase":"after","case":"plus-light-large","position":"before-97percent30percent-gutter-tap","sha256":"bcce5610c25bcc4f1bf5ad1b050672ee0abb8d89ffa9d4b891ec7a135aae31cb","bytes":242988,"dimensions":[1290,2796]},
+    {"file":"after-plus-after-gutter.png","phase":"after","case":"plus-light-large","position":"after-97percent30percent-gutter-tap","sha256":"a7ee996dfd034867542c78cd5aac40661fafd1536904385b0bfccb3efdb3c801","bytes":223334,"dimensions":[1290,2796]},
+    {"file":"after-se-input-switch-caret.png","phase":"after","case":"se-input-to-input","position":"after-weight-to-reps-tap","sha256":"a43bc51439671c10926c2eb4fe19bf3aa3a1ba663b6a21e140e4a377c031f019","bytes":115635,"dimensions":[750,1334]},
+    {"file":"after-se-kg-first-tap.png","phase":"after","case":"se-first-tap-child","position":"after-single-KG-tap-with-keyboard-visible","sha256":"49b0c081ec517bca58f8ea431da6d7fdffc369419f5086915a41f0103a9298cd","bytes":115998,"dimensions":[750,1334]}
+  ]
+}
