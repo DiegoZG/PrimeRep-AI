@@ -54,7 +54,10 @@ export default function ProfileScreen() {
   };
   const edit = () => router.push("/profile/edit" as Href);
   return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }} testID="profile-screen">
-    <ScrollView contentContainerStyle={[styles.pageContent, { gap: 0, paddingTop: 8 }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshAll(true)} tintColor={colors.primaryButton} />}>
+    <ScrollView
+      // Recreate native text measurements when Dynamic Type changes while this tab stays mounted.
+      key={fontScale}
+      contentContainerStyle={[styles.pageContent, { gap: 0, paddingTop: 8 }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshAll(true)} tintColor={colors.primaryButton} />}>
       <View style={[styles.sectionHeader, { marginBottom: 18 }]}><ThemedText accessibilityRole="header" style={{ fontSize: 34, lineHeight: 43, fontWeight: "800" }}>Profile</ThemedText><Pressable accessibilityRole="button" accessibilityLabel="Open Settings" testID="profile-settings-button" onPress={() => router.push("/settings")} style={styles.iconButton}><Ionicons name="settings-outline" size={25} color={colors.text} /></Pressable></View>
       {!profile ? <ScreenState colors={colors} kind={loading ? "loading" : "error"} title={loading ? "Loading your profile" : "Profile couldn’t load"} message={error ?? undefined} actionLabel={loading ? undefined : "Retry"} onAction={() => void refreshAll()} testID="profile-load-state" /> : <>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingBottom: 22 }}><ProfileAvatar uri={avatar} name={fullName} /><View style={{ flex: 1, gap: 4 }}><ThemedText style={{ fontSize: 22, lineHeight: 29, fontWeight: "700" }}>{fullName}</ThemedText><ThemedText style={{ color: colors.icon, fontSize: 14, lineHeight: 20 }}>{profile.email}</ThemedText><Pressable onPress={edit} testID="profile-edit" accessibilityRole="button" accessibilityLabel="Edit Profile" style={[styles.link, { alignSelf: "flex-start" }]}><ThemedText style={{ color: colors.primaryButton, fontWeight: "700" }}>Edit Profile</ThemedText></Pressable></View></View>
