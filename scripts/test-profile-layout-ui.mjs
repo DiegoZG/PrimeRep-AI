@@ -103,7 +103,6 @@ test("scope: approved shared module, exact edit adapter reconstruction and other
     "app/profile/achievements.tsx": "d5c2a3292ed3e30d521ab152e5b2d5d5fbb2dc729e686d9f79ac3fdc93dfa61d",
     "app/settings/help.tsx": "a43d46bb4b034985a8de1028955173cf7c50faf80701c20bfb8469f019f3a7fc",
     "app/settings/export.tsx": "e4008f2ca38d650f6c752262a97e7072c1a5504f3bd8b61cc4bf7fb951205b9c",
-    "app/(tabs)/profile.tsx": "be6a2cc87f62c4fcec31164efb46d4e0a9cdf9ca7e4da76b990fac6066957105",
     "utils/profileContext.tsx": "752e9258ab4d0c0859d1f39092293eaaccc22c9336786aea1eb99d6eafba4c46",
     "utils/profileForm.ts": "6f80af855d193b28970013b94cb1db50a5802c1be8f29b6e4bc4617f22abdb11",
     "services/accountScope.ts": "cb7920358c2e0de7a2286fd7c6cf226a528b466be96701eab4e2ba638fad20d7",
@@ -111,6 +110,8 @@ test("scope: approved shared module, exact edit adapter reconstruction and other
     "constants/theme.ts": "0e4066b19531c70b14aeb5656a6f0de16b37f56ad410b87c2f923168cebfcad1",
   };
   for (const [file, pin] of Object.entries(pins)) assert.equal(hash(source(file)), pin, file);
+  const profile = source("app/(tabs)/profile.tsx").replace("    <ScrollView\n      // Recreate native text measurements when Dynamic Type changes while this tab stays mounted.\n      key={fontScale}\n      contentContainerStyle=", "    <ScrollView contentContainerStyle=");
+  assert.equal(hash(profile), "be6a2cc87f62c4fcec31164efb46d4e0a9cdf9ca7e4da76b990fac6066957105", "Only the Profile native scroller measurement reset may change");
   let editor = source("app/profile/edit.tsx");
   for (const [candidate, original] of [["ProfilePage, ProfilePageHeading,", "ProfilePage,"], ["      <ProfilePageHeading />\n", ""]]) { assert.equal(editor.split(candidate).length, 2); editor = editor.replace(candidate, original); }
   assert.equal(Buffer.byteLength(editor), 14010); assert.equal(hash(editor), "940a0cd43d90916c923051449aa86f83e9e72abecbda4b840ec333cab01d5233");
@@ -148,6 +149,36 @@ for (const scheme of ["light", "dark"]) for (const fontScale of [1, 3.1]) for (c
   if (name === "edit" || name === "tab") {
     const avatar = view.tree.root.findByProps({ accessibilityLabel: "Ada Lovelace profile photo" }); assert.equal(flat(avatar.props.style).width, name === "edit" ? 116 : 76); assert.equal(avatar.props.accessible, true); const initials = avatar.findByType("Text"); assert.equal(text(initials), "AL"); assert.equal(initials.props.allowFontScaling, false); assert.equal(initials.props.accessible, false);
   }
+  await view.close();
+});
+
+for (const scheme of ["light", "dark"]) for (const state of ["ready", "loading", "error"]) test(`Profile ${scheme} ${state}: live text-size changes rebuild native measurements without resetting the controller`, async () => {
+  const view = await environment({ scheme, state, width: 430 }).route("tab");
+  const initialRefreshes = view.calls.refresh;
+  const titleStyle = flat(headers(view, "Profile")[0].props.style);
+  let scroll = view.tree.root.findByType("ScrollView");
+  await view.dimensions({ width: 375 });
+  assert.equal(view.tree.root.findByType("ScrollView"), scroll, "Width alone must not recreate the scroller");
+  for (const fontScale of [1.5, 3.12, 1]) {
+    await view.dimensions({ fontScale });
+    const resized = view.tree.root.findByType("ScrollView");
+    assert.notEqual(resized, scroll, "Dynamic Type must refresh stale native text measurements");
+    scroll = resized;
+    const heading = headers(view, "Profile")[0];
+    assert.deepEqual(flat(heading.props.style), titleStyle);
+    assert.equal(heading.props.allowFontScaling, undefined);
+    assert.equal(heading.props.maxFontSizeMultiplier, undefined);
+    assert.equal(view.calls.refresh, initialRefreshes);
+    assert.equal(view.calls.resourceRefresh, 0);
+    assert.deepEqual(view.calls.routes, []);
+    if (state === "ready") assert.match(text(view.tree.root), /Ada Lovelace.*ada@example.invalid.*70 kg/s);
+    else assert.match(text(view.tree.root), state === "loading" ? /Loading your profile/ : /Fixture profile error/);
+  }
+  await act(async () => host(view, "profile-settings-button").props.onPress());
+  assert.deepEqual(view.calls.routes, ["/settings"]);
+  await act(async () => scroll.props.refreshControl.props.onRefresh());
+  assert.equal(view.calls.refresh, initialRefreshes + 1);
+  assert.equal(view.calls.resourceRefresh, 1);
   await view.close();
 });
 

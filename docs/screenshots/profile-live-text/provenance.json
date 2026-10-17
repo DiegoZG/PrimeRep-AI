@@ -1,0 +1,48 @@
+{
+  "scope": "Profile tab live Dynamic Type clipping only",
+  "baselineCommit": "aef9a8e8b66cfad1c301c65329eacca7030251a5",
+  "candidateSources": {
+    "app/(tabs)/profile.tsx": "2737e7e4513f621e0c94f2f8505b2e90dcc3b8b578fb10522ea6c7dbde692639",
+    "scripts/test-profile-layout-ui.mjs": "a93d3f86327260f8fa1537c5e774a1cc2f655dca2efe42f48a637e238bc1c922",
+    "scripts/test-profile-legend-ui.mjs": "c27d9a27adb70641ae851af9de9880371344943ce7815b807d500b94ae359e85"
+  },
+  "simulator": {
+    "model": "iPhone 16 Plus",
+    "runtime": "iOS 18.5",
+    "account": "Fictional Profile Fixture in isolated UI-test backend",
+    "transition": "Keep Profile mounted; change content_size from large to accessibility-extra-extra-extra-large",
+    "restore": "Original large text size and light OS appearance restored; temporary simulator shut down without erasing data"
+  },
+  "screenshots": {
+    "before-live-max.png": {
+      "sha256": "277707977afb09a959fdd05016356d9e6f965ff3dfee7c9253b13707596b287b",
+      "description": "Baseline served and bundled before the production edit; settled live maximum-text state reproduces clipped Profile title"
+    },
+    "after-live-max-light.png": {
+      "sha256": "0d3ef21c4465719f801e383a74f673b36f1c677fc162da249cae31b66a8c52f1",
+      "description": "Candidate, live normal-to-maximum text transition, light theme"
+    },
+    "after-live-max-dark.png": {
+      "sha256": "9d39c85c9673775fadae1225efd020d1b00263aa7382259a989508570fc15f02",
+      "description": "Candidate, repeated normal-to-maximum text transition, dark theme"
+    }
+  },
+  "verification": {
+    "baselineRegression": "49 existing tests pass; six new live-resize cases fail on the expected missing measurement reset",
+    "focusedProfile": "167 passed",
+    "fullFrontend": "1835 passed",
+    "lint": "Zero errors; two pre-existing warnings in animated-checkmark and hero-neon-line",
+    "uiActionAudit": "Passed",
+    "webExport": "62 routes with placeholder HTTPS API URL",
+    "typecheck": "Skipped: no imports or explicit types changed",
+    "native": "Light/dark live resize; footer reachability without logging out; Settings/Back; maximum-to-normal return",
+    "physicalIPhone": "User confirmed Profile heading fully readable after live normal-to-maximum text change on connected iPhone 16 Pro Max"
+  },
+  "boundaries": [
+    "No color, typography, font cap, copy, shared component, API, storage, consent or Health changes",
+    "Only native scroller content remounts on fontScale changes; screen controller and account data remain mounted",
+    "Scroll position resets on a text-size change; width-only changes do not remount content",
+    "No workout logging, completion, logout or deletion performed during native checks",
+    "Not full-app, small-screen, Android or VoiceOver audio certification"
+  ]
+}

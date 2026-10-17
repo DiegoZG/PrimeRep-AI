@@ -134,7 +134,8 @@ for (const scheme of ["light", "dark"]) {
 test("scope: only the legend and completed-current-week outline change; controller, shared components and business tests stay frozen", () => {
   assert.equal(source(route).split(legend).length, 2);
   assert.equal(source(route).split(currentOutline).length, 2);
-  assert.equal(sha(source(route).replace(legend, previousLegend).replace(currentOutline, "borderColor: colors.primaryButton")), "cb9fbb83c18c5ab9987d4766fe5b88d8bf23dc3cdf5383dfb631508da063e306");
+  const profile = source(route).replace("    <ScrollView\n      // Recreate native text measurements when Dynamic Type changes while this tab stays mounted.\n      key={fontScale}\n      contentContainerStyle=", "    <ScrollView contentContainerStyle=");
+  assert.equal(sha(profile.replace(legend, previousLegend).replace(currentOutline, "borderColor: colors.primaryButton")), "cb9fbb83c18c5ab9987d4766fe5b88d8bf23dc3cdf5383dfb631508da063e306");
   assert.equal(sha(source("scripts/test-profile.mjs")), "34cc03b830b84cf25576dec7332c154419cb151277548481a978a0858516d441");
   assert.equal(sha(source("components/profile-ui.tsx")), "71dba99a5759d5e5a10e8c429d20ded233f5b5e7a34a5a5638f3a3522e7da0a0");
 });
