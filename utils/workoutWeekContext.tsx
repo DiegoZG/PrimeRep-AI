@@ -5,7 +5,11 @@ import {
   updateWorkoutDuration,
   updateWorkoutPlanning,
   applyWorkoutPlanningPreference,
+  addWorkoutExercise,
+  type AddWorkoutExerciseParams,
 } from "@/services/workoutWeekService";
+import { extendPreWorkoutOrder } from "@/utils/preWorkoutOrderStore";
+import { loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { workoutPlanningError, planningUpdateWasRejected, type WorkoutPlanningChoice } from "./workoutPlanning";
 import React, {
   createContext,
@@ -59,6 +63,7 @@ interface WorkoutWeekContextValue {
   ) => Promise<WorkoutWeekPlan | null>;
   setPlanning: (workoutDayId: string, choice: WorkoutPlanningChoice, dates: { weekStart: string; effectiveDate: string }) => Promise<WorkoutWeekPlan | null>;
   applyPlanningPreference: (dates: { weekStart: string; effectiveDate: string }) => Promise<Awaited<ReturnType<typeof applyWorkoutPlanningPreference>> | null>;
+  addExercise: (params: AddWorkoutExerciseParams) => Promise<{ weekPlan: WorkoutWeekPlan; orderPreservationFailed?: boolean } | null>;
   markPlanningRefreshRequired: () => void;
   clearStaleIdFlag: () => void;
   installWeekPlan: (plan: WorkoutWeekPlan) => void;
@@ -202,6 +207,7 @@ export const WorkoutWeekContext = createContext<WorkoutWeekContextValue>({
   staleIdRefreshed: false,
   markPlanningRefreshRequired: () => {},
   applyPlanningPreference: async () => null,
+  addExercise: async () => null,
   refreshWeek: async () => null,
   skipDay: async () => null,
   setDuration: async () => null,
@@ -566,6 +572,26 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
     return runPlanningMutation(() => applyWorkoutPlanningPreference(token, dates));
   }, [token, runPlanningMutation]);
 
+  const addExercise = useCallback((params: AddWorkoutExerciseParams) => {
+    if (!token || !authenticatedUserId) return Promise.resolve(null);
+    const owner = authenticatedUserId, epoch = accountEpoch;
+    const previous = state.weekPlan?.workouts.find((workout) => workout.workoutDayId === params.workoutDayId);
+    const isOwner = () => authenticatedUserIdRef.current === owner && accountLifetimeRef.current.epoch === epoch;
+    return runPlanningMutation(async () => {
+      const local = await loadActiveWorkout(owner);
+      if (!isOwner()) throw new Error("Account changed.");
+      if (local?.workoutDayId === params.workoutDayId) throw Object.assign(new Error("Resume or finish this workout before adding exercises."), { status: 409 });
+      const weekPlan = await addWorkoutExercise(token, params);
+      const next = weekPlan.workouts.find((workout) => workout.workoutDayId === params.workoutDayId);
+      let orderPreservationFailed = false;
+      if (previous && next && isOwner()) {
+        try { await extendPreWorkoutOrder(owner, previous, next, isOwner); }
+        catch { orderPreservationFailed = true; }
+      }
+      return { weekPlan, orderPreservationFailed };
+    });
+  }, [token, authenticatedUserId, accountEpoch, state.weekPlan, runPlanningMutation]);
+
   const clearStaleIdFlag = useCallback(() => {
     if (!authenticatedUserId) return;
     dispatch({
@@ -654,6 +680,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       planningRefreshRequired: ownsPlan ? state.planningRefreshRequired : false,
       markPlanningRefreshRequired,
       applyPlanningPreference,
+      addExercise,
       refreshWeek,
       skipDay,
       setDuration,
@@ -677,6 +704,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       state.planningRefreshRequired,
       markPlanningRefreshRequired,
       applyPlanningPreference,
+      addExercise,
       refreshWeek,
       skipDay,
       setDuration,

@@ -34,10 +34,10 @@ Existing duration endpoints and fields remain compatible with older clients.
 ## Automated verification
 
 The focused planning, overview, Settings, home, and player suite passed
-**147 tests**:
+**166 tests**:
 
 ```sh
-node --test scripts/test-workout-detail-ui.mjs scripts/test-training-preferences-ui.mjs scripts/test-home-ui.mjs scripts/test-workout-planning.mjs scripts/test-workout-arrangement-player.mjs
+node --test scripts/test-workout-detail-ui.mjs scripts/test-training-preferences-ui.mjs scripts/test-home-ui.mjs scripts/test-workout-planning.mjs scripts/test-workout-arrangement-player.mjs scripts/test-workout-exercise-picker.mjs
 npx tsc --noEmit
 ```
 
@@ -57,11 +57,11 @@ Those failures are separate from the passing counts above; this verification
 does not claim that every repository test suite passes.
 
 Focused ESLint on changed TypeScript source passed with zero errors and zero
-warnings. Expo web export passed for **62 routes**. The local worktree reused
+warnings. Expo web export passed for **63 routes**. The local worktree reused
 ignored dependencies with a temporary resolver preload:
 
 ```sh
-EXPO_NO_METRO_WORKSPACE_ROOT=1 NODE_OPTIONS=--require=/private/tmp/primerep-workout-planning-metro-preload.cjs EXPO_PUBLIC_API_URL=https://api.example.invalid npx expo export --platform web --clear --output-dir /private/tmp/primerep-planning-web-export-final
+EXPO_NO_METRO_WORKSPACE_ROOT=1 NODE_OPTIONS=--require=/private/tmp/primerep-workout-planning-metro-preload.cjs EXPO_PUBLIC_API_URL=https://api.example.invalid npx expo export --platform web --clear --output-dir /private/tmp/primerep-add-exercise-web-export
 ```
 
 The preload, environment files, credentials, disposable fixtures, and runtime
@@ -102,7 +102,8 @@ python3 "$planning_qa_dir/run-maestro.py" new "$planning_qa_dir/cold-max-continu
 python3 "$planning_qa_dir/run-maestro.py" new "$planning_qa_dir/final-normal-handoff.yaml"
 ```
 
-Both native test sessions were abandoned through the app's normal flow after
+At the original planning-feature handoff, both native test sessions were
+abandoned through the app's normal flow after
 their evidence was captured. The final account has no active server session
 or local active row and is left on its clean Trainer-led overview in light
 mode with normal text. Standard workouts have no invented custom-muscle
@@ -124,3 +125,57 @@ All captures show fictional data from the independent compact simulator.
 - [Started workout planning lock](screenshots/workout-planning/ios-started-planning-locked.png)
 - [Cold-launch dark mode at maximum text](screenshots/workout-planning/ios-dark-max-text.png)
 - [Visible default time preset](screenshots/workout-planning/ios-default-time-preset.png)
+
+
+## Add exercise verification
+
+Unstarted generated workouts expose **Add exercise** after the exercise list.
+The searchable picker appends one exercise to this workout with 3 sets,
+8–12 reps and 90 seconds of rest. Existing and reference-only entries are
+visible but disabled. A timed workout that would exceed its budget requires
+**Add anyway**; its original exercises and targets remain intact, and the
+summary displays the actual estimate alongside the unchanged budget.
+
+Independent verification used a new fictional Riley account, a separate
+compact iPhone 16e / iOS 18.5 simulator, API port 8040 and Metro port 8090.
+The user's existing simulator, account choices and active services were not
+changed. Backend commit `4525fd6` passed 17 Add exercise tests and 26 planning
+tests in separate acceptance suites; the frontend counts above include the picker and strict-prefix
+saved-order recovery cases.
+
+| Scenario | Actual result |
+| --- | --- |
+| Native addition | Riley's Trainer-led day increased from six to seven exercises. The new Leg Press was last with 3 × 8–12 / 90s; all six original blocks and prescriptions remained exact. |
+| Saved user order | Moving Leg Extension before Glute Bridge survived adding the exercise and a cold app restart. The effective server session preserved that exact order and appended Leg Press last. |
+| Start and logging | Start created seven exercises and 24 target sets. A set on the added exercise saved 10 reps / 40 lb (18.14 kg); a cold restart restored its synced status. |
+| Search and duplicates | Native search, clearing and Back worked; already-added Glute Bridge was disabled. No keyboard dismissal tap was needed to select a result. |
+| Timed cancellation | A separate 25-minute day previewed an addition above its budget. Cancel left the entire weekly API response identical. |
+| Explicit timed addition | Add anyway appended Walking Lunge, preserved every prior block and all other days, retained the 25-minute cap, and displayed About 30 min · 25 min budget. |
+| Protection | Native Add was disabled on the started day but remained available on another unstarted day. Independent HTTP checks rejected past/authored/active workouts, foreign private exercises, stale source lists and unsupported tracking. |
+| Retry and session safety | HTTP duplicate retries were no-ops, no session was created by addition, and the newly added exercise was accepted by normal session creation and set logging. |
+| Compact dark / maximum text | After a cold launch at accessibility-extra-extra-extra-large, search, clear and fixed Back remained reachable. Dragging content dismissed the keyboard; the disabled reference-only row and its multiline explanation scrolled into view. |
+
+The live API oracle passed 16 behavior groups, including exact original
+prescriptions, other days, preferences, source conflicts, privacy and atomic
+budget confirmation. Native flow commands used private credentials through a
+sanitizing wrapper; fixtures, logs and runtime helpers remain outside Git:
+
+```sh
+add_qa_dir=/private/tmp/primerep-add-exercise-qa
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/search-duplicate.yaml"
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/restart-start-log.yaml"
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/resume-lock-timed-cancel.yaml"
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/timed-confirm.yaml"
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/dark-max-visible-row.yaml"
+python3 "$add_qa_dir/run-maestro.py" new "$add_qa_dir/normal-clean-handoff.yaml"
+```
+
+Maestro's iOS `hideKeyboard` can tap a catalog result; picker verification
+kept the keyboard open or dragged the content to dismiss it. Lost-reply
+recovery was verified by the mounted test harness, not by interrupting a live
+native request. The existing Android, physical-device and VoiceOver limits
+above also apply to this addition.
+
+- [Native searchable picker](screenshots/workout-planning/ios-add-picker.png)
+- [Truthful over-budget summary](screenshots/workout-planning/ios-added-over-budget.png)
+- [Dark picker at maximum text](screenshots/workout-planning/ios-add-picker-dark-max.png)

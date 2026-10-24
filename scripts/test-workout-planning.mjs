@@ -48,3 +48,11 @@ test("preference save opts into preserve without changing the existing training 
   await service.updateTrainingPreferences("token-A", { workoutFrequency: "5-days" }, dates);
   assert.doesNotMatch(calls[1][0], /planUpdateScope/);
 });
+
+test("manual add uses a canonical source permutation and preserves its explicit over-budget choice", async () => {
+  const calls = []; const service = loadTypescript("services/workoutWeekService.ts", { "./httpClient": { requestJson: async (...args) => { calls.push(plain(args)); return { weekStart: "2026-10-19", workouts: [] }; } } });
+  const params = { workoutDayId: "day-A", exerciseId: "curl", expectedExerciseIds: ["bench", "row"], weekStart: "2026-10-19", effectiveDate: "2026-10-24", allowOverBudget: true };
+  await service.addWorkoutExercise("token-A", params);
+  assert.deepEqual(calls, [["/v1/workouts/week/exercises", { method: "POST", token: "token-A", body: params }]]);
+  assert.equal(planning.workoutPlanningSummary({ ...workout, planningMode: "time_budget", timeBudgetMinutes: 35, estimatedMinutes: 65 }), "About 65 min · 35 min budget");
+});

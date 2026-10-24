@@ -18,7 +18,8 @@ export function workoutPlanningSummary(workout: WorkoutDay): string {
     const count = workout.blocks.reduce((total, block) => total + block.items.length, 0);
     return `${count} ${count === 1 ? "exercise" : "exercises"}`;
   }
-  return `Up to ${workoutTimeBudget(workout)} min`;
+  const budget = workoutTimeBudget(workout);
+  return workout.estimatedMinutes != null && workout.estimatedMinutes > budget ? `About ${workout.estimatedMinutes} min · ${budget} min budget` : `Up to ${budget} min`;
 }
 
 export function workoutPlanningError(error: unknown): string {
@@ -32,10 +33,11 @@ export function workoutPlanningError(error: unknown): string {
 }
 
 export function workoutPlanningSpokenSummary(workout: WorkoutDay): string {
-  return workoutPlanningMode(workout) === "trainer_led" && !workout.programActivationId ? "Trainer-led" : workoutPlanningSummary(workout).replace(/ min$/, " minutes");
+  return workoutPlanningMode(workout) === "trainer_led" && !workout.programActivationId ? "Trainer-led" : workoutPlanningSummary(workout).replace(/\bmin\b/g, "minutes");
 }
 
 export function planningUpdateWasRejected(error: unknown): boolean {
+  if ((error as { payload?: { detail?: { code?: string } } })?.payload?.detail?.code === "workout_changed") return false;
   const status = (error as { status?: number })?.status;
   return status != null && status >= 400 && status < 500 && status !== 404 && status !== 408;
 }

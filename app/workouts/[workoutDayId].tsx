@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -175,7 +175,7 @@ export default function WorkoutDayDetailScreen() {
     try { return reorderWorkout(workout, ids); } catch { return workout; }
   }, [workout, orderState, orderOwner]);
   const moveOverviewExercise = useCallback(async (exerciseId: string, destination: number) => {
-    if (!workout || !displayedWorkout || !user || isActionLoading || isOrderLoading || isSavingOrder || isStarting) return;
+    if (!workout || !displayedWorkout || !user || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting) return;
     const ids = displayedWorkout.blocks.flatMap((block) => block.items.map((item) => item.exercise.id));
     const source = ids.indexOf(exerciseId);
     if (source < 0 || source === destination || destination < 0 || destination >= ids.length) return;
@@ -191,7 +191,7 @@ export default function WorkoutDayDetailScreen() {
         setOrderMessage({ owner: orderOwner, text: "Couldn’t save that order. Your previous order is still here; try again." });
       }
     } finally { if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setIsSavingOrder(false); }
-  }, [workout, displayedWorkout, user, isActionLoading, isOrderLoading, isSavingOrder, isStarting, orderState, orderOwner, lifetime, renderEpoch]);
+  }, [workout, displayedWorkout, user, planningRefreshRequired, isActionLoading, isOrderLoading, isSavingOrder, isStarting, orderState, orderOwner, lifetime, renderEpoch]);
 
   const abandonActiveWorkout = useCallback(async (sessionId: string) => {
     if (!token) return false;
@@ -717,10 +717,13 @@ export default function WorkoutDayDetailScreen() {
 
       {/* Content */}
       {workout ? (
-        <WorkoutOverviewList sections={sections} colors={colors} disabled={!user || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
+        <WorkoutOverviewList sections={sections} colors={colors} disabled={!user || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
           onMove={(id, destination) => void moveOverviewExercise(id, destination)}
           renderItem={(item, controls) => renderWorkoutItem({ item, controls })} renderSectionHeader={(section) => renderSectionHeader({ section })}
-          header={renderListHeader()} contentContainerStyle={styles.listContent} />
+          header={renderListHeader()} contentContainerStyle={styles.listContent}
+          footer={!workout.programActivationId ? <Pressable testID="workout-add-exercise" accessibilityRole="button" accessibilityLabel="Add exercise to this workout" accessibilityHint="Choose an exercise to add only to this workout" disabled={planningLocked || isCheckingLocalWorkout || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
+            onPress={() => { if (!planningLocked && !isCheckingLocalWorkout && !planningRefreshRequired && !isActionLoading && !isOrderLoading && !isSavingOrder && !isStarting && targetWeekStart) router.push(`/workout/exercise-picker?workoutDayId=${encodeURIComponent(workout.workoutDayId)}&weekStart=${encodeURIComponent(targetWeekStart)}` as Href); }}
+            style={({ pressed }) => ({ minHeight: 52, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: planningLocked || isCheckingLocalWorkout ? 0.45 : pressed ? 0.6 : 1 })}><Ionicons name="add-circle-outline" size={22} color={colors.primaryButton} /><ThemedText style={{ color: colors.primaryButton, fontWeight: "600", flexShrink: 1 }}>Add exercise</ThemedText></Pressable> : null} />
       ) : null}
 
       {workout && <WorkoutPlanningSheet visible={planningVisible} value={{ planningMode: workoutPlanningMode(workout), timeBudgetMinutes: workoutTimeBudget(workout) }} onClose={() => setPlanningVisible(false)} onApply={handleUpdatePlanning} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired} />}

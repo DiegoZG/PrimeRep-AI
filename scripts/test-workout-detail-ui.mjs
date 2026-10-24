@@ -56,7 +56,7 @@ const plan = (days = [day()], start = weekStart) => ({ weekStart: start, weekEnd
 const session = (extra = {}) => ({ id: "other-session", workoutDayId: "other-day", dayType: "lower_body", startedAt: "2026-10-12T10:00:00Z", clientSessionId: null, status: "in_progress", setLogs: [{ exerciseId: "squat", setNumber: 1 }], workoutSnapshot: { title: "Existing lower workout", exerciseBlocks: [] }, ...extra });
 
 async function detail(options = {}) {
-  const calls = { weeks: [], skips: [], durations: [], planning: [], bulk: [], active: [], abandons: [], cleared: [], favorites: [], favorite: [], unfavorite: [], routes: [], alerts: [], loggedOut: [], stored: [], focus: [], scrolls: [], created: [] };
+  const calls = { weeks: [], skips: [], durations: [], planning: [], bulk: [], additions: [], active: [], abandons: [], cleared: [], favorites: [], favorite: [], unfavorite: [], routes: [], alerts: [], loggedOut: [], stored: [], focus: [], scrolls: [], created: [] };
   const scheme = options.scheme ?? "light";
   const AuthContext = React.createContext(null);
   const storage = new Map([["@primerep/theme-preference", scheme]]);
@@ -75,7 +75,7 @@ async function detail(options = {}) {
     "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-image": { Image: "Image" }, "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
     "expo-router": { useLocalSearchParams: () => route, useRouter: () => ({ push: (value) => calls.routes.push(["push", plain(value)]), replace: (value) => calls.routes.push(["replace", plain(value)]), back: () => calls.routes.push(["back"]) }) },
     "@react-navigation/native": { useFocusEffect: (callback) => React.useEffect(() => { calls.focus.push("focus"); const entry = { callback, cleanup: callback() }; focusEffects.add(entry); return () => { focusEffects.delete(entry); entry.cleanup?.(); }; }, [callback]) },
-    "@react-native-async-storage/async-storage": { getItem: async (key) => storage.get(key) ?? null, setItem: async (key, value) => { calls.stored.push([key, value]); storage.set(key, value); }, removeItem: async (key) => storage.delete(key) },
+    "@react-native-async-storage/async-storage": { getItem: async (key) => storage.get(key) ?? null, setItem: async (key, value) => { if (current.orderSaveFailure && key.startsWith("primerep.pre-workout-order.")) throw new Error("Storage unavailable"); calls.stored.push([key, value]); storage.set(key, value); }, removeItem: async (key) => storage.delete(key) },
     "@/utils/authContext": { AuthContext }, "./authContext": { AuthContext }, "@/utils/localDate": dateHelpers, "./localDate": dateHelpers,
     "@/constants/theme": theme, "@/services/workoutLoggingService": logging,
     "@/services/exerciseService": {
@@ -87,6 +87,7 @@ async function detail(options = {}) {
       getWorkoutWeek: async (...args) => { calls.weeks.push(args); return current.getWeek ? current.getWeek(...args) : current.plan ?? plan(); },
       skipWorkoutDay: async (...args) => { calls.skips.push(args); return current.skip ? current.skip(...args) : current.skipPlan ?? plan(); },
       applyWorkoutPlanningPreference: async (...args) => { calls.bulk.push(args); return current.bulk ? current.bulk(...args) : { weekPlan: current.plan ?? plan(), updatedWorkoutCount: 1, protectedWorkoutCount: 0 }; },
+      addWorkoutExercise: async (...args) => { calls.additions.push(plain(args)); return current.add ? current.add(...args) : plan([{ ...day(), blocks: [...day().blocks, { blockType: "main", items: [{ exercise: { id: args[1].exerciseId, name: "Added curl", primaryMuscle: "biceps" }, prescription: { sets: 3, reps: "8-12", restSeconds: 90 } }] }] }]); },
       updateWorkoutPlanning: async (...args) => { calls.planning.push(args); return current.planning ? current.planning(...args) : current.planningPlan ?? plan([day({ ...args[2], durationMinutes: args[2].timeBudgetMinutes ?? 35, planningSource: "override" })]); },
       updateWorkoutDuration: async (...args) => { calls.durations.push(args); return current.duration ? current.duration(...args) : current.durationPlan ?? plan([day({ durationMinutes: args[2] })]); },
     },
@@ -137,7 +138,7 @@ async function detail(options = {}) {
   let tree;
   await act(async () => { tree = create(React.createElement(App), { createNodeMock: (node) => node.type === "ScrollView" ? { getNativeScrollRef: () => ({ measureInWindow: (callback) => callback(0, 100, 375, 500) }), scrollTo: (value) => calls.scrolls.push(value) } : {} }); });
   return { tree, calls, colors: theme.Colors[scheme], route, storage, week: () => week, active: () => active, appearance: () => appearance,
-    store, prestart: mocks["@/utils/preWorkoutOrderStore"], tickAutoScroll: async () => { await act(async () => { for (const callback of dragTimers.values()) callback(); }); },
+    store, prestart: mocks["@/utils/preWorkoutOrderStore"], coldPrestart: () => loadTypescript("utils/preWorkoutOrderStore.ts", mocks), tickAutoScroll: async () => { await act(async () => { for (const callback of dragTimers.values()) callback(); }); },
     options: (next) => { current = { ...current, ...next }; }, install: async (next) => { await act(async () => week.installWeekPlan(next)); },
     auth: async (token, id) => { await act(async () => setAuth(token, id)); }, remount: async () => { await act(async () => remount()); },
     hide: async () => { await act(async () => hide()); },
@@ -731,4 +732,86 @@ test("overview terminal handoff shows finished notice and never offers an active
   await view.confirm("Back to workouts");
   assert.deepEqual(view.calls.routes, [["replace", "/(tabs)"]]); assert.equal(view.calls.weeks.length, 1);
   assert.equal(await view.store.loadActiveWorkout("user-A"), null); await unmount(view);
+});
+
+const addParams = (exerciseId = "curl") => ({ workoutDayId: "day-one", exerciseId, expectedExerciseIds: ["bench", "row"], weekStart, effectiveDate: weekStart, allowOverBudget: false });
+const appendedPlan = (previous = day(), id = "curl") => plan([{ ...previous, blocks: [...previous.blocks, { blockType: "main", items: [{ exercise: { id, name: `Added ${id}`, primaryMuscle: "biceps" }, prescription: { sets: 3, reps: "8-12", restSeconds: 90 } }] }] }]);
+
+test("overview Add exercise is a list-footer action that routes only an eligible current workout", async () => {
+  const view = await detail(); const button = host(view, "workout-add-exercise"); assert.ok(button); assert.equal(button.props.disabled, false);
+  assert.ok(flat(button.props.style({ pressed: false })).minHeight >= 44);
+  await tap(button); assert.deepEqual(view.calls.routes, [["push", `/workout/exercise-picker?workoutDayId=day-one&weekStart=${weekStart}`]]); await unmount(view);
+  const program = await detail({ plan: plan([day({ programActivationId: "program" })]) }); assert.equal(host(program, "workout-add-exercise"), undefined); await unmount(program);
+  const locked = await detail({ plan: plan([day({ planningEditable: false })]) }); assert.equal(host(locked, "workout-add-exercise").props.disabled, true); await unmount(locked);
+});
+
+test("adding appends to canonical source but preserves the user's different order before installing and starting", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row"));
+  let result; await act(async () => { result = await view.week().addExercise(addParams()); });
+  assert.equal(result.orderPreservationFailed, false); assert.deepEqual(view.calls.additions[0][1].expectedExerciseIds, ["bench", "row"]);
+  assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]);
+  assert.equal(await view.store.loadActiveWorkout("user-A"), null);
+  assert.deepEqual(plain((await view.prestart.loadPreWorkoutOrder("user-A", view.week().weekPlan.workouts[0])).exerciseIds), ["row", "bench", "curl"]);
+  await tap(start(view)); const active = await view.store.loadActiveWorkout("user-A");
+  assert.deepEqual(active.effectiveWorkout.blocks.flatMap((block) => block.items.map((item) => item.exercise.id)), ["row", "bench", "curl"]);
+  assert.equal(active.sets.filter((set) => set.exerciseId === "curl").length, 3); await unmount(view);
+});
+
+test("an add that committed before losing its reply preserves the chosen order after refresh and a cold cache load", async () => {
+  for (const original of [day(), day({ planningMode: "trainer_led", timeBudgetMinutes: null, planningSource: "default", durationMinutes: 50 })]) {
+    let committed; const view = await detail({ plan: plan([original]), add: async () => { committed = appendedPlan(original); committed.workouts[0].durationMinutes = original.planningMode === "trainer_led" ? 60 : original.durationMinutes; throw new Error("Response lost after commit"); } });
+    await tap(host(view, "workout-overview-up-row"));
+    const originalRaw = [...view.storage.entries()].find(([key]) => key.startsWith("primerep.pre-workout-order."))[1];
+    await act(async () => { await view.week().addExercise(addParams()).catch(() => {}); });
+    assert.equal(view.week().planningRefreshRequired, true);
+    view.options({ getWeek: async () => committed }); await tap(host(view, "workout-planning-refresh"));
+    assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]);
+    const cold = view.coldPrestart(); assert.deepEqual(plain((await cold.loadPreWorkoutOrder("user-A", committed.workouts[0])).exerciseIds), ["row", "bench", "curl"]);
+    assert.equal([...view.storage.entries()].find(([key]) => key.startsWith("primerep.pre-workout-order."))[1], originalRaw);
+    const changed = plain(committed.workouts[0]); changed.blocks[0].items[0].prescription.sets = 9;
+    assert.equal((await cold.loadPreWorkoutOrder("user-A", changed)).invalidated, true);
+    await unmount(view);
+  }
+});
+
+test("lost-reply append recovery supports normalized legacy metadata and more than one appended default row", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row"));
+  const next = appendedPlan(day(), "curl").workouts[0];
+  const more = appendedPlan(next, "fly").workouts[0]; Object.assign(more, { planningMode: "time_budget", planningSource: "default", timeBudgetMinutes: 35 });
+  const recovered = await view.coldPrestart().loadPreWorkoutOrder("user-A", more);
+  assert.deepEqual(plain(recovered.exerciseIds), ["row", "bench", "curl", "fly"]);
+  for (const extra of [{ planningMode: "trainer_led", timeBudgetMinutes: null }, { timeBudgetMinutes: 60, durationMinutes: 60 }, { planningSource: "override" }]) assert.equal((await view.coldPrestart().loadPreWorkoutOrder("user-A", { ...more, ...extra })).invalidated, true);
+  await unmount(view);
+});
+
+test("a stale add source marks refresh required while a budget rejection safely retains the existing workout", async () => {
+  for (const code of ["workout_changed", "workout_time_budget_exceeded"]) {
+    const failure = Object.assign(new Error(code), { status: 409, payload: { detail: { code, message: code } } });
+    const view = await detail({ add: async () => { throw failure; } });
+    await act(async () => { await view.week().addExercise(addParams()).catch(() => {}); });
+    assert.equal(view.week().planningRefreshRequired, code === "workout_changed");
+    assert.deepEqual(overviewIds(view), ["bench", "row"]); assert.equal(await view.store.loadActiveWorkout("user-A"), null); await unmount(view);
+  }
+});
+
+test("storage failure after a committed add installs the authoritative result and returns a truthful warning", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row")); view.options({ orderSaveFailure: true });
+  let result; await act(async () => { result = await view.week().addExercise(addParams()); });
+  assert.equal(result.orderPreservationFailed, true); assert.equal(view.week().weekPlan.workouts[0].blocks.at(-1).items[0].exercise.id, "curl");
+  assert.equal(view.week().planningRefreshRequired, false); assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]); await unmount(view);
+});
+
+test("an add continues in the provider after Back and its pending barrier prevents a premature Start", async () => {
+  const pending = deferred(), view = await detail({ add: () => pending.promise }); let completion;
+  await tap(host(view, "workout-overview-up-row"));
+  await act(async () => { completion = view.week().addExercise(addParams()); }); await view.hide();
+  assert.equal(view.week().planningRefreshRequired, true);
+  await act(async () => { pending.resolve(appendedPlan()); await completion; });
+  await view.remount(); assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]); assert.equal(start(view).props.disabled, false); await unmount(view);
+});
+
+test("natural duplicate retries never duplicate the appended exercise or its saved order", async () => {
+  let saved; const view = await detail({ add: async () => saved ??= appendedPlan() }); await tap(host(view, "workout-overview-up-row"));
+  await act(async () => { await view.week().addExercise(addParams()); await view.week().addExercise(addParams()); });
+  assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]); assert.equal(overviewIds(view).filter((id) => id === "curl").length, 1); await unmount(view);
 });

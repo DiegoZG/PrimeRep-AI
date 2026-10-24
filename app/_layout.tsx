@@ -380,6 +380,7 @@ function RootLayoutNav() {
           <Stack.Screen name="programs/custom-exercise" options={{ headerShown: false }} />
           <Stack.Screen name="programs/activate" options={{ headerShown: false }} />
           <Stack.Screen name="workout/active" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/exercise-picker" options={{ headerShown: false }} />
           <Stack.Screen name="workout/summary" options={{ headerShown: false }} />
           <Stack.Screen name="workout/history" options={{ headerShown: false }} />
           <Stack.Screen name="workout/history/[sessionId]" options={{ headerShown: false }} />

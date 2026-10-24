@@ -12,6 +12,20 @@ import type {
 import { requestJson } from "./httpClient";
 import type { WorkoutPlanningChoice } from "@/utils/workoutPlanning";
 
+export interface AddWorkoutExerciseParams {
+  workoutDayId: string;
+  exerciseId: string;
+  expectedExerciseIds: string[];
+  weekStart: string;
+  effectiveDate: string;
+  allowOverBudget?: boolean;
+}
+
+export async function addWorkoutExercise(token: string, params: AddWorkoutExerciseParams): Promise<WorkoutWeekPlan> {
+  const data = await requestJson<WorkoutWeekPlanApiResponse>("/v1/workouts/week/exercises", { method: "POST", token, body: params });
+  return mapApiWeekPlan(data);
+}
+
 export async function updateWorkoutPlanning(token: string, workoutDayId: string, choice: WorkoutPlanningChoice, dates: { weekStart: string; effectiveDate: string }): Promise<WorkoutWeekPlan> {
   const data = await requestJson<WorkoutWeekPlanApiResponse>("/v1/workouts/week/planning", {
     method: "PATCH", token, body: { workoutDayId, ...choice, ...dates },
