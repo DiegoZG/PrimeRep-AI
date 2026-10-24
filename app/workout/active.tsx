@@ -7,6 +7,9 @@ import { ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Mod
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
+import { WorkoutArrangementSheets } from "@/components/workout/WorkoutArrangementSheets";
+import { useWorkoutArrangement } from "@/hooks/use-workout-arrangement";
+import { adoptSessionArrangement, reorderWorkout } from "@/utils/workoutArrangement";
 import { ExerciseListSheet } from "@/components/workout/ExerciseListSheet";
 import { RestTimer } from "@/components/workout/RestTimer";
 import { SetInputRow } from "@/components/workout/SetInputRow";
@@ -171,7 +174,7 @@ function mergePersistedSets(prescribed: SetState[], persisted: SetState[]): SetS
 
 function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] {
   const bySet = new Map(replayed.map((set) => [`${set.exerciseId}:${set.setNumber}`, set]));
-  return current.map((set) => {
+  const merged = current.map((set) => {
     const replayedSet = bySet.get(`${set.exerciseId}:${set.setNumber}`);
     if (!replayedSet || (set.confirmed && !replayedSet.confirmed)) return set;
     return {
@@ -183,6 +186,9 @@ function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] 
       hasUnsavedInput: set.hasUnsavedInput,
     };
   });
+  const keys = new Set(merged.map((set) => `${set.exerciseId}:${set.setNumber}`));
+  for (const set of replayed) if (!keys.has(`${set.exerciseId}:${set.setNumber}`)) merged.push(set);
+  return merged;
 }
 
 function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOperation[]): SetState[] {
@@ -223,6 +229,9 @@ export default function ActiveWorkoutScreen() {
   const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
 
+  const [originalWorkout, setOriginalWorkout] = useState<WorkoutDay | null>(null);
+  const [targetReviewExerciseIds, setTargetReviewExerciseIds] = useState<string[] | null | undefined>();
+  const [arrangementRevision, setArrangementRevision] = useState<number | undefined>();
   const [snapshotWorkout, setSnapshotWorkout] = useState<WorkoutDay | null>(null);
   const [legacySession, setLegacySession] = useState<Awaited<ReturnType<typeof getActiveSession>>>(null);
   const [isResolvingSession, setIsResolvingSession] = useState(Boolean(requestedSessionId));
@@ -244,7 +253,7 @@ export default function ActiveWorkoutScreen() {
         : null;
       if (!token) {
         if (!cancelled) {
-          if (matchingLocal) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+          if (matchingLocal) { setSnapshotWorkout(matchingLocal.effectiveWorkout ?? matchingLocal.workoutSnapshot!); setOriginalWorkout(matchingLocal.workoutSnapshot); setArrangementRevision(matchingLocal.arrangementRevision); setTargetReviewExerciseIds(matchingLocal.targetReviewExerciseIds); }
           setCanRestoreRequestedSession(Boolean(matchingLocal) || !requestedSessionId);
           setIsResolvingSession(false);
         }
@@ -256,20 +265,27 @@ export default function ActiveWorkoutScreen() {
       if (cancelled) return;
       if (requestedSessionId && server?.status !== "in_progress") {
         if (server?.status === "completed" || server?.status === "abandoned") markWorkoutTerminal();
-        if (matchingLocal) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+        if (matchingLocal) { setSnapshotWorkout(matchingLocal.effectiveWorkout ?? matchingLocal.workoutSnapshot!); setOriginalWorkout(matchingLocal.workoutSnapshot); setArrangementRevision(matchingLocal.arrangementRevision); setTargetReviewExerciseIds(matchingLocal.targetReviewExerciseIds); }
         setCanRestoreRequestedSession(Boolean(matchingLocal) && !server);
         setIsResolvingSession(false);
         if (server) router.replace("/(tabs)");
         return;
       }
       if (server) {
-        if (server.workoutSnapshot) {
-          setSnapshotWorkout(mapApiWorkoutDay(server.workoutSnapshot));
+        if (server.effectiveWorkout ?? server.workoutSnapshot) {
+          let effective = mapApiWorkoutDay((server.effectiveWorkout ?? server.workoutSnapshot)!);
+          const pendingOrder = matchingLocal?.operations.find((operation) => operation.type === "order" && !operation.payload.conflict);
+          if (pendingOrder?.type === "order") {
+            try { effective = reorderWorkout(effective, pendingOrder.payload.exerciseIds); } catch { /* Review a changed server workout before applying this order. */ }
+          }
+          setSnapshotWorkout(effective);
+          setOriginalWorkout(server.workoutSnapshot ? mapApiWorkoutDay(server.workoutSnapshot) : null);
+          setArrangementRevision(server.arrangementRevision);
         } else if (server.recoveryRequired) {
           setLegacySession(server);
         }
       }
-      if (matchingLocal && !server) setSnapshotWorkout(matchingLocal.workoutSnapshot!);
+      if (matchingLocal && !server) { setSnapshotWorkout(matchingLocal.effectiveWorkout ?? matchingLocal.workoutSnapshot!); setOriginalWorkout(matchingLocal.workoutSnapshot); setArrangementRevision(matchingLocal.arrangementRevision); setTargetReviewExerciseIds(matchingLocal.targetReviewExerciseIds); }
       setCanRestoreRequestedSession(Boolean(server) || Boolean(matchingLocal) || !requestedSessionId);
       setIsResolvingSession(false);
     }
@@ -290,6 +306,7 @@ export default function ActiveWorkoutScreen() {
   const [clientSessionId, setClientSessionId] = useState(createClientId);
   const [startedAt, setStartedAt] = useState(Date.now);
   const [operations, setOperations] = useState<PendingWorkoutOperation[]>([]);
+  const hasPendingReplacement = operations.some((operation) => operation.type === "replace");
   const [persistedRevision, setPersistedRevision] = useState(0);
   const replayInFlightRef = useRef(false);
   const deferredPersistenceRef = useRef(false);
@@ -527,7 +544,12 @@ export default function ActiveWorkoutScreen() {
 
   // ── One-exercise-at-a-time navigation ──────────────────────────────────────
 
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [currentExerciseId, setCurrentExerciseId] = useState<string | null>(null);
+  const currentExerciseIndex = Math.max(0, exercises.findIndex((item) => item.exercise.id === currentExerciseId));
+  const setCurrentExerciseIndex = useCallback((next: number | ((index: number) => number)) => {
+    const index = typeof next === "function" ? next(currentExerciseIndex) : next;
+    setCurrentExerciseId(exercises[index]?.exercise.id ?? exercises[0]?.exercise.id ?? null);
+  }, [currentExerciseIndex, exercises]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
@@ -580,7 +602,7 @@ export default function ActiveWorkoutScreen() {
   const [restTotalSeconds, setRestTotalSeconds] = useState(0);
   const [restContext, setRestContext] = useState<RestContext | null>(null);
   const [pendingTransition, setPendingTransition] = useState<{
-    nextIndex: number;
+    nextExerciseId: string;
     nextName: string;
   } | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -614,11 +636,15 @@ export default function ActiveWorkoutScreen() {
           setClientSessionId(serverActive.clientSessionId ?? clientSessionId);
           setSessionId(serverActive.id);
           setStartedAt(new Date(serverActive.startedAt).getTime());
+          setArrangementRevision(serverActive.arrangementRevision);
+          setOriginalWorkout(serverActive.workoutSnapshot ? mapApiWorkoutDay(serverActive.workoutSnapshot) : null);
           setSets(mergeServerLogs(prescribedSetStates(exercises), serverActive.setLogs, weightUnit, serverActive.deletedSetLogs ?? []));
           setWorkoutNote(serverActive.workoutNote);
           setExerciseFeedback(Object.fromEntries(serverActive.exerciseFeedback.map((feedback) => [feedback.exerciseId, { effort: feedback.effort, rir: feedback.rir }])));
         } else {
           const newClientSessionId = createClientId();
+          setArrangementRevision(0);
+          setOriginalWorkout(workout);
           setClientSessionId(newClientSessionId);
           setOperations([{ id: createClientId(), type: "create", status: "pending", payload: {
             workoutDayId: workout.workoutDayId,
@@ -636,14 +662,23 @@ export default function ActiveWorkoutScreen() {
         setSessionId(serverActive?.id ?? saved.serverSessionId);
         setStartedAt(saved.startedAt);
         workoutRevisionRef.current = saved.revision;
-        setCurrentExerciseIndex(saved.currentExerciseIndex);
+        const restoredArrangement = serverActive ? adoptSessionArrangement(saved, serverActive) : saved;
+        const pendingOrder = saved.operations.find((operation) => operation.type === "order" && !operation.payload.conflict);
+        if (pendingOrder?.type === "order" && restoredArrangement.effectiveWorkout) {
+          try { restoredArrangement.effectiveWorkout = reorderWorkout(restoredArrangement.effectiveWorkout, pendingOrder.payload.exerciseIds); } catch { /* A conflicting order remains available for review. */ }
+        }
+        setSnapshotWorkout(restoredArrangement.effectiveWorkout ?? restoredArrangement.workoutSnapshot);
+        setOriginalWorkout(restoredArrangement.workoutSnapshot);
+        setArrangementRevision(restoredArrangement.arrangementRevision); setTargetReviewExerciseIds(restoredArrangement.targetReviewExerciseIds);
+        const restoredExercises = (restoredArrangement.effectiveWorkout ?? restoredArrangement.workoutSnapshot)?.blocks.flatMap((block) => block.items) ?? exercises;
+        setCurrentExerciseId(restoredArrangement.currentExerciseId ?? restoredExercises[saved.currentExerciseIndex]?.exercise.id ?? null);
         setRestEndsAt(saved.restEndsAt);
         setRestTotalSeconds(saved.restTotalSeconds);
-        setRestContext(saved.restContext);
+        setRestContext(saved.restContext ? { ...saved.restContext, exerciseId: saved.restContext.exerciseId ?? (saved.effectiveWorkout ?? saved.workoutSnapshot)?.blocks.flatMap((block) => block.items)[saved.restContext.exerciseIndex ?? 0]?.exercise.id } : null);
         setWorkoutNote(serverActive?.workoutNote ?? saved.workoutNote ?? null);
         setExerciseFeedback(serverActive ? Object.fromEntries(serverActive.exerciseFeedback.map((feedback) => [feedback.exerciseId, { effort: feedback.effort, rir: feedback.rir }])) : saved.exerciseFeedback ?? {});
         setExerciseNotes(saved.exerciseNotes ?? {});
-        const restoredSets = mergePersistedSets(prescribedSetStates(exercises), saved.sets);
+        const restoredSets = mergePersistedSets(prescribedSetStates(restoredExercises), restoredArrangement.sets);
         setSets(serverActive ? mergeServerLogs(restoredSets, serverActive.setLogs, weightUnit, serverActive.deletedSetLogs ?? []) : restoredSets);
         setOperations(reconciledOperations);
         const queuedCompletion = reconciledOperations.find((operation) => operation.type === "complete");
@@ -670,7 +705,7 @@ export default function ActiveWorkoutScreen() {
       workoutDayId: workout.workoutDayId,
       workoutDate: workout.date,
       dayType: workout.dayType,
-      workoutSnapshot: workout,
+      workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseId ?? exercises[0]?.exercise.id,
       clientSessionId,
       serverSessionId: sessionId,
       startedAt,
@@ -688,7 +723,7 @@ export default function ActiveWorkoutScreen() {
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
     }).catch(() => setStorageError(true));
-  }, [finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
+  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
 
   const replayPendingWrites = useCallback(async () => {
     if (!token || !user || replayInFlightRef.current || savingEntriesRef.current || isFinishingRef.current) return;
@@ -702,6 +737,10 @@ export default function ActiveWorkoutScreen() {
       const operationIdsAtStart = new Set(result.startedOperationIds);
       workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
       setSessionId(result.workout.serverSessionId);
+      if (result.workout.effectiveWorkout) setSnapshotWorkout(result.workout.effectiveWorkout);
+      if (result.workout.workoutSnapshot) setOriginalWorkout(result.workout.workoutSnapshot);
+      setArrangementRevision(result.workout.arrangementRevision); setTargetReviewExerciseIds(result.workout.targetReviewExerciseIds);
+      if (result.workout.currentExerciseId) setCurrentExerciseId(result.workout.currentExerciseId);
       const conflictOperations = result.workout.operations.filter(
         (operation): operation is Extract<PendingWorkoutOperation, { type: "update_set" }> =>
           operation.type === "update_set" && operation.status === "failed" && operation.payload.conflict === true
@@ -719,7 +758,10 @@ export default function ActiveWorkoutScreen() {
         ...operationsRef.current.filter((operation) => !operationIdsAtStart.has(operation.id) && !remainingById.has(operation.id) && !conflictOperationIds.has(operation.id)),
       ];
       setSets((current) => {
-        const merged = mergeReplaySets(current, result.workout!.sets).map((set) =>
+        const effectiveIds = new Set((result.workout!.effectiveWorkout ?? result.workout!.workoutSnapshot)?.blocks.flatMap((block) => block.items.map((item) => item.exercise.id)));
+        const merged = mergeReplaySets(current, result.workout!.sets).filter((set) =>
+          set.confirmed || set.logId || (effectiveIds.has(set.exerciseId) && (replayedSetsByKey.has(`${set.exerciseId}:${set.setNumber}`) || set.hasUnsavedInput || set.editing || set.isAdded))
+        ).map((set) =>
           failedUpdateKeys.has(`${set.exerciseId}:${set.setNumber}`)
             ? replayedSetsByKey.get(`${set.exerciseId}:${set.setNumber}`) ?? set
             : set
@@ -800,7 +842,7 @@ export default function ActiveWorkoutScreen() {
         workoutDayId: workout.workoutDayId,
         workoutDate: workout.date,
         dayType: workout.dayType,
-        workoutSnapshot: workout,
+        workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseId ?? exercises[0]?.exercise.id,
         clientSessionId,
         serverSessionId: sessionId,
         startedAt,
@@ -819,7 +861,7 @@ export default function ActiveWorkoutScreen() {
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
     },
-    [user, workout, isRestoring, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes]
+    [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes]
   );
 
   useEffect(() => {
@@ -833,20 +875,29 @@ export default function ActiveWorkoutScreen() {
   }, [retryFailedWrites]);
 
   const isRestingCurrentExercise =
-    restEndsAt !== null && restContext?.exerciseIndex === currentExerciseIndex;
+    restEndsAt !== null && (restContext?.exerciseId ?? exercises[restContext?.exerciseIndex ?? -1]?.exercise.id) === currentItem?.exercise.id;
 
   const finishRest = useCallback(() => {
     setRestEndsAt(null);
     setRestContext((ctx) => {
       if (ctx?.isLastSetOfExercise) {
-        const nextIndex = ctx.exerciseIndex + 1;
+        const nextIndex = exercises.findIndex((item) => item.exercise.id === (ctx.exerciseId ?? exercises[ctx.exerciseIndex ?? -1]?.exercise.id)) + 1;
         if (nextIndex < exercises.length) {
-          setPendingTransition({ nextIndex, nextName: exercises[nextIndex].exercise.name });
+          setPendingTransition({ nextExerciseId: exercises[nextIndex].exercise.id, nextName: exercises[nextIndex].exercise.name });
         }
       }
       return null;
     });
   }, [exercises]);
+
+  useEffect(() => {
+    setPendingTransition((current) => {
+      if (!current) return null;
+      const next = exercises[currentExerciseIndex + 1];
+      if (!next) return null;
+      return current.nextExerciseId === next.exercise.id ? current : { nextExerciseId: next.exercise.id, nextName: next.exercise.name };
+    });
+  }, [exercises, currentExerciseIndex]);
 
   const handleRestExpire = useCallback(() => {
     playRestEndFeedback();
@@ -868,7 +919,7 @@ export default function ActiveWorkoutScreen() {
     }
     setPendingTransition((current) => {
       if (!current) return null;
-      setCurrentExerciseIndex(current.nextIndex);
+      setCurrentExerciseId(current.nextExerciseId);
       return null;
     });
   }, []);
@@ -894,7 +945,7 @@ export default function ActiveWorkoutScreen() {
     (setNumber: number, field: "reps" | "weight", value: string) => {
       if (!currentItem) return;
       const exerciseId = currentItem.exercise.id;
-      if (savingEntriesRef.current) return;
+      if (savingEntriesRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return;
       const nextSets = setsRef.current.map((s) =>
           s.exerciseId === exerciseId && s.setNumber === setNumber
             ? s.editing
@@ -911,13 +962,13 @@ export default function ActiveWorkoutScreen() {
   );
 
   const saveEntries = useCallback(async (keys: string[], individual = false, replay = true) => {
-    if (!user || !workout || isRestoring || isTerminalRef.current || savingEntriesRef.current || finishStatus !== "idle") return false;
+    if (!user || !workout || isRestoring || isTerminalRef.current || savingEntriesRef.current || finishStatus !== "idle" || operationsRef.current.some((operation) => operation.type === "replace")) return false;
     savingEntriesRef.current = true;
     setIsSavingEntries(true);
     Keyboard.dismiss();
     const snapshot: LocalActiveWorkout = {
       userId: user.id, workoutDayId: workout.workoutDayId, workoutDate: workout.date,
-      dayType: workout.dayType, workoutSnapshot: workout, clientSessionId, serverSessionId: sessionId,
+      dayType: workout.dayType, workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseId ?? exercises[0]?.exercise.id, clientSessionId, serverSessionId: sessionId,
       startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext,
       sets: setsRef.current, operations: operationsRef.current, workoutNote, exerciseFeedback, exerciseNotes,
       revision: ++workoutRevisionRef.current,
@@ -927,7 +978,7 @@ export default function ActiveWorkoutScreen() {
       if (target && !target.editing && !("error" in validateSetEntry(target, weightUnit))) {
         snapshot.restTotalSeconds = currentItem.prescription.restSeconds;
         snapshot.restEndsAt = Date.now() + snapshot.restTotalSeconds * 1000;
-        snapshot.restContext = { exerciseIndex: currentExerciseIndex,
+        snapshot.restContext = { exerciseId: currentItem.exercise.id,
           isLastSetOfExercise: snapshot.sets.filter((set) => set.exerciseId === target.exerciseId && !set.deleted)
             .every((set) => set.confirmed || setEntryKey(set) === keys[0]) };
       }
@@ -966,7 +1017,7 @@ export default function ActiveWorkoutScreen() {
         if (replay) setPersistedRevision((revision) => revision + 1);
       }
     }
-  }, [user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt, currentExerciseIndex,
+  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt, currentExerciseIndex,
     restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, currentItem, weightUnit]);
 
   const confirmSet = useCallback((setNumber: number) => {
@@ -1142,7 +1193,7 @@ export default function ActiveWorkoutScreen() {
         workoutDayId: workout.workoutDayId,
         workoutDate: workout.date,
         dayType: workout.dayType,
-        workoutSnapshot: workout,
+        workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseId ?? exercises[0]?.exercise.id,
         clientSessionId,
         serverSessionId: sessionId,
         startedAt,
@@ -1208,7 +1259,7 @@ export default function ActiveWorkoutScreen() {
     } finally {
       isFinishingRef.current = false;
     }
-  }, [token, user, workout, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, markWorkoutTerminal, router]);
+  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, token, user, workout, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, markWorkoutTerminal, router]);
 
   const continueLogging = useCallback(async () => {
     if (!user || isFinishingRef.current || finishStatus === "idle") return;
@@ -1286,7 +1337,7 @@ export default function ActiveWorkoutScreen() {
     if (first) setCurrentExerciseIndex(exercises.findIndex((item) => item.exercise.id === first.exerciseId));
     setPendingTransition(null);
     setFinishReviewVisible(false);
-  }, [exercises, weightUnit]);
+  }, [exercises, weightUnit, setCurrentExerciseIndex]);
 
   useEffect(() => {
     if (!didComplete || !sessionId) return;
@@ -1354,6 +1405,41 @@ export default function ActiveWorkoutScreen() {
     );
   }, [leaveWorkoutActive, abandonAndExit, finishStatus, router]);
 
+    const arrangementSnapshot = useCallback((): LocalActiveWorkout | null => {
+    if (!user || !workout) return null;
+    return { userId: user.id, workoutDayId: workout.workoutDayId, workoutDate: workout.date, dayType: workout.dayType,
+      workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds,
+      clientSessionId, serverSessionId: sessionId, startedAt, currentExerciseIndex, currentExerciseId: currentItem?.exercise.id,
+      restEndsAt, restTotalSeconds, restContext, sets: setsRef.current, operations: operationsRef.current,
+      workoutNote, exerciseFeedback, exerciseNotes, revision: workoutRevisionRef.current };
+  }, [user, workout, originalWorkout, arrangementRevision, targetReviewExerciseIds, clientSessionId, sessionId, startedAt, currentExerciseIndex, currentItem, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes]);
+  const persistArrangementSnapshot = useCallback(async () => {
+    const local = arrangementSnapshot();
+    if (!local) return;
+    local.revision = ++workoutRevisionRef.current;
+    await saveActiveWorkout(local);
+  }, [arrangementSnapshot]);
+  const arrangementSessionRef = useRef({ clientSessionId, requestedSessionId });
+  arrangementSessionRef.current = { clientSessionId, requestedSessionId };
+  const applyArrangement = useCallback((local: LocalActiveWorkout) => {
+    const identity = arrangementSessionRef.current;
+    if (accountRef.current !== local.userId || identity.clientSessionId !== local.clientSessionId
+      || (identity.requestedSessionId && local.serverSessionId && identity.requestedSessionId !== local.serverSessionId)) return;
+    workoutRevisionRef.current = Math.max(workoutRevisionRef.current, local.revision);
+    setSnapshotWorkout(local.effectiveWorkout ?? local.workoutSnapshot);
+    setOriginalWorkout(local.workoutSnapshot);
+    setArrangementRevision(local.arrangementRevision); setTargetReviewExerciseIds(local.targetReviewExerciseIds);
+    setSessionId(local.serverSessionId);
+    setCurrentExerciseId(local.currentExerciseId ?? null);
+    setRestContext(local.restContext);
+    setsRef.current = local.sets;
+    operationsRef.current = local.operations;
+    setSets(local.sets); setOperations(local.operations);
+    setPersistedRevision((revision) => revision + 1);
+  }, []);
+  const arrangement = useWorkoutArrangement({ token, userId: user?.id, sessionKey: `${requestedSessionId ?? workout?.workoutDayId ?? "new"}:${clientSessionId}`, snapshot: arrangementSnapshot, apply: applyArrangement, persist: persistArrangementSnapshot });
+  const pendingArrangement = operations.find((operation) => operation.type === "order" || operation.type === "replace");
+
   // ── Loading / error states ─────────────────────────────────────────────────
 
   if (legacySession) {
@@ -1391,7 +1477,7 @@ export default function ActiveWorkoutScreen() {
   }
 
   if (!workout) {
-    if (isResolvingSession || !hasRequestedWorkout || isWeekLoading) {
+  if (isResolvingSession || !hasRequestedWorkout || isWeekLoading) {
       return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -1550,9 +1636,9 @@ export default function ActiveWorkoutScreen() {
         <Pressable
           testID="player-finish"
           onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
-          disabled={finishStatus === "syncing" || isSavingEntries || !canFinish}
+          disabled={finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish}
           accessibilityRole="button"
-          accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || !canFinish, busy: finishStatus === "syncing" }}
+          accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish, busy: finishStatus === "syncing" }}
           style={{
             backgroundColor: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? colors.primaryButton : colors.background,
             borderWidth: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? 0 : 1,
@@ -1600,7 +1686,7 @@ export default function ActiveWorkoutScreen() {
       >
         {expandedLayout ? <View key="scroll-header" style={{ marginHorizontal: -20, marginTop: -20, marginBottom: 20 }}>{header}</View> : null}
         <TouchableWithoutFeedback key="logger-body" onPress={Keyboard.dismiss} accessible={false}>
-        <View pointerEvents={finishStatus === "idle" && !isSavingEntries ? "auto" : "none"}
+        <View pointerEvents={finishStatus === "idle" && !isSavingEntries && !arrangement.busy && !hasPendingReplacement ? "auto" : "none"}
           onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}>
         {storageError ? (
           <View style={{ marginBottom: 12 }}>
@@ -1687,8 +1773,8 @@ export default function ActiveWorkoutScreen() {
                 { id: `player-exercise-note-${currentItem.exercise.id}`, label: "Exercise note", icon: "create-outline", action: openExerciseNoteEditor },
                 { id: `player-feedback-${currentItem.exercise.id}`, label: "Feedback", icon: "chatbubble-outline", action: openFeedbackEditor },
               ] as const).map((action) => <Pressable key={action.id} testID={action.id} accessibilityRole="button" accessibilityLabel={action.label}
-                accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries }}
-                disabled={finishStatus !== "idle" || isSavingEntries} onPress={action.action}
+                accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
+                disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onPress={action.action}
                 style={{ minHeight: 44, maxWidth: "100%", flexDirection: "row", alignItems: "center", gap: 5 }}>
                 <Ionicons name={action.icon} size={16} color={colors.placeholder} />
                 <ThemedText style={{ fontWeight: "500", fontSize: 13, flexShrink: 1 }}>{action.label}</ThemedText>
@@ -1731,11 +1817,11 @@ export default function ActiveWorkoutScreen() {
                 onAdjust={adjustRest}
                 onSkip={handleRestSkip}
                 onExpire={handleRestExpire}
-                disabled={finishStatus !== "idle" || isSavingEntries}
+                disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
               />
             ) : null}
               <>
-                <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries} onChange={toggleWeightUnit} />
+                <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
                 {/* Column labels + unit toggle */}
                 <View
                   style={{
@@ -1802,7 +1888,7 @@ export default function ActiveWorkoutScreen() {
                       displaySetNumber={displaySetNumber}
                       colors={colors}
                       weightUnit={weightUnit}
-                      readOnly={finishStatus !== "idle" || isSavingEntries}
+                      readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
                       issue={entryIssues[setEntryKey(setRow)]}
                       lastTimeHint={formatLastTimeHint(
                         findHistoryForSet(lastSetsByExercise[setRow.exerciseId], setRow.setNumber),
@@ -1822,8 +1908,8 @@ export default function ActiveWorkoutScreen() {
                 <Pressable
                   testID={`player-add-set-${currentItem.exercise.id}`}
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries }}
-                  disabled={finishStatus !== "idle" || isSavingEntries}
+                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
+                  disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
                   onPress={addSet}
                   style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.inputBorder }}
                 >
@@ -1833,8 +1919,8 @@ export default function ActiveWorkoutScreen() {
                 </View>
                 {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
                 {exerciseComplete && currentExerciseIndex < exercises.length - 1 ? <Pressable testID="player-next-exercise" accessibilityRole="button"
-                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries }}
-                  disabled={finishStatus !== "idle" || isSavingEntries} onPress={() => { Keyboard.dismiss(); setCurrentExerciseIndex((index) => index + 1); setSaveMessage(""); }}
+                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
+                  disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onPress={() => { Keyboard.dismiss(); setCurrentExerciseIndex((index) => index + 1); setSaveMessage(""); }}
                   style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
                   <ThemedText style={{ fontWeight: "600" }}>Next exercise</ThemedText><Ionicons name="arrow-forward" size={20} color={colors.text} />
                 </Pressable> : null}
@@ -1872,9 +1958,32 @@ export default function ActiveWorkoutScreen() {
         </View>
       </Modal>
 
+      {targetReviewExerciseIds && !pendingArrangement ? <View style={{ paddingHorizontal: 20, paddingVertical: 8, backgroundColor: colors.inputBackground }}><ThemedText>Order synced. Targets stayed the same.</ThemedText><Pressable testID="player-review-synced-order" accessibilityRole="button" disabled={arrangement.busy} onPress={arrangement.reviewPending} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Review target suggestions</ThemedText></Pressable></View> : null}
+      {pendingArrangement ? <View style={{ paddingHorizontal: 20, paddingVertical: 8, backgroundColor: colors.inputBackground }}>
+        <ThemedText accessibilityLiveRegion="polite">{pendingArrangement.payload.unsupported ? "This server doesn’t support workout changes yet. Use the latest saved workout." : pendingArrangement.type === "order" ? pendingArrangement.payload.conflict ? "Your exercise order changed elsewhere. Review it before syncing." : "Your exercise order is waiting to sync." : "Your exercise replacement is waiting to sync."}</ThemedText>
+        {pendingArrangement.type === "order" ? <Pressable testID="player-review-pending-order" accessibilityRole="button" disabled={arrangement.busy} onPress={arrangement.reviewPending} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Review and sync order</ThemedText></Pressable> : <Pressable testID="player-retry-replacement" accessibilityRole="button" disabled={arrangement.busy} onPress={() => void retryFailedWrites()} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Retry replacement</ThemedText></Pressable>}
+        {pendingArrangement.type === "replace" && pendingArrangement.payload.conflict ? <Pressable testID="player-replacement-use-server" accessibilityRole="button" disabled={arrangement.busy} onPress={arrangement.dismissPending} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Use latest saved workout</ThemedText></Pressable> : null}
+      </View> : null}
+      {arrangement.message && !sheetVisible ? <ThemedText accessibilityLiveRegion="polite" style={{ paddingHorizontal: 20, paddingVertical: 6 }}>{arrangement.message}</ThemedText> : null}
+      <Modal transparent animationType="slide" visible={sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance)} onRequestClose={() => {
+        if (arrangement.busy) return;
+        if (arrangement.guidance) arrangement.setGuidance(null);
+        else if (infoSheetVisible) setInfoSheetVisible(false);
+        else if (arrangement.review) arrangement.setReview(null);
+        else if (arrangement.picker) arrangement.setPicker(null);
+        else setSheetVisible(false);
+      }}>
       <ExerciseListSheet
-        visible={sheetVisible}
+        inline
+        visible={sheetVisible && !infoSheetVisible && !arrangement.review && !arrangement.picker && !arrangement.guidance}
         exercises={exercises}
+        canArrange={arrangementRevision != null && finishStatus === "idle"}
+        busy={arrangement.busy || isSavingEntries || isRestoring}
+        message={arrangement.message}
+        onMove={arrangement.move}
+        onReplace={arrangement.openReplacement}
+        canReplace={(id) => !sets.some((set) => set.exerciseId === id && (set.confirmed || set.logId))}
+
         currentIndex={currentExerciseIndex}
         colors={colors}
         getProgress={getExerciseProgress}
@@ -1885,8 +1994,12 @@ export default function ActiveWorkoutScreen() {
         onClose={() => setSheetVisible(false)}
       />
 
+      <WorkoutArrangementSheets inline controller={arrangement} colors={colors} exercises={exercises} />
+      <ExerciseInfoSheet inline visible={Boolean(arrangement.guidance)} exerciseId={arrangement.guidance?.id ?? null} exerciseName={arrangement.guidance?.name ?? ""} colors={colors} token={token} isLoggedIn={Boolean(token)} onClose={() => arrangement.setGuidance(null)} />
+
       <ExerciseInfoSheet
-        visible={infoSheetVisible}
+        inline
+        visible={infoSheetVisible && !arrangement.guidance}
         exerciseId={currentItem?.exercise.id ?? null}
         exerciseName={currentItem?.exercise.name ?? ""}
         colors={colors}
@@ -1894,6 +2007,7 @@ export default function ActiveWorkoutScreen() {
         isLoggedIn={Boolean(token)}
         onClose={() => setInfoSheetVisible(false)}
       />
+      </Modal>
 
       <Modal transparent visible={noteEditorVisible} animationType="none" onRequestClose={closeNoteEditor}>
         <KeyboardAvoidingView

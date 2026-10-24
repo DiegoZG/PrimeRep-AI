@@ -1,3 +1,4 @@
+import { adoptSessionArrangement, mergeReplayAcknowledgement, mergeSavedArrangement, normalizeWorkoutArrangement } from "./workoutArrangement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { acknowledgeSetOperation, isAppliedSetOperation, mergeSetAcknowledgements, prepareSetEntries, resolveSetCorrection } from "./workoutSetEntries";
 import type { WeightUnit } from "./weightUnits";
@@ -15,6 +16,8 @@ import {
   updateLoggedSet,
   updateUserExerciseNote,
   updateWorkoutNote,
+  updateExerciseOrder,
+  replaceSessionExercise,
 } from "@/services/workoutLoggingService";
 import type { SessionResponse } from "@/services/workoutLoggingService";
 import type { ContinueWorkoutLoggingResult, HealthExportCandidate, LocalActiveWorkout, PendingWorkoutOperation, QueueWorkoutCompletionResult, SequencedWorkoutOperation } from "./activeWorkoutStore.native";
@@ -47,7 +50,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     recoverMissingSetOperations(workout.sets, workout.operations)
   );
   workout.operations = normalizedOperations;
-  return workout;
+  return normalizeWorkoutArrangement(workout);
 }
 
 export async function healthExportCandidates(userId: string, since: number): Promise<HealthExportCandidate[]> {
@@ -71,6 +74,7 @@ export function saveActiveWorkout(workout: LocalActiveWorkout): Promise<void> {
     const raw = await AsyncStorage.getItem(keyFor(workout.userId));
     if (raw) {
       const saved = JSON.parse(raw) as LocalActiveWorkout;
+      Object.assign(workout, mergeSavedArrangement(saved, workout));
       if (saved.revision >= workout.revision || (saved.operations.some((operation) => operation.type === "complete") && workout.finishedAt == null)) return;
     }
     await AsyncStorage.setItem(keyFor(workout.userId), JSON.stringify(workout));
@@ -84,6 +88,20 @@ function normalizeOperationSequences(operations: SequencedWorkoutOperation[]): S
     .map((operation, index) => ({ operation, index }))
     .sort((left, right) => (left.operation.sequence ?? Number.MAX_SAFE_INTEGER) - (right.operation.sequence ?? Number.MAX_SAFE_INTEGER) || left.index - right.index)
     .map(({ operation }, index) => ({ ...operation, sequence: index + 1 }));
+}
+
+async function saveReplayWorkout(workout: LocalActiveWorkout, startedIds: string[]): Promise<void> {
+  const task = writeQueue.then(async () => {
+    const terminal = await terminalWorkouts(workout.userId);
+    if (terminal.some((entry) => entry.clientSessionId === workout.clientSessionId)) return;
+    const durable = await loadActiveWorkout(workout.userId);
+    const merged = mergeReplayAcknowledgement(durable, workout, startedIds);
+    merged.operations = normalizeOperationSequences(merged.operations);
+    await AsyncStorage.setItem(keyFor(workout.userId), JSON.stringify(merged));
+    Object.assign(workout, merged);
+  });
+  writeQueue = task.catch(() => undefined);
+  await task;
 }
 
 function operationSetKey(operation: SequencedWorkoutOperation): string | null {
@@ -117,7 +135,7 @@ function recoverMissingSetOperations(
 function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incoming: LocalActiveWorkout, retry: boolean): LocalActiveWorkout {
   if (!persisted) {
     const incomingOperations = (retry
-      ? incoming.operations.map((operation) => operation.status === "failed" ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation)
+      ? incoming.operations.map((operation) => operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation)
       : incoming.operations) as SequencedWorkoutOperation[];
     const operations = recoverMissingSetOperations(
       incoming.sets,
@@ -152,7 +170,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     mergedSets,
     Array.from(operationsById.values()).filter((operation) => operation.type !== "complete")
   );
-  if (retry) operations = operations.map((operation) => operation.status === "failed" ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation);
+  if (retry) operations = operations.map((operation) => operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation);
   const previousComplete = [...persisted.operations, ...incoming.operations].find((operation) => operation.type === "complete");
   operations.push({ ...(previousComplete ?? { id: createClientId(), type: "complete", status: "pending", payload: {} }), status: "pending", nextAttemptAt: undefined } as SequencedWorkoutOperation);
   return {
@@ -160,7 +178,10 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     workoutDayId: incoming.workoutDayId,
     workoutDate: incoming.workoutDate,
     dayType: incoming.dayType,
-    workoutSnapshot: incoming.workoutSnapshot ?? persisted.workoutSnapshot,
+    workoutSnapshot: persisted.workoutSnapshot ?? incoming.workoutSnapshot,
+    effectiveWorkout: (incoming.arrangementRevision ?? 0) >= (persisted.arrangementRevision ?? 0) ? incoming.effectiveWorkout ?? persisted.effectiveWorkout : persisted.effectiveWorkout,
+    arrangementRevision: Math.max(incoming.arrangementRevision ?? 0, persisted.arrangementRevision ?? 0),
+    currentExerciseId: incoming.currentExerciseId ?? persisted.currentExerciseId,
     clientSessionId: incoming.clientSessionId,
     serverSessionId: persisted.serverSessionId ?? incoming.serverSessionId,
     startedAt: incoming.startedAt,
@@ -270,7 +291,7 @@ export function clearActiveWorkout(userId: string): Promise<void> {
 export async function retryFailedWorkoutOperations(userId: string): Promise<LocalActiveWorkout | null> {
   const workout = await loadActiveWorkout(userId);
   if (!workout) return null;
-  workout.operations = workout.operations.map((operation) => operation.status === "failed" ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation) as PendingWorkoutOperation[];
+  workout.operations = workout.operations.map((operation) => operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation) as PendingWorkoutOperation[];
   workout.sets = workout.sets.map((set) => set.syncStatus === "failed" ? { ...set, syncing: false, syncStatus: "pending" } : set);
   workout.revision += 1;
   await saveActiveWorkout(workout);
@@ -327,6 +348,22 @@ async function replay(token: string, userId: string) {
   };
   for (let index = 0; index < operations.length; index += 1) {
     let operation = operations[index];
+    if ((operation.type === "order" || operation.type === "replace") && workout.serverSessionId && workout.arrangementRevision == null) {
+      remaining.push({ ...operation, status: "failed", payload: { ...operation.payload, conflict: true, unsupported: true } } as PendingWorkoutOperation);
+      completionBlocked = true;
+      continue;
+    }
+    if ((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) {
+      remaining.push(operation);
+      completionBlocked = true;
+      continue;
+    }
+    if ((operation.type === "replace" || operation.type === "complete")
+      && remaining.some((pending) => pending.type === "order" || pending.type === "replace")) {
+      remaining.push(operation, ...operations.slice(index + 1));
+      completionBlocked = true;
+      break;
+    }
     if (operation.status === "failed" || (operation.nextAttemptAt && operation.nextAttemptAt > Date.now())) {
       remaining.push(operation, ...operations.slice(index + 1));
       break;
@@ -340,15 +377,26 @@ async function replay(token: string, userId: string) {
     const retrying = { ...operation, status: "retrying" as const, attempts: (operation.attempts ?? 0) + 1, nextAttemptAt: undefined } as PendingWorkoutOperation;
     workout.operations = [...remaining, retrying, ...operations.slice(index + 1)];
     workout.revision += 1;
-    await saveActiveWorkout(workout);
+    await saveReplayWorkout(workout, startedOperationIds);
     try {
       if (operation.type === "create") {
         const created = await createSession(token, operation.payload.workoutDayId, operation.payload.workoutDate, operation.payload.dayType, operation.payload.clientSessionId);
-        workout.serverSessionId = created.id;
+        Object.assign(workout, adoptSessionArrangement(workout, created));
       } else if (!workout.serverSessionId) {
         remaining.push({ ...retrying, status: "pending" });
         remaining.push(...operations.slice(index + 1));
         break;
+      } else if (operation.type === "order") {
+        const updated = await updateExerciseOrder(token, workout.serverSessionId!, operation.payload.exerciseIds,
+          operation.payload.expectedRevision, operation.id, operation.payload.applyRevisedTargets);
+        Object.assign(workout, adoptSessionArrangement(workout, updated));
+        if (operation.payload.requiresReview) workout.targetReviewExerciseIds = [...operation.payload.exerciseIds];
+        workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
+      } else if (operation.type === "replace") {
+        const updated = await replaceSessionExercise(token, workout.serverSessionId!, operation.payload.exerciseId,
+          operation.payload.replacementExerciseId, operation.payload.expectedRevision, operation.id);
+        Object.assign(workout, adoptSessionArrangement(workout, updated));
+        workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
       } else if (operation.type === "set") {
         if (shouldReconcileSetsBeforeReplay && !canonicalSetsLoaded) await refreshCanonicalSets();
         const existing = canonicalSets.get(`${operation.payload.exerciseId}:${operation.payload.setNumber}`);
@@ -408,6 +456,18 @@ async function replay(token: string, userId: string) {
         break;
       }
     } catch (error) {
+      if ((operation.type === "order" || operation.type === "replace") && error instanceof HttpError && error.status === 409) {
+        try {
+          const canonical = await getSession(token, workout.serverSessionId!);
+          Object.assign(workout, adoptSessionArrangement(workout, canonical));
+        } catch {
+          // Keep the intent and require review even if refreshing the server is temporarily unavailable.
+        }
+        remaining.push({ ...operation, status: "failed", attempts: retrying.attempts,
+          payload: { ...operation.payload, conflict: true } } as PendingWorkoutOperation);
+        completionBlocked = true;
+        continue;
+      }
       if (operation.type === "set" && error instanceof HttpError && error.status === 409 && workout.serverSessionId) {
         try {
           const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
@@ -457,7 +517,7 @@ async function replay(token: string, userId: string) {
   }
   workout.operations = remaining;
   workout.revision += 1;
-  await saveActiveWorkout(workout);
+  await saveReplayWorkout(workout, startedOperationIds);
   return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds };
 }
 

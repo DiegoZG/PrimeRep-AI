@@ -1,5 +1,7 @@
 import { requestJson } from "./httpClient";
-import type { WorkoutDayApiResponse } from "@/interfaces/workouts";
+import type { Exercise, ExerciseApiItem } from "@/interfaces/exercises";
+import { mapApiItemToExercise } from "./exerciseService";
+import type { WorkoutDayApiItem, WorkoutDayApiResponse } from "@/interfaces/workouts";
 
 // ── API Response Types ───────────────────────────────────────────────────────
 
@@ -33,6 +35,8 @@ export interface SessionResponse {
   workoutDate: string;
   dayType: string;
   workoutSnapshot: WorkoutDayApiResponse | null;
+  effectiveWorkout?: WorkoutDayApiResponse | null;
+  arrangementRevision?: number;
   recoveryRequired: boolean;
   clientSessionId: string | null;
   status: "in_progress" | "completed" | "abandoned";
@@ -324,4 +328,31 @@ export async function fetchLastSetsForExercises(
     map[exerciseId] = items;
   }
   return map;
+}
+
+export interface ExerciseOrderPreview {
+  arrangementRevision: number;
+  exerciseIds: string[];
+  targetsChanged: boolean;
+  targetChanges: { exerciseId: string; fromBlockType: string; toBlockType: string;
+    before: WorkoutDayApiItem["prescription"]; after: WorkoutDayApiItem["prescription"] }[];
+  effectiveWorkout: WorkoutDayApiResponse;
+  message: string;
+}
+
+export async function getReplacementCandidates(token: string, sessionId: string, exerciseId: string): Promise<Exercise[]> {
+  const result = await requestJson<{ items: ExerciseApiItem[] }>(`/v1/workouts/sessions/${sessionId}/exercises/${encodeURIComponent(exerciseId)}/replacement-candidates`, { method: "GET", token });
+  return result.items.map(mapApiItemToExercise);
+}
+
+export function replaceSessionExercise(token: string, sessionId: string, exerciseId: string, replacementExerciseId: string, expectedRevision: number, clientOperationId: string): Promise<SessionResponse> {
+  return requestJson(`/v1/workouts/sessions/${sessionId}/exercises/${encodeURIComponent(exerciseId)}/replace`, { method: "POST", token, body: { replacementExerciseId, expectedRevision, clientOperationId } });
+}
+
+export function previewExerciseOrder(token: string, sessionId: string, exerciseIds: string[], expectedRevision: number): Promise<ExerciseOrderPreview> {
+  return requestJson(`/v1/workouts/sessions/${sessionId}/order/preview`, { method: "POST", token, body: { exerciseIds, expectedRevision } });
+}
+
+export function updateExerciseOrder(token: string, sessionId: string, exerciseIds: string[], expectedRevision: number, clientOperationId: string, applyRevisedTargets: boolean): Promise<SessionResponse> {
+  return requestJson(`/v1/workouts/sessions/${sessionId}/order`, { method: "PATCH", token, body: { exerciseIds, expectedRevision, clientOperationId, applyRevisedTargets } });
 }

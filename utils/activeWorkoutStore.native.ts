@@ -1,3 +1,4 @@
+import { adoptSessionArrangement, mergeReplayAcknowledgement, mergeSavedArrangement, normalizeWorkoutArrangement } from "./workoutArrangement";
 import * as SQLite from "expo-sqlite";
 import { acknowledgeSetOperation, isAppliedSetOperation, mergeSetAcknowledgements, prepareSetEntries, resolveSetCorrection } from "./workoutSetEntries";
 import type { WeightUnit } from "./weightUnits";
@@ -16,6 +17,8 @@ import {
   updateLoggedSet,
   updateUserExerciseNote,
   updateWorkoutNote,
+  updateExerciseOrder,
+  replaceSessionExercise,
 } from "@/services/workoutLoggingService";
 import type { SessionResponse } from "@/services/workoutLoggingService";
 
@@ -91,6 +94,10 @@ export type PendingWorkoutOperation =
       nextAttemptAt?: number;
       payload: { exerciseId: string; note: string | null };
     }
+  | { id: string; type: "order"; status: SyncState; attempts?: number; nextAttemptAt?: number;
+      payload: { exerciseIds: string[]; expectedRevision: number; applyRevisedTargets: boolean; requiresReview?: boolean; conflict?: boolean; unsupported?: boolean } }
+  | { id: string; type: "replace"; status: SyncState; attempts?: number; nextAttemptAt?: number;
+      payload: { exerciseId: string; replacementExerciseId: string; expectedRevision: number; conflict?: boolean; unsupported?: boolean } }
   | { id: string; type: "complete" | "abandon"; status: SyncState; attempts?: number; nextAttemptAt?: number; payload: Record<string, never> };
 
 export type SequencedWorkoutOperation = PendingWorkoutOperation & { sequence?: number };
@@ -101,6 +108,11 @@ export interface LocalActiveWorkout {
   workoutDate: string;
   dayType: string;
   workoutSnapshot: WorkoutDay | null;
+  effectiveWorkout?: WorkoutDay | null;
+  arrangementRevision?: number;
+  currentExerciseId?: string | null;
+  targetReviewExerciseIds?: string[] | null;
+  acknowledgedArrangementOperationIds?: string[];
   clientSessionId: string;
   serverSessionId: string | null;
   startedAt: number;
@@ -108,7 +120,7 @@ export interface LocalActiveWorkout {
   currentExerciseIndex: number;
   restEndsAt: number | null;
   restTotalSeconds: number;
-  restContext: { exerciseIndex: number; isLastSetOfExercise: boolean } | null;
+  restContext: { exerciseId?: string; exerciseIndex?: number; isLastSetOfExercise: boolean } | null;
   revision: number;
   sets: SetState[];
   operations: SequencedWorkoutOperation[];
@@ -150,6 +162,11 @@ function database(): Promise<SQLite.SQLiteDatabase> {
           rest_total_seconds INTEGER NOT NULL DEFAULT 0,
           rest_context TEXT,
           workout_snapshot TEXT,
+          effective_workout TEXT,
+          arrangement_revision INTEGER,
+          current_exercise_id TEXT,
+          target_review_exercise_ids TEXT,
+          acknowledged_arrangement_operation_ids TEXT,
           workout_note TEXT,
           exercise_feedback TEXT,
           exercise_notes TEXT,
@@ -188,6 +205,11 @@ function database(): Promise<SQLite.SQLiteDatabase> {
         "ALTER TABLE workout_pending_operations ADD COLUMN next_attempt_at INTEGER",
         "ALTER TABLE workout_pending_operations ADD COLUMN sequence INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE active_workouts ADD COLUMN workout_snapshot TEXT",
+        "ALTER TABLE active_workouts ADD COLUMN effective_workout TEXT",
+        "ALTER TABLE active_workouts ADD COLUMN arrangement_revision INTEGER",
+        "ALTER TABLE active_workouts ADD COLUMN current_exercise_id TEXT",
+        "ALTER TABLE active_workouts ADD COLUMN target_review_exercise_ids TEXT",
+        "ALTER TABLE active_workouts ADD COLUMN acknowledged_arrangement_operation_ids TEXT",
         "ALTER TABLE active_workouts ADD COLUMN revision INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE active_workouts ADD COLUMN workout_note TEXT",
         "ALTER TABLE active_workouts ADD COLUMN exercise_feedback TEXT",
@@ -238,6 +260,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     workout_day_id: string; workout_date: string; day_type: string; client_session_id: string;
     server_session_id: string | null; started_at: number; finished_at: number | null; current_exercise_index: number;
     rest_ends_at: number | null; rest_total_seconds: number; rest_context: string | null; workout_snapshot: string | null;
+    effective_workout: string | null; arrangement_revision: number; current_exercise_id: string | null; target_review_exercise_ids: string | null; acknowledged_arrangement_operation_ids: string | null;
     workout_note: string | null; exercise_feedback: string | null; exercise_notes: string | null; revision: number;
   }>("SELECT * FROM active_workouts WHERE user_id = ?", [userId]);
   if (!workout) return null;
@@ -251,12 +274,17 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     payload: JSON.parse(operation.payload),
   })) as SequencedWorkoutOperation[]);
   const sets = drafts.map((draft) => JSON.parse(draft.payload) as SetState);
-  return {
+  return normalizeWorkoutArrangement({
     userId,
     workoutDayId: workout.workout_day_id,
     workoutDate: workout.workout_date,
     dayType: workout.day_type,
     workoutSnapshot: workout.workout_snapshot ? JSON.parse(workout.workout_snapshot) as WorkoutDay : null,
+    effectiveWorkout: workout.effective_workout ? JSON.parse(workout.effective_workout) as WorkoutDay : null,
+    arrangementRevision: workout.arrangement_revision ?? undefined,
+    currentExerciseId: workout.current_exercise_id,
+    targetReviewExerciseIds: workout.target_review_exercise_ids ? JSON.parse(workout.target_review_exercise_ids) : null,
+    acknowledgedArrangementOperationIds: workout.acknowledged_arrangement_operation_ids ? JSON.parse(workout.acknowledged_arrangement_operation_ids) : [],
     clientSessionId: workout.client_session_id,
     serverSessionId: workout.server_session_id,
     startedAt: workout.started_at,
@@ -271,7 +299,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     workoutNote: workout.workout_note,
     exerciseFeedback: workout.exercise_feedback ? JSON.parse(workout.exercise_feedback) : {},
     exerciseNotes: workout.exercise_notes ? JSON.parse(workout.exercise_notes) : {},
-  };
+  });
 }
 
 export async function healthExportCandidates(userId: string, since: number): Promise<HealthExportCandidate[]> {
@@ -309,11 +337,11 @@ async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalAct
       if (queuedFinish) return;
     }
     const result = await db.runAsync(
-      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, finished_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot, workout_note, exercise_feedback, exercise_notes, revision)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, workout_snapshot=excluded.workout_snapshot, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, finished_at=excluded.finished_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context, workout_note=excluded.workout_note, exercise_feedback=excluded.exercise_feedback, exercise_notes=excluded.exercise_notes, revision=excluded.revision
+      `INSERT INTO active_workouts (user_id, workout_day_id, workout_date, day_type, client_session_id, server_session_id, started_at, finished_at, current_exercise_index, rest_ends_at, rest_total_seconds, rest_context, workout_snapshot, workout_note, exercise_feedback, exercise_notes, effective_workout, arrangement_revision, current_exercise_id, target_review_exercise_ids, acknowledged_arrangement_operation_ids, revision)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET workout_day_id=excluded.workout_day_id, workout_date=excluded.workout_date, day_type=excluded.day_type, workout_snapshot=excluded.workout_snapshot, client_session_id=excluded.client_session_id, server_session_id=excluded.server_session_id, started_at=excluded.started_at, finished_at=excluded.finished_at, current_exercise_index=excluded.current_exercise_index, rest_ends_at=excluded.rest_ends_at, rest_total_seconds=excluded.rest_total_seconds, rest_context=excluded.rest_context, workout_note=excluded.workout_note, exercise_feedback=excluded.exercise_feedback, exercise_notes=excluded.exercise_notes, effective_workout=excluded.effective_workout, arrangement_revision=excluded.arrangement_revision, current_exercise_id=excluded.current_exercise_id, target_review_exercise_ids=excluded.target_review_exercise_ids, acknowledged_arrangement_operation_ids=excluded.acknowledged_arrangement_operation_ids, revision=excluded.revision
        WHERE active_workouts.revision < excluded.revision`,
-      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.finishedAt ?? null, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null, workout.workoutSnapshot ? JSON.stringify(workout.workoutSnapshot) : null, workout.workoutNote ?? null, JSON.stringify(workout.exerciseFeedback ?? {}), JSON.stringify(workout.exerciseNotes ?? {}), workout.revision]
+      [workout.userId, workout.workoutDayId, workout.workoutDate, workout.dayType, workout.clientSessionId, workout.serverSessionId, workout.startedAt, workout.finishedAt ?? null, workout.currentExerciseIndex, workout.restEndsAt, workout.restTotalSeconds, workout.restContext ? JSON.stringify(workout.restContext) : null, workout.workoutSnapshot ? JSON.stringify(workout.workoutSnapshot) : null, workout.workoutNote ?? null, JSON.stringify(workout.exerciseFeedback ?? {}), JSON.stringify(workout.exerciseNotes ?? {}), workout.effectiveWorkout ? JSON.stringify(workout.effectiveWorkout) : null, workout.arrangementRevision ?? null, workout.currentExerciseId ?? null, workout.targetReviewExerciseIds ? JSON.stringify(workout.targetReviewExerciseIds) : null, JSON.stringify(workout.acknowledgedArrangementOperationIds ?? []), workout.revision]
     );
     if (result.changes === 0) return;
     await db.runAsync("DELETE FROM workout_set_drafts WHERE user_id = ?", [workout.userId]);
@@ -332,7 +360,17 @@ async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalAct
 
 export async function saveActiveWorkout(workout: LocalActiveWorkout): Promise<void> {
   return serializeWrite(async () => {
+    Object.assign(workout, mergeSavedArrangement(await loadActiveWorkout(workout.userId), workout));
     await persistActiveWorkout(await database(), workout);
+  });
+}
+
+async function saveReplayWorkout(workout: LocalActiveWorkout, startedIds: string[]): Promise<void> {
+  await serializeWrite(async () => {
+    const durable = await loadActiveWorkout(workout.userId);
+    const merged = mergeReplayAcknowledgement(durable, workout, startedIds);
+    await persistActiveWorkout(await database(), merged);
+    Object.assign(workout, merged);
   });
 }
 
@@ -378,7 +416,7 @@ function recoverMissingSetOperations(
 function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incoming: LocalActiveWorkout, retry: boolean): LocalActiveWorkout {
   if (!persisted) {
     const incomingOperations = (retry
-      ? incoming.operations.map((operation) => operation.status === "failed" ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation)
+      ? incoming.operations.map((operation) => operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) ? { ...operation, status: "pending", nextAttemptAt: undefined } : operation)
       : incoming.operations) as SequencedWorkoutOperation[];
     const operations = recoverMissingSetOperations(
       incoming.sets,
@@ -421,7 +459,7 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     Array.from(operationsById.values()).filter((operation) => operation.type !== "complete")
   );
   if (retry) {
-    operations = operations.map((operation) => operation.status === "failed"
+    operations = operations.map((operation) => operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict)
       ? { ...operation, status: "pending", nextAttemptAt: undefined }
       : operation);
   }
@@ -437,7 +475,10 @@ function mergeWorkoutForCompletion(persisted: LocalActiveWorkout | null, incomin
     workoutDayId: incoming.workoutDayId,
     workoutDate: incoming.workoutDate,
     dayType: incoming.dayType,
-    workoutSnapshot: incoming.workoutSnapshot ?? persisted.workoutSnapshot,
+    workoutSnapshot: persisted.workoutSnapshot ?? incoming.workoutSnapshot,
+    effectiveWorkout: (incoming.arrangementRevision ?? 0) >= (persisted.arrangementRevision ?? 0) ? incoming.effectiveWorkout ?? persisted.effectiveWorkout : persisted.effectiveWorkout,
+    arrangementRevision: Math.max(incoming.arrangementRevision ?? 0, persisted.arrangementRevision ?? 0),
+    currentExerciseId: incoming.currentExerciseId ?? persisted.currentExerciseId,
     clientSessionId: incoming.clientSessionId,
     serverSessionId: persisted.serverSessionId ?? incoming.serverSessionId,
     startedAt: incoming.startedAt,
@@ -541,7 +582,7 @@ export async function retryFailedWorkoutOperations(userId: string): Promise<Loca
   const workout = await loadActiveWorkout(userId);
   if (!workout) return null;
   workout.operations = workout.operations.map((operation) =>
-    operation.status === "failed"
+    operation.status === "failed" && !((operation.type === "order" || operation.type === "replace") && operation.payload.conflict)
       ? { ...operation, status: "pending", nextAttemptAt: undefined }
       : operation
   ) as PendingWorkoutOperation[];
@@ -613,6 +654,22 @@ async function replayPendingWorkoutOperationsInternal(
   const now = Date.now();
   for (let index = 0; index < operations.length; index += 1) {
     let operation = operations[index];
+    if ((operation.type === "order" || operation.type === "replace") && workout.serverSessionId && workout.arrangementRevision == null) {
+      remaining.push({ ...operation, status: "failed", payload: { ...operation.payload, conflict: true, unsupported: true } } as PendingWorkoutOperation);
+      completionBlocked = true;
+      continue;
+    }
+    if ((operation.type === "order" || operation.type === "replace") && operation.payload.conflict) {
+      remaining.push(operation);
+      completionBlocked = true;
+      continue;
+    }
+    if ((operation.type === "replace" || operation.type === "complete")
+      && remaining.some((pending) => pending.type === "order" || pending.type === "replace")) {
+      remaining.push(operation, ...operations.slice(index + 1));
+      completionBlocked = true;
+      break;
+    }
     if (operation.status === "failed") {
       remaining.push(operation);
       remaining.push(...operations.slice(index + 1));
@@ -634,7 +691,7 @@ async function replayPendingWorkoutOperationsInternal(
     // any point can safely replay the same client identifier.
     workout.operations = [...remaining, retrying, ...operations.slice(index + 1)];
     workout.revision += 1;
-    await saveActiveWorkout(workout);
+    await saveReplayWorkout(workout, startedOperationIds);
     try {
       if (operation.type === "create") {
         const created = await createSession(
@@ -644,7 +701,26 @@ async function replayPendingWorkoutOperationsInternal(
           operation.payload.dayType,
           operation.payload.clientSessionId
         );
-        workout.serverSessionId = created.id;
+        Object.assign(workout, adoptSessionArrangement(workout, created));
+      } else if (operation.type === "order") {
+        if (!workout.serverSessionId) {
+          remaining.push({ ...retrying, status: "pending" }, ...operations.slice(index + 1));
+          break;
+        }
+        const updated = await updateExerciseOrder(token, workout.serverSessionId!, operation.payload.exerciseIds,
+          operation.payload.expectedRevision, operation.id, operation.payload.applyRevisedTargets);
+        Object.assign(workout, adoptSessionArrangement(workout, updated));
+        if (operation.payload.requiresReview) workout.targetReviewExerciseIds = [...operation.payload.exerciseIds];
+        workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
+      } else if (operation.type === "replace") {
+        if (!workout.serverSessionId) {
+          remaining.push({ ...retrying, status: "pending" }, ...operations.slice(index + 1));
+          break;
+        }
+        const updated = await replaceSessionExercise(token, workout.serverSessionId!, operation.payload.exerciseId,
+          operation.payload.replacementExerciseId, operation.payload.expectedRevision, operation.id);
+        Object.assign(workout, adoptSessionArrangement(workout, updated));
+        workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
       } else if (operation.type === "set") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
@@ -762,6 +838,18 @@ async function replayPendingWorkoutOperationsInternal(
         break;
       }
     } catch (error) {
+      if ((operation.type === "order" || operation.type === "replace") && error instanceof HttpError && error.status === 409) {
+        try {
+          const canonical = await getSession(token, workout.serverSessionId!);
+          Object.assign(workout, adoptSessionArrangement(workout, canonical));
+        } catch {
+          // Keep the intent and require review even if refreshing the server is temporarily unavailable.
+        }
+        remaining.push({ ...operation, status: "failed", attempts: retrying.attempts,
+          payload: { ...operation.payload, conflict: true } } as PendingWorkoutOperation);
+        completionBlocked = true;
+        continue;
+      }
       if (
         operation.type === "set" &&
         error instanceof HttpError &&
@@ -814,7 +902,7 @@ async function replayPendingWorkoutOperationsInternal(
   }
   workout.operations = remaining;
   workout.revision += 1;
-  await saveActiveWorkout(workout);
+  await saveReplayWorkout(workout, startedOperationIds);
   return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds };
 }
 

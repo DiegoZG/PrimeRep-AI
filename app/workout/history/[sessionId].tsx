@@ -95,7 +95,7 @@ export default function WorkoutHistoryDetailScreen() {
   }, [session]);
 
   const exercises = useMemo(() => {
-    const planned = (session?.workoutSnapshot?.exerciseBlocks ?? []).flatMap((block) => block.items);
+    const planned = ((session?.effectiveWorkout ?? session?.workoutSnapshot)?.exerciseBlocks ?? []).flatMap((block) => block.items);
     const seen = new Set<string>();
     const ordered = planned.flatMap((item) => {
       const id = String(item.exercise.id);
@@ -107,7 +107,7 @@ export default function WorkoutHistoryDetailScreen() {
       if (!seen.has(id)) ordered.push({ id, name: id, prescribedSets: 0 });
     }
     return ordered;
-  }, [session?.workoutSnapshot, logsByExercise]);
+  }, [session?.effectiveWorkout, session?.workoutSnapshot, logsByExercise]);
 
   const saveAddedSet = async (retry?: AddAttempt) => {
     if (!token || !user?.id || sessionOwnerId !== user.id || !session || !addDraft || adding || session.status === "abandoned") return;
