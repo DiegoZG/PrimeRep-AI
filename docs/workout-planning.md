@@ -145,7 +145,7 @@ saved-order recovery cases.
 
 | Scenario | Actual result |
 | --- | --- |
-| Native addition | Riley's Trainer-led day increased from six to seven exercises. The new Leg Press was last with 3 × 8–12 / 90s; all six original blocks and prescriptions remained exact. |
+| Native addition | Riley's Trainer-led day increased from six to seven exercises. The new Leg Press was last with 3 × 8–12 / 90s; all six original exercises and prescriptions remained exact. |
 | Saved user order | Moving Leg Extension before Glute Bridge survived adding the exercise and a cold app restart. The effective server session preserved that exact order and appended Leg Press last. |
 | Start and logging | Start created seven exercises and 24 target sets. A set on the added exercise saved 10 reps / 40 lb (18.14 kg); a cold restart restored its synced status. |
 | Search and duplicates | Native search, clearing and Back worked; already-added Glute Bridge was disabled. No keyboard dismissal tap was needed to select a result. |
