@@ -16,6 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseRow } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
+import { WorkoutPlanningSheet } from "@/components/workout/workout-planning-sheet";
+import { workoutPlanningMode, workoutTimeBudget, workoutPlanningSummary, workoutPlanningError, type WorkoutPlanningChoice } from "@/utils/workoutPlanning";
 import { WorkoutOverviewList, type OverviewControls } from "@/components/workout/workout-overview-list";
 import { CoachCard } from "@/components/workout/CoachCard";
 import { Colors, Fonts } from "@/constants/theme";
@@ -31,7 +33,7 @@ import { abandonSession, getActiveSession } from "@/services/workoutLoggingServi
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
 import { loadPreWorkoutOrder, savePreWorkoutOrder, prepareWorkoutStart, preWorkoutOrderFingerprint, PreWorkoutOrderConflict } from "@/utils/preWorkoutOrderStore";
 import { reorderWorkout } from "@/utils/workoutArrangement";
-import { clearActiveWorkout } from "@/utils/activeWorkoutStore";
+import { clearActiveWorkout, loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 import { localDateIso } from "@/utils/localDate";
 
@@ -41,9 +43,6 @@ const BLOCK_TYPE_LABELS: Record<string, string> = {
   accessory: "Accessories",
   finisher: "Finisher",
 };
-
-// Duration options for picker
-const DURATION_OPTIONS = [25, 35, 45, 60];
 
 // Section data type for SectionList
 interface WorkoutSection {
@@ -93,7 +92,9 @@ export default function WorkoutDayDetailScreen() {
     staleIdRefreshed,
     refreshWeek,
     skipDay,
-    setDuration,
+    setPlanning,
+    planningRefreshRequired,
+    markPlanningRefreshRequired,
     clearStaleIdFlag,
     getWorkoutById,
     syncCurrentWeek,
@@ -103,7 +104,10 @@ export default function WorkoutDayDetailScreen() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
-  const { markWorkoutTerminal } = useActiveWorkout();
+  const { markWorkoutTerminal, activeWorkout } = useActiveWorkout();
+  const [planningVisible, setPlanningVisible] = useState(false);
+  const [estimateVisible, setEstimateVisible] = useState(false);
+  const planningPendingRef = useRef(false);
 
   const [todayIso, setTodayIso] = useState(localDateIso);
 
@@ -131,7 +135,22 @@ export default function WorkoutDayDetailScreen() {
   const [orderMessage, setOrderMessage] = useState<{ owner: string; text: string } | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [localPlanningStatus, setLocalPlanningStatus] = useState<{ owner: string; started: boolean } | null>(null);
   const isOrderLoading = orderState?.owner !== orderOwner;
+  const isCheckingLocalWorkout = Boolean(workout && orderUserId && localPlanningStatus?.owner !== orderOwner);
+  const planningLocked = Boolean(workout?.planningEditable === false || workout?.programActivationId || (workout && workout.date < todayIso) || activeWorkout?.workoutDayId === workout?.workoutDayId || (localPlanningStatus?.owner === orderOwner && localPlanningStatus.started));
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    const requestEpoch = lifetimeEpochRef.current;
+    setLocalPlanningStatus(null);
+    if (orderUserId && workoutDayId) {
+      void loadActiveWorkout(orderUserId).then((local) => {
+        if (!cancelled && mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === requestEpoch) setLocalPlanningStatus({ owner: orderOwner, started: local?.workoutDayId === workoutDayId });
+      }).catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [orderUserId, workoutDayId, orderOwner, lifetime]));
+  useEffect(() => { planningPendingRef.current = false; setIsActionLoading(false); setPlanningVisible(false); setEstimateVisible(false); }, [lifetime]);
   useEffect(() => {
     let cancelled = false;
     const requestEpoch = lifetimeEpochRef.current;
@@ -188,7 +207,7 @@ export default function WorkoutDayDetailScreen() {
   }, [token, user, markWorkoutTerminal]);
 
   const startWorkout = useCallback(async () => {
-    if (!workout || !token || !user || isOrderLoading || isSavingOrder || isStarting || startingRef.current) return;
+    if (!workout || !token || !user || isActionLoading || planningRefreshRequired || planningPendingRef.current || isOrderLoading || isSavingOrder || isStarting || startingRef.current) return;
     const origin = lifetime;
     const originEpoch = lifetimeEpochRef.current;
     const isCurrent = () => mountedRef.current && lifetimeRef.current === origin && lifetimeEpochRef.current === originEpoch;
@@ -234,7 +253,7 @@ export default function WorkoutDayDetailScreen() {
       ]);
     } catch (error) { reportStartError(error); }
     finally { if (isCurrent()) { startingRef.current = false; setIsStarting(false); } }
-  }, [workout, token, user, isOrderLoading, isSavingOrder, isStarting, lifetime, router, targetWeekStart, abandonActiveWorkout, refreshWeek]);
+  }, [workout, token, user, isActionLoading, planningRefreshRequired, isOrderLoading, isSavingOrder, isStarting, lifetime, router, targetWeekStart, abandonActiveWorkout, refreshWeek]);
 
   // Handle stale ID notification
   useEffect(() => {
@@ -395,33 +414,32 @@ export default function WorkoutDayDetailScreen() {
     );
   }, [workout, workoutDayId, skipDay, targetWeekStart, todayIso, router]);
 
-  // Handle update duration
-  const handleUpdateDuration = useCallback(
-    (newDuration: number) => {
-      if (!workout || !workoutDayId) return;
-      if (newDuration === workout.durationMinutes) return;
-
-      Alert.alert(
-        "Update Duration",
-        `Change workout duration to ${newDuration} minutes? This will regenerate the workout to fit the new time.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Update",
-            onPress: async () => {
-              setIsActionLoading(true);
-              await setDuration(workoutDayId, newDuration, targetWeekStart);
-              setIsActionLoading(false);
-
-              // If newPlan is null (stale 404), alert is shown via staleIdRefreshed effect
-              // Otherwise, the workout data updates automatically via context
-            },
-          },
-        ]
-      );
-    },
-    [workout, workoutDayId, setDuration, targetWeekStart]
-  );
+  const handleUpdatePlanning = useCallback((choice: WorkoutPlanningChoice) => {
+    setPlanningVisible(false);
+    if (!workout || !user || !token || !targetWeekStart || planningLocked || isCheckingLocalWorkout || planningPendingRef.current || startingRef.current) return;
+    if (choice.planningMode === workoutPlanningMode(workout) && (choice.planningMode === "trainer_led" || choice.timeBudgetMinutes === workoutTimeBudget(workout))) return;
+    const origin = lifetime, originEpoch = lifetimeEpochRef.current;
+    const isCurrent = () => mountedRef.current && lifetimeRef.current === origin && lifetimeEpochRef.current === originEpoch;
+    planningPendingRef.current = true;
+    setIsActionLoading(true);
+    const release = () => { if (isCurrent()) { planningPendingRef.current = false; setIsActionLoading(false); } };
+    let submitted = false;
+    Alert.alert("Rebuild this workout?", "Your exercises and saved order may change. This only updates this workout, not your default in Settings.", [
+      { text: "Cancel", style: "cancel", onPress: release },
+      { text: "Rebuild workout", onPress: async () => {
+        if (!isCurrent() || submitted) return;
+        submitted = true;
+        try {
+          const local = await loadActiveWorkout(user.id);
+          if (!isCurrent()) return;
+          if (local?.workoutDayId === workout.workoutDayId) { Alert.alert("Workout already started", "Resume or finish this workout before changing its plan."); return; }
+          const updated = await setPlanning(workout.workoutDayId, choice, { weekStart: targetWeekStart, effectiveDate: localDateIso() });
+          if (!updated && isCurrent()) { markPlanningRefreshRequired(); Alert.alert("Refresh workout", "We could not confirm the updated plan. Refresh it before starting."); }
+        } catch (error) { if (isCurrent()) Alert.alert("Could not update workout", workoutPlanningError(error)); }
+        finally { release(); }
+      } },
+    ], { cancelable: false });
+  }, [workout, user, token, targetWeekStart, planningLocked, isCheckingLocalWorkout, lifetime, setPlanning, markPlanningRefreshRequired]);
 
   // Get formatted date
   const getFormattedDate = (dateStr: string): string => {
@@ -525,7 +543,7 @@ export default function WorkoutDayDetailScreen() {
       </ThemedText>
       {workout && (
         <Text style={[styles.headerSubtitle, { color: colors.placeholder }]}>
-          {getFormattedDate(workout.date)} • {workout.durationMinutes} min
+          {getFormattedDate(workout.date)} • {workoutPlanningSummary(workout)}
         </Text>
       )}
     </View>
@@ -558,46 +576,19 @@ export default function WorkoutDayDetailScreen() {
           </ThemedText>
         </View>
       )}
-      {/* Program prescriptions stay locked to the activated template. */}
       {!workout?.programActivationId ? <View style={styles.durationSection}>
-        <ThemedText type="default" style={styles.durationLabel}>
-          Duration
-        </ThemedText>
-        <View style={styles.durationPicker}>
-          {DURATION_OPTIONS.map((duration) => (
-            <Pressable
-              key={duration}
-              accessibilityRole="button"
-              accessibilityLabel={`${duration} minutes`}
-              onPress={() => handleUpdateDuration(duration)}
-              disabled={isActionLoading}
-              accessibilityState={{ disabled: isActionLoading, busy: isActionLoading, selected: workout?.durationMinutes === duration }}
-              style={[
-                styles.durationOption,
-                {
-                  backgroundColor:
-                    workout?.durationMinutes === duration
-                      ? colors.primaryButton
-                      : colors.inputBackground,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.durationOptionText,
-                  {
-                    color:
-                      workout?.durationMinutes === duration
-                        ? "#FFFFFF"
-                        : colors.text,
-                  },
-                ]}
-              >
-                {duration}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Pressable testID="workout-planning-open" accessibilityRole="button" accessibilityLabel="Change workout planning" accessibilityState={{ disabled: planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired, busy: isCheckingLocalWorkout }} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired}
+          onPress={() => { if (!planningLocked && !isCheckingLocalWorkout && !isActionLoading && !planningRefreshRequired) setPlanningVisible(true); }} style={({ pressed }) => [styles.planningRow, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBorder : colors.inputBackground }]}>
+          <View style={{ flex: 1, gap: 4 }}><ThemedText type="defaultSemiBold">Workout planning</ThemedText><ThemedText style={{ color: colors.icon }}>{workout && workoutPlanningMode(workout) === "trainer_led" ? "Trainer-led · No time limit" : workout ? workoutPlanningSummary(workout) : "Time budget"}</ThemedText></View>
+          {!planningLocked && !isCheckingLocalWorkout && <Ionicons name="chevron-forward" size={20} color={colors.icon} />}
+        </Pressable>
+        {planningLocked && <ThemedText style={{ color: colors.icon }}>Started and past workouts keep their original plan.</ThemedText>}
+        {workout && workoutPlanningMode(workout) === "trainer_led" && <>
+          <Pressable testID="workout-estimate-toggle" accessibilityRole="button" accessibilityLabel="Workout details" accessibilityState={{ expanded: estimateVisible }} onPress={() => setEstimateVisible((value) => !value)} style={styles.estimateToggle}>
+            <ThemedText style={{ color: colors.icon }}>Workout details</ThemedText><Ionicons name={estimateVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.icon} />
+          </Pressable>
+          {estimateVisible && <ThemedText testID="workout-estimate" style={{ color: colors.icon }}>About {workout.estimatedMinutes ?? workout.durationMinutes} minutes, including preparation and rest. This is an estimate, not a time limit.</ThemedText>}
+        </>}
       </View> : (
         <View testID="program-duration-locked" style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
           <ThemedText style={styles.coverageNoticeTitle}>Program workout</ThemedText>
@@ -605,13 +596,17 @@ export default function WorkoutDayDetailScreen() {
         </View>
       )}
 
+      {planningRefreshRequired && <View style={styles.coverageNotice}>
+        <ThemedText accessibilityRole="alert">Refresh to confirm the latest workout before starting.</ThemedText>
+        <Pressable testID="workout-planning-refresh" accessibilityRole="button" accessibilityLabel="Refresh workout plan" onPress={() => void refreshWeek({ weekStart: targetWeekStart })} style={styles.estimateToggle}><ThemedText type="defaultSemiBold">Refresh workout plan</ThemedText></Pressable>
+      </View>}
       {/* Skip Day action button */}
       <Pressable
         testID="skip-day-button"
         accessibilityRole="button"
         accessibilityLabel="Skip Day"
         onPress={handleSkipDay}
-        disabled={isActionLoading}
+        disabled={isActionLoading || planningRefreshRequired}
         accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
         style={[styles.skipButton, { backgroundColor: colors.inputBackground }]}
       >
@@ -728,6 +723,8 @@ export default function WorkoutDayDetailScreen() {
           header={renderListHeader()} contentContainerStyle={styles.listContent} />
       ) : null}
 
+      {workout && <WorkoutPlanningSheet visible={planningVisible} value={{ planningMode: workoutPlanningMode(workout), timeBudgetMinutes: workoutTimeBudget(workout) }} onClose={() => setPlanningVisible(false)} onApply={handleUpdatePlanning} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired} />}
+
       {/* Start Workout button */}
       {workout && (
         <View testID="workout-start-footer" style={[styles.startButtonContainer, { backgroundColor: colors.background }]}>
@@ -736,8 +733,8 @@ export default function WorkoutDayDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Start Workout"
             onPress={() => void startWorkout()}
-            disabled={isOrderLoading || isSavingOrder || isStarting || isActionLoading}
-            accessibilityState={{ disabled: isOrderLoading || isSavingOrder || isStarting || isActionLoading, busy: isStarting }}
+            disabled={isOrderLoading || isSavingOrder || isStarting || isActionLoading || planningRefreshRequired}
+            accessibilityState={{ disabled: isOrderLoading || isSavingOrder || isStarting || isActionLoading || planningRefreshRequired, busy: isStarting }}
             style={[styles.startButton, { backgroundColor: colors.primaryButton }]}
           >
             <Ionicons name="play" size={20} color="#FFFFFF" />
@@ -862,6 +859,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
+  planningRow: { minHeight: 64, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
+  estimateToggle: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 },
   durationOption: {
     flex: 1,
     minHeight: 44,

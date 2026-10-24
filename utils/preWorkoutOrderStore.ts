@@ -22,6 +22,7 @@ function write(action: () => Promise<void>): Promise<void> {
 export function preWorkoutOrderFingerprint(workout: WorkoutDay): string {
   return JSON.stringify({ workoutDayId: workout.workoutDayId, date: workout.date,
     dayType: workout.dayType, splitKey: workout.splitKey, durationMinutes: workout.durationMinutes,
+    planningMode: workout.planningMode, timeBudgetMinutes: workout.timeBudgetMinutes, planningSource: workout.planningSource,
     programActivationId: workout.programActivationId, templateId: workout.templateId,
     templateVersion: workout.templateVersion, templateDayId: workout.templateDayId,
     items: workout.blocks.flatMap((block) => block.items.map((item) => ({
@@ -36,7 +37,16 @@ export async function loadPreWorkoutOrder(userId: string, workout: WorkoutDay): 
   if (!raw) return { exerciseIds: null, invalidated: false };
   try {
     const saved = JSON.parse(raw);
-    if (saved.version !== 1 || saved.fingerprint !== preWorkoutOrderFingerprint(workout) || !Array.isArray(saved.exerciseIds)
+    let matches = saved.fingerprint === preWorkoutOrderFingerprint(workout);
+    if (!matches && typeof saved.fingerprint === "string" && (workout.programActivationId || (workout.planningMode === "time_budget" && workout.planningSource === "default" && workout.timeBudgetMinutes === workout.durationMinutes))) {
+      const legacy = JSON.parse(saved.fingerprint);
+      const current = JSON.parse(preWorkoutOrderFingerprint(workout));
+      if (!("planningMode" in legacy) && !("timeBudgetMinutes" in legacy) && !("planningSource" in legacy)) {
+        delete current.planningMode; delete current.timeBudgetMinutes; delete current.planningSource;
+        matches = JSON.stringify(legacy) === JSON.stringify(current);
+      }
+    }
+    if (saved.version !== 1 || !matches || !Array.isArray(saved.exerciseIds)
       || saved.exerciseIds.some((id: unknown) => typeof id !== "string")) throw new Error("Workout changed");
     reorderWorkout(workout, saved.exerciseIds);
     return { exerciseIds: [...saved.exerciseIds], invalidated: false };

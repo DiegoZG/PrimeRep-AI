@@ -36,7 +36,7 @@ function SectionList({ sections, renderSectionHeader, renderItem, ListHeaderComp
   }
   return React.createElement("SectionList", { ...props, sections }, children);
 }
-const native = { Pressable: "Pressable", View: "View", Text: "Text", ActivityIndicator: "ActivityIndicator", SectionList, ScrollView: "ScrollView", StyleSheet: { create: (styles) => styles, absoluteFillObject: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } }, Platform: { OS: "ios", select: (values) => values.ios } };
+const native = { Pressable: "Pressable", View: "View", Text: "Text", ActivityIndicator: "ActivityIndicator", Modal: "Modal", SectionList, ScrollView: "ScrollView", StyleSheet: { create: (styles) => styles, absoluteFillObject: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } }, Platform: { OS: "ios", select: (values) => values.ios } };
 const theme = load("constants/theme.ts", { "react-native": native });
 const dateHelpers = load("utils/localDate.ts", {});
 const textOf = (node) => typeof node === "string" ? node : node?.children?.map(textOf).join("") ?? "";
@@ -56,13 +56,13 @@ const plan = (days = [day()], start = weekStart) => ({ weekStart: start, weekEnd
 const session = (extra = {}) => ({ id: "other-session", workoutDayId: "other-day", dayType: "lower_body", startedAt: "2026-10-12T10:00:00Z", clientSessionId: null, status: "in_progress", setLogs: [{ exerciseId: "squat", setNumber: 1 }], workoutSnapshot: { title: "Existing lower workout", exerciseBlocks: [] }, ...extra });
 
 async function detail(options = {}) {
-  const calls = { weeks: [], skips: [], durations: [], active: [], abandons: [], cleared: [], favorites: [], favorite: [], unfavorite: [], routes: [], alerts: [], loggedOut: [], stored: [], focus: [], scrolls: [], created: [] };
+  const calls = { weeks: [], skips: [], durations: [], planning: [], bulk: [], active: [], abandons: [], cleared: [], favorites: [], favorite: [], unfavorite: [], routes: [], alerts: [], loggedOut: [], stored: [], focus: [], scrolls: [], created: [] };
   const scheme = options.scheme ?? "light";
   const AuthContext = React.createContext(null);
   const storage = new Map([["@primerep/theme-preference", scheme]]);
   const route = { workoutDayId: options.id ?? "day-one", ...(options.routeWeek ? { weekStart: options.routeWeek } : {}) };
   let current = options;
-  const appState = new Set();
+  const appState = new Set(), focusEffects = new Set();
   const logging = {
     getActiveSession: async (token) => { calls.active.push(token); if (current.activeError) throw error(503); return current.activeRequest ? current.activeRequest() : current.active ?? null; },
     abandonSession: async (token, id) => { calls.abandons.push([token, id]); if (current.abandonError) throw error(503); return { ...current.active, status: "abandoned" }; },
@@ -74,7 +74,7 @@ async function detail(options = {}) {
     react: React, "react-native": { ...native, useColorScheme: () => scheme, useWindowDimensions: () => ({ width: current.width ?? 430, height: current.height ?? 932, scale: 3, fontScale: current.fontScale ?? 1 }), Alert: { alert: (...args) => calls.alerts.push(args) }, AppState: { addEventListener: (_name, callback) => { appState.add(callback); return { remove: () => appState.delete(callback) }; } } },
     "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-image": { Image: "Image" }, "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
     "expo-router": { useLocalSearchParams: () => route, useRouter: () => ({ push: (value) => calls.routes.push(["push", plain(value)]), replace: (value) => calls.routes.push(["replace", plain(value)]), back: () => calls.routes.push(["back"]) }) },
-    "@react-navigation/native": { useFocusEffect: (callback) => React.useEffect(() => { calls.focus.push("focus"); return callback(); }, [callback]) },
+    "@react-navigation/native": { useFocusEffect: (callback) => React.useEffect(() => { calls.focus.push("focus"); const entry = { callback, cleanup: callback() }; focusEffects.add(entry); return () => { focusEffects.delete(entry); entry.cleanup?.(); }; }, [callback]) },
     "@react-native-async-storage/async-storage": { getItem: async (key) => storage.get(key) ?? null, setItem: async (key, value) => { calls.stored.push([key, value]); storage.set(key, value); }, removeItem: async (key) => storage.delete(key) },
     "@/utils/authContext": { AuthContext }, "./authContext": { AuthContext }, "@/utils/localDate": dateHelpers, "./localDate": dateHelpers,
     "@/constants/theme": theme, "@/services/workoutLoggingService": logging,
@@ -86,12 +86,16 @@ async function detail(options = {}) {
     "@/services/workoutWeekService": {
       getWorkoutWeek: async (...args) => { calls.weeks.push(args); return current.getWeek ? current.getWeek(...args) : current.plan ?? plan(); },
       skipWorkoutDay: async (...args) => { calls.skips.push(args); return current.skip ? current.skip(...args) : current.skipPlan ?? plan(); },
+      applyWorkoutPlanningPreference: async (...args) => { calls.bulk.push(args); return current.bulk ? current.bulk(...args) : { weekPlan: current.plan ?? plan(), updatedWorkoutCount: 1, protectedWorkoutCount: 0 }; },
+      updateWorkoutPlanning: async (...args) => { calls.planning.push(args); return current.planning ? current.planning(...args) : current.planningPlan ?? plan([day({ ...args[2], durationMinutes: args[2].timeBudgetMinutes ?? 35, planningSource: "override" })]); },
       updateWorkoutDuration: async (...args) => { calls.durations.push(args); return current.duration ? current.duration(...args) : current.durationPlan ?? plan([day({ durationMinutes: args[2] })]); },
     },
   };
   mocks["@/services/httpClient"] = { HttpError: class HttpError extends Error {} };
   mocks["./httpClient"] = mocks["@/services/httpClient"];
   mocks["@/services/workoutWeekService"].mapApiWorkoutDay = (api) => ({ ...api, blocks: api.exerciseBlocks ?? [] });
+  mocks["@/utils/workoutPlanning"] = load("utils/workoutPlanning.ts", mocks);
+  mocks["./workoutPlanning"] = mocks["@/utils/workoutPlanning"];
   const typeCache = new Map();
   const durable = loadTypescript("utils/activeWorkoutStore.web.ts", mocks, typeCache);
   store = { ...durable, clearActiveWorkout: async (id) => { calls.cleared.push(id); return durable.clearActiveWorkout(id); } };
@@ -109,19 +113,20 @@ async function detail(options = {}) {
     ["@/utils/workoutWeekContext", "utils/workoutWeekContext.tsx"], ["@/hooks/use-workout-week", "hooks/use-workout-week.ts"], ["@/utils/activeWorkoutContext", "utils/activeWorkoutContext.tsx"],
   ]) mocks[alias] = load(file, mocks);
   mocks["@/components/workout/workout-overview-list"] = load("components/workout/workout-overview-list.tsx", mocks, { setInterval: (callback) => { const id = ++dragTimerId; dragTimers.set(id, callback); return id; }, clearInterval: (id) => dragTimers.delete(id) });
+  mocks["@/components/workout/workout-planning-sheet"] = load("components/workout/workout-planning-sheet.tsx", mocks);
   mocks["@/components/explore"] = load("components/explore/ExerciseRow.tsx", mocks);
   const { AppearanceProvider, useAppearance } = mocks["@/utils/appearanceContext"];
   const { WorkoutWeekProvider, WorkoutWeekContext } = mocks["@/utils/workoutWeekContext"];
   const { ActiveWorkoutProvider, useActiveWorkout } = mocks["@/utils/activeWorkoutContext"];
   const { default: Screen } = load(routeFile, mocks);
-  let week, active, appearance, setAuth, remount, repaint;
+  let week, active, appearance, setAuth, remount, hide, repaint;
   function Bridge() {
     week = React.useContext(WorkoutWeekContext); active = useActiveWorkout(); appearance = useAppearance();
     const [generation, setGeneration] = React.useState(0);
     const [, setPaint] = React.useState(0);
-    remount = () => setGeneration((value) => value + 1);
+    remount = () => setGeneration((value) => value + 1); hide = () => setGeneration(-1);
     repaint = () => setPaint((value) => value + 1);
-    return appearance.isReady ? React.createElement(Screen, { key: generation }) : null;
+    return appearance.isReady && generation >= 0 ? React.createElement(Screen, { key: generation }) : null;
   }
   function App() {
     const [identity, setIdentity] = React.useState(options.token === null ? { token: null, user: null, isLoggedIn: false } : { token: "token-A", user: { id: "user-A" }, isLoggedIn: true });
@@ -135,15 +140,227 @@ async function detail(options = {}) {
     store, prestart: mocks["@/utils/preWorkoutOrderStore"], tickAutoScroll: async () => { await act(async () => { for (const callback of dragTimers.values()) callback(); }); },
     options: (next) => { current = { ...current, ...next }; }, install: async (next) => { await act(async () => week.installWeekPlan(next)); },
     auth: async (token, id) => { await act(async () => setAuth(token, id)); }, remount: async () => { await act(async () => remount()); },
+    hide: async () => { await act(async () => hide()); },
+    refocus: async () => { await act(async () => { for (const entry of [...focusEffects]) { entry.cleanup?.(); entry.cleanup = entry.callback(); } }); },
     changeRoute: async (next) => { Object.assign(route, next); await act(async () => repaint()); },
     confirm: async (name, title) => { const dialog = calls.alerts.findLast((entry) => !title || entry[0] === title); const button = dialog?.[2]?.find((entry) => entry.text === name); assert.ok(button, `Missing ${name} action`); await act(async () => { await button.onPress?.(); }); },
   };
 }
 const start = (view) => host(view, "start-workout-button");
 const skip = (view) => host(view, "skip-day-button");
-const duration = (view, value) => view.tree.root.findAllByType("Pressable").find((node) => textOf(node) === String(value));
+const duration = (view, value) => host(view, `planning-minutes-${value}`);
+const choosePlanning = async (view, mode, minutes) => { await tap(host(view, "workout-planning-open")); await tap(host(view, `planning-mode-${mode}`)); if (minutes) await tap(duration(view, minutes)); await tap(host(view, "planning-apply")); };
 const resetCalls = (view) => { for (const value of Object.values(view.calls)) value.length = 0; };
 const activeRoute = { pathname: "/workout/active", params: { workoutDayId: "day-one", weekStart } };
+
+for (const scheme of ["light", "dark"]) {
+  test(`${scheme}: planning sheet offers all eight budgets, keeps its draft local, and cancels without regeneration`, async () => {
+    const view = await detail({ scheme, fontScale: 1.8, width: 320 });
+    await tap(host(view, "workout-planning-open"));
+    for (const minutes of [25, 35, 45, 60, 75, 90, 105, 120]) {
+      const choice = duration(view, minutes);
+      assert.equal(choice.props.accessibilityRole, "radio");
+      assert.equal(choice.props.accessibilityLabel, `Up to ${minutes} minutes`);
+      assert.notEqual(choice.findByType("Text").props.allowFontScaling, false);
+    }
+    await tap(duration(view, 120));
+    assert.equal(duration(view, 120).props.accessibilityState.checked, true);
+    await tap(label(view, "Close workout planning"));
+    assert.deepEqual(view.calls.planning, []);
+    await tap(host(view, "workout-planning-open"));
+    assert.equal(duration(view, 35).props.accessibilityState.checked, true);
+    await unmount(view);
+  });
+
+  test(`${scheme}: trainer-led leads with exercises and keeps the estimate behind workout details`, async () => {
+    const view = await detail({ scheme, plan: plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, durationMinutes: 50, estimatedMinutes: 50 })]) });
+    assert.match(textOf(view.tree.root), /Monday, Oct 12 • 2 exercises/);
+    assert.equal(host(view, "workout-estimate"), undefined);
+    assert.ok(text(view, "Trainer-led · No time limit"));
+    await tap(host(view, "workout-estimate-toggle"));
+    assert.match(textOf(host(view, "workout-estimate")), /About 50 minutes.*not a time limit/);
+    await tap(host(view, "workout-planning-open"));
+    await tap(host(view, "planning-mode-time_budget"));
+    assert.equal(duration(view, 35).props.accessibilityState.checked, true);
+    await tap(host(view, "planning-apply"));
+    await view.confirm("Rebuild workout");
+    assert.equal(view.calls.planning.at(-1)[2].timeBudgetMinutes, 35);
+    await unmount(view);
+  });
+
+  test(`${scheme}: planning changes require confirmation and choosing the existing option is a no-op`, async () => {
+    const view = await detail({ scheme }); resetCalls(view);
+    await choosePlanning(view, "time_budget", 35); assert.deepEqual(view.calls.alerts, []);
+    await choosePlanning(view, "time_budget", 90);
+    assert.equal(view.calls.alerts[0][0], "Rebuild this workout?");
+    assert.match(view.calls.alerts[0][1], /saved order may change/);
+    await view.confirm("Cancel");
+    assert.deepEqual(view.calls.planning, []); assert.equal(start(view).props.disabled, false);
+    await unmount(view);
+  });
+
+  test(`${scheme}: pending planning mutation is submitted once and blocks same-tick Start`, async () => {
+    const pending = deferred(); const view = await detail({ scheme, planning: () => pending.promise }); resetCalls(view);
+    await choosePlanning(view, "time_budget", 120);
+    const confirm = view.calls.alerts.at(-1)[2][1].onPress;
+    let completion;
+    await act(async () => { completion = confirm(); void confirm(); start(view).props.onPress(); });
+    assert.deepEqual(plain(view.calls.planning), [["token-A", "day-one", { planningMode: "time_budget", timeBudgetMinutes: 120 }, { weekStart, effectiveDate: weekStart }]]);
+    assert.equal(start(view).props.disabled, true); assert.equal(skip(view).props.disabled, true);
+    assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.created, []);
+    await act(async () => { pending.resolve(plan([day({ planningMode: "time_budget", timeBudgetMinutes: 120, durationMinutes: 120, planningSource: "override" })])); await completion; });
+    assert.equal(start(view).props.disabled, false); assert.match(textOf(view.tree.root), /Up to 120 min/);
+    await unmount(view);
+  });
+
+  test(`${scheme}: a rejected budget leaves the existing workout and saved order intact`, async () => {
+    const failure = Object.assign(new Error("too short"), { status: 409, payload: { detail: { code: "workout_time_budget_too_short", minimumUsefulMinutes: 40 } } });
+    const view = await detail({ scheme, planning: async () => { throw failure; } });
+    await tap(host(view, "workout-overview-up-row"));
+    await choosePlanning(view, "time_budget", 25); await view.confirm("Rebuild workout");
+    assert.match(view.calls.alerts.at(-1)[1], /at least about 40 minutes/);
+    assert.deepEqual(overviewIds(view), ["row", "bench"]);
+    assert.equal(start(view).props.disabled, false);
+    await unmount(view);
+  });
+
+  test(`${scheme}: server-locked and past workouts do not offer planning edits`, async () => {
+    for (const extra of [{ planningEditable: false }, { date: "2026-10-11" }]) {
+      const view = await detail({ scheme, plan: plan([day(extra)]) });
+      assert.equal(host(view, "workout-planning-open").props.disabled, true);
+      assert.deepEqual(view.calls.planning, []); await unmount(view);
+    }
+  });
+}
+
+test("late planning confirmation after account ABA cannot mutate a workout", async () => {
+  const view = await detail(); await choosePlanning(view, "trainer_led");
+  const confirm = view.calls.alerts.at(-1)[2][1].onPress;
+  await view.auth("token-B", "user-B"); await view.auth("token-A", "user-A");
+  await act(async () => { await confirm(); });
+  assert.deepEqual(view.calls.planning, []); await unmount(view);
+});
+
+test("a late planning response after account switch never installs its old plan", async () => {
+  const pending = deferred(); const view = await detail({ planning: () => pending.promise });
+  await choosePlanning(view, "trainer_led"); let completion;
+  await act(async () => { completion = view.calls.alerts.at(-1)[2][1].onPress(); });
+  await view.auth("token-B", "user-B");
+  await act(async () => { pending.resolve(plan([day({ title: "Old account planning result", planningMode: "trainer_led" })])); await completion; });
+  assert.equal(text(view, "Old account planning result"), undefined);
+  assert.deepEqual(view.calls.routes, []); await unmount(view);
+});
+
+test("planning metadata changes reset a saved order even when exercise IDs and targets match", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row"));
+  await view.install(plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, durationMinutes: 35, planningSource: "override" })]));
+  assert.deepEqual(overviewIds(view), ["bench", "row"]);
+  assert.match(textOf(host(view, "workout-overview-order-message")), /previous exercise order was reset/);
+  await unmount(view);
+});
+
+test("an uncertain planning response blocks new Starts until the authoritative week is refreshed", async () => {
+  const view = await detail({ planning: async () => { throw new Error("Response lost"); } });
+  await choosePlanning(view, "trainer_led"); await view.confirm("Rebuild workout");
+  assert.equal(view.week().planningRefreshRequired, true); assert.equal(start(view).props.disabled, true);
+  const before = view.calls.active.length;
+  await act(async () => { await start(view).props.onPress(); }); assert.equal(view.calls.active.length, before);
+  view.options({ getWeek: async () => plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, planningSource: "override" })]) });
+  await tap(host(view, "workout-planning-refresh"));
+  assert.equal(view.week().planningRefreshRequired, false); assert.equal(start(view).props.disabled, false);
+  assert.ok(text(view, "Trainer-led · No time limit")); await unmount(view);
+});
+
+test("legacy saved exercise order survives equivalent server metadata but an explicit planning change invalidates it", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row"));
+  const stored = [...view.storage.entries()].find(([key]) => key.startsWith("primerep.pre-workout-order."));
+  const fingerprint = JSON.parse(JSON.parse(stored[1]).fingerprint);
+  assert.equal("planningMode" in fingerprint, false);
+  await view.install(plan([day({ planningMode: "time_budget", timeBudgetMinutes: 35, planningSource: "default" })]));
+  assert.deepEqual(overviewIds(view), ["row", "bench"]);
+  await view.install(plan([day({ planningMode: "time_budget", timeBudgetMinutes: 35, planningSource: "override" })]));
+  assert.deepEqual(overviewIds(view), ["bench", "row"]);
+  assert.match(textOf(host(view, "workout-overview-order-message")), /previous exercise order was reset/);
+  await unmount(view);
+});
+
+test("bulk planning completion belongs to the account provider after Settings unmount and pending reads cannot clear its barrier", async () => {
+  const pending = deferred(); const view = await detail({ bulk: () => pending.promise }); let completion;
+  await act(async () => { completion = view.week().applyPlanningPreference({ weekStart, effectiveDate: weekStart }); });
+  assert.equal(view.week().planningRefreshRequired, true);
+  await view.hide(); const count = view.calls.weeks.length;
+  await act(async () => { assert.equal(await view.week().refreshWeek(), null); });
+  assert.equal(view.calls.weeks.length, count); assert.equal(view.week().planningRefreshRequired, true);
+  await act(async () => { pending.resolve({ weekPlan: plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, title: "Committed trainer plan" })]), updatedWorkoutCount: 1, protectedWorkoutCount: 0 }); await completion; });
+  assert.equal(view.week().planningRefreshRequired, false);
+  assert.equal(view.week().weekPlan.workouts[0].title, "Committed trainer plan");
+  await view.remount(); assert.ok(text(view, "Committed trainer plan")); await unmount(view);
+});
+
+test("a bulk timeout after Back still blocks new Starts until an authoritative post-mutation refresh", async () => {
+  const pending = deferred(); const view = await detail({ bulk: () => pending.promise }); let completion;
+  await act(async () => { completion = view.week().applyPlanningPreference({ weekStart, effectiveDate: weekStart }).catch(() => null); });
+  await view.hide();
+  await act(async () => { pending.reject(new Error("Lost response after commit")); await completion; });
+  assert.equal(view.week().planningRefreshRequired, true);
+  await view.remount(); assert.equal(start(view).props.disabled, true);
+  view.options({ getWeek: async () => plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, planningSource: "default" })]) });
+  await tap(host(view, "workout-planning-refresh"));
+  assert.equal(view.week().planningRefreshRequired, false); assert.equal(start(view).props.disabled, false);
+  await unmount(view);
+});
+
+test("a stale old-account bulk reply cannot cancel the new account's pending read after ABA", async () => {
+  const pending = deferred(); const view = await detail({ bulk: () => pending.promise }); let completion;
+  await act(async () => { completion = view.week().applyPlanningPreference({ weekStart, effectiveDate: weekStart }).catch(() => null); });
+  await view.auth("token-B", "user-B"); await view.auth("token-A", "user-A");
+  const fresh = deferred(); view.options({ getWeek: () => fresh.promise }); let read;
+  await act(async () => { read = view.week().refreshWeek(); });
+  await act(async () => { pending.reject(new Error("Old account response")); await completion; });
+  await act(async () => { fresh.resolve(plan([day({ title: "New account authority" })])); await read; });
+  assert.equal(view.week().weekPlan.workouts[0].title, "New account authority");
+  assert.equal(view.week().planningRefreshRequired, false); await unmount(view);
+});
+
+test("maximum text keeps the planning title in the scroll body and a compact close bar above reachable budgets", async () => {
+  const view = await detail({ scheme: "dark", width: 390, height: 844, fontScale: 3.2 });
+  await tap(host(view, "workout-planning-open"));
+  const modal = view.tree.root.findByType("Modal");
+  const heading = modal.findAllByType("Text").find((node) => textOf(node) === "Workout planning");
+  assert.equal(heading.parent.type, "ScrollView");
+  assert.equal(heading.props.numberOfLines, undefined); assert.notEqual(heading.props.allowFontScaling, false);
+  const close = label(view, "Close workout planning");
+  assert.equal(flat(close.props.style).minHeight, 44);
+  assert.equal(flat(close.parent.props.style).paddingVertical, 0);
+  assert.equal(close.parent.findAllByType("Text").length, 0);
+  assert.ok(duration(view, 120)); await tap(duration(view, 120));
+  assert.equal(duration(view, 120).props.accessibilityState.checked, true);
+  await unmount(view);
+});
+
+test("returning to a cached overview discovers a locally started workout without a provider hint and locks planning", async () => {
+  const view = await detail();
+  assert.equal(view.active().activeWorkout, null);
+  const local = { userId: "user-A", workoutDayId: "day-one", workoutDate: weekStart, dayType: "upper_body", workoutSnapshot: day(), effectiveWorkout: day(),
+    clientSessionId: "unannounced-local-session", serverSessionId: null, startedAt: Clock.now(), currentExerciseIndex: 0,
+    restEndsAt: null, restTotalSeconds: 0, restContext: null, revision: 1, operations: [],
+    sets: [{ exerciseId: "bench", setNumber: 1, reps: "8", weight: "20", confirmed: true, logId: "saved-set", syncing: false, syncStatus: "synced" }] };
+  await view.store.saveActiveWorkout(local);
+  assert.equal(view.active().activeWorkout, null);
+  await view.refocus();
+  const planning = host(view, "workout-planning-open");
+  assert.equal(planning.props.disabled, true);
+  assert.equal(planning.findAllByType("Ionicons").length, 0);
+  await act(async () => planning.props.onPress());
+  assert.equal(view.tree.root.findAllByType("Modal").length, 0);
+  assert.deepEqual(view.calls.planning, []);
+  assert.equal((await view.store.loadActiveWorkout("user-A")).sets[0].logId, "saved-set");
+  await view.store.clearActiveWorkout("user-A"); await view.refocus();
+  assert.equal(host(view, "workout-planning-open").props.disabled, false);
+  await view.store.saveActiveWorkout({ ...local, clientSessionId: "other-day-local", workoutDayId: "other-day" }); await view.refocus();
+  assert.equal(host(view, "workout-planning-open").props.disabled, false);
+  await unmount(view);
+});
 
 for (const scheme of ["light", "dark"]) {
   test(`${scheme}: actual loaded plan renders real shared rows, prescriptions and unchanged theme`, async () => {
@@ -153,7 +370,7 @@ for (const scheme of ["light", "dark"]) {
     assert.equal(view.tree.root.findAllByType("Pressable").filter((node) => node.props.testID === "exercise-row").length, 2);
     assert.equal(flat(view.tree.root.findByType("SafeAreaView").props.style).backgroundColor, view.colors.background);
     assert.equal(flat(start(view).props.style).backgroundColor, view.colors.primaryButton);
-    for (const value of [25, 35, 45, 60]) assert.equal(flat(duration(view, value).props.style).backgroundColor, value === 35 ? view.colors.primaryButton : view.colors.inputBackground);
+    assert.ok(host(view, "workout-planning-open")); assert.match(textOf(view.tree.root), /Up to 35 min/);
     assert.deepEqual(view.calls.skips, []); assert.deepEqual(view.calls.durations, []); assert.deepEqual(view.calls.routes, []);
     await unmount(view);
   });
@@ -202,23 +419,11 @@ for (const scheme of ["light", "dark"]) {
   test(`${scheme}: Skip network failure preserves the plan, stops busy state and does not navigate`, async () => {
     const view = await detail({ scheme, skip: async () => { throw error(503); } }); resetCalls(view); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.equal(view.week().error, "Boundary request failed"); assert.equal(skip(view).props.disabled, false); assert.deepEqual(view.calls.routes, []); assert.ok(text(view, "Upper body strength")); await unmount(view);
   });
-  test(`${scheme}: current duration is a no-op and other options require cancellable confirmation`, async () => {
-    const view = await detail({ scheme }); resetCalls(view); await tap(duration(view, 35)); assert.deepEqual(view.calls.alerts, []); await tap(duration(view, 45)); assert.equal(view.calls.alerts[0][0], "Update Duration"); assert.match(view.calls.alerts[0][1], /45 minutes.*regenerate/); await view.confirm("Cancel"); assert.deepEqual(view.calls.durations, []); await unmount(view);
-  });
-  test(`${scheme}: confirmed duration mutation uses exact week and disables actual controls while pending`, async () => {
-    const pending = deferred(); const view = await detail({ scheme, duration: () => pending.promise }); resetCalls(view); await tap(duration(view, 60));
-    const button = view.calls.alerts[0][2].find((entry) => entry.text === "Update"); let completion; await act(async () => { completion = button.onPress(); });
-    assert.deepEqual(view.calls.durations, [["token-A", "day-one", 60, weekStart]]); assert.equal(skip(view).props.disabled, true); assert.equal(duration(view, 25).props.accessibilityState.busy, true);
-    await act(async () => { pending.resolve(plan([day({ durationMinutes: 60 })])); await completion; }); assert.equal(skip(view).props.disabled, false); assert.match(textOf(view.tree.root), /60 min/); assert.deepEqual(view.calls.routes, []); await unmount(view);
-  });
   test(`${scheme}: program workout locks duration and retains original prescriptions and Start`, async () => {
     const view = await detail({ scheme, plan: plan([day({ programActivationId: "activation-one" })]) }); assert.ok(host(view, "program-duration-locked")); assert.ok(text(view, "Duration and set targets come from your active program.")); assert.equal(duration(view, 25), undefined); assert.ok(text(view, "8-12")); assert.ok(start(view)); assert.deepEqual(view.calls.durations, []); await unmount(view);
   });
   test(`${scheme}: stale Skip retains provider plus missing-ID refresh and no mutation retry before Home OK`, async () => {
     const view = await detail({ scheme, skip: async () => { throw error(404); } }); resetCalls(view); view.options({ getWeek: async () => plan([day({ workoutDayId: "replacement" })]) }); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.equal(view.calls.skips.length, 1); assert.deepEqual(view.calls.weeks, [["token-A", weekStart, false], ["token-A", weekStart, false]]); assert.equal(view.calls.alerts.at(-1)[0], "Plan Refreshed"); assert.deepEqual(view.calls.routes, []); await view.confirm("OK", "Plan Refreshed"); assert.deepEqual(view.calls.routes, [["replace", "/(tabs)"]]); assert.equal(view.week().staleIdRefreshed, false); await unmount(view);
-  });
-  test(`${scheme}: stale duration refresh uses same week and keeps the stale notification contract`, async () => {
-    const view = await detail({ scheme, duration: async () => { throw error(404); } }); resetCalls(view); view.options({ getWeek: async () => plan([day({ workoutDayId: "replacement" })]) }); await tap(duration(view, 45)); await view.confirm("Update", "Update Duration"); assert.equal(view.calls.durations.length, 1); assert.deepEqual(view.calls.weeks, [["token-A", weekStart, false], ["token-A", weekStart, false]]); assert.equal(view.calls.alerts.at(-1)[0], "Plan Refreshed"); await view.confirm("OK", "Plan Refreshed"); assert.deepEqual(view.calls.routes, [["replace", "/(tabs)"]]); await unmount(view);
   });
   test(`${scheme}: pending initial week shows actual loading state and named Back`, async () => {
     const pending = deferred(); const view = await detail({ scheme, getWeek: () => pending.promise }); assert.ok(text(view, "Loading workout...")); assert.equal(start(view), undefined); await tap(label(view, "Back from workout")); assert.deepEqual(view.calls.routes, [["back"]]); await act(async () => pending.resolve(plan())); assert.ok(start(view)); await unmount(view);
@@ -292,33 +497,6 @@ for (const scheme of ["light", "dark"]) {
     assert.deepEqual(view.calls.routes, []);
     await unmount(view);
   });
-  test(`${scheme}: minute buttons announce one selection while existing pending disabled/busy behavior is retained`, async () => {
-    const pending = deferred();
-    const view = await detail({ scheme, duration: () => pending.promise });
-    for (const value of [25, 35, 45, 60]) {
-      const button = duration(view, value);
-      assert.equal(button.props.accessibilityRole, "button");
-      assert.equal(button.props.accessibilityLabel, `${value} minutes`);
-      assert.deepEqual(plain(button.props.accessibilityState), { disabled: false, busy: false, selected: value === 35 });
-      assert.equal(flat(button.props.style).minHeight, 44);
-      assert.equal(flat(button.props.style).minWidth, 44);
-    }
-    await tap(duration(view, 60));
-    const update = view.calls.alerts.at(-1)[2].find((entry) => entry.text === "Update");
-    let completion;
-    await act(async () => { completion = update.onPress(); });
-    for (const value of [25, 35, 45, 60]) {
-      assert.equal(duration(view, value).props.disabled, true);
-      assert.deepEqual(plain(duration(view, value).props.accessibilityState), { disabled: true, busy: true, selected: value === 35 });
-    }
-    assert.equal(skip(view).props.disabled, true);
-    assert.deepEqual(plain(skip(view).props.accessibilityState), { disabled: true, busy: true });
-    assert.equal(start(view).props.disabled, true);
-    await act(async () => { pending.resolve(plan([day({ durationMinutes: 60 })])); await completion; });
-    for (const value of [25, 35, 45, 60]) assert.equal(duration(view, value).props.accessibilityState.selected, value === 60);
-    assert.deepEqual(view.calls.durations, [["token-A", "day-one", 60, weekStart]]);
-    await unmount(view);
-  });
   test(`${scheme}: Skip keeps its existing test ID, named button and neutral minimum target`, async () => {
     const view = await detail({ scheme });
     const button = skip(view);
@@ -382,7 +560,7 @@ for (const scheme of ["light", "dark"]) {
       assert.equal(list.findAllByProps({ testID: "workout-scroll-heading" }).length, expanded ? 1 : 0);
       assert.equal(host(view, expanded ? "workout-header-heading" : "workout-scroll-heading"), undefined);
       assert.ok(text(view, title));
-      assert.ok(text(view, "Monday, Oct 12 • 35 min"));
+      assert.ok(text(view, "Monday, Oct 12 • Up to 35 min"));
       assert.equal(heading.findAllByType("Text").map(textOf).filter((value) => value === title).length, 1);
       for (const node of heading.findAllByType("Text")) {
         assert.notEqual(node.props.allowFontScaling, false);

@@ -1,4 +1,13 @@
 import type { WorkoutBlock } from "./types";
+import type { WorkoutPlanningMode } from "@/utils/workoutPlanning";
+
+export interface WorkoutPlanningMetadata {
+  planningMode?: WorkoutPlanningMode;
+  planningEditable?: boolean;
+  timeBudgetMinutes?: number | null;
+  estimatedMinutes?: number;
+  planningSource?: "default" | "override";
+}
 
 // =============================================================================
 // API Response Types (camelCase from backend)
@@ -36,7 +45,7 @@ export interface WorkoutDayApiBlock {
   items: WorkoutDayApiItem[];
 }
 
-export interface WorkoutDayApiResponse {
+export interface WorkoutDayApiResponse extends WorkoutPlanningMetadata {
   workoutDayId: string;
   slotIndex: number;
   date: string; // YYYY-MM-DD
@@ -67,7 +76,7 @@ export interface WorkoutWeekPlanApiResponse {
 // UI Models
 // =============================================================================
 
-export interface WorkoutDay {
+export interface WorkoutDay extends WorkoutPlanningMetadata {
   workoutDayId: string;
   slotIndex: number;
   date: string; // YYYY-MM-DD

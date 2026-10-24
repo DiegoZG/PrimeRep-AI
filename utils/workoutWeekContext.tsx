@@ -3,7 +3,10 @@ import {
   getWorkoutWeek,
   skipWorkoutDay,
   updateWorkoutDuration,
+  updateWorkoutPlanning,
+  applyWorkoutPlanningPreference,
 } from "@/services/workoutWeekService";
+import { workoutPlanningError, planningUpdateWasRejected, type WorkoutPlanningChoice } from "./workoutPlanning";
 import React, {
   createContext,
   PropsWithChildren,
@@ -28,6 +31,7 @@ interface WorkoutWeekState {
   isLoading: boolean;
   error: string | null;
   currentWeekStart: string; // YYYY-MM-DD
+  planningRefreshRequired: boolean;
   staleIdRefreshed: boolean; // Flag to indicate a stale ID triggered a refresh
 }
 
@@ -36,6 +40,7 @@ interface WorkoutWeekContextValue {
   isLoading: boolean;
   error: string | null;
   currentWeekStart: string;
+  planningRefreshRequired: boolean;
   staleIdRefreshed: boolean;
 
   // Actions
@@ -52,6 +57,9 @@ interface WorkoutWeekContextValue {
     durationMinutes: number,
     weekStart?: string
   ) => Promise<WorkoutWeekPlan | null>;
+  setPlanning: (workoutDayId: string, choice: WorkoutPlanningChoice, dates: { weekStart: string; effectiveDate: string }) => Promise<WorkoutWeekPlan | null>;
+  applyPlanningPreference: (dates: { weekStart: string; effectiveDate: string }) => Promise<Awaited<ReturnType<typeof applyWorkoutPlanningPreference>> | null>;
+  markPlanningRefreshRequired: () => void;
   clearStaleIdFlag: () => void;
   installWeekPlan: (plan: WorkoutWeekPlan) => void;
   syncCurrentWeek: () => Promise<WorkoutWeekPlan | null>;
@@ -64,6 +72,8 @@ interface WorkoutWeekContextValue {
 }
 
 type Action =
+  | { type: "PLANNING_REFRESH_REQUIRED"; userId: string }
+  | { type: "PLANNING_REJECTED"; userId: string; message: string }
   | { type: "RESET_OWNER"; userId: string | null }
   | { type: "FETCH_START"; userId: string }
   | {
@@ -109,6 +119,7 @@ function createInitialState(ownerUserId: string | null): WorkoutWeekState {
     isLoading: ownerUserId !== null,
     error: null,
     currentWeekStart: localWeekStartIso(),
+    planningRefreshRequired: false,
     staleIdRefreshed: false,
   };
 }
@@ -125,6 +136,12 @@ function reducer(state: WorkoutWeekState, action: Action): WorkoutWeekState {
   }
 
   switch (action.type) {
+    case "PLANNING_REJECTED":
+      return { ...state, planningRefreshRequired: false, isLoading: false, error: action.message };
+
+    case "PLANNING_REFRESH_REQUIRED":
+      return { ...state, planningRefreshRequired: true };
+
     case "FETCH_START":
       return { ...state, isLoading: true, error: null };
 
@@ -132,6 +149,7 @@ function reducer(state: WorkoutWeekState, action: Action): WorkoutWeekState {
       return {
         ...state,
         weekPlan: action.payload,
+        planningRefreshRequired: false,
         isLoading: false,
         error: null,
         currentWeekStart: action.weekStart || state.currentWeekStart,
@@ -180,10 +198,14 @@ export const WorkoutWeekContext = createContext<WorkoutWeekContextValue>({
   isLoading: false,
   error: null,
   currentWeekStart: localWeekStartIso(),
+  planningRefreshRequired: false,
   staleIdRefreshed: false,
+  markPlanningRefreshRequired: () => {},
+  applyPlanningPreference: async () => null,
   refreshWeek: async () => null,
   skipDay: async () => null,
   setDuration: async () => null,
+  setPlanning: async () => null,
   clearStaleIdFlag: () => {},
   installWeekPlan: () => {},
   syncCurrentWeek: async () => null,
@@ -204,6 +226,13 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
   const authenticatedUserIdRef = useRef(authenticatedUserId);
   const initializedUserIdRef = useRef<string | null>(null);
   const requestRevisionRef = useRef(0);
+  const accountLifetimeRef = useRef({ userId: authenticatedUserId, epoch: 0 });
+  const planningMutationRef = useRef<{ userId: string; epoch: number } | null>(null);
+  if (accountLifetimeRef.current.userId !== authenticatedUserId) {
+    accountLifetimeRef.current = { userId: authenticatedUserId, epoch: accountLifetimeRef.current.epoch + 1 };
+    planningMutationRef.current = null;
+  }
+  const accountEpoch = accountLifetimeRef.current.epoch;
   authenticatedUserIdRef.current = authenticatedUserId;
 
   const isCurrentRequest = useCallback(
@@ -242,7 +271,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
   const refreshWeek = useCallback(
     async (options?: { force?: boolean; weekStart?: string }) => {
       const requestUserId = authenticatedUserId;
-      if (!token || !requestUserId) {
+      if (!token || !requestUserId || planningMutationRef.current) {
         return null;
       }
 
@@ -332,7 +361,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
   const skipDay = useCallback(
     async (workoutDayId: string, requestedWeekStart?: string) => {
       const requestUserId = authenticatedUserId;
-      if (!token || !requestUserId) {
+      if (!token || !requestUserId || planningMutationRef.current) {
         return null;
       }
 
@@ -411,7 +440,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       requestedWeekStart?: string
     ) => {
       const requestUserId = authenticatedUserId;
-      if (!token || !requestUserId) {
+      if (!token || !requestUserId || planningMutationRef.current) {
         return null;
       }
 
@@ -488,6 +517,55 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
     [authenticatedUserId, token, state.currentWeekStart, state.ownerUserId, state.weekPlan?.weekStart, handleUnauthorized, isCurrentRequest]
   );
 
+  const markPlanningRefreshRequired = useCallback(() => {
+    if (authenticatedUserId && authenticatedUserIdRef.current === authenticatedUserId && accountLifetimeRef.current.epoch === accountEpoch) {
+      requestRevisionRef.current += 1;
+      dispatch({ type: "PLANNING_REFRESH_REQUIRED", userId: authenticatedUserId });
+    }
+  }, [authenticatedUserId, accountEpoch]);
+
+  const runPlanningMutation = useCallback(async <T extends WorkoutWeekPlan | { weekPlan: WorkoutWeekPlan },>(operation: () => Promise<T>): Promise<T | null> => {
+    const requestUserId = authenticatedUserId;
+    const isOwner = () => authenticatedUserIdRef.current === requestUserId && accountLifetimeRef.current.epoch === accountEpoch;
+    if (!requestUserId || !isOwner() || state.ownerUserId !== requestUserId || planningMutationRef.current || state.planningRefreshRequired) return null;
+    const pending = { userId: requestUserId, epoch: accountEpoch };
+    planningMutationRef.current = pending;
+    const requestRevision = ++requestRevisionRef.current;
+    dispatch({ type: "PLANNING_REFRESH_REQUIRED", userId: requestUserId });
+    dispatch({ type: "FETCH_START", userId: requestUserId });
+    try {
+      const result = await operation();
+      if (!isOwner()) return null;
+      if (!isCurrentRequest(requestUserId, requestRevision)) {
+        markPlanningRefreshRequired();
+        dispatch({ type: "FETCH_ERROR", userId: requestUserId, payload: "Refresh to confirm the latest workout plan." });
+        return null;
+      }
+      const plan: WorkoutWeekPlan = "weekPlan" in result ? result.weekPlan : result as WorkoutWeekPlan;
+      dispatch({ type: "FETCH_SUCCESS", userId: requestUserId, payload: plan, weekStart: plan.weekStart });
+      return result;
+    } catch (error) {
+      if (!isOwner()) return null;
+      if (isUnauthorizedError(error)) { await handleUnauthorized(requestUserId); return null; }
+      if (planningUpdateWasRejected(error) && isCurrentRequest(requestUserId, requestRevision)) dispatch({ type: "PLANNING_REJECTED", userId: requestUserId, message: workoutPlanningError(error) });
+      else {
+        markPlanningRefreshRequired();
+        dispatch({ type: "FETCH_ERROR", userId: requestUserId, payload: workoutPlanningError(error) });
+      }
+      throw error;
+    } finally { if (planningMutationRef.current === pending) planningMutationRef.current = null; }
+  }, [authenticatedUserId, accountEpoch, state.ownerUserId, state.planningRefreshRequired, isCurrentRequest, handleUnauthorized, markPlanningRefreshRequired]);
+
+  const setPlanning = useCallback((workoutDayId: string, choice: WorkoutPlanningChoice, dates: { weekStart: string; effectiveDate: string }) => {
+    if (!token) return Promise.resolve(null);
+    return runPlanningMutation(() => updateWorkoutPlanning(token, workoutDayId, choice, dates));
+  }, [token, runPlanningMutation]);
+
+  const applyPlanningPreference = useCallback((dates: { weekStart: string; effectiveDate: string }) => {
+    if (!token) return Promise.resolve(null);
+    return runPlanningMutation(() => applyWorkoutPlanningPreference(token, dates));
+  }, [token, runPlanningMutation]);
+
   const clearStaleIdFlag = useCallback(() => {
     if (!authenticatedUserId) return;
     dispatch({
@@ -497,7 +575,8 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
   }, [authenticatedUserId]);
 
   const installWeekPlan = useCallback((plan: WorkoutWeekPlan) => {
-    if (!authenticatedUserId) return;
+    if (!authenticatedUserId || authenticatedUserIdRef.current !== authenticatedUserId || accountLifetimeRef.current.epoch !== accountEpoch) return;
+    if (planningMutationRef.current) { markPlanningRefreshRequired(); return; }
     requestRevisionRef.current += 1;
     dispatch({
       type: "FETCH_SUCCESS",
@@ -505,7 +584,7 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       payload: plan,
       weekStart: plan.weekStart,
     });
-  }, [authenticatedUserId]);
+  }, [authenticatedUserId, accountEpoch, markPlanningRefreshRequired]);
 
   // -------------------------------------------------------------------------
   // Derived Selectors
@@ -572,9 +651,13 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
         ? state.currentWeekStart
         : localWeekStartIso(),
       staleIdRefreshed: ownsPlan ? state.staleIdRefreshed : false,
+      planningRefreshRequired: ownsPlan ? state.planningRefreshRequired : false,
+      markPlanningRefreshRequired,
+      applyPlanningPreference,
       refreshWeek,
       skipDay,
       setDuration,
+      setPlanning,
       clearStaleIdFlag,
       installWeekPlan,
       syncCurrentWeek,
@@ -591,9 +674,13 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
       state.error,
       state.currentWeekStart,
       state.staleIdRefreshed,
+      state.planningRefreshRequired,
+      markPlanningRefreshRequired,
+      applyPlanningPreference,
       refreshWeek,
       skipDay,
       setDuration,
+      setPlanning,
       clearStaleIdFlag,
       installWeekPlan,
       syncCurrentWeek,

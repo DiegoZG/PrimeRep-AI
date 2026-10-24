@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { createRequire } from "node:module";
 import test from "node:test";
 import React from "react";
 import { act, create } from "react-test-renderer";
@@ -11,6 +12,12 @@ import ts from "typescript";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = readFileSync(path.join(root, "app/settings/training-preferences.tsx"), "utf8");
+function load(file, mocks) {
+  const filename = path.join(root, file), module = { exports: {} }, fallback = createRequire(filename);
+  const output = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(output, { module, exports: module.exports, require: (name) => name in mocks ? mocks[name] : fallback(name), console }, { filename });
+  return module.exports;
+}
 const flat = (style, pressed = false) => Object.assign({}, ...(Array.isArray(style = typeof style === "function" ? style({ pressed }) : style) ? style.flat(Infinity) : [style]).filter(Boolean));
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
@@ -38,8 +45,8 @@ async function renderScreen(options = {}) {
   const scheme = options.scheme ?? "light";
   const AuthContext = React.createContext(null);
   const WorkoutWeekContext = React.createContext(null);
-  const calls = { routes: [], alerts: [], loads: [], saves: [], refreshes: [], keyboard: [] };
-  const auth = { token: options.token === undefined ? "token-A" : options.token };
+  const calls = { routes: [], alerts: [], loads: [], saves: [], refreshes: [], applies: [], installs: [], barriers: [], keyboard: [] };
+  const auth = { token: options.token === undefined ? "token-A" : options.token, user: { id: "user-A" } };
   const mocks = {
     react: React,
     "@expo/vector-icons": { Ionicons: "Ionicons" },
@@ -47,24 +54,28 @@ async function renderScreen(options = {}) {
     "react-native": {
       Alert: { alert: (...args) => calls.alerts.push(args) },
       Keyboard: { dismiss: () => calls.keyboard.push("dismiss") }, Platform: { OS: "ios" },
-      Modal: "Modal", Pressable: "Pressable", ScrollView: "ScrollView", KeyboardAvoidingView: "KeyboardAvoidingView", TextInput: "TextInput", View: "View",
+      Modal: "Modal", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", KeyboardAvoidingView: "KeyboardAvoidingView", TextInput: "TextInput", View: "View",
       StyleSheet: { create: (styles) => styles },
       useWindowDimensions: () => ({ width: options.width ?? 375, fontScale: options.fontScale ?? 1 }),
     },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
     "@/components/themed-text": { ThemedText: "ThemedText" },
     "@/components/workout/WorkoutText": { WorkoutText: ({ style, ...props }) => React.createElement("ThemedText", { ...props, style: [style, { lineHeight: undefined }] }) },
-    "@/constants/theme": { Colors: palettes },
+    "@/constants/theme": { Colors: palettes, Fonts: { sans: "system-ui" } },
     "@/hooks/use-color-scheme": { useColorScheme: () => scheme },
     "@/utils/authContext": { AuthContext },
     "@/utils/workoutWeekContext": { WorkoutWeekContext },
     "@/utils/equipmentContext": { useEquipment: () => ({ items: options.catalog ?? catalog }) },
     "@/utils/localDate": { localDateIso: () => "2026-10-11", localWeekStartIso: () => "2026-10-05" },
+    "@/services/workoutWeekService": { applyWorkoutPlanningPreference: async (...args) => { calls.applies.push(plain(args)); return options.apply ? options.apply(...args) : { weekPlan: { weekStart: "2026-10-05", workouts: [] }, updatedWorkoutCount: 2, protectedWorkoutCount: 1 }; } },
+    "@/utils/activeWorkoutStore": { loadActiveWorkout: async () => options.local ?? null },
     "@/services/onboardingService": {
       getTrainingPreferences: async (token) => { calls.loads.push(token); if (options.load) return options.load(token); return options.preferences ?? defaults; },
       updateTrainingPreferences: async (token, next, dates) => { calls.saves.push([token, plain(next), plain(dates)]); return options.save ? options.save(next) : next; },
     },
   };
+  mocks["@/utils/workoutPlanning"] = load("utils/workoutPlanning.ts", mocks);
+  mocks["@/components/workout/workout-planning-sheet"] = load("components/workout/workout-planning-sheet.tsx", mocks);
   const module = { exports: {} };
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, require: (name) => {
@@ -72,10 +83,15 @@ async function renderScreen(options = {}) {
     throw new Error(`Unexpected import ${name}`);
   }, console, Date, Math, Set }, { filename: "app/settings/training-preferences.tsx" });
   const Screen = module.exports.default;
-  const week = { refreshWeek: async (value) => { calls.refreshes.push(plain(value)); if (options.refresh) await options.refresh(value); } };
-  let tree;
-  await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: auth }, React.createElement(WorkoutWeekContext.Provider, { value: week }, React.createElement(Screen)))); });
-  return { tree, calls, colors: palettes[scheme] };
+  let mockOwner = auth;
+  const week = { planningRefreshRequired: false, applyPlanningPreference: async (dates) => { const owner = mockOwner; const result = await mocks["@/services/workoutWeekService"].applyWorkoutPlanningPreference(mockOwner.token, dates); if (mockOwner !== owner) return null; calls.installs.push(plain(result.weekPlan)); return result; }, markPlanningRefreshRequired: () => calls.barriers.push(true), installWeekPlan: (plan) => calls.installs.push(plain(plan)), refreshWeek: async (value) => { calls.refreshes.push(plain(value)); if (options.refresh) return options.refresh(value); return { weekStart: value.weekStart, workouts: [] }; } };
+  let tree, changeAuth;
+  function App() {
+    const [identity, setIdentity] = React.useState(auth); changeAuth = setIdentity; mockOwner = identity;
+    return React.createElement(AuthContext.Provider, { value: identity }, React.createElement(WorkoutWeekContext.Provider, { value: week }, React.createElement(Screen)));
+  }
+  await act(async () => { tree = create(React.createElement(App)); });
+  return { tree, calls, colors: palettes[scheme], auth: async (next) => { await act(async () => changeAuth(next)); }, confirm: async (name) => { const button = calls.alerts.at(-1)?.[2]?.find((entry) => entry.text === name); assert.ok(button, `Missing ${name}`); await act(async () => { await button.onPress?.(); }); } };
 }
 const tap = async (node) => { await act(async () => { await node.props.onPress(); }); };
 const change = async (node, value) => { await act(async () => { node.props.onChangeText(value); }); };
@@ -86,8 +102,90 @@ const text = (tree, value) => tree.root.findAllByType("ThemedText").find((node) 
 const unmount = async (tree) => { await act(async () => { tree.unmount(); }); };
 
 for (const scheme of ["light", "dark"]) {
+  test(`Planning defaults save independently from unsaved training edits in ${scheme}`, async () => {
+    const view = await renderScreen({ scheme }); const { tree, calls, confirm } = view;
+    await tap(label(tree, "Get stronger"));
+    await tap(label(tree, "Edit default workout planning"));
+    await tap(id(tree, "planning-minutes-90")); await tap(id(tree, "planning-apply"));
+    assert.deepEqual(calls.saves, []);
+    await tap(label(tree, "Save workout planning"));
+    assert.deepEqual(calls.saves, [["token-A", { workoutPlanningMode: "time_budget", preferredWorkoutMinutes: 90 }, { weekStart: "2026-10-05", effectiveDate: "2026-10-11", planUpdateScope: "preserve" }]]);
+    assert.deepEqual(calls.refreshes, []); assert.deepEqual(calls.applies, []);
+    assert.equal(label(tree, "Get stronger").props.accessibilityState.checked, true);
+    await confirm("Keep current plan"); assert.deepEqual(calls.routes, []);
+    assert.equal(label(tree, "Get stronger").props.accessibilityState.checked, true);
+    await unmount(tree);
+  });
+
+  test(`Saving training fields retains calendar refresh and does not accidentally save a planning draft in ${scheme}`, async () => {
+    const { tree, calls } = await renderScreen({ scheme, preferences: { ...defaults, workoutPlanningMode: "trainer_led", preferredWorkoutMinutes: 90 } });
+    await tap(label(tree, "Edit default workout planning")); await tap(id(tree, "planning-mode-time_budget"));
+    await tap(id(tree, "planning-minutes-120")); await tap(id(tree, "planning-apply"));
+    await tap(label(tree, "Every day")); await tap(label(tree, "Full body")); await tap(label(tree, "Save preferences"));
+    assert.equal(calls.saves[0][1].workoutFrequency, "every-day"); assert.equal(calls.saves[0][1].workoutSplit, "full-body");
+    assert.equal("workoutPlanningMode" in calls.saves[0][1], false); assert.equal("preferredWorkoutMinutes" in calls.saves[0][1], false);
+    assert.equal("planUpdateScope" in calls.saves[0][2], false);
+    assert.deepEqual(calls.refreshes, [{ weekStart: "2026-10-05" }]); assert.deepEqual(calls.routes, ["back"]);
+    await unmount(tree);
+  });
+
+  test(`Trainer-led preserves the remembered budget without showing it as a time limit in ${scheme}`, async () => {
+    const { tree, calls, confirm } = await renderScreen({ scheme, preferences: { ...defaults, preferredWorkoutMinutes: 90 } });
+    await tap(label(tree, "Edit default workout planning")); await tap(id(tree, "planning-mode-trainer_led")); await tap(id(tree, "planning-apply"));
+    assert.ok(text(tree, "Trainer-led"));
+    await tap(label(tree, "Save workout planning"));
+    assert.deepEqual(calls.saves[0][1], { workoutPlanningMode: "trainer_led", preferredWorkoutMinutes: 90 });
+    await confirm("Keep current plan"); await unmount(tree);
+  });
+}
+
+test("a pending default save is submitted once and a late response after account ABA cannot open the apply prompt", async () => {
+  const pending = deferred();
+  const view = await renderScreen({ save: () => pending.promise });
+  await act(async () => { label(view.tree, "Save workout planning").props.onPress(); label(view.tree, "Save workout planning").props.onPress(); });
+  assert.equal(view.calls.saves.length, 1);
+  await view.auth({ token: "token-B", user: { id: "user-B" } });
+  await view.auth({ token: "token-A", user: { id: "user-A" } });
+  await act(async () => { pending.resolve({ workoutPlanningMode: "trainer_led", preferredWorkoutMinutes: 120 }); });
+  assert.deepEqual(view.calls.alerts, []); assert.deepEqual(view.calls.applies, []); assert.deepEqual(view.calls.installs, []);
+  assert.ok(text(view.tree, "Up to 35 min")); await unmount(view.tree);
+});
+
+test("a late apply response after switching accounts cannot install the previous account's plan", async () => {
+  const pending = deferred(); const view = await renderScreen({ apply: () => pending.promise });
+  await tap(label(view.tree, "Save workout planning")); let completion;
+  await act(async () => { completion = view.calls.alerts.at(-1)[2][1].onPress(); });
+  await view.auth({ token: "token-B", user: { id: "user-B" } });
+  await act(async () => { pending.resolve({ weekPlan: { weekStart: "2026-10-05", workouts: [{ title: "Private A plan" }] }, updatedWorkoutCount: 1, protectedWorkoutCount: 0 }); await completion; });
+  assert.deepEqual(view.calls.installs, []); assert.deepEqual(view.calls.routes, []);
+  assert.equal(view.calls.alerts.length, 1); await unmount(view.tree);
+});
+
+test("bulk apply waits for a locally started workout to sync while keeping the saved preference", async () => {
+  const view = await renderScreen({ local: { workoutDayId: "day-A", serverSessionId: null } });
+  await tap(label(view.tree, "Save workout planning")); await view.confirm("Update remaining workouts");
+  assert.equal(view.calls.saves.length, 1); assert.deepEqual(view.calls.applies, []);
+  assert.equal(view.calls.alerts.at(-1)[0], "Preferences saved"); assert.match(view.calls.alerts.at(-1)[1], /Resume your active workout/);
+  await view.confirm("Keep current plan"); await unmount(view.tree);
+});
+
+test("a lost bulk response requires an authoritative refresh and never falsely offers to keep an old server plan", async () => {
+  const view = await renderScreen({ apply: async () => { throw new Error("Response lost"); } });
+  await tap(label(view.tree, "Save workout planning")); await view.confirm("Update remaining workouts");
+  assert.equal(view.calls.alerts.at(-1)[0], "Preferences saved");
+  assert.match(view.calls.alerts.at(-1)[1], /could not confirm/);
+  assert.deepEqual(plain(view.calls.alerts.at(-1)[2].map((action) => action.text)), ["Refresh plan"]);
+  assert.deepEqual(view.calls.barriers, [true]);
+  await view.confirm("Refresh plan");
+  assert.deepEqual(view.calls.refreshes, [{ weekStart: "2026-10-05" }]);
+  assert.equal(view.calls.saves.length, 1); assert.equal(view.calls.applies.length, 1);
+  await view.confirm("Done"); assert.deepEqual(view.calls.routes, []);
+  await unmount(view.tree);
+});
+
+for (const scheme of ["light", "dark"]) {
   test(`Training choices retain neutral visible selection and checked semantics in ${scheme}`, async () => {
-    const { tree, colors, calls } = await renderScreen({ scheme });
+    const { tree, colors, calls, confirm } = await renderScreen({ scheme });
     const radios = tree.root.findAllByProps({ accessibilityRole: "radio" });
     assert.equal(radios.length, 29);
     for (const node of radios) {
@@ -110,7 +208,7 @@ for (const scheme of ["light", "dark"]) {
     for (const name of ["Get stronger", "Advanced", "Every day", "Full body", "Home / garage gym"]) assert.equal(label(tree, name).props.accessibilityState.checked, true);
     await tap(label(tree, "Save preferences"));
     assert.deepEqual(calls.saves[0], ["token-A", { ...defaults, fitnessGoal: "get-stronger", experienceLevel: "advanced", workoutFrequency: "every-day", workoutSplit: "full-body", trainingPlace: "garage-gym" }, { weekStart: "2026-10-05", effectiveDate: "2026-10-11" }]);
-    assert.deepEqual(calls.refreshes, [{ weekStart: "2026-10-05" }]);
+    assert.deepEqual(calls.refreshes, [{ weekStart: "2026-10-05" }]); assert.deepEqual(calls.applies, []);
     assert.deepEqual(calls.routes, ["back"]);
     await unmount(tree);
   });
@@ -248,7 +346,7 @@ for (const scheme of ["light", "dark"]) {
 test("Training save remains busy, suppresses repeated taps and keeps retryable drafts on failure", async () => {
   const pending = deferred();
   let failure = true;
-  const { tree, calls } = await renderScreen({ save: async (next) => { if (failure) return pending.promise; return next; } });
+  const { tree, calls, confirm } = await renderScreen({ save: async (next) => { if (failure) return pending.promise; return next; } });
   await tap(label(tree, "Get stronger"));
   await act(async () => { label(tree, "Save preferences").props.onPress(); });
   const save = label(tree, "Save preferences");
@@ -268,13 +366,18 @@ test("Training save remains busy, suppresses repeated taps and keeps retryable d
   await unmount(tree);
 });
 
-test("Training update refresh failure retains existing failure behavior without navigation", async () => {
-  const { tree, calls } = await renderScreen({ refresh: async () => { throw new Error("offline"); } });
-  await tap(label(tree, "Save preferences"));
-  assert.equal(calls.saves.length, 1);
-  assert.equal(calls.refreshes.length, 1);
-  assert.equal(calls.alerts.at(-1)[0], "Could Not Save Preferences");
-  assert.deepEqual(calls.routes, []);
+test("Training apply failure truthfully retains the saved preference and offers a separate retry", async () => {
+  let failing = true;
+  const { tree, calls, confirm } = await renderScreen({ apply: async () => { if (failing) throw Object.assign(new Error("Rejected"), { status: 409 }); return { weekPlan: { weekStart: "2026-10-05", workouts: [] }, updatedWorkoutCount: 2, protectedWorkoutCount: 1 }; } });
+  await tap(label(tree, "Save workout planning"));
+  assert.equal(calls.saves.length, 1); assert.equal(calls.applies.length, 0); assert.deepEqual(calls.routes, []);
+  await confirm("Update remaining workouts");
+  assert.equal(calls.applies.length, 1); assert.equal(calls.alerts.at(-1)[0], "Preferences saved");
+  assert.match(calls.alerts.at(-1)[1], /Existing workouts could not be updated/);
+  assert.deepEqual(calls.installs, []);
+  failing = false; await confirm("Retry update");
+  assert.equal(calls.saves.length, 1); assert.equal(calls.applies.length, 2); assert.equal(calls.installs.length, 1);
+  await confirm("Done"); assert.deepEqual(calls.routes, []);
   await unmount(tree);
 });
 
@@ -288,10 +391,11 @@ test("Training catalog filters stale equipment IDs but does not invent empty-cat
   }
 });
 
-test("Training load failure remains visible through its existing alert and controls", async () => {
+test("Training load failure prevents empty saves and offers a named retry", async () => {
   const { tree, calls } = await renderScreen({ load: async () => { throw new Error("offline"); } });
-  assert.equal(calls.alerts[0][0], "Could Not Load Preferences");
-  assert.ok(label(tree, "Save preferences"));
+  assert.ok(text(tree, "Could not load your preferences."));
+  assert.equal(tree.root.findAllByProps({ accessibilityLabel: "Save preferences" }).length, 0);
+  assert.ok(label(tree, "Retry loading training preferences"));
   await tap(label(tree, "Back"));
   assert.deepEqual(calls.routes, ["back"]);
   assert.deepEqual(calls.saves, []);
@@ -308,6 +412,6 @@ test("Training loading state and absent token preserve existing request behavior
   await unmount(tree);
   const absent = await renderScreen({ token: null });
   assert.deepEqual(absent.calls.loads, []);
-  assert.ok(text(absent.tree, "Loading preferences…"));
+  assert.deepEqual(absent.calls.saves, []);
   await unmount(absent.tree);
 });

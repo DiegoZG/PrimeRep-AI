@@ -10,6 +10,19 @@ import type {
   WorkoutWeekPlanApiResponse,
 } from "@/interfaces/workouts";
 import { requestJson } from "./httpClient";
+import type { WorkoutPlanningChoice } from "@/utils/workoutPlanning";
+
+export async function updateWorkoutPlanning(token: string, workoutDayId: string, choice: WorkoutPlanningChoice, dates: { weekStart: string; effectiveDate: string }): Promise<WorkoutWeekPlan> {
+  const data = await requestJson<WorkoutWeekPlanApiResponse>("/v1/workouts/week/planning", {
+    method: "PATCH", token, body: { workoutDayId, ...choice, ...dates },
+  });
+  return mapApiWeekPlan(data);
+}
+
+export async function applyWorkoutPlanningPreference(token: string, dates: { weekStart: string; effectiveDate: string }): Promise<{ weekPlan: WorkoutWeekPlan; updatedWorkoutCount: number; protectedWorkoutCount: number }> {
+  const data = await requestJson<{ weekPlan: WorkoutWeekPlanApiResponse; updatedWorkoutCount: number; protectedWorkoutCount: number }>("/v1/workouts/week/apply-planning-preference", { method: "POST", token, body: dates });
+  return { ...data, weekPlan: mapApiWeekPlan(data.weekPlan) };
+}
 
 // =============================================================================
 // Mappers (API → UI)
@@ -82,6 +95,11 @@ export function mapApiWorkoutDay(apiDay: WorkoutDayApiResponse): WorkoutDay {
     slotIndex: apiDay.slotIndex,
     date: apiDay.date,
     durationMinutes: apiDay.durationMinutes,
+    planningMode: apiDay.planningMode,
+    planningEditable: apiDay.planningEditable,
+    timeBudgetMinutes: apiDay.timeBudgetMinutes,
+    estimatedMinutes: apiDay.estimatedMinutes,
+    planningSource: apiDay.planningSource,
     title: apiDay.title,
     dayType: apiDay.dayType,
     splitKey: apiDay.splitKey,

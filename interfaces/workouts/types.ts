@@ -1,3 +1,4 @@
+import type { WorkoutPlanningMetadata } from "./week";
 // =============================================================================
 // API Response Types (camelCase from backend)
 // =============================================================================
@@ -36,7 +37,7 @@ export interface WorkoutApiBlock {
   items: WorkoutApiItem[];
 }
 
-export interface WorkoutApiResponse {
+export interface WorkoutApiResponse extends WorkoutPlanningMetadata {
   workoutId: string;
   splitKey: string;
   dayType: string;
@@ -82,7 +83,7 @@ export interface WorkoutBlock {
   items: WorkoutItem[];
 }
 
-export interface Workout {
+export interface Workout extends WorkoutPlanningMetadata {
   workoutId: string;
   splitKey: string;
   dayType: string;
