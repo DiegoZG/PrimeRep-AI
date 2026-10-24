@@ -392,6 +392,7 @@ function RootLayoutNav() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/admin-feature-flags" options={{ headerShown: false }} />
           <Stack.Screen name="settings/help" options={{ headerShown: false }} />
           <Stack.Screen name="settings/export" options={{ headerShown: false }} />
           <Stack.Screen name="profile/edit" options={{ headerShown: false }} />

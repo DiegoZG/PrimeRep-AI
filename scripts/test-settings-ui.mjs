@@ -46,6 +46,7 @@ async function renderSettings(options = {}) {
   };
   const mocks = {
     react: React,
+    "@/components/settings/FeatureFlagsSettingsLink": { FeatureFlagsSettingsLink: () => null },
     "@expo/vector-icons": { Ionicons: "Ionicons" },
     "expo-router": { useRouter: () => ({ back: () => calls.routes.push("back"), push: (route) => calls.routes.push(route) }) },
     "react-native": {
