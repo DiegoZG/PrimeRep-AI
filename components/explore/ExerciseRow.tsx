@@ -19,6 +19,7 @@ interface ExerciseRowProps {
   disabledReason?: string;
   onToggleFavorite?: (id: string) => void;
   onPress?: () => void;
+  compact?: boolean;
 }
 
 export function ExerciseRow({
@@ -34,6 +35,7 @@ export function ExerciseRow({
   disabledReason = "already added",
   onToggleFavorite,
   onPress,
+  compact = false,
 }: ExerciseRowProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -62,6 +64,7 @@ export function ExerciseRow({
       disabled={isPressDisabled}
       style={({ pressed }) => [
         styles.container,
+        compact && styles.compactContainer,
         {
           backgroundColor: colors.inputBackground,
           opacity: isPressDisabled ? 0.5 : pressed ? 0.95 : 1,
@@ -69,7 +72,7 @@ export function ExerciseRow({
       ]}
     >
       {/* Thumbnail */}
-      <View style={[styles.thumbnail, { backgroundColor: colors.inputBorder }]}>
+      <View style={[styles.thumbnail, compact && styles.compactThumbnail, { backgroundColor: colors.inputBorder }]}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -78,7 +81,7 @@ export function ExerciseRow({
             transition={200}
           />
         ) : (
-          <Text style={[styles.initialsText, { color: colors.placeholder }]}>
+          <Text style={[styles.initialsText, compact && { fontSize: 14 }, { color: colors.placeholder }]}>
             {initials}
           </Text>
         )}
@@ -88,7 +91,7 @@ export function ExerciseRow({
       <View style={styles.info}>
         <Text
           style={[styles.name, { color: colors.text }]}
-          numberOfLines={1}
+          numberOfLines={compact ? 2 : 1}
           ellipsizeMode="tail"
         >
           {name}
@@ -105,8 +108,8 @@ export function ExerciseRow({
         accessibilityLabel={isFavorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
         accessibilityState={{ disabled: !canFavorite || isFavoriteDisabled, busy: isFavoriteDisabled }}
         onPress={handleFavoritePress}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        style={styles.favoriteButton}
+        hitSlop={compact ? undefined : { top: 10, bottom: 10, left: 10, right: 10 }}
+        style={[styles.favoriteButton, compact && { width: 44, height: 44 }]}
         disabled={!canFavorite || isFavoriteDisabled}
       >
         {isFavorite && canFavorite ? (
@@ -124,6 +127,20 @@ export function ExerciseRow({
 }
 
 const styles = StyleSheet.create({
+  compactContainer: {
+    flex: 1,
+    padding: 0,
+    gap: 8,
+    borderRadius: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    minHeight: 48,
+  },
+  compactThumbnail: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",

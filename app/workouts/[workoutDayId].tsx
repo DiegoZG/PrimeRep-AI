@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseRow } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
-import { WorkoutOverviewList } from "@/components/workout/workout-overview-list";
+import { WorkoutOverviewList, type OverviewControls } from "@/components/workout/workout-overview-list";
 import { CoachCard } from "@/components/workout/CoachCard";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -463,9 +463,11 @@ export default function WorkoutDayDetailScreen() {
   );
 
   // Render workout item with prescription info
-  const renderWorkoutItem = ({ item }: { item: WorkoutItem }) => (
+  const renderWorkoutItem = ({ item, controls }: { item: WorkoutItem; controls: OverviewControls }) => (
     <View style={styles.workoutItemContainer}>
+      <View style={styles.workoutItemHeader}>
       <ExerciseRow
+        compact
         id={item.exercise.id}
         name={item.exercise.name}
         primaryMuscle={item.exercise.primaryMuscle}
@@ -475,7 +477,10 @@ export default function WorkoutDayDetailScreen() {
         onToggleFavorite={handleToggleFavorite}
         onPress={() => handleExercisePress(item.exercise.id)}
       />
+      {controls.handle}
+      </View>
       {/* Prescription info */}
+      <View style={[styles.workoutItemFooter, { borderTopColor: colors.inputBorder }]}>
       <View style={styles.prescriptionContainer}>
         <View style={styles.prescriptionItem}>
           <Text style={[styles.prescriptionLabel, { color: colors.placeholder }]}>
@@ -501,6 +506,8 @@ export default function WorkoutDayDetailScreen() {
             {item.prescription.restSeconds}s
           </Text>
         </View>
+      </View>
+      {controls.moves}
       </View>
       {/* Per-exercise coach rationale — renders nothing when absent */}
       <ContentSection
@@ -717,7 +724,7 @@ export default function WorkoutDayDetailScreen() {
       {workout ? (
         <WorkoutOverviewList sections={sections} colors={colors} disabled={!user || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
           onMove={(id, destination) => void moveOverviewExercise(id, destination)}
-          renderItem={(item) => renderWorkoutItem({ item })} renderSectionHeader={(section) => renderSectionHeader({ section })}
+          renderItem={(item, controls) => renderWorkoutItem({ item, controls })} renderSectionHeader={(section) => renderSectionHeader({ section })}
           header={renderListHeader()} contentContainerStyle={styles.listContent} />
       ) : null}
 
@@ -911,34 +918,43 @@ const styles = StyleSheet.create({
   workoutItemContainer: {
     gap: 8,
   },
+  workoutItemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  workoutItemFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   prescriptionContainer: {
+    flex: 1,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    columnGap: 12,
+    rowGap: 4,
     alignItems: "center",
-    justifyContent: "space-around",
     paddingVertical: 8,
-    paddingHorizontal: 16,
   },
   prescriptionItem: {
-    alignItems: "center",
-    flexGrow: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "baseline",
+    columnGap: 4,
     flexShrink: 0,
-    flexBasis: "auto",
-    minWidth: 80,
   },
   prescriptionLabel: {
     fontSize: 11,
     fontWeight: "500",
     fontFamily: Fonts.sans,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 2,
   },
   prescriptionValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+    fontVariant: ["tabular-nums"],
   },
   itemSeparator: {
     height: 16,

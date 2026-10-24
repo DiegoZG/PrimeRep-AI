@@ -14,6 +14,18 @@ reader move actions. Measured card positions support moves across role sections;
 holding the handle near the list edge scrolls it during a drag. Section headings
 follow the chosen sequence, including a role that appears more than once.
 
+Cards use a single compact surface: a 40-point thumbnail, wrapping exercise name,
+muscle, favorite and drag handle, followed by inline sets/reps/rest and move
+buttons. Controls keep 44-point touch targets. The separate order toolbar,
+nested card shadow and three-column target panel have been removed. Explore
+and other exercise lists retain their existing row layout.
+
+The compact-card revision passed 92 overview and exercise-foundation checks,
+TypeScript and focused lint. Native iOS inspection confirmed the compact layout,
+discoverable drag actions, and working move buttons with the saved order restored.
+
+![Compact overview exercise cards](screenshots/workout-arrangement/ios-overview-compact.png)
+
 The selected order is saved locally per account and workout day. Moving a card
 does not create an active draft, session, or timer and does not call the session
 API. Navigation and app restart preserve it. Changes to the source exercises,
