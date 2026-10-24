@@ -56,8 +56,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           sessionId: localActive.serverSessionId,
           workoutDayId: localActive.workoutDayId,
           dayType: localActive.dayType,
-          title: localActive.workoutSnapshot?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
-          totalSets: localActive.workoutSnapshot?.blocks.reduce(
+          title: (localActive.effectiveWorkout ?? localActive.workoutSnapshot)?.title ?? `${localActive.dayType.replace(/_/g, " ")} workout`,
+          totalSets: (localActive.effectiveWorkout ?? localActive.workoutSnapshot)?.blocks.reduce(
             (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
             0
           ) ?? 0,
@@ -87,8 +87,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           sessionId: serverActive.id,
           workoutDayId: serverActive.workoutDayId,
           dayType: serverActive.dayType,
-          title: serverActive.workoutSnapshot?.title ?? `${serverActive.dayType.replace(/_/g, " ")} workout`,
-          totalSets: serverActive.workoutSnapshot?.exerciseBlocks.reduce(
+          title: (serverActive.effectiveWorkout ?? serverActive.workoutSnapshot)?.title ?? `${serverActive.dayType.replace(/_/g, " ")} workout`,
+          totalSets: (serverActive.effectiveWorkout ?? serverActive.workoutSnapshot)?.exerciseBlocks.reduce(
             (total, block) => total + block.items.reduce((count, item) => count + item.prescription.sets, 0),
             0
           ) ?? 0,

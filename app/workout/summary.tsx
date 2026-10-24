@@ -57,10 +57,10 @@ export default function WorkoutSummaryScreen() {
   }, [token, user?.id, user?.privacy_accepted_version, sessionId]));
 
   const exerciseNames = useMemo(() => new Map(
-    (session?.workoutSnapshot?.exerciseBlocks ?? [])
+    ((session?.effectiveWorkout ?? session?.workoutSnapshot)?.exerciseBlocks ?? [])
       .flatMap((block) => block.items)
       .map((item) => [String(item.exercise.id), item.exercise.name])
-  ), [session?.workoutSnapshot]);
+  ), [session?.effectiveWorkout, session?.workoutSnapshot]);
   const logsByExercise = useMemo(() => {
     const groups = new Map<string, SessionResponse["setLogs"]>();
     session?.setLogs.forEach((set) => groups.set(set.exerciseId, [...(groups.get(set.exerciseId) ?? []), set]));

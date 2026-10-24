@@ -24,6 +24,7 @@ import { ScreenState } from "@/components/screen-state";
 
 interface ExerciseInfoSheetProps {
   visible: boolean;
+  inline?: boolean;
   exerciseId: string | null;
   exerciseName: string;
   colors: typeof Colors.light;
@@ -38,6 +39,7 @@ interface ExerciseInfoSheetProps {
  */
 export function ExerciseInfoSheet({
   visible,
+  inline = false,
   exerciseId,
   exerciseName,
   colors,
@@ -89,18 +91,18 @@ export function ExerciseInfoSheet({
     }
   }, [visible]);
 
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Keeps the Ask input visible instead of hidden behind the keyboard. */}
+  const content = (
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Pressable
+          accessible={false}
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
           onPress={onClose}
         >
           <Pressable
+            accessible={false}
             style={{ flex: 1, marginTop: insets.top + 8 }}
             onPress={(e) => e.stopPropagation()}
           >
@@ -228,6 +230,6 @@ export function ExerciseInfoSheet({
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
-    </Modal>
   );
+  return inline ? (visible ? content : null) : <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>{content}</Modal>;
 }

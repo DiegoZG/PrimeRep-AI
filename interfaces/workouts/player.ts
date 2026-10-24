@@ -41,6 +41,7 @@ export interface ExerciseProgress {
  * to the next exercise).
  */
 export interface RestContext {
-  exerciseIndex: number;
+  exerciseId?: string;
+  exerciseIndex?: number;
   isLastSetOfExercise: boolean;
 }

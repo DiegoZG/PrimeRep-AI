@@ -22,6 +22,7 @@ import { AuthContext } from "@/utils/authContext";
 import { NotificationsContext } from "@/utils/notificationsContext";
 import { deleteAccount } from "@/services/userService";
 import { pauseHealthExport, resumeHealthExport, waitForHealthExportIdle } from "@/services/health/exportSync";
+import { clearPreWorkoutOrdersForUser } from "@/utils/preWorkoutOrderStore";
 import { clearHealthExportAccount } from "@/utils/healthExportAccountCleanup";
 import {
   getCoachPreferences,
@@ -291,10 +292,11 @@ export default function SettingsScreen() {
               return;
             }
             try {
+              await clearPreWorkoutOrdersForUser(deletingUserId);
               await waitForHealthExportIdle();
               await clearHealthExportAccount(deletingUserId);
             } catch {
-              console.warn("Account deleted, but local Health export cleanup was incomplete.");
+              console.warn("Account deleted, but local workout or Health export cleanup was incomplete.");
             }
             if (!settingsAccountRef.current.startsWith(`${deletingUserId}:`)) {
               deletingRef.current = false;
