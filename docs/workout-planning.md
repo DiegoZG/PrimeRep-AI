@@ -48,6 +48,14 @@ history, corrections, and onboarding regressions passed **205 tests**:
 node --test scripts/test-workout-arrangement-store.mjs scripts/test-workout-arrangement-ui.mjs scripts/test-workout-set-entries.mjs scripts/test-workout-set-status.mjs scripts/test-settings-ui.mjs scripts/test-workout-summary-ui.mjs scripts/test-workout-history-ui.mjs scripts/test-workout-correction-ui.mjs scripts/test-onboarding-final-ui.mjs
 ```
 
+The separate legacy `scripts/test-workout-feedback-ui.mjs` harness has 33
+pre-existing failures: its mocks reject the already-present
+`WorkoutArrangementSheets` import and its controller-pinning assertion predates
+the merged arrangement feature. Running that harness against the unchanged
+pre-feature `main` active-workout source (`9600321`) reproduced all 33 failures.
+Those failures are separate from the passing counts above; this verification
+does not claim that every repository test suite passes.
+
 Focused ESLint on changed TypeScript source passed with zero errors and zero
 warnings. Expo web export passed for **62 routes**. The local worktree reused
 ignored dependencies with a temporary resolver preload:
