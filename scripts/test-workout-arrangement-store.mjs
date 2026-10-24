@@ -16,11 +16,21 @@ const deferred = () => { let resolve; const promise = new Promise((done) => { re
 
 function storageHarness(platform, handlers = {}) {
   const memory = new Map();
-  const sql = { row: null, sets: [], operations: [] };
+  const sql = { row: null, sets: [], operations: [], terminal: [] };
+  let pausedRead = null;
+  const waitForRead = async (key) => {
+    if (!pausedRead?.matches(key)) return;
+    const paused = pausedRead; pausedRead = null; paused.entered.resolve(); await paused.release.promise;
+  };
+  const pauseRead = (matches) => {
+    pausedRead = { matches, entered: deferred(), release: deferred() };
+    return { entered: pausedRead.entered.promise, release: pausedRead.release.resolve };
+  };
   const db = {
     execAsync: async () => {}, withTransactionAsync: async (action) => action(),
-    getFirstAsync: async (query) => {
-      if (query.includes("SELECT * FROM active_workouts")) return sql.row && copy(sql.row);
+    getFirstAsync: async (query, params = []) => {
+      if (query.includes("FROM active_workouts")) { const value = sql.row && copy(sql.row); await waitForRead("active"); return value; }
+      if (query.includes("terminal_workout_sessions")) return sql.terminal.find((entry) => entry.client_session_id === params[1] || (params[2] != null && entry.server_session_id === params[2])) ?? null;
       if (query.includes("workout_pending_operations")) return sql.operations.find((operation) => operation.type === "complete") ?? null;
       return null;
     },
@@ -32,6 +42,8 @@ function storageHarness(platform, handlers = {}) {
         if (sql.row && sql.row.revision >= next.revision) return { changes: 0 };
         sql.row = next; return { changes: 1 };
       }
+      if (query.startsWith("INSERT OR IGNORE INTO terminal_workout_sessions")) sql.terminal.push({ client_session_id: params[1], server_session_id: params[2] });
+      if (query.startsWith("DELETE FROM active_workouts")) sql.row = null;
       if (query.startsWith("DELETE FROM workout_set_drafts")) sql.sets = [];
       if (query.startsWith("DELETE FROM workout_pending_operations")) sql.operations = [];
       if (query.startsWith("INSERT INTO workout_set_drafts")) sql.sets.push({ payload: params[3] });
@@ -48,12 +60,14 @@ function storageHarness(platform, handlers = {}) {
     completeSession: async () => ({ ...server(), status: "completed" }) };
   const service = Object.fromEntries(Object.keys(defaults).map((name) => [name, async (...args) => { calls.push({ name, args }); return (handlers[name] ?? defaults[name])(...args); }]));
   const mocks = { "expo-sqlite": { openDatabaseAsync: async () => db },
-    "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, value) => memory.set(key, value), removeItem: async (key) => memory.delete(key) },
+    "@react-native-async-storage/async-storage": { getItem: async (key) => { const value = memory.get(key) ?? null; await waitForRead(key.includes("web.active-workout") ? "active" : key); return value; }, setItem: async (key, value) => memory.set(key, value), removeItem: async (key) => memory.delete(key), getAllKeys: async () => [...memory.keys()], multiRemove: async (keys) => keys.forEach((key) => memory.delete(key)) },
     "@/services/httpClient": { HttpError, requestJson: async () => { throw new Error("Unexpected network request"); } },
     "./httpClient": { HttpError, requestJson: async () => {} },
     "@/services/workoutLoggingService": service };
   const reload = () => loadTypescript(`utils/activeWorkoutStore.${platform}.ts`, mocks);
-  return { store: reload(), reload, calls, getCanonical: () => copy(canonical) };
+  const store = reload();
+  const reloadPrestart = () => loadTypescript("utils/preWorkoutOrderStore.ts", { ...mocks, "@/utils/activeWorkoutStore": store });
+  return { store, reload, calls, getCanonical: () => copy(canonical), prestart: reloadPrestart(), reloadPrestart, pauseRead };
 }
 
 for (const platform of ["native", "web"]) {
@@ -271,6 +285,207 @@ for (const platform of ["native", "web"]) {
     assert.equal(result.workout.restContext.exerciseId, "d"); assert.equal(result.workout.restContext.exerciseIndex, 1);
     const restored = await harness.reload().loadActiveWorkout("user");
     assert.equal(restored.currentExerciseId, "d");
+  });
+
+
+  test(`${platform}: prestart ordering persists separately through restart without a session, timer or API call`, async () => {
+    const harness = storageHarness(platform);
+    const original = day();
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    assert.equal(await harness.store.loadActiveWorkout("user"), null);
+    assert.equal(harness.calls.length, 0);
+    const saved = await harness.reloadPrestart().loadPreWorkoutOrder("user", original);
+    assert.deepEqual(Array.from(saved.exerciseIds), ["c", "a", "b"]); assert.equal(saved.invalidated, false);
+    assert.deepEqual(flatIds(original), ["a", "b", "c"]);
+    assert.equal((await harness.prestart.loadPreWorkoutOrder("other-user", original)).exerciseIds, null);
+    assert.equal((await harness.prestart.loadPreWorkoutOrder("user", { ...original, workoutDayId: "another-day" })).exerciseIds, null);
+  });
+
+  test(`${platform}: prestart source changes invalidate intent and malformed permutations never save`, async () => {
+    const harness = storageHarness(platform);
+    const original = day();
+    assert.throws(() => harness.prestart.savePreWorkoutOrder("user", original, ["a", "a", "b"]));
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    const changed = copy(original); changed.blocks[0].items[0].prescription.sets += 1;
+    const state = await harness.prestart.loadPreWorkoutOrder("user", changed);
+    assert.equal(state.invalidated, true); assert.equal(state.exerciseIds, null);
+    assert.deepEqual(Array.from((await harness.prestart.loadPreWorkoutOrder("user", original)).exerciseIds), ["c", "a", "b"]);
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    const newProgram = { ...original, programActivationId: "new-program", templateVersion: 2 };
+    assert.equal((await harness.prestart.loadPreWorkoutOrder("user", newProgram)).invalidated, true);
+  });
+
+  test(`${platform}: Start alone hands original plus chosen order to durable create and unchanged-target replay`, async () => {
+    const harness = storageHarness(platform);
+    const original = day();
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    const prepared = await harness.prestart.prepareWorkoutStart("user", original);
+    assert.ok(prepared.startedAt > 0); assert.equal(prepared.serverSessionId, null);
+    assert.deepEqual(flatIds(prepared.workoutSnapshot), ["a", "b", "c"]);
+    assert.deepEqual(flatIds(prepared.effectiveWorkout), ["c", "a", "b"]);
+    assert.equal(prepared.currentExerciseId, "c"); assert.equal(prepared.currentExerciseIndex, 0);
+    assert.deepEqual(Array.from(prepared.operations, (operation) => operation.type), ["create", "order"]);
+    assert.equal(prepared.operations[1].payload.expectedRevision, 0);
+    assert.equal(prepared.operations[1].payload.applyRevisedTargets, false);
+    assert.equal(harness.calls.length, 0);
+    const operationId = prepared.operations[1].id;
+    const restarted = harness.reload();
+    const result = await restarted.replayPendingWorkoutOperations("token", "user");
+    assert.deepEqual(flatIds(result.workout.effectiveWorkout), ["c", "a", "b"]);
+    assert.deepEqual(flatIds(result.workout.workoutSnapshot), ["a", "b", "c"]);
+    assert.equal(result.workout.operations.length, 0);
+    assert.deepEqual(Array.from(result.workout.targetReviewExerciseIds), ["c", "a", "b"]);
+    const orderCall = harness.calls.find((call) => call.name === "updateExerciseOrder");
+    assert.equal(orderCall.args[3], 0); assert.equal(orderCall.args[4], operationId); assert.equal(orderCall.args[5], false);
+  });
+
+  test(`${platform}: existing and concurrently started active sessions always win the prestart handoff`, async () => {
+    const harness = storageHarness(platform);
+    const active = draft({ workoutDayId: "already-active", sets: [set("b", { confirmed: true, logId: "saved" })] });
+    await harness.store.saveActiveWorkout(active);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    const winner = await harness.prestart.prepareWorkoutStart("user", day());
+    assert.equal(winner.clientSessionId, active.clientSessionId); assert.equal(winner.sets[0].logId, "saved");
+    const fresh = storageHarness(platform);
+    await fresh.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    const [first, second] = await Promise.all([
+      fresh.prestart.prepareWorkoutStart("user", day()), fresh.prestart.prepareWorkoutStart("user", { ...day(), workoutDayId: "different-day" }),
+    ]);
+    assert.equal(first.clientSessionId, second.clientSessionId);
+    const durable = await fresh.store.loadActiveWorkout("user");
+    assert.equal(durable.clientSessionId, first.clientSessionId);
+    assert.equal(durable.operations.filter((operation) => operation.type === "create").length, 1);
+  });
+
+
+  test(`${platform}: same active workout accepts the overview order without replacing current progress or timer`, async () => {
+    const harness = storageHarness(platform);
+    const active = draft({ currentExerciseId: "b", currentExerciseIndex: 1,
+      sets: [set("a", { confirmed: true, logId: "saved", version: 3 }), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(active);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    const prepared = await harness.prestart.prepareWorkoutStart("user", day());
+    assert.equal(prepared.clientSessionId, active.clientSessionId);
+    assert.equal(prepared.currentExerciseId, "b"); assert.equal(prepared.currentExerciseIndex, 2);
+    assert.equal(prepared.restEndsAt, active.restEndsAt); assert.equal(prepared.restContext.exerciseId, "a");
+    assert.equal(prepared.sets.find((row) => row.exerciseId === "a").logId, "saved");
+    assert.deepEqual(flatIds(prepared.workoutSnapshot), ["a", "b", "c"]);
+    assert.deepEqual(flatIds(prepared.effectiveWorkout), ["c", "a", "b"]);
+    assert.equal(prepared.operations.filter((operation) => operation.type === "create").length, 0);
+    assert.equal(prepared.operations[0].type, "order"); assert.equal(harness.calls.length, 0);
+    await assert.rejects(() => harness.store.queueWorkoutPrestartOrder({ ...prepared, clientSessionId: "raced-session" }, ["b", "a", "c"]),
+      (error) => error.serverSessionId === prepared.serverSessionId);
+    assert.equal((await harness.store.loadActiveWorkout("user")).clientSessionId, active.clientSessionId);
+  });
+
+  test(`${platform}: remotely replaced membership requires explicit review and never rewrites the active snapshot`, async () => {
+    const harness = storageHarness(platform);
+    const active = draft({ effectiveWorkout: day(["d", "b", "c"]), arrangementRevision: 2, sets: [set("d"), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(active);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    await assert.rejects(() => harness.prestart.prepareWorkoutStart("user", day()), (error) => error.name === "Error" && error.serverSessionId === "server");
+    const durable = await harness.store.loadActiveWorkout("user");
+    assert.deepEqual(flatIds(durable.effectiveWorkout), ["d", "b", "c"]);
+    assert.equal(durable.arrangementRevision, 2); assert.equal(durable.operations.length, 0);
+  });
+
+  test(`${platform}: server-only active resume preserves original and logged sets while queueing overview order`, async () => {
+    const harness = storageHarness(platform);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    const remote = { ...server(["b", "a", "c"], 3), workoutDayId: "day", workoutDate: "2026-10-23", dayType: "upper",
+      clientSessionId: "remote-client", startedAt: "2026-10-23T12:00:00Z", setLogs: [{ id: "remote-set", exerciseId: "a", setNumber: 1, reps: 9, weightKg: 40, version: 2 }] };
+    const prepared = await harness.prestart.prepareWorkoutStart("user", day(), remote);
+    assert.equal(prepared.serverSessionId, "server"); assert.equal(prepared.clientSessionId, "remote-client");
+    assert.deepEqual(flatIds(prepared.workoutSnapshot), ["a", "b", "c"]);
+    assert.deepEqual(flatIds(prepared.effectiveWorkout), ["c", "a", "b"]);
+    assert.equal(prepared.sets.find((row) => row.exerciseId === "a").logId, "remote-set");
+    assert.equal(prepared.operations[0].payload.expectedRevision, 3);
+    assert.equal(prepared.operations.filter((operation) => operation.type === "create").length, 0);
+  });
+
+  test(`${platform}: deleting an account clears only its prestart drafts and fences late writes`, async () => {
+    const harness = storageHarness(platform);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    await harness.prestart.savePreWorkoutOrder("other-user", day(), ["b", "a", "c"]);
+    await harness.prestart.clearPreWorkoutOrdersForUser("user");
+    assert.equal((await harness.prestart.loadPreWorkoutOrder("user", day())).exerciseIds, null);
+    assert.deepEqual(Array.from((await harness.prestart.loadPreWorkoutOrder("other-user", day())).exerciseIds), ["b", "a", "c"]);
+    await assert.rejects(() => harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]));
+  });
+
+
+  test(`${platform}: stale prestart invalidation cannot erase a newer saved order for the refreshed source`, async () => {
+    const harness = storageHarness(platform);
+    const original = day();
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    const changed = copy(original); changed.blocks[0].items[0].prescription.sets = 2;
+    const gate = harness.pauseRead((key) => key.startsWith("primerep.pre-workout-order"));
+    const stale = harness.prestart.loadPreWorkoutOrder("user", changed);
+    await gate.entered;
+    await harness.prestart.savePreWorkoutOrder("user", changed, ["b", "c", "a"]);
+    gate.release(); await stale;
+    assert.deepEqual(Array.from((await harness.prestart.loadPreWorkoutOrder("user", changed)).exerciseIds), ["b", "c", "a"]);
+  });
+
+  test(`${platform}: leaving during server hydration cannot materialize an active workout or timer`, async () => {
+    const harness = storageHarness(platform);
+    await harness.prestart.savePreWorkoutOrder("user", day(), ["c", "a", "b"]);
+    let current = true;
+    const gate = harness.pauseRead((key) => key !== "active" && !key.startsWith("primerep.pre-workout-order"));
+    const remote = { ...server(), workoutDayId: "day", workoutDate: "2026-10-23", dayType: "upper", clientSessionId: "remote-client", startedAt: "2026-10-23T12:00:00Z" };
+    const pending = harness.prestart.prepareWorkoutStart("user", day(), remote, () => current);
+    await gate.entered; current = false; gate.release();
+    assert.equal(await pending, null);
+    assert.equal(await harness.store.loadActiveWorkout("user"), null);
+    assert.equal(harness.calls.length, 0);
+  });
+
+  test(`${platform}: queued prestart mutation checks the lifecycle fence before changing an existing active workout`, async () => {
+    const harness = storageHarness(platform);
+    await harness.store.saveActiveWorkout(draft());
+    const baseline = await harness.store.loadActiveWorkout("user");
+    let current = true;
+    const gate = harness.pauseRead((key) => key === "active");
+    const pending = harness.store.queueWorkoutPrestartOrder(baseline, ["c", "a", "b"], () => current);
+    await gate.entered; current = false; gate.release();
+    assert.equal(await pending, null);
+    const durable = await harness.store.loadActiveWorkout("user");
+    assert.deepEqual(flatIds(durable.effectiveWorkout), ["a", "b", "c"]);
+    assert.equal(durable.operations.length, 0);
+  });
+
+  test(`${platform}: harmless exercise media and favorite changes preserve a saved prestart order`, async () => {
+    const harness = storageHarness(platform);
+    const original = day();
+    await harness.prestart.savePreWorkoutOrder("user", original, ["c", "a", "b"]);
+    const refreshed = copy(original);
+    refreshed.blocks[0].items[0].exercise.imageUrl = "new-image";
+    refreshed.blocks[0].items[0].exercise.isFavorited = true;
+    refreshed.title = "New display title";
+    const state = await harness.prestart.loadPreWorkoutOrder("user", refreshed);
+    assert.equal(state.invalidated, false); assert.deepEqual(Array.from(state.exerciseIds), ["c", "a", "b"]);
+  });
+
+
+  test(`${platform}: a prestart claim queued behind completion cannot resurrect the finished session`, async () => {
+    const entered = deferred(), finish = deferred();
+    const harness = storageHarness(platform, { completeSession: async () => { entered.resolve(); return finish.promise; } });
+    const baseline = draft();
+    await harness.store.saveActiveWorkout({ ...baseline, operations: [{ id: "finish", type: "complete", status: "pending", payload: {} }] });
+    const completion = harness.store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    const claim = harness.store.queueWorkoutPrestartOrder(baseline, ["c", "a", "b"]);
+    const rejection = assert.rejects(claim, (error) => error.terminal === true && error.serverSessionId === "server");
+    finish.resolve({ ...server(), status: "completed" });
+    const completed = await completion;
+    assert.equal(completed.completed, true);
+    await harness.store.clearActiveWorkout("user");
+    await rejection;
+    assert.equal(await harness.store.loadActiveWorkout("user"), null);
+    // The persistent terminal marker still rejects the old baseline after process restart.
+    await assert.rejects(() => harness.reload().queueWorkoutPrestartOrder(baseline, ["c", "a", "b"]), (error) => error.terminal === true);
+    assert.equal(await harness.store.loadActiveWorkout("user"), null);
+    assert.equal(harness.calls.filter((call) => call.name === "updateExerciseOrder").length, 0);
   });
 
 }

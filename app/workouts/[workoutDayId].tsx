@@ -1,12 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
-  SectionList,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -17,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseRow } from "@/components/explore";
 import { ThemedText } from "@/components/themed-text";
+import { WorkoutOverviewList } from "@/components/workout/workout-overview-list";
 import { CoachCard } from "@/components/workout/CoachCard";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -29,6 +29,8 @@ import {
 } from "@/services/exerciseService";
 import { abandonSession, getActiveSession } from "@/services/workoutLoggingService";
 import { useActiveWorkout } from "@/utils/activeWorkoutContext";
+import { loadPreWorkoutOrder, savePreWorkoutOrder, prepareWorkoutStart, preWorkoutOrderFingerprint, PreWorkoutOrderConflict } from "@/utils/preWorkoutOrderStore";
+import { reorderWorkout } from "@/utils/workoutArrangement";
 import { clearActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 import { localDateIso } from "@/utils/localDate";
@@ -115,6 +117,63 @@ export default function WorkoutDayDetailScreen() {
   const workout =
     workoutDayId && isTargetWeekLoaded ? getWorkoutById(workoutDayId) : null;
 
+  const sourceFingerprint = workout ? preWorkoutOrderFingerprint(workout) : "missing";
+  const orderUserId = user?.id;
+  const sourceWorkoutRef = useRef(workout); sourceWorkoutRef.current = workout;
+  const orderOwner = `${orderUserId ?? "guest"}:${sourceFingerprint}`;
+  const lifetime = `${orderOwner}:${token ?? "anonymous"}`;
+  const lifetimeRef = useRef(lifetime), lifetimeEpochRef = useRef(0);
+  if (lifetimeRef.current !== lifetime) { lifetimeEpochRef.current += 1; lifetimeRef.current = lifetime; }
+  const renderEpoch = lifetimeEpochRef.current;
+  const mountedRef = useRef(true), startingRef = useRef(false);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; lifetimeEpochRef.current += 1; }; }, []);
+  const [orderState, setOrderState] = useState<{ owner: string; exerciseIds: string[] | null } | null>(null);
+  const [orderMessage, setOrderMessage] = useState<{ owner: string; text: string } | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const isOrderLoading = orderState?.owner !== orderOwner;
+  useEffect(() => {
+    let cancelled = false;
+    const requestEpoch = lifetimeEpochRef.current;
+    setIsSavingOrder(false); setIsStarting(false); startingRef.current = false;
+    const original = sourceWorkoutRef.current;
+    if (!orderUserId || !original) { setOrderState({ owner: orderOwner, exerciseIds: null }); return; }
+    void loadPreWorkoutOrder(orderUserId, original).then((saved) => {
+      if (cancelled || lifetimeRef.current !== lifetime || lifetimeEpochRef.current !== requestEpoch) return;
+      setOrderState({ owner: orderOwner, exerciseIds: saved.exerciseIds });
+      if (saved.invalidated) setOrderMessage({ owner: orderOwner, text: "Your workout changed, so its previous exercise order was reset. Choose an order again." });
+    }).catch(() => {
+      if (!cancelled && lifetimeRef.current === lifetime && lifetimeEpochRef.current === requestEpoch) {
+        setOrderState({ owner: orderOwner, exerciseIds: null });
+        setOrderMessage({ owner: orderOwner, text: "Couldn’t load your saved order. Try moving an exercise again before starting." });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [sourceFingerprint, orderUserId, orderOwner, lifetime]);
+  const displayedWorkout = useMemo(() => {
+    const ids = orderState?.owner === orderOwner ? orderState.exerciseIds : null;
+    if (!workout || !ids) return workout;
+    try { return reorderWorkout(workout, ids); } catch { return workout; }
+  }, [workout, orderState, orderOwner]);
+  const moveOverviewExercise = useCallback(async (exerciseId: string, destination: number) => {
+    if (!workout || !displayedWorkout || !user || isActionLoading || isOrderLoading || isSavingOrder || isStarting) return;
+    const ids = displayedWorkout.blocks.flatMap((block) => block.items.map((item) => item.exercise.id));
+    const source = ids.indexOf(exerciseId);
+    if (source < 0 || source === destination || destination < 0 || destination >= ids.length) return;
+    ids.splice(destination, 0, ids.splice(source, 1)[0]);
+    const previous = orderState;
+    setOrderState({ owner: orderOwner, exerciseIds: ids }); setIsSavingOrder(true);
+    try {
+      await savePreWorkoutOrder(user.id, workout, ids);
+      if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setOrderMessage({ owner: orderOwner, text: "Exercise order saved. Start when you’re ready." });
+    } catch {
+      if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) {
+        setOrderState(previous);
+        setOrderMessage({ owner: orderOwner, text: "Couldn’t save that order. Your previous order is still here; try again." });
+      }
+    } finally { if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setIsSavingOrder(false); }
+  }, [workout, displayedWorkout, user, isActionLoading, isOrderLoading, isSavingOrder, isStarting, orderState, orderOwner, lifetime, renderEpoch]);
+
   const abandonActiveWorkout = useCallback(async (sessionId: string) => {
     if (!token) return false;
     try {
@@ -129,43 +188,53 @@ export default function WorkoutDayDetailScreen() {
   }, [token, user, markWorkoutTerminal]);
 
   const startWorkout = useCallback(async () => {
-    if (!workout || !token) return;
-    const openWorkout = () => router.push({
-      pathname: "/workout/active",
-        params: {
-          workoutDayId: workout.workoutDayId,
-          weekStart: targetWeekStart,
-        },
-    });
+    if (!workout || !token || !user || isOrderLoading || isSavingOrder || isStarting || startingRef.current) return;
+    const origin = lifetime;
+    const originEpoch = lifetimeEpochRef.current;
+    const isCurrent = () => mountedRef.current && lifetimeRef.current === origin && lifetimeEpochRef.current === originEpoch;
+    const openWorkout = async (active?: Awaited<ReturnType<typeof getActiveSession>>) => {
+      if (!isCurrent()) return;
+      const prepared = await prepareWorkoutStart(user.id, workout, active, isCurrent);
+      if (!isCurrent() || !prepared) return;
+      router.push({ pathname: "/workout/active", params: prepared.serverSessionId
+        ? { sessionId: prepared.serverSessionId }
+        : { workoutDayId: prepared.workoutDayId, weekStart: prepared.workoutDayId === workout.workoutDayId ? targetWeekStart : undefined } });
+    };
+    const reportStartError = (error: unknown) => {
+      if (!isCurrent()) return;
+      if (error instanceof PreWorkoutOrderConflict && error.terminal) {
+        Alert.alert("Workout already finished", "This workout finished while you were starting it. Return to your workouts to choose another one.", [{ text: "Back to workouts", onPress: () => {
+          if (!isCurrent()) return;
+          void refreshWeek({ force: false, weekStart: targetWeekStart }).catch(() => undefined);
+          router.replace("/(tabs)");
+        } }]);
+      } else if (error instanceof PreWorkoutOrderConflict) {
+        Alert.alert("Workout already changed", "Your active workout has different exercises. Resume it to arrange the current exercises and keep your saved sets.", [{ text: "Cancel", style: "cancel" }, { text: "Resume active workout", onPress: () => {
+          if (isCurrent()) router.push({ pathname: "/workout/active", params: error.serverSessionId ? { sessionId: error.serverSessionId } : { workoutDayId: workout.workoutDayId } });
+        } }]);
+      } else Alert.alert("Couldn’t start workout", "Your chosen order is saved. Please try again.");
+    };
+    startingRef.current = true; setIsStarting(true);
     try {
-      const active = await getActiveSession(token);
-      if (!active || active.workoutDayId === workout.workoutDayId) {
-        openWorkout();
-        return;
+      let active: Awaited<ReturnType<typeof getActiveSession>> = null;
+      try { active = await getActiveSession(token); }
+      catch (error) {
+        if (error && typeof error === "object" && "status" in error && typeof error.status === "number") throw error;
       }
-      const activeTitle = active.workoutSnapshot?.title ?? `${active.dayType.replace(/_/g, " ")} workout`;
+      if (!isCurrent()) return;
+      if (!active || active.workoutDayId === workout.workoutDayId) { await openWorkout(active); return; }
+      const activeTitle = (active.effectiveWorkout ?? active.workoutSnapshot)?.title ?? `${active.dayType.replace(/_/g, " ")} workout`;
       const progress = active.setLogs.length > 0 ? `${active.setLogs.length} set${active.setLogs.length === 1 ? "" : "s"} logged` : "No sets logged yet";
-      Alert.alert(
-        `${activeTitle} is in progress`,
-        `${progress}. Resume it, or abandon it before starting ${workout.title}.`,
-        [
-          {
-            text: `Resume ${activeTitle}`,
-            onPress: () => router.push({ pathname: "/workout/active", params: { sessionId: active.id } }),
-          },
-          {
-            text: "Abandon & Start",
-            style: "destructive",
-            onPress: async () => {
-              if (await abandonActiveWorkout(active.id)) openWorkout();
-            },
-          },
-        ]
-      );
-    } catch {
-      Alert.alert("Couldn't check active workout", "Please try again.");
-    }
-  }, [workout, token, router, abandonActiveWorkout, targetWeekStart]);
+      Alert.alert(`${activeTitle} is in progress`, `${progress}. Resume it, or abandon it before starting ${workout.title}.`, [
+        { text: `Resume ${activeTitle}`, onPress: () => { if (isCurrent()) router.push({ pathname: "/workout/active", params: { sessionId: active!.id } }); } },
+        { text: "Abandon & Start", style: "destructive", onPress: async () => {
+          if (!isCurrent()) return;
+          try { if (await abandonActiveWorkout(active!.id)) await openWorkout(); } catch (error) { reportStartError(error); }
+        } },
+      ]);
+    } catch (error) { reportStartError(error); }
+    finally { if (isCurrent()) { startingRef.current = false; setIsStarting(false); } }
+  }, [workout, token, user, isOrderLoading, isSavingOrder, isStarting, lifetime, router, targetWeekStart, abandonActiveWorkout, refreshWeek]);
 
   // Handle stale ID notification
   useEffect(() => {
@@ -365,8 +434,8 @@ export default function WorkoutDayDetailScreen() {
   };
 
   // Transform workout blocks to sections
-  const sections: WorkoutSection[] = workout
-    ? workout.blocks.map((block) => ({
+  const sections: WorkoutSection[] = displayedWorkout
+    ? displayedWorkout.blocks.map((block) => ({
         title: BLOCK_TYPE_LABELS[block.blockType] || block.blockType,
         blockType: block.blockType,
         data: block.items,
@@ -459,6 +528,11 @@ export default function WorkoutDayDetailScreen() {
   const renderListHeader = () => (
     <View style={styles.listHeader}>
       {largeText && renderWorkoutHeading()}
+      <View style={{ gap: 6, marginBottom: 16 }}>
+        <ThemedText type="defaultSemiBold">Choose your exercise order</ThemedText>
+        <ThemedText style={{ color: colors.placeholder }}>Drag a card using its handle, or use the move buttons. Your order is saved for this workout; targets can be reviewed after you start.</ThemedText>
+        {orderMessage?.owner === orderOwner ? <ThemedText testID="workout-overview-order-message" accessibilityLiveRegion="polite">{orderMessage.text}</ThemedText> : null}
+      </View>
       {/* Coach intent — renders nothing when absent */}
       <CoachCard intent={workout?.workoutIntent} colors={colors} />
       {!!workout?.unavailableMuscles?.length && (
@@ -641,20 +715,10 @@ export default function WorkoutDayDetailScreen() {
 
       {/* Content */}
       {workout ? (
-        <SectionList
-          testID="workout-detail-list"
-          style={{ flex: 1 }}
-          contentInsetAdjustmentBehavior="automatic"
-          sections={sections}
-          keyExtractor={(item, index) => `${item.exercise.id}-${index}`}
-          renderItem={renderWorkoutItem}
-          renderSectionHeader={renderSectionHeader}
-          ListHeaderComponent={renderListHeader}
-          stickySectionHeadersEnabled={false}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
-        />
+        <WorkoutOverviewList sections={sections} colors={colors} disabled={!user || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
+          onMove={(id, destination) => void moveOverviewExercise(id, destination)}
+          renderItem={(item) => renderWorkoutItem({ item })} renderSectionHeader={(section) => renderSectionHeader({ section })}
+          header={renderListHeader()} contentContainerStyle={styles.listContent} />
       ) : null}
 
       {/* Start Workout button */}
@@ -665,6 +729,8 @@ export default function WorkoutDayDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Start Workout"
             onPress={() => void startWorkout()}
+            disabled={isOrderLoading || isSavingOrder || isStarting || isActionLoading}
+            accessibilityState={{ disabled: isOrderLoading || isSavingOrder || isStarting || isActionLoading, busy: isStarting }}
             style={[styles.startButton, { backgroundColor: colors.primaryButton }]}
           >
             <Ionicons name="play" size={20} color="#FFFFFF" />

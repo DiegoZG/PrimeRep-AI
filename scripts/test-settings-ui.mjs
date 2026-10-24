@@ -64,6 +64,7 @@ async function renderSettings(options = {}) {
     "@/services/health/exportSync": {
       pauseHealthExport: (id) => calls.accounts.push(["pause", id]), resumeHealthExport: (id) => calls.accounts.push(["resume", id]), waitForHealthExportIdle: async () => calls.accounts.push(["idle"]),
     },
+    "@/utils/preWorkoutOrderStore": { clearPreWorkoutOrdersForUser: async (id) => calls.accounts.push(["prestart-cleanup", id]) },
     "@/utils/healthExportAccountCleanup": { clearHealthExportAccount: async (id) => calls.accounts.push(["cleanup", id]) },
     "@/services/coachService": {
       getCoachPreferences: async (token) => { calls.coachLoads.push(token); return options.loadCoach ? options.loadCoach(token) : preferences(options.coachEnabled); },
@@ -406,6 +407,6 @@ test("Settings logout and confirmed deletion preserve existing cleanup sequence"
   fixture = await renderSettings();
   await tap(byLabel(fixture.tree, "Delete account"));
   await act(async () => { await fixture.calls.alerts[0][2][1].onPress(); });
-  assert.deepEqual(plain(fixture.calls.accounts), [["pause", "A"], ["delete", "token-A"], ["idle"], ["cleanup", "A"], ["logout", { forceLocal: true }]]);
+  assert.deepEqual(plain(fixture.calls.accounts), [["pause", "A"], ["delete", "token-A"], ["prestart-cleanup", "A"], ["idle"], ["cleanup", "A"], ["logout", { forceLocal: true }]]);
   await unmount(fixture.tree);
 });

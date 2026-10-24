@@ -157,3 +157,31 @@ export function mergeSavedArrangement(persisted: LocalActiveWorkout | null, inco
     operations: incoming.operations.filter((operation) => (operation.type !== "order" && operation.type !== "replace") || !acknowledged.includes(operation.id)),
     sets });
 }
+
+export class PreWorkoutOrderConflict extends Error {
+  constructor(message: string, readonly serverSessionId: string | null = null, readonly terminal = false) { super(message); }
+}
+
+export function applyPrestartOrder(current: LocalActiveWorkout, exerciseIds: string[], createId: () => string): LocalActiveWorkout {
+  if (current.finishedAt != null || current.operations.some((operation) => operation.type === "complete" || operation.type === "abandon")) {
+    throw new PreWorkoutOrderConflict("Finish syncing the active workout before changing its order.", current.serverSessionId);
+  }
+  if (current.serverSessionId && current.arrangementRevision == null) {
+    throw new PreWorkoutOrderConflict("This workout needs the updated service before its order can be changed. Resume its saved order.", current.serverSessionId);
+  }
+  const effective = current.effectiveWorkout ?? current.workoutSnapshot;
+  if (!effective) throw new PreWorkoutOrderConflict("Resume the saved workout before changing its order.", current.serverSessionId);
+  let reordered: WorkoutDay;
+  try { reordered = reorderWorkout(effective, exerciseIds); }
+  catch { throw new PreWorkoutOrderConflict("This workout's exercises changed. Resume the saved workout and review its current exercises.", current.serverSessionId); }
+  const currentIds = effective.blocks.flatMap((block) => block.items.map((item) => item.exercise.id));
+  if (exerciseIds.every((id, index) => id === currentIds[index])) return current;
+  if (current.operations.some((operation) => operation.type === "replace" || (operation.type === "order" && (operation.attempts ?? 0) > 0))) {
+    throw new PreWorkoutOrderConflict("Sync the previous exercise change before applying this order.", current.serverSessionId);
+  }
+  return normalizeWorkoutArrangement({ ...current, effectiveWorkout: reordered, targetReviewExerciseIds: null,
+    operations: [...current.operations.filter((operation) => operation.type !== "order"),
+      { id: createId(), type: "order", status: "pending", payload: { exerciseIds: [...exerciseIds],
+        expectedRevision: current.arrangementRevision ?? 0, applyRevisedTargets: false, requiresReview: true } }],
+    revision: current.revision + 1 });
+}
