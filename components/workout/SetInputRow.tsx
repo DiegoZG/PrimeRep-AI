@@ -33,6 +33,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   const { setNumber, reps, weight, confirmed, syncStatus, deleted, editing } = setRow;
   const number = displaySetNumber ?? setNumber;
   const logged = confirmed && !editing;
+  const removableEmpty = Boolean(setRow.isAdded && !confirmed && !setRow.logId && !editing && !weight.trim() && !reps.trim());
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
   const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
@@ -86,13 +87,14 @@ export const SetInputRow = React.memo(function SetInputRow({
           value={editing ? setRow.editDraft?.reps ?? reps : reps}
           onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
           placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
-        <Pressable testID={logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
-          accessibilityLabel={logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
+        <Pressable testID={removableEmpty ? `player-remove-empty-set-${id}` : logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
+          accessibilityLabel={removableEmpty ? `Remove empty set ${number}` : logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
           accessibilityState={{ disabled: Boolean(readOnly) }} disabled={readOnly}
-          onPress={() => { Keyboard.dismiss(); if (logged) setMenuVisible(true); else onConfirm(setNumber); }}
+          onPress={() => { Keyboard.dismiss(); if (removableEmpty) onRemove(setNumber); else if (logged) setMenuVisible(true); else onConfirm(setNumber); }}
           style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
-            borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder }}>
-          <Ionicons name={logged ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
+            borderWidth: logged || removableEmpty ? 0 : 1, borderColor: colors.inputBorder }}>
+          <Ionicons name={removableEmpty ? "trash-outline" : logged ? "ellipsis-horizontal" : "checkmark"} size={21}
+            color={removableEmpty ? secondaryColor : colors.text} />
         </Pressable>
       </View>
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}

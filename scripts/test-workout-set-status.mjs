@@ -64,3 +64,23 @@ for (const [name, fields, icon, label] of [
     await act(async () => tree.unmount());
   }
 });
+
+test("an empty added set offers removal until the user enters a value", async () => {
+  let removed = null;
+  let confirmed = null;
+  let tree;
+  const props = { setRow: { ...base, setNumber: 5, isAdded: true, weight: "", reps: "" }, colors: palette,
+    weightUnit: "LB", compact: true, onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {},
+    onRemove: (number) => { removed = number; }, onRestore() {}, onRetry() {} };
+  await act(async () => { tree = create(React.createElement(SetInputRow, props)); });
+  const remove = tree.root.findByProps({ testID: "player-remove-empty-set-squat-5" });
+  assert.equal(remove.props.accessibilityLabel, "Remove empty set 5");
+  assert.ok(remove.props.style.width >= 44);
+  await act(async () => remove.props.onPress());
+  assert.equal(removed, 5);
+  assert.equal(confirmed, null);
+  await act(async () => tree.update(React.createElement(SetInputRow, { ...props, setRow: { ...props.setRow, reps: "8" } })));
+  assert.equal(tree.root.findAllByProps({ testID: "player-remove-empty-set-squat-5" }).length, 0);
+  assert.ok(tree.root.findByProps({ testID: "player-confirm-set-squat-5" }));
+  await act(async () => tree.unmount());
+});

@@ -339,6 +339,25 @@ test("all exercise thumbnail shows supplied image and falls back when it fails",
   await act(async () => view.tree.unmount());
 });
 
+test("removing a blank added set leaves no row or delete operation after restart", async () => {
+  const view = await player({ layout: "all" });
+  await act(async () => host(view.tree, "player-add-set-bench").props.onPress());
+  assert.ok(inputFor(view, "bench", 5));
+  await act(async () => inputFor(view, "bench", 5).props.onRemove(5));
+  await view.settle();
+  assert.equal(inputFor(view, "bench", 5), undefined);
+  assert.equal(view.list().props.getProgress("bench").total, 4);
+  const durable = await view.store.loadActiveWorkout("A");
+  assert.equal(durable.sets.filter((set) => set.exerciseId === "bench" && !set.deleted).length, 4);
+  assert.equal(durable.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 5).deleted, true);
+  assert.equal(durable.operations.some((operation) => operation.type === "delete_set"), false);
+  await view.remount();
+  assert.equal(inputFor(view, "bench", 5), undefined);
+  await act(async () => host(view.tree, "player-add-set-bench").props.onPress());
+  assert.ok(inputFor(view, "bench", 5));
+  await act(async () => view.tree.unmount());
+});
+
 test("layout switch keeps cross-exercise drafts and restores the selected layout", async () => {
   const view = await player();
   await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();

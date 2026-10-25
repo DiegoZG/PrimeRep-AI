@@ -136,7 +136,7 @@ function mergeServerLogs(
       };
     }
     return log
-      ? { ...set, reps: String(log.reps), weight: log.weightKg == null ? "" : formatWeightInput(fromKg(log.weightKg, unit)), weightKg: log.weightKg, confirmed: true, syncing: false, syncStatus: "synced" as const, logId: log.id, version: log.version }
+      ? { ...set, reps: String(log.reps), weight: log.weightKg == null ? "" : formatWeightInput(fromKg(log.weightKg, unit)), weightKg: log.weightKg, confirmed: true, deleted: false, deletedLogId: null, syncing: false, syncStatus: "synced" as const, logId: log.id, version: log.version }
       : set;
   });
   const prescribedKeys = new Set(prescribed.map((set) => `${set.exerciseId}:${set.setNumber}`));
@@ -192,6 +192,7 @@ function mergeReplaySets(current: SetState[], replayed: SetState[]): SetState[] 
   const merged = current.map((set) => {
     const replayedSet = bySet.get(`${set.exerciseId}:${set.setNumber}`);
     if (!replayedSet || (set.confirmed && !replayedSet.confirmed)) return set;
+    if (set.isAdded && set.deleted && !set.confirmed && !set.logId && !replayedSet.confirmed && !replayedSet.logId) return set;
     return {
       ...replayedSet,
       reps: set.reps || replayedSet.reps,
@@ -1187,6 +1188,16 @@ export default function ActiveWorkoutScreen() {
     if (!canActOnExercise(exerciseId)) return;
     const target = setsRef.current.find((set) => set.exerciseId === exerciseId && set.setNumber === setNumber);
     if (!target || target.syncStatus === "failed") return;
+    if (target.isAdded && !target.confirmed && !target.logId && !target.deleted && !target.reps.trim() && !target.weight.trim()
+      && !operationsRef.current.some((operation) => "exerciseId" in operation.payload && operation.payload.exerciseId === exerciseId
+        && "setNumber" in operation.payload && operation.payload.setNumber === setNumber)) {
+      const nextSets = setsRef.current.map((set) => set === target
+        ? { ...set, deleted: true, editing: false, editDraft: undefined, hasUnsavedInput: false } : set);
+      setsRef.current = nextSets;
+      setSets(nextSets);
+      setEntryIssues((previous) => { const next = { ...previous }; delete next[`${exerciseId}:${setNumber}`]; return next; });
+      return;
+    }
     if (!target.logId) {
       const nextSets = setsRef.current.map((set) => set.exerciseId === exerciseId && set.setNumber === setNumber
         ? { ...set, deleted: true, editing: false, editDraft: undefined, hasUnsavedInput: false } : set);
@@ -1265,6 +1276,15 @@ export default function ActiveWorkoutScreen() {
 
   const addSet = useCallback((exerciseId: string) => {
     if (!canActOnExercise(exerciseId)) return;
+    const reusable = setsRef.current.find((set) => set.exerciseId === exerciseId && set.isAdded && set.deleted
+      && !set.confirmed && !set.logId && !set.deletedLogId);
+    if (reusable) {
+      const nextSets = setsRef.current.map((set) => set === reusable ? { ...set, deleted: false, reps: "", weight: "",
+        hasUnsavedInput: false, editing: false, editDraft: undefined } : set);
+      setsRef.current = nextSets;
+      setSets(nextSets);
+      return;
+    }
     const nextSetNumber = setsRef.current
       .filter((set) => set.exerciseId === exerciseId)
       .reduce((maximum, set) => Math.max(maximum, set.setNumber), 0) + 1;
@@ -1747,7 +1767,8 @@ export default function ActiveWorkoutScreen() {
   };
   const renderSetInputs = (item: WorkoutItem, focus: boolean, cardActions?: React.ReactNode) => {
     const exerciseId = item.exercise.id;
-    const itemSets = sets.filter((set) => set.exerciseId === exerciseId).sort((a, b) => a.setNumber - b.setNumber);
+    const itemSets = sets.filter((set) => set.exerciseId === exerciseId
+      && !(set.isAdded && set.deleted && !set.confirmed && !set.logId)).sort((a, b) => a.setNumber - b.setNumber);
     const equipmentIds = item.exercise.requiredEquipmentIds ?? [];
     const columnLabel = item.exercise.loadProfile?.implement_count === 1 ? "Weight" : equipmentIds.includes("dumbbells")
       ? "Weight each" : equipmentIds.includes("olympic_barbell") ? "Total weight" : "Weight";

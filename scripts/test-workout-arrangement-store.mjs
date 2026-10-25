@@ -128,6 +128,23 @@ for (const platform of ["native", "web"]) {
     assert.equal(persisted.operations.length, 0);
   });
 
+  test(`${platform}: background order sync keeps a newly removed blank extra set hidden`, async () => {
+    const request = deferred(), entered = deferred();
+    const { store } = storageHarness(platform, { updateExerciseOrder: async () => { entered.resolve(); return request.promise; } });
+    await store.saveActiveWorkout(draft({ operations: [order()], effectiveWorkout: day(["c", "a", "b"]),
+      sets: [set("a"), set("b"), set("c"), set("a", { setNumber: 2, reps: "", weight: "", isAdded: true })] }));
+    const replay = store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    const current = await store.loadActiveWorkout("user");
+    await store.saveActiveWorkout({ ...current, revision: current.revision + 1,
+      sets: current.sets.map((row) => row.exerciseId === "a" && row.setNumber === 2 ? { ...row, deleted: true } : row) });
+    request.resolve(server(["c", "a", "b"], 1));
+    await replay;
+    const restored = await store.loadActiveWorkout("user");
+    assert.equal(restored.sets.find((row) => row.exerciseId === "a" && row.setNumber === 2).deleted, true);
+    assert.equal(restored.operations.length, 0);
+  });
+
   test(`${platform}: revision conflict fetches server order but retains failed intent for explicit review`, async () => {
     const harness = storageHarness(platform, { updateExerciseOrder: async () => { throw new HttpError("Changed", 409); }, getSession: async () => server(["b", "c", "a"], 4) });
     await harness.store.saveActiveWorkout(draft({ operations: [order()], effectiveWorkout: day(["c", "a", "b"]) }));
