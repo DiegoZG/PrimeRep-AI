@@ -49,6 +49,7 @@ import { coachItemPresentation } from "@/utils/coachItemBody";
 import { coachTargetHref } from "@/utils/coachNavigation";
 import { EquipmentWeightsContext } from "@/utils/equipmentWeightsContext";
 import { fourWeekActivity, homeWorkoutState, selectHomeCoachItem } from "@/utils/homeDashboard";
+import { workoutPlanningMode, workoutPlanningSummary, workoutPlanningSpokenSummary } from "@/utils/workoutPlanning";
 import { localDateIso } from "@/utils/localDate";
 import { loadWeightUnit, type WeightUnit } from "@/utils/weightUnits";
 
@@ -333,7 +334,7 @@ const Home = () => {
     try {
       await Share.share({
         title: workout.title,
-        message: `${workout.title}\n${workout.date} · ${workout.durationMinutes} min\n${exercises.join(", ")}\n\nPlanned with PrimeRep.`,
+        message: `${workout.title}\n${workout.date} · ${workoutPlanningSummary(workout)}\n${exercises.join(", ")}\n\nPlanned with PrimeRep.`,
       });
     } catch {
       Alert.alert("Couldn't Share Workout", "The share sheet could not open.", [
@@ -402,7 +403,7 @@ const Home = () => {
 
   // Get menu subtitle text
   const getMenuSubtitle = (workout: WorkoutDay): string => {
-    return `${getDayName(workout.date)} • ${workout.durationMinutes} min`;
+    return `${getDayName(workout.date)} • ${workoutPlanningSummary(workout)}`;
   };
 
   // Render a workout card for FlatList
@@ -422,7 +423,7 @@ const Home = () => {
         <Pressable
           testID="workout-card"
           accessibilityRole="button"
-          accessibilityLabel={`Open ${workout.title}, ${getDayName(workout.date)}${today ? ", today" : ""}, ${workout.durationMinutes} minutes, ${exerciseCount} ${exerciseCount === 1 ? "exercise" : "exercises"}`}
+          accessibilityLabel={`Open ${workout.title}, ${getDayName(workout.date)}${today ? ", today" : ""}, ${workoutPlanningSpokenSummary(workout)}, ${exerciseCount} ${exerciseCount === 1 ? "exercise" : "exercises"}`}
           onPress={() => handleWorkoutPress(workout)}
           style={({ pressed }) => [
             styles.workoutCard,
@@ -468,12 +469,12 @@ const Home = () => {
             <View style={styles.workoutMetrics}>
               <View style={styles.metric}>
                 <Ionicons
-                  name="time-outline"
+                  name={workoutPlanningMode(workout) === "trainer_led" && !workout.programActivationId ? "sparkles-outline" : "time-outline"}
                   size={14}
                   color={colors.icon}
                 />
                 <Text style={[styles.metricText, { color: colors.icon }]}>
-                  {workout.durationMinutes} min
+                  {workoutPlanningMode(workout) === "trainer_led" && !workout.programActivationId ? "Trainer-led" : workoutPlanningSummary(workout)}
                 </Text>
               </View>
               <View style={styles.metric}>

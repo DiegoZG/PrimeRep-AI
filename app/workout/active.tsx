@@ -227,7 +227,8 @@ export default function ActiveWorkoutScreen() {
   const { token, user } = useContext(AuthContext);
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
-  const { getWorkoutById, isLoading: isWeekLoading, refreshWeek } = useWorkoutWeek();
+  const { getWorkoutById, isLoading: isWeekLoading, refreshWeek, planningRefreshRequired } = useWorkoutWeek();
+  const planningBarrierRef = useRef(planningRefreshRequired); planningBarrierRef.current = planningRefreshRequired;
 
   const [originalWorkout, setOriginalWorkout] = useState<WorkoutDay | null>(null);
   const [targetReviewExerciseIds, setTargetReviewExerciseIds] = useState<string[] | null | undefined>();
@@ -617,11 +618,13 @@ export default function ActiveWorkoutScreen() {
         setIsRestoring(false);
         return;
       }
-      restoredWorkoutKey.current = restoreKey;
       const [saved, serverActive] = await Promise.all([
         loadActiveWorkout(user.id).catch(() => null),
         token ? getActiveSession(token).catch(() => null) : Promise.resolve(null),
       ]);
+      if (cancelled) return;
+      if (planningBarrierRef.current && !saved && !serverActive) return;
+      restoredWorkoutKey.current = restoreKey;
 
       // Never overwrite a valid active workout just because a user tapped a
       // different card. Resume the authoritative server workout first.
@@ -688,7 +691,7 @@ export default function ActiveWorkoutScreen() {
     }
     void restore();
     return () => { cancelled = true; };
-  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId, canRestoreRequestedSession]);
+  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId, canRestoreRequestedSession, planningRefreshRequired]);
 
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
@@ -1496,6 +1499,16 @@ export default function ActiveWorkoutScreen() {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (planningRefreshRequired && isRestoring && !sessionId) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
+      <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: "center" }}>
+        <ThemedText accessibilityRole="alert">Refresh to confirm the latest workout before starting.</ThemedText>
+        <Pressable testID="active-planning-refresh" accessibilityRole="button" accessibilityLabel="Refresh workout plan" onPress={() => void refreshWeek()} style={{ minHeight: 48, padding: 12, justifyContent: "center" }}><ThemedText style={{ color: colors.primaryButton }}>Refresh workout plan</ThemedText></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to workouts" onPress={() => router.replace("/(tabs)")} style={{ minHeight: 48, padding: 12, justifyContent: "center" }}><ThemedText>Back to workouts</ThemedText></Pressable>
+      </View>
+    </SafeAreaView>;
   }
 
   if (isRestoring || sets.length === 0) {

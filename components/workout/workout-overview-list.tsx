@@ -11,9 +11,10 @@ export interface OverviewSection { title: string; blockType: string; data: Worko
 export interface OverviewControls { handle: React.ReactNode; moves: React.ReactNode }
 type RowBounds = { y: number; height: number };
 
-export function WorkoutOverviewList({ sections, renderItem, renderSectionHeader, header, colors, disabled, onMove, contentContainerStyle }: {
+export function WorkoutOverviewList({ sections, renderItem, renderSectionHeader, header, footer, colors, disabled, onMove, contentContainerStyle }: {
   sections: OverviewSection[]; renderItem: (item: WorkoutItem, controls: OverviewControls) => React.ReactNode;
   renderSectionHeader: (section: OverviewSection) => React.ReactNode; header: React.ReactNode;
+  footer?: React.ReactNode;
   colors: typeof Colors.light; disabled: boolean; onMove: (exerciseId: string, destination: number) => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
 }) {
@@ -79,6 +80,7 @@ export function WorkoutOverviewList({ sections, renderItem, renderSectionHeader,
           onBegin={begin} onUpdate={update} onDrop={drop} onCancel={cancel}>{(controls) => renderItem(item, controls)}</OverviewExercise>;
       }),
     ])}
+    {footer}
   </ScrollView>;
 }
 

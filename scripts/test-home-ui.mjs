@@ -88,6 +88,7 @@ async function renderHome(scheme, options = {}) {
     "@/utils/coachNavigation": navigation,
     "@/utils/equipmentWeightsContext": { EquipmentWeightsContext },
     "@/utils/homeDashboard": dashboard,
+    "@/utils/workoutPlanning": load("utils/workoutPlanning.ts", {}),
     "@/utils/localDate": { localDateIso: () => "2026-10-10" },
     "@/utils/weightUnits": { loadWeightUnit: async () => options.weightUnit ?? "LB" },
     "@/styles/home.styles": homeStyles,
@@ -251,5 +252,16 @@ for (const scheme of ["light", "dark"]) {
     await act(async () => byId(metric.tree, "home-coach-action").props.onPress());
     assert.deepEqual(metric.refreshes, ["coach"]);
     await unmount(metric.tree);
+  });
+}
+
+for (const scheme of ["light", "dark"]) {
+  test(`Home trainer-led accessibility has no fake time or stray suffix in ${scheme}`, async () => {
+    const trainer = { ...workout("next", "2026-10-10"), planningMode: "trainer_led", timeBudgetMinutes: null, estimatedMinutes: 55 };
+    const view = await renderHome(scheme, { workouts: [trainer] });
+    const card = view.tree.root.findAllByProps({ testID: "workout-card" }).find((node) => typeof node.type === "string");
+    assert.match(card.props.accessibilityLabel, /Trainer-led/);
+    assert.doesNotMatch(card.props.accessibilityLabel, /minutes|exercisesutes|undefined/);
+    await act(async () => view.tree.unmount());
   });
 }

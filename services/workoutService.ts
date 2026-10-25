@@ -82,6 +82,10 @@ function mapApiWorkout(apiWorkout: WorkoutApiResponse): Workout {
     dayType: apiWorkout.dayType,
     title: apiWorkout.title,
     estimatedMinutes: apiWorkout.estimatedMinutes,
+    planningMode: apiWorkout.planningMode,
+    timeBudgetMinutes: apiWorkout.timeBudgetMinutes,
+    planningSource: apiWorkout.planningSource,
+    planningEditable: apiWorkout.planningEditable,
     workoutIntent: apiWorkout.workoutIntent ?? undefined,
     blocks: apiWorkout.exerciseBlocks.map(mapApiBlock),
   };

@@ -22,11 +22,46 @@ function write(action: () => Promise<void>): Promise<void> {
 export function preWorkoutOrderFingerprint(workout: WorkoutDay): string {
   return JSON.stringify({ workoutDayId: workout.workoutDayId, date: workout.date,
     dayType: workout.dayType, splitKey: workout.splitKey, durationMinutes: workout.durationMinutes,
+    planningMode: workout.planningMode, timeBudgetMinutes: workout.timeBudgetMinutes, planningSource: workout.planningSource,
     programActivationId: workout.programActivationId, templateId: workout.templateId,
     templateVersion: workout.templateVersion, templateDayId: workout.templateDayId,
     items: workout.blocks.flatMap((block) => block.items.map((item) => ({
       blockType: block.blockType, exerciseId: item.exercise.id, prescription: item.prescription,
     }))) });
+}
+
+function matchesOrderFingerprint(fingerprint: string, workout: WorkoutDay): boolean {
+  let matches = fingerprint === preWorkoutOrderFingerprint(workout);
+  if (!matches && typeof fingerprint === "string" && (workout.programActivationId || (workout.planningMode === "time_budget" && workout.planningSource === "default" && workout.timeBudgetMinutes === workout.durationMinutes))) {
+    const legacy = JSON.parse(fingerprint);
+    const current = JSON.parse(preWorkoutOrderFingerprint(workout));
+    if (!("planningMode" in legacy) && !("timeBudgetMinutes" in legacy) && !("planningSource" in legacy)) {
+    delete current.planningMode; delete current.timeBudgetMinutes; delete current.planningSource;
+    matches = JSON.stringify(legacy) === JSON.stringify(current);
+    }
+  }
+  return matches;
+}
+
+function resolveSavedOrder(saved: { version?: number; fingerprint?: string; exerciseIds?: string[] }, workout: WorkoutDay): string[] | null {
+  if (saved.version !== 1 || typeof saved.fingerprint !== "string" || !Array.isArray(saved.exerciseIds) || saved.exerciseIds.some((id) => typeof id !== "string")) return null;
+  if (matchesOrderFingerprint(saved.fingerprint, workout)) {
+    reorderWorkout(workout, saved.exerciseIds);
+    return [...saved.exerciseIds];
+  }
+  const before = JSON.parse(saved.fingerprint), after = JSON.parse(preWorkoutOrderFingerprint(workout));
+  if (workout.programActivationId || before.programActivationId || !Array.isArray(before.items) || after.items.length <= before.items.length) return null;
+  if (!("planningMode" in before) && !("timeBudgetMinutes" in before) && !("planningSource" in before) && after.planningMode === "time_budget" && after.planningSource === "default" && after.timeBudgetMinutes === before.durationMinutes) {
+    before.planningMode = "time_budget"; before.timeBudgetMinutes = before.durationMinutes; before.planningSource = "default";
+  }
+  const trainer = before.planningMode === "trainer_led" && after.planningMode === "trainer_led";
+  if (Object.keys({ ...before, ...after }).some((key) => key !== "items" && !(trainer && key === "durationMinutes") && JSON.stringify(before[key]) !== JSON.stringify(after[key]))) return null;
+  if (before.items.some((item: unknown, index: number) => JSON.stringify(item) !== JSON.stringify(after.items[index]))) return null;
+  const suffix = after.items.slice(before.items.length);
+  if (suffix.some((item: { blockType: string; prescription: { sets: number; reps: string; restSeconds: number } }) => item.blockType !== "main" || item.prescription.sets !== 3 || item.prescription.reps !== "8-12" || item.prescription.restSeconds !== 90)) return null;
+  const exerciseIds = [...saved.exerciseIds, ...suffix.map((item: { exerciseId: string }) => item.exerciseId)];
+  reorderWorkout(workout, exerciseIds);
+  return exerciseIds;
 }
 
 export async function loadPreWorkoutOrder(userId: string, workout: WorkoutDay): Promise<{ exerciseIds: string[] | null; invalidated: boolean }> {
@@ -35,11 +70,8 @@ export async function loadPreWorkoutOrder(userId: string, workout: WorkoutDay): 
   const raw = await AsyncStorage.getItem(key);
   if (!raw) return { exerciseIds: null, invalidated: false };
   try {
-    const saved = JSON.parse(raw);
-    if (saved.version !== 1 || saved.fingerprint !== preWorkoutOrderFingerprint(workout) || !Array.isArray(saved.exerciseIds)
-      || saved.exerciseIds.some((id: unknown) => typeof id !== "string")) throw new Error("Workout changed");
-    reorderWorkout(workout, saved.exerciseIds);
-    return { exerciseIds: [...saved.exerciseIds], invalidated: false };
+    const exerciseIds = resolveSavedOrder(JSON.parse(raw), workout);
+    return exerciseIds ? { exerciseIds, invalidated: false } : { exerciseIds: null, invalidated: true };
   } catch {
     return { exerciseIds: null, invalidated: true };
   }
@@ -52,6 +84,26 @@ export function savePreWorkoutOrder(userId: string, workout: WorkoutDay, exercis
   return write(async () => {
     if (deletedOwners.has(userId)) throw new Error("This account was deleted.");
     await AsyncStorage.setItem(key, value);
+  });
+}
+
+export function extendPreWorkoutOrder(userId: string, previous: WorkoutDay, next: WorkoutDay, isCurrent: () => boolean): Promise<void> {
+  return write(async () => {
+    if (!isCurrent()) return;
+    if (deletedOwners.has(userId)) throw new Error("This account was deleted.");
+    const key = keyFor(userId, previous.workoutDayId);
+    const raw = await AsyncStorage.getItem(key);
+    if (!isCurrent() || !raw) return;
+    const saved = JSON.parse(raw);
+    const previousOrder = resolveSavedOrder(saved, previous);
+    if (!previousOrder) return;
+    const before = previous.blocks.flatMap((block) => block.items.map((item) => item.exercise.id));
+    const after = next.blocks.flatMap((block) => block.items.map((item) => item.exercise.id));
+    if ((after.length !== before.length && after.length !== before.length + 1) || before.some((id, index) => after[index] !== id)) throw new Error("Review the updated exercise order.");
+    const exerciseIds = after.length === before.length ? previousOrder : [...previousOrder, after[after.length - 1]];
+    reorderWorkout(next, exerciseIds);
+    if (!isCurrent() || deletedOwners.has(userId)) return;
+    await AsyncStorage.setItem(key, JSON.stringify({ version: 1, fingerprint: preWorkoutOrderFingerprint(next), exerciseIds }));
   });
 }
 

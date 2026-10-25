@@ -46,6 +46,8 @@ export interface CustomWorkout {
 }
 
 export interface OnboardingFields {
+  workoutPlanningMode?: "trainer_led" | "time_budget";
+  preferredWorkoutMinutes?: number;
   preferredName?: string;
   lastName?: string;
   email?: string;

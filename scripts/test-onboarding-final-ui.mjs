@@ -212,7 +212,9 @@ test("scope: existing Final controller and two navigation handlers stay byte-ide
   assert.deepEqual(handlers(source(route)), handlers(original(route)));
   assert.deepEqual(handlers(source(route)), ['() => router.push("/signup")', '() => router.push("/login")']);
 });
-test("scope: shared theme, components, providers, routes, dependencies and configuration are untouched", () => {
-  for (const file of ["components/animated-button.tsx", "components/themed-text.tsx", "components/themed-view.tsx", "constants/theme.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "utils/onboardingContext.tsx", "utils/authContext.tsx", "app/_layout.tsx", "app/onboarding/_layout.tsx", "app/signup.tsx", "app/login.tsx", "package.json", "package-lock.json", "app.json"]) assert.equal(source(file), original(file), file);
+test("scope: shared onboarding behavior is unchanged apart from the registered workout exercise picker", () => {
+  const picker = '          <Stack.Screen name="workout/exercise-picker" options={{ headerShown: false }} />\n';
+  assert.equal(source("app/_layout.tsx").split(picker).length, 2);
+  for (const file of ["components/animated-button.tsx", "components/themed-text.tsx", "components/themed-view.tsx", "constants/theme.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "utils/onboardingContext.tsx", "utils/authContext.tsx", "app/_layout.tsx", "app/onboarding/_layout.tsx", "app/signup.tsx", "app/login.tsx", "package.json", "package-lock.json", "app.json"]) assert.equal(file === "app/_layout.tsx" ? source(file).replace(picker, "") : source(file), original(file), file);
   assert.equal(hash(source("utils/onboardingContext.tsx")), "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a");
 });

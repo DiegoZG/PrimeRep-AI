@@ -15,17 +15,18 @@ const deferred = () => { let resolve; const promise = new Promise((done) => { re
 const item = (id, sets = 4) => ({ exercise: { id, name: id, exerciseType: "strength", primaryMuscle: "chest", requiredEquipmentIds: [] }, prescription: { sets, reps: "8-12", restSeconds: 90 } });
 const workout = { workoutDayId: "day", date: "2026-10-23", title: "Upper A", dayType: "upper", slotIndex: 0, durationMinutes: 45, splitKey: "upper_lower", blocks: [{ blockType: "main", items: [item("incline"), item("bench")] }, { blockType: "accessory", items: [item("row", 3), item("raise", 3)] }] };
 const api = (day) => ({ ...day, exerciseBlocks: day.blocks });
-async function player() {
+async function player(options = {}) {
   const memory = new Map(), timers = new Map(), intervals = new Map(), calls = [];
   let timerCounter = 0;
   const AuthContext = React.createContext(null), EquipmentWeightsContext = React.createContext(null);
   let server = { id: "session", clientSessionId: "client", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", arrangementRevision: 0,
     effectiveWorkout: api(workout), workoutSnapshot: api(workout), status: "in_progress", startedAt: new Date(100).toISOString(), setLogs: [], deletedSetLogs: [], exerciseFeedback: [], workoutNote: null };
+  if (options.noExisting) server = null;
   const replacementStarted = deferred(), replacementResponse = deferred();
   const native = { ActivityIndicator: "ActivityIndicator", Alert: { alert() {} }, AppState: { addEventListener: () => ({ remove() {} }) }, Keyboard: { dismiss() {}, addListener: () => ({ remove() {} }) },
     KeyboardAvoidingView: "KeyboardAvoidingView", Modal: "Modal", Platform: { OS: "web", select: (values) => values.web ?? values.default }, Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", TextInput: "TextInput", TouchableWithoutFeedback: "TouchableWithoutFeedback", View: "View", useWindowDimensions: () => ({ width: 375, height: 812, fontScale: 1 }) };
   const activeWorkout = { markWorkoutTerminal() {} };
-  const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, refreshWeek: async () => {} };
+  const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, planningRefreshRequired: Boolean(options.barrier), refreshWeek: async () => { calls.push(["refresh"]); } };
   const services = {
     getActiveSession: async () => copy(server), getSession: async () => copy(server), getUserExerciseNote: async () => null, fetchLastSetsForExercises: async () => ({}),
     getReplacementCandidates: async () => [{ id: "fly", name: "Chest Fly" }],
@@ -35,7 +36,7 @@ async function player() {
   };
   class HttpError extends Error { constructor(message, status) { super(message); this.status = status; } }
   const mocks = { react: React, "react-native": native, "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-av": { Audio: { Sound: { createAsync: async () => ({ sound: { unloadAsync() {}, replayAsync() {} } }) } } }, "expo-status-bar": { StatusBar: "StatusBar" },
-    "expo-router": { useRouter: () => router, useLocalSearchParams: () => ({ sessionId: "session" }) }, "expo-haptics": { notificationAsync: async () => {}, impactAsync: async () => {}, NotificationFeedbackType: { Success: "success" }, ImpactFeedbackStyle: { Medium: "medium" } },
+    "expo-router": { useRouter: () => router, useLocalSearchParams: () => options.noExisting ? { workoutDayId: "day" } : { sessionId: "session" } }, "expo-haptics": { notificationAsync: async () => {}, impactAsync: async () => {}, NotificationFeedbackType: { Success: "success" }, ImpactFeedbackStyle: { Medium: "medium" } },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView", useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/hooks/use-workout-week": { useWorkoutWeek: () => week },
     "@/utils/authContext": { AuthContext }, "@/utils/equipmentWeightsContext": { EquipmentWeightsContext }, "@/utils/activeWorkoutContext": { useActiveWorkout: () => activeWorkout },
     "@/components/workout/ExerciseListSheet": { ExerciseListSheet: "ExerciseListSheet" }, "@/components/workout/ExerciseInfoSheet": { ExerciseInfoSheet: "ExerciseInfoSheet" }, "@/components/workout/WorkoutArrangementSheets": { WorkoutArrangementSheets: "WorkoutArrangementSheets" },
@@ -61,16 +62,16 @@ async function player() {
   const store = load("utils/activeWorkoutStore.web.ts");
   const local = { userId: "A", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", workoutSnapshot: copy(workout), effectiveWorkout: copy(workout), arrangementRevision: 0, clientSessionId: "client", serverSessionId: "session", startedAt: 100,
     currentExerciseId: "bench", currentExerciseIndex: 1, restEndsAt: null, restTotalSeconds: 0, restContext: null, revision: 1, operations: [], sets: workout.blocks.flatMap((block) => block.items.flatMap((entry) => Array.from({ length: entry.prescription.sets }, (_, index) => ({ exerciseId: entry.exercise.id, setNumber: index + 1, reps: "", weight: "", confirmed: false, syncing: false, syncStatus: "synced", logId: null })))) };
-  await store.saveActiveWorkout(local);
+  if (!options.noExisting) await store.saveActiveWorkout(local);
   const { default: Screen } = load("app/workout/active.tsx");
-  const element = React.createElement(AuthContext.Provider, { value: { token: "token", user: { id: "A" } } }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
-  let tree; await act(async () => { tree = create(element); });
+  const element = () => React.createElement(AuthContext.Provider, { value: { token: "token", user: { id: "A" } } }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
+  let tree; await act(async () => { tree = create(element()); });
   const settle = async () => { await act(async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); }); };
   await settle();
   const runTimers = async () => { await act(async () => { const pending = [...timers]; for (const [id, timer] of pending) if (timer.delay === 0) { timers.delete(id); timer.callback(); } }); await settle(); };
   const list = () => tree.root.findByType("ExerciseListSheet");
   const controller = () => tree.root.findByType("WorkoutArrangementSheets").props.controller;
-  return { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, getServer: () => copy(server), memory };
+  return { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, getServer: () => copy(server), memory, setBarrier: async (value) => { week.planningRefreshRequired = value; await act(async () => tree.update(element())); await settle(); } };
 }
 
 test("mounted player replacement with background replay and autosave keeps all replacement sets and clears pending state", async () => {
@@ -106,5 +107,25 @@ test("mounted player uses one native Modal while moving from exercise list to re
   const guidance = view.tree.root.findAllByType("ExerciseInfoSheet").find((sheet) => sheet.props.visible);
   assert.equal(guidance.props.inline, true); assert.equal(guidance.props.exerciseId, "fly");
   await act(async () => guidance.props.onClose()); assert.ok(view.controller().picker); assert.equal(view.controller().guidance, null);
+  await act(async () => view.tree.unmount());
+});
+
+test("direct player routes cannot create a workout behind an uncertain planning barrier and recover after refresh", async () => {
+  const view = await player({ noExisting: true, barrier: true });
+  assert.ok(host(view.tree, "active-planning-refresh"));
+  await view.runTimers(); assert.equal(await view.store.loadActiveWorkout("A"), null);
+  await act(async () => host(view.tree, "active-planning-refresh").props.onPress());
+  assert.equal(view.calls.filter((call) => call[0] === "refresh").length, 1);
+  await view.setBarrier(false); await view.runTimers();
+  assert.equal(host(view.tree, "active-planning-refresh"), undefined);
+  const local = await view.store.loadActiveWorkout("A");
+  assert.ok(local); assert.equal(local.operations.filter((operation) => operation.type === "create").length, 1);
+  await act(async () => view.tree.unmount());
+});
+
+test("an existing logged workout remains resumable while a new-plan refresh is required", async () => {
+  const view = await player({ barrier: true });
+  assert.equal(host(view.tree, "active-planning-refresh"), undefined);
+  assert.ok(view.list()); assert.equal((await view.store.loadActiveWorkout("A")).serverSessionId, "session");
   await act(async () => view.tree.unmount());
 });

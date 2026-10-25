@@ -17,6 +17,8 @@ export type TrainingPreferences = Pick<
   | "trainingPlace"
   | "selectedEquipment"
   | "customWorkouts"
+  | "workoutPlanningMode"
+  | "preferredWorkoutMinutes"
 >;
 
 /**
@@ -46,9 +48,9 @@ export function getTrainingPreferences(token: string) {
 export function updateTrainingPreferences(
   token: string,
   preferences: Partial<TrainingPreferences>,
-  dates: { weekStart: string; effectiveDate: string },
+  dates: { weekStart: string; effectiveDate: string; planUpdateScope?: "preserve" | "refresh" },
 ) {
-  const query = `weekStart=${encodeURIComponent(dates.weekStart)}&effectiveDate=${encodeURIComponent(dates.effectiveDate)}`;
+  const query = `weekStart=${encodeURIComponent(dates.weekStart)}&effectiveDate=${encodeURIComponent(dates.effectiveDate)}${dates.planUpdateScope ? `&planUpdateScope=${dates.planUpdateScope}` : ""}`;
   return requestJson<TrainingPreferences>(`/v1/users/me/training-preferences?${query}`, {
     method: "PATCH",
     token,
