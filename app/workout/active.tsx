@@ -19,6 +19,8 @@ import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
+import { useWorkoutLayout } from "@/utils/workoutLayoutContext";
+import type { WorkoutLayout } from "@/utils/workoutLayoutPreference";
 import type { RestContext, SetState, WorkoutDay, WorkoutItem } from "@/interfaces/workouts";
 import {
   abandonSession,
@@ -228,6 +230,9 @@ export default function ActiveWorkoutScreen() {
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek, planningRefreshRequired } = useWorkoutWeek();
+  const { layout, isReady: isLayoutReady, isSaving: isLayoutSaving, setLayout } = useWorkoutLayout();
+  const allExercisesLayout = isLayoutReady && layout === "all";
+  const allExercisesLayoutRef = useRef(allExercisesLayout); allExercisesLayoutRef.current = allExercisesLayout;
   const planningBarrierRef = useRef(planningRefreshRequired); planningBarrierRef.current = planningRefreshRequired;
 
   const [originalWorkout, setOriginalWorkout] = useState<WorkoutDay | null>(null);
@@ -360,6 +365,8 @@ export default function ActiveWorkoutScreen() {
   const [feedbackEditorExerciseId, setFeedbackEditorExerciseId] = useState<string | null>(null);
   const feedbackEditorEpochRef = useRef<number | null>(null);
   const [feedbackDraft, setFeedbackDraft] = useState<{ effort: "easy" | "right" | "hard" | null; rir: number | null }>({ effort: null, rir: null });
+  const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
+  const [restDoneExerciseId, setRestDoneExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
     const shown = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
@@ -570,8 +577,12 @@ export default function ActiveWorkoutScreen() {
   const sheetVisibleRef = useRef(sheetVisible); sheetVisibleRef.current = sheetVisible;
   const exerciseOverlayVisibleRef = useRef(false);
   const chooseExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null), listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
-  const listFocusRef = useRef<{ epoch: number; target: React.ElementRef<typeof Pressable> | null } | null>(null);
+  const listFocusRef = useRef<{ epoch: number; target: React.ElementRef<typeof Pressable> | null; infoSource?: "focus" | "all"; exerciseId?: string } | null>(null);
+  const focusInfoTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const allInfoTriggers = useRef(new Map<string, React.ElementRef<typeof Pressable>>());
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
+  const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
+  const infoSheetEpochRef = useRef<number | null>(null);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
   const currentExerciseRef = useRef(currentItem?.exercise.id); currentExerciseRef.current = currentItem?.exercise.id;
   const exercisesRef = useRef(exercises); exercisesRef.current = exercises;
@@ -583,12 +594,6 @@ export default function ActiveWorkoutScreen() {
     && !operationsRef.current.some((operation) => operation.type === "replace"), [isCurrentWorkout]);
   const canActOnExercise = useCallback((exerciseId: string) => canActOnWorkout()
     && exercisesRef.current.some((item) => item.exercise.id === exerciseId), [canActOnWorkout]);
-  const currentEquipmentIds = currentItem?.exercise.requiredEquipmentIds ?? [];
-  const weightColumnLabel = currentItem?.exercise.loadProfile?.implement_count === 1 ? "Weight" : currentEquipmentIds.includes("dumbbells")
-    ? "Weight each"
-    : currentEquipmentIds.includes("olympic_barbell")
-      ? "Total weight"
-      : "Weight";
   const currentFriendlySuggestion = useMemo(() => {
     const targetWeightKg = currentItem?.prescription.suggestedWeightKg;
     if (targetWeightKg == null || !currentItem || !unitReady) return null;
@@ -610,21 +615,25 @@ export default function ActiveWorkoutScreen() {
     weightUnit,
   ]);
 
-  const currentSets = useMemo(() => {
-    if (!currentItem) return [];
-    return sets
-      .filter((s) => s.exerciseId === currentItem.exercise.id)
-      .sort((a, b) => a.setNumber - b.setNumber);
-  }, [sets, currentItem]);
-
   useEffect(() => {
-    if (!token || !currentItem || Object.prototype.hasOwnProperty.call(exerciseNotes, currentItem.exercise.id)) return;
+    if (!token || isRestoring) return;
+    const ids = allExercisesLayout ? exercises.map((item) => item.exercise.id) : currentItem ? [currentItem.exercise.id] : [];
+    const missing = ids.filter((id) => !Object.prototype.hasOwnProperty.call(exerciseNotes, id));
+    if (missing.length === 0) return;
     let cancelled = false;
-    void getUserExerciseNote(token, currentItem.exercise.id).then((note) => {
-      if (!cancelled) setExerciseNotes((current) => ({ ...current, [currentItem.exercise.id]: note?.note ?? null }));
-    }).catch(() => {});
+    void Promise.all(missing.map(async (id) => {
+      try { return [id, (await getUserExerciseNote(token, id))?.note ?? null] as const; }
+      catch { return [id, null] as const; }
+    })).then((entries) => {
+      if (cancelled || navigationIdentityRef.current.epoch !== navigationEpoch) return;
+      setExerciseNotes((current) => {
+        const next = { ...current };
+        for (const [id, note] of entries) if (!Object.prototype.hasOwnProperty.call(next, id)) next[id] = note;
+        return next;
+      });
+    });
     return () => { cancelled = true; };
-  }, [token, currentItem, exerciseNotes]);
+  }, [token, isRestoring, allExercisesLayout, exercises, currentItem, exerciseNotes, navigationEpoch]);
 
   // ── Rest timer state ───────────────────────────────────────────────────────
 
@@ -654,6 +663,7 @@ export default function ActiveWorkoutScreen() {
   }, []);
   useEffect(() => {
     cancelExerciseTransition(); setSheetVisible(false); listFocusRef.current = null;
+    infoSheetEpochRef.current = null; setInfoSheetVisible(false); setInfoExerciseId(null);
     noteEditorEpochRef.current = null; feedbackEditorEpochRef.current = null;
     setNoteEditorVisible(false); setFeedbackEditorVisible(false);
     if (savingEntriesEpochRef.current !== navigationEpoch) {
@@ -662,14 +672,14 @@ export default function ActiveWorkoutScreen() {
       setIsSavingEntries(false);
     }
   }, [navigationEpoch, cancelExerciseTransition]);
-  const selectExercise = useCallback((exerciseId: string) => {
-    if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current || isTerminalRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return;
+  const selectExercise = useCallback((exerciseId: string, dismissKeyboard = true) => {
+    if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current || isTerminalRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return false;
     const snapshot = navigationSnapshotRef.current();
     const index = exercisesRef.current.findIndex((item) => item.exercise.id === exerciseId);
-    if (!snapshot || index < 0 || snapshot.userId !== accountRef.current) return;
+    if (!snapshot || index < 0 || snapshot.userId !== accountRef.current) return false;
     const context = restStateRef.current.context ? { ...restStateRef.current.context, suppressAutoAdvance: true } : null;
     navigationRevisionRef.current += 1;
-    cancelExerciseTransition(); Keyboard.dismiss();
+    cancelExerciseTransition(); if (dismissKeyboard) Keyboard.dismiss();
     currentExerciseRef.current = exerciseId;
     restStateRef.current = { ...restStateRef.current, context };
     sheetVisibleRef.current = false;
@@ -680,8 +690,23 @@ export default function ActiveWorkoutScreen() {
       if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch) return;
       setPersistedRevision((revision) => revision + 1);
     }).catch(() => { if (navigationMountedRef.current && navigationIdentityRef.current.epoch === navigationEpoch) setStorageError(true); });
+    return true;
   }, [navigationEpoch, cancelExerciseTransition]);
   manualNavigationRef.current = selectExercise;
+  useEffect(() => {
+    setCollapsedExercises({}); setRestDoneExerciseId(null);
+  }, [navigationEpoch]);
+  useEffect(() => {
+    if (!allExercisesLayout || isRestoring) return;
+    const context = restStateRef.current.context;
+    if ((context && !context.suppressAutoAdvance) || pendingTransitionRef.current) {
+      const id = currentExerciseRef.current;
+      if (id) selectExercise(id, false);
+    }
+  }, [allExercisesLayout, isRestoring, isSavingEntries, restContext, pendingTransition, selectExercise]);
+  useEffect(() => {
+    if (restEndsAt !== null || !allExercisesLayout) setRestDoneExerciseId(null);
+  }, [restEndsAt, allExercisesLayout]);
   const openExerciseList = useCallback((target: React.ElementRef<typeof Pressable> | null) => {
     if (navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current) return;
     Keyboard.dismiss(); listFocusRef.current = { epoch: navigationEpoch, target }; sheetVisibleRef.current = true; setSheetVisible(true);
@@ -692,8 +717,13 @@ export default function ActiveWorkoutScreen() {
     if (!navigationMountedRef.current || saved.epoch !== navigationIdentityRef.current.epoch) { listFocusRef.current = null; return; }
     if (sheetVisibleRef.current || exerciseOverlayVisibleRef.current) return;
     listFocusRef.current = null;
-    if (!saved.target) return;
-    if (typeof findNodeHandle === "function" && typeof AccessibilityInfo?.setAccessibilityFocus === "function") { const node = findNodeHandle(saved.target); if (node) AccessibilityInfo.setAccessibilityFocus(node); }
+    const target = saved.infoSource === "focus"
+      ? !allExercisesLayoutRef.current && currentExerciseRef.current === saved.exerciseId ? focusInfoTrigger.current : null
+      : saved.infoSource === "all"
+        ? allExercisesLayoutRef.current ? allInfoTriggers.current.get(saved.exerciseId ?? "") ?? null : null
+        : saved.target;
+    if (!target) return;
+    if (typeof findNodeHandle === "function" && typeof AccessibilityInfo?.setAccessibilityFocus === "function") { const node = findNodeHandle(target); if (node) AccessibilityInfo.setAccessibilityFocus(node); }
   }, []);
 
   useEffect(() => {
@@ -979,7 +1009,7 @@ export default function ActiveWorkoutScreen() {
     const sourceId = ctx?.exerciseId ?? exercisesRef.current[ctx?.exerciseIndex ?? -1]?.exercise.id;
     const sourceIndex = exercisesRef.current.findIndex((item) => item.exercise.id === sourceId);
     const next = exercisesRef.current[sourceIndex + 1];
-    if (ctx?.isLastSetOfExercise && !ctx.suppressAutoAdvance && sourceIndex >= 0 && sourceId === currentExerciseRef.current && next) {
+    if (!allExercisesLayoutRef.current && ctx?.isLastSetOfExercise && !ctx.suppressAutoAdvance && sourceIndex >= 0 && sourceId === currentExerciseRef.current && next) {
       const transition = { sourceExerciseId: sourceId, epoch: navigationEpoch, nextExerciseId: next.exercise.id, nextName: next.exercise.name };
       pendingTransitionRef.current = transition; setPendingTransition(transition);
     }
@@ -997,7 +1027,11 @@ export default function ActiveWorkoutScreen() {
   }, [exercises, currentExerciseIndex, currentItem, navigationEpoch]);
 
   const handleRestExpire = useCallback((deadline: number) => {
-    if (finishRest(deadline)) playRestEndFeedback();
+    const sourceId = restStateRef.current.context?.exerciseId ?? null;
+    if (finishRest(deadline)) {
+      playRestEndFeedback();
+      if (allExercisesLayoutRef.current) setRestDoneExerciseId(sourceId);
+    }
   }, [playRestEndFeedback, finishRest]);
 
   const handleRestSkip = useCallback(() => {
@@ -1011,14 +1045,14 @@ export default function ActiveWorkoutScreen() {
   }, []);
 
   const handleContinueTransition = useCallback((expected = pendingTransitionRef.current) => {
-    if (!expected || pendingTransitionRef.current !== expected || expected.epoch !== navigationIdentityRef.current.epoch || expected.sourceExerciseId !== currentExerciseRef.current || navigationBlockedRef.current || arrangementBusyRef.current() || sheetVisibleRef.current) return;
+    if (!expected || allExercisesLayoutRef.current || pendingTransitionRef.current !== expected || expected.epoch !== navigationIdentityRef.current.epoch || expected.sourceExerciseId !== currentExerciseRef.current || navigationBlockedRef.current || arrangementBusyRef.current() || sheetVisibleRef.current) return;
     manualNavigationRef.current(expected.nextExerciseId);
   }, []);
 
   // Auto-advance the "Next up" transition after a short delay; the user can
   // also tap Continue to skip the wait.
   useEffect(() => {
-    if (!pendingTransition || sheetVisible) return;
+    if (!pendingTransition || sheetVisible || allExercisesLayout) return;
     transitionTimeoutRef.current = setTimeout(() => {
       handleContinueTransition(pendingTransition);
     }, 2200);
@@ -1028,7 +1062,7 @@ export default function ActiveWorkoutScreen() {
         transitionTimeoutRef.current = null;
       }
     };
-  }, [pendingTransition, handleContinueTransition, sheetVisible]);
+  }, [pendingTransition, handleContinueTransition, sheetVisible, allExercisesLayout]);
 
   // ── Set input handlers ─────────────────────────────────────────────────────
 
@@ -1059,8 +1093,8 @@ export default function ActiveWorkoutScreen() {
     Keyboard.dismiss();
     const snapshot: LocalActiveWorkout = {
       userId: user.id, workoutDayId: workout.workoutDayId, workoutDate: workout.date,
-      dayType: workout.dayType, workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseId ?? exercises[0]?.exercise.id, clientSessionId, serverSessionId: sessionId,
-      startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext,
+      dayType: workout.dayType, workoutSnapshot: originalWorkout ?? workout, effectiveWorkout: workout, arrangementRevision, targetReviewExerciseIds, currentExerciseId: currentExerciseRef.current ?? currentExerciseId ?? exercises[0]?.exercise.id, clientSessionId, serverSessionId: sessionId,
+      startedAt, currentExerciseIndex: Math.max(0, exercises.findIndex((item) => item.exercise.id === currentExerciseRef.current)), restEndsAt, restTotalSeconds, restContext,
       sets: setsRef.current, operations: operationsRef.current, workoutNote, exerciseFeedback, exerciseNotes,
       revision: ++workoutRevisionRef.current,
     };
@@ -1112,7 +1146,7 @@ export default function ActiveWorkoutScreen() {
         if (replay) setPersistedRevision((revision) => revision + 1);
       }
     }
-  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt, currentExerciseIndex,
+  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt,
     restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, weightUnit, navigationEpoch, isCurrentWorkout]);
 
   const confirmSet = useCallback((exerciseId: string, setNumber: number) => {
@@ -1554,7 +1588,36 @@ export default function ActiveWorkoutScreen() {
   navigationBlockedRef.current = exerciseSelectionDisabled;
   arrangementBusyRef.current = arrangement.isBusy;
   navigationSnapshotRef.current = arrangementSnapshot;
-  const exerciseOverlayVisible = sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance);
+  const layoutSwitchDisabled = !isLayoutReady || isLayoutSaving || exerciseSelectionDisabled;
+  const changeLayout = (next: WorkoutLayout) => {
+    if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return;
+    Keyboard.dismiss();
+    if (next === "all") {
+      if (restStateRef.current.context || pendingTransitionRef.current) {
+        const id = currentExerciseRef.current;
+        if (!id || !selectExercise(id, false)) return;
+      }
+      allExercisesLayoutRef.current = true;
+      cancelExerciseTransition();
+    } else allExercisesLayoutRef.current = false;
+    void setLayout(next).catch(() => { if (isCurrentWorkout()) Alert.alert("Couldn't save workout layout", "Try changing the layout again."); });
+  };
+  const showExerciseInfo = (exerciseId: string, target: React.ElementRef<typeof Pressable> | null, source: "focus" | "all") => {
+    if (!canActOnExercise(exerciseId)) return;
+    listFocusRef.current = { epoch: navigationEpoch, target, infoSource: source, exerciseId };
+    exerciseOverlayVisibleRef.current = true;
+    infoSheetEpochRef.current = navigationEpoch;
+    setInfoExerciseId(exerciseId);
+    setInfoSheetVisible(true);
+  };
+  const closeExerciseInfo = () => {
+    if (infoSheetEpochRef.current !== navigationEpoch) return;
+    infoSheetEpochRef.current = null;
+    setInfoSheetVisible(false);
+    setInfoExerciseId(null);
+  };
+  const currentInfoSheetVisible = infoSheetVisible && infoSheetEpochRef.current === navigationEpoch && Boolean(infoExerciseId);
+  const exerciseOverlayVisible = sheetVisible || currentInfoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance);
   exerciseOverlayVisibleRef.current = exerciseOverlayVisible;
   useEffect(() => { if (Platform.OS === "android" && !exerciseOverlayVisible) restoreExerciseListFocus(); }, [exerciseOverlayVisible, restoreExerciseListFocus]);
 
@@ -1626,7 +1689,7 @@ export default function ActiveWorkoutScreen() {
     </SafeAreaView>;
   }
 
-  if (isRestoring || sets.length === 0) {
+  if (isRestoring || sets.length === 0 || !isLayoutReady) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -1660,8 +1723,137 @@ export default function ActiveWorkoutScreen() {
     accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
     disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => saveExerciseEntries(currentItem.exercise.id)}
     style={{ flex: keyboardVisible ? undefined : 1, minWidth: 160, minHeight: 44, alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: colors.primaryButton }}>
-    {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>Save entered sets ({currentEnteredCount})</ThemedText>}
+    {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>{allExercisesLayout ? `Save ${currentEnteredCount} sets · ${currentItem.exercise.name}` : `Save entered sets (${currentEnteredCount})`}</ThemedText>}
   </Pressable> : null;
+
+  const activateExerciseForAll = (exerciseId: string) => {
+    if (!allExercisesLayout) return true;
+    if (!allExercisesLayoutRef.current || !canActOnExercise(exerciseId)) return false;
+    if (currentExerciseRef.current !== exerciseId) return selectExercise(exerciseId, false);
+    return true;
+  };
+  const renderSetInputs = (item: WorkoutItem, focus: boolean) => {
+    const exerciseId = item.exercise.id;
+    const itemSets = sets.filter((set) => set.exerciseId === exerciseId).sort((a, b) => a.setNumber - b.setNumber);
+    const equipmentIds = item.exercise.requiredEquipmentIds ?? [];
+    const columnLabel = item.exercise.loadProfile?.implement_count === 1 ? "Weight" : equipmentIds.includes("dumbbells")
+      ? "Weight each" : equipmentIds.includes("olympic_barbell") ? "Total weight" : "Weight";
+    const enteredCount = enteredSets(sets, exerciseId).length;
+    const saveAction = focus ? saveEnteredAction : enteredCount > 0 ? <Pressable
+      testID={`player-save-entered-sets-${exerciseId}`} accessibilityRole="button"
+      accessibilityLabel={`Save ${enteredCount} entered sets for ${item.exercise.name}`}
+      accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
+      disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
+      style={{ minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.primaryButton }}>
+      <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>Save entered sets ({enteredCount})</ThemedText>
+    </Pressable> : null;
+    return <>
+      {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, marginBottom: 8 }}>
+        <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <ThemedText accessibilityLabel={expandedLayout ? `${columnLabel} (${weightUnit})` : undefined}
+            style={{ fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
+            {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : columnLabel}
+          </ThemedText>
+        </View>
+        <ThemedText style={{ flex: 1, fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
+        <View style={{ width: 52 }} />
+      </View>
+      {itemSets.map((setRow) => {
+        const reason = item.prescription.suggestedWeightReason;
+        const progressionTag = reason === "increase" ? "▲" : reason === "hold" ? "—" : reason === "deload" ? "▼" : undefined;
+        const operation = pendingSetOperations.get(`${setRow.exerciseId}:${setRow.setNumber}`);
+        const displaySet = operation ? { ...setRow, syncing: operation.status === "retrying", syncStatus: operation.status === "failed" ? "failed" as const : "pending" as const }
+          : setRow.confirmed ? { ...setRow, syncing: false, syncStatus: "synced" as const } : setRow;
+        const displaySetNumber = setRow.deleted ? undefined : itemSets.filter((set) => !set.deleted).findIndex((set) => set.setNumber === setRow.setNumber) + 1;
+        return <SetInputRow key={`${exerciseId}-${setRow.setNumber}`} setRow={displaySet} displaySetNumber={displaySetNumber}
+          colors={colors} weightUnit={weightUnit} readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+          issue={entryIssues[setEntryKey(setRow)]}
+          lastTimeHint={formatLastTimeHint(findHistoryForSet(lastSetsByExercise[exerciseId], setRow.setNumber), weightUnit)}
+          progressionTag={progressionTag}
+          onUpdate={(setNumber, field, value) => { if (activateExerciseForAll(exerciseId)) updateSet(exerciseId, setNumber, field, value); }}
+          onConfirm={(setNumber) => { if (activateExerciseForAll(exerciseId)) confirmSet(exerciseId, setNumber); }}
+          onEdit={(setNumber) => { if (activateExerciseForAll(exerciseId)) beginSetEdit(exerciseId, setNumber); }}
+          onRemove={(setNumber) => { if (activateExerciseForAll(exerciseId)) removeSet(exerciseId, setNumber); }}
+          onRestore={(setNumber) => { if (activateExerciseForAll(exerciseId)) restoreSet(exerciseId, setNumber); }}
+          onRetry={() => { if (activateExerciseForAll(exerciseId)) void retryFailedWrites(); }} />;
+      })}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
+        <Pressable testID={`player-add-set-${exerciseId}`} accessibilityRole="button"
+          accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
+          disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+          onPress={() => { if (activateExerciseForAll(exerciseId)) addSet(exerciseId); }}
+          style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.inputBorder }}>
+          <ThemedText style={{ fontWeight: "600", fontSize: 14 }}>+ Add set</ThemedText>
+        </Pressable>
+        {!keyboardVisible ? saveAction : null}
+      </View>
+      {focus && saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
+    </>;
+  };
+  const renderAllExerciseCard = (item: WorkoutItem, index: number) => {
+    const exerciseId = item.exercise.id;
+    const collapsed = Boolean(collapsedExercises[exerciseId]);
+    const progress = getExerciseProgress(exerciseId);
+    const isCurrent = currentItem?.exercise.id === exerciseId;
+    const initials = item.exercise.name.split(/[\s-]+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+    const suggestedWeight = item.prescription.suggestedWeightKg;
+    const suggestion = suggestedWeight == null || !unitReady ? null : resolveFriendlyLoad({
+      targetWeightKg: suggestedWeight,
+      currentWeightKg: item.prescription.suggestedPreviousWeightKg,
+      reason: item.prescription.suggestedWeightReason ?? "hold",
+      equipmentIds: item.exercise.requiredEquipmentIds,
+      loadProfile: item.exercise.loadProfile,
+      weightUnit,
+      dumbbellWeights: equipmentWeights.dumbbellWeights,
+      plateWeights: equipmentWeights.plateWeights,
+    });
+    const actionDisabled = finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement;
+    return <View key={exerciseId} testID={`player-all-card-${exerciseId}`}
+      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 12, marginBottom: 16, backgroundColor: colors.background }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Pressable testID={`player-all-toggle-${exerciseId}`} accessibilityRole="button"
+          accessibilityLabel={`${collapsed ? "Expand" : "Collapse"} ${item.exercise.name}`}
+          accessibilityState={{ expanded: !collapsed, disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled}
+          onPress={() => { if (!activateExerciseForAll(exerciseId)) return; setCollapsedExercises((current) => ({ ...current, [exerciseId]: !current[exerciseId] })); }}
+          style={{ flex: 1, minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder, alignItems: "center", justifyContent: "center" }}>
+            <ThemedText allowFontScaling={false} accessible={false} style={{ fontSize: 13, fontWeight: "600" }}>{initials}</ThemedText>
+          </View>
+          <View style={{ flex: 1 }}>
+            <ThemedText type="defaultSemiBold" style={{ fontSize: 18, flexShrink: 1 }}>{index + 1}. {item.exercise.name}</ThemedText>
+            <ThemedText style={{ fontSize: 13, color: colors.placeholder }}>
+              {progress.confirmed}/{progress.total} sets · {item.prescription.sets} × {item.prescription.reps} · {item.prescription.restSeconds}s rest
+            </ThemedText>
+          </View>
+          <Ionicons name={collapsed ? "chevron-down" : "chevron-up"} size={18} color={colors.placeholder} />
+        </Pressable>
+        <Pressable testID={`player-all-info-${exerciseId}`} accessibilityRole="button" accessibilityLabel={`Open ${item.exercise.name} details`}
+          ref={(target) => { if (target) allInfoTriggers.current.set(exerciseId, target); else allInfoTriggers.current.delete(exerciseId); }}
+          onPress={() => { if (activateExerciseForAll(exerciseId)) showExerciseInfo(exerciseId, allInfoTriggers.current.get(exerciseId) ?? null, "all"); }}
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="information-circle-outline" size={22} color={colors.placeholder} />
+        </Pressable>
+      </View>
+      {!collapsed ? <View style={{ marginTop: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+          {([
+            { id: `player-exercise-note-${exerciseId}`, label: "Exercise note", icon: "create-outline", action: () => openExerciseNoteEditor(exerciseId) },
+            { id: `player-feedback-${exerciseId}`, label: "Feedback", icon: "chatbubble-outline", action: () => openFeedbackEditor(exerciseId) },
+          ] as const).map((action) => <Pressable key={action.id} testID={action.id} accessibilityRole="button" accessibilityLabel={`${action.label} for ${item.exercise.name}`}
+            accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { if (activateExerciseForAll(exerciseId)) action.action(); }}
+            style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <Ionicons name={action.icon} size={16} color={colors.placeholder} />
+            <ThemedText style={{ fontSize: 13, fontWeight: "500" }}>{action.label}</ThemedText>
+          </Pressable>)}
+        </View>
+        {exerciseNotes[exerciseId] ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>{exerciseNotes[exerciseId]}</ThemedText> : null}
+        {suggestion ? <ThemedText style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>Next setup: {suggestion.displayText}</ThemedText> : null}
+        {renderSetInputs(item, false)}
+      </View> : null}
+    </View>;
+  };
 
   const header = <>
       <View
@@ -1732,6 +1924,19 @@ export default function ActiveWorkoutScreen() {
           }}
         />
       </View>
+      <View testID="player-layout-switch" accessibilityRole="radiogroup"
+        style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.inputBorder }}>
+        {([{"id": "focus", "label": "Focus"}, {"id": "all", "label": "All exercises"}] as const).map((option) => <Pressable
+          key={option.id} testID={`player-layout-${option.id}`} accessibilityRole="radio" accessibilityLabel={`${option.label} workout layout`}
+          accessibilityState={{ selected: layout === option.id, disabled: layoutSwitchDisabled }} disabled={layoutSwitchDisabled}
+          onPress={() => changeLayout(option.id)}
+          style={{ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
+            borderWidth: layout === option.id ? 1 : 0, borderColor: layout === option.id ? colors.primaryButton : colors.inputBorder,
+            backgroundColor: layout === option.id ? colors.inputBackground : colors.background, paddingHorizontal: 10, paddingVertical: 8,
+            opacity: layoutSwitchDisabled ? 0.5 : 1 }}>
+          <ThemedText style={{ fontSize: 14, fontWeight: layout === option.id ? "700" : "500", textAlign: "center" }}>{option.label}</ThemedText>
+        </Pressable>)}
+      </View>
   </>;
   const footer = (
       <View
@@ -1768,7 +1973,7 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
           </Pressable>
         ) : null}
-        {currentItem && finishStatus === "idle" ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, marginBottom: 8 }}>
+        {currentItem && finishStatus === "idle" && !allExercisesLayout ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, marginBottom: 8 }}>
           <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
             accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
             style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
@@ -1825,7 +2030,6 @@ export default function ActiveWorkoutScreen() {
 
       {/* Main content */}
       <ScrollView
-        key="main-scroll"
         testID="player-main-scroll"
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
@@ -1847,7 +2051,7 @@ export default function ActiveWorkoutScreen() {
           }} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText style={{ fontWeight: "600", fontSize: 14 }}>Retry save</ThemedText></Pressable>
           </View>
         ) : null}
-        {pendingTransition ? (
+        {pendingTransition && !allExercisesLayout ? (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <ThemedText style={{ fontSize: 14, color: colors.placeholder, marginBottom: 8 }}>
               Next up
@@ -1870,10 +2074,38 @@ export default function ActiveWorkoutScreen() {
               </ThemedText>
             </Pressable>
           </View>
+        ) : allExercisesLayout ? (
+          <>
+            <Pressable testID="player-workout-note" accessibilityRole="button" accessibilityLabel="Workout note"
+              accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
+              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+              onPress={openWorkoutNoteEditor} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginBottom: 12 }}>
+              <Ionicons name="document-text-outline" size={16} color={colors.placeholder} />
+              <ThemedText style={{ fontSize: 14 }}>Workout note</ThemedText>
+            </Pressable>
+            {workoutNote ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>{workoutNote}</ThemedText> : null}
+            {restEndsAt !== null ? <RestTimer restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
+              exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
+              onExpire={() => handleRestExpire(restEndsAt)}
+              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} /> : null}
+            {restDoneExerciseId ? <View testID="player-all-rest-done" style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+              <ThemedText accessibilityLiveRegion="polite" style={{ flex: 1, color: colors.primaryButton, fontSize: 14 }}>
+                Rest done · {exercises.find((item) => item.exercise.id === restDoneExerciseId)?.exercise.name ?? "Exercise"}
+              </ThemedText>
+              <Pressable testID="player-dismiss-rest-done" accessibilityRole="button" accessibilityLabel="Dismiss rest complete notice"
+                onPress={() => { if (isCurrentWorkout()) setRestDoneExerciseId(null); }} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="close" size={18} color={colors.placeholder} />
+              </Pressable>
+            </View> : null}
+            <WeightUnitControl unit={weightUnit} colors={colors}
+              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
+            {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginBottom: 12 }}>{saveMessage}</ThemedText> : null}
+            {exercises.map(renderAllExerciseCard)}
+          </>
         ) : currentItem ? (
           <>
             {/* Exercise header */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20, gap: 12 }}>
+            <View style={{ flexDirection: fontScale > 2 ? "column" : "row", alignItems: fontScale > 2 ? "stretch" : "center", marginBottom: 20, gap: 12 }}>
               <View
                 style={{
                   width: 48,
@@ -1884,23 +2116,25 @@ export default function ActiveWorkoutScreen() {
                   justifyContent: "center",
                   borderWidth: 1,
                   borderColor: colors.inputBorder,
+                  display: fontScale > 2 ? "none" : "flex",
                 }}
               >
                 <ThemedText allowFontScaling={false} accessible={false} style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>
                   {initials}
                 </ThemedText>
               </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <ThemedText type="title" style={{ fontSize: 22, flexShrink: 1 }}>
+              <View style={{ flex: fontScale > 2 ? undefined : 1, minWidth: 0 }}>
+                <View style={{ flexDirection: fontScale > 2 ? "column-reverse" : "row", alignItems: fontScale > 2 ? "stretch" : "center", gap: 6 }}>
+                  <ThemedText type="title" style={{ fontSize: 22, flexShrink: fontScale > 2 ? undefined : 1 }}>
                     {currentItem.exercise.name}
                   </ThemedText>
                   <Pressable
                     testID="player-exercise-info"
+                    ref={focusInfoTrigger}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${currentItem.exercise.name} details`}
-                    onPress={() => setInfoSheetVisible(true)}
-                    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+                    onPress={() => showExerciseInfo(currentItem.exercise.id, focusInfoTrigger.current, "focus")}
+                    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", alignSelf: fontScale > 2 ? "flex-end" : undefined }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Ionicons
@@ -1970,105 +2204,7 @@ export default function ActiveWorkoutScreen() {
                 disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
               />
             ) : null}
-              <>
-                <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
-                {/* Column labels + unit toggle */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 12,
-                    marginBottom: 8,
-                  }}
-                >
-                  <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <ThemedText
-                      accessibilityLabel={expandedLayout ? `${weightColumnLabel} (${weightUnit})` : undefined}
-                      style={{
-                        fontSize: 11,
-                        color: colors.placeholder,
-                        fontWeight: "500",
-                        fontFamily: Fonts.sans,
-                        textTransform: expandedLayout ? "none" : "uppercase",
-                      }}
-                    >
-                      {expandedLayout ? weightColumnLabel === "Weight each" ? `${weightUnit} each` : weightColumnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : weightColumnLabel}
-                    </ThemedText>
-                  </View>
-                  <ThemedText
-                    style={{
-                      flex: 1,
-                      fontSize: 11,
-                      color: colors.placeholder,
-                      fontWeight: "500",
-                      fontFamily: Fonts.sans,
-                      textTransform: expandedLayout ? "none" : "uppercase",
-                    }}
-                  >
-                    Reps
-                  </ThemedText>
-                  <View style={{ width: 52 }} />
-                </View>
-
-                {currentSets.map((setRow) => {
-                  const reason = currentItem?.prescription.suggestedWeightReason;
-                  const progressionTag =
-                    reason === "increase" ? "▲"
-                    : reason === "hold" ? "—"
-                    : reason === "deload" ? "▼"
-                    : undefined;
-                  const operation = pendingSetOperations.get(`${setRow.exerciseId}:${setRow.setNumber}`);
-                  const displaySet = operation
-                    ? {
-                        ...setRow,
-                        syncing: operation.status === "retrying",
-                        syncStatus: operation.status === "failed" ? "failed" as const : "pending" as const,
-                      }
-                    : setRow.confirmed
-                    ? { ...setRow, syncing: false, syncStatus: "synced" as const }
-                    : setRow;
-                  const displaySetNumber = setRow.deleted
-                    ? undefined
-                    : currentSets.filter((set) => !set.deleted).findIndex((set) => set.exerciseId === setRow.exerciseId && set.setNumber === setRow.setNumber) + 1;
-                  return (
-                    <SetInputRow
-                      key={`${setRow.exerciseId}-${setRow.setNumber}`}
-                      setRow={displaySet}
-                      displaySetNumber={displaySetNumber}
-                      colors={colors}
-                      weightUnit={weightUnit}
-                      readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
-                      issue={entryIssues[setEntryKey(setRow)]}
-                      lastTimeHint={formatLastTimeHint(
-                        findHistoryForSet(lastSetsByExercise[setRow.exerciseId], setRow.setNumber),
-                        weightUnit
-                      )}
-                      progressionTag={progressionTag}
-                      onUpdate={(setNumber, field, value) => updateSet(setRow.exerciseId, setNumber, field, value)}
-                      onConfirm={(setNumber) => confirmSet(setRow.exerciseId, setNumber)}
-                      onEdit={(setNumber) => beginSetEdit(setRow.exerciseId, setNumber)}
-                      onRemove={(setNumber) => removeSet(setRow.exerciseId, setNumber)}
-                      onRestore={(setNumber) => restoreSet(setRow.exerciseId, setNumber)}
-                      onRetry={() => void retryFailedWrites()}
-                    />
-                  );
-                })}
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
-                <Pressable
-                  testID={`player-add-set-${currentItem.exercise.id}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
-                  disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
-                  onPress={() => addSet(currentItem.exercise.id)}
-                  style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.inputBorder }}
-                >
-                  <ThemedText style={{ fontWeight: "600", fontSize: 14 }}>+ Add set</ThemedText>
-                </Pressable>
-                {!keyboardVisible ? saveEnteredAction : null}
-                </View>
-                {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
-              </>
+              {renderSetInputs(currentItem, true)}
           </>
         ) : null}
         </View>
@@ -2109,17 +2245,17 @@ export default function ActiveWorkoutScreen() {
         {pendingArrangement.type === "replace" && pendingArrangement.payload.conflict ? <Pressable testID="player-replacement-use-server" accessibilityRole="button" disabled={arrangement.busy} onPress={arrangement.dismissPending} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Use latest saved workout</ThemedText></Pressable> : null}
       </View> : null}
       {arrangement.message && !sheetVisible ? <ThemedText accessibilityLiveRegion="polite" style={{ paddingHorizontal: 20, paddingVertical: 6 }}>{arrangement.message}</ThemedText> : null}
-      <Modal transparent animationType="slide" onDismiss={restoreExerciseListFocus} visible={sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance)} onRequestClose={() => {
+      <Modal transparent animationType="slide" onDismiss={restoreExerciseListFocus} visible={sheetVisible || currentInfoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance)} onRequestClose={() => {
         if (arrangement.busy) return;
         if (arrangement.guidance) arrangement.setGuidance(null);
-        else if (infoSheetVisible) setInfoSheetVisible(false);
+        else if (currentInfoSheetVisible) closeExerciseInfo();
         else if (arrangement.review) arrangement.setReview(null);
         else if (arrangement.picker) arrangement.setPicker(null);
         else setSheetVisible(false);
       }}>
       <ExerciseListSheet
         inline
-        visible={sheetVisible && !infoSheetVisible && !arrangement.review && !arrangement.picker && !arrangement.guidance}
+        visible={sheetVisible && !currentInfoSheetVisible && !arrangement.review && !arrangement.picker && !arrangement.guidance}
         exercises={exercises}
         canArrange={arrangementRevision != null && finishStatus === "idle"}
         busy={arrangement.busy || isSavingEntries || isRestoring}
@@ -2144,13 +2280,13 @@ export default function ActiveWorkoutScreen() {
 
       <ExerciseInfoSheet
         inline
-        visible={infoSheetVisible && !arrangement.guidance}
-        exerciseId={currentItem?.exercise.id ?? null}
-        exerciseName={currentItem?.exercise.name ?? ""}
+        visible={currentInfoSheetVisible && !arrangement.guidance}
+        exerciseId={infoSheetEpochRef.current === navigationEpoch ? infoExerciseId : null}
+        exerciseName={infoSheetEpochRef.current === navigationEpoch ? exercises.find((item) => item.exercise.id === infoExerciseId)?.exercise.name ?? "" : ""}
         colors={colors}
         token={token}
         isLoggedIn={Boolean(token)}
-        onClose={() => setInfoSheetVisible(false)}
+        onClose={closeExerciseInfo}
       />
       </Modal>
 

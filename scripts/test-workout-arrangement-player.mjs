@@ -16,9 +16,10 @@ const item = (id, sets = 4) => ({ exercise: { id, name: id, exerciseType: "stren
 const workout = { workoutDayId: "day", date: "2026-10-23", title: "Upper A", dayType: "upper", slotIndex: 0, durationMinutes: 45, splitKey: "upper_lower", blocks: [{ blockType: "main", items: [item("incline"), item("bench")] }, { blockType: "accessory", items: [item("row", 3), item("raise", 3)] }] };
 const api = (day) => ({ ...day, exerciseBlocks: day.blocks });
 async function player(options = {}) {
-  const memory = new Map(), timers = new Map(), intervals = new Map(), calls = [];
+  const memory = new Map(), timers = new Map(), intervals = new Map(), keyboardListeners = new Map(), calls = [];
   let identity = { token: options.offline ? null : "token", user: { id: "A" } };
   let route = options.noExisting ? { workoutDayId: "day" } : { sessionId: "session" };
+  let layoutChoice = options.layout ?? "focus";
   let timerCounter = 0;
   const AuthContext = React.createContext(null), EquipmentWeightsContext = React.createContext(null);
   let server = { id: "session", clientSessionId: "client", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", arrangementRevision: 0,
@@ -27,12 +28,12 @@ async function player(options = {}) {
   if (options.server) server = { ...server, ...copy(options.server) };
   const replacementStarted = deferred(), replacementResponse = deferred();
   const replayStarted = deferred(), replayResponse = deferred();
-  const native = { AccessibilityInfo: { setAccessibilityFocus: (node) => calls.push(["focus", node]) }, findNodeHandle: () => 23, ActivityIndicator: "ActivityIndicator", Alert: { alert() {} }, AppState: { addEventListener: () => ({ remove() {} }) }, Keyboard: { dismiss() {}, addListener: () => ({ remove() {} }) },
-    KeyboardAvoidingView: "KeyboardAvoidingView", Modal: "Modal", Platform: { OS: options.platform ?? "web", select: (values) => values[options.platform ?? "web"] ?? values.default }, Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", TextInput: "TextInput", TouchableWithoutFeedback: "TouchableWithoutFeedback", View: "View", useWindowDimensions: () => ({ width: 375, height: 812, fontScale: 1 }) };
+  const native = { AccessibilityInfo: { setAccessibilityFocus: (node) => calls.push(["focus", node]) }, findNodeHandle: () => 23, ActivityIndicator: "ActivityIndicator", Alert: { alert() {} }, AppState: { addEventListener: () => ({ remove() {} }) }, Keyboard: { dismiss() {}, addListener: (event, listener) => { keyboardListeners.set(event, listener); return { remove: () => keyboardListeners.delete(event) }; } },
+    KeyboardAvoidingView: "KeyboardAvoidingView", Modal: "Modal", Platform: { OS: options.platform ?? "web", select: (values) => values[options.platform ?? "web"] ?? values.default }, Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", TextInput: "TextInput", TouchableWithoutFeedback: "TouchableWithoutFeedback", View: "View", useWindowDimensions: () => ({ width: 375, height: 812, fontScale: options.fontScale ?? 1 }) };
   const activeWorkout = { markWorkoutTerminal() {} };
   const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, planningRefreshRequired: Boolean(options.barrier), refreshWeek: async () => { calls.push(["refresh"]); } };
   const services = {
-    getActiveSession: async () => identity.user?.id === "A" ? copy(server) : null, getSession: async () => { if (identity.user?.id !== "A") throw new Error("Not this owner's session"); return copy(server); }, getUserExerciseNote: async () => null, fetchLastSetsForExercises: async () => ({}),
+    getActiveSession: async () => identity.user?.id === "A" ? copy(server) : null, getSession: async () => { if (identity.user?.id !== "A") throw new Error("Not this owner's session"); return copy(server); }, getUserExerciseNote: async (_token, id) => { calls.push(["noteRead", id]); return options.notes?.[id] ? { note: options.notes[id] } : null; }, fetchLastSetsForExercises: async () => ({}),
     logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
     getReplacementCandidates: async () => [{ id: "fly", name: "Chest Fly" }],
     previewExerciseOrder: async (_token, _session, ids) => ({ arrangementRevision: server.arrangementRevision, exerciseIds: ids, targetsChanged: false, targetChanges: [], effectiveWorkout: server.effectiveWorkout, message: "Targets unchanged." }),
@@ -44,6 +45,7 @@ async function player(options = {}) {
     "expo-router": { useRouter: () => router, useLocalSearchParams: () => route }, "expo-haptics": { notificationAsync: async () => {}, impactAsync: async () => {}, NotificationFeedbackType: { Success: "success" }, ImpactFeedbackStyle: { Medium: "medium" } },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView", useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/hooks/use-workout-week": { useWorkoutWeek: () => week },
     "@/utils/authContext": { AuthContext }, "@/utils/equipmentWeightsContext": { EquipmentWeightsContext }, "@/utils/activeWorkoutContext": { useActiveWorkout: () => activeWorkout },
+    "@/utils/workoutLayoutContext": { useWorkoutLayout: () => ({ layout: layoutChoice, isReady: true, isSaving: false, setLayout: async (next) => { layoutChoice = next; tree.update(element()); } }) },
     "@/components/workout/ExerciseListSheet": { ExerciseListSheet: "ExerciseListSheet" }, "@/components/workout/ExerciseInfoSheet": { ExerciseInfoSheet: "ExerciseInfoSheet" }, "@/components/workout/WorkoutArrangementSheets": { WorkoutArrangementSheets: "WorkoutArrangementSheets" },
     "@/components/workout/RestTimer": { RestTimer: "RestTimer" }, "@/components/workout/SetInputRow": { SetInputRow: "SetInputRow" }, "@/components/workout/WeightUnitControl": { WeightUnitControl: "WeightUnitControl" }, "@/components/workout/WorkoutText": { WorkoutText: (props) => React.createElement("Text", props) },
     "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, value) => { await options.beforeWrite?.(key, value); memory.set(key, value); }, removeItem: async (key) => memory.delete(key) },
@@ -80,6 +82,8 @@ async function player(options = {}) {
   const list = () => tree.root.findByType("ExerciseListSheet");
   const controller = () => tree.root.findByType("WorkoutArrangementSheets").props.controller;
   const result = { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, replayStarted, replayResponse, getServer: () => copy(server), memory, timers,
+    getLayout: () => layoutChoice,
+    showKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidShow")?.()); },
     remount: async () => { await act(async () => tree.unmount()); await act(async () => { tree = mount(); result.tree = tree; }); await settle(); },
     auth: async (id) => { identity = { token: "token", user: { id } }; await act(async () => tree.update(element())); await settle(); },
     route: async (next) => { route = next; await act(async () => tree.update(element())); await settle(); },
@@ -285,8 +289,138 @@ test("an existing logged workout remains resumable while a new-plan refresh is r
 
 const choose = async (view, index) => { await act(async () => view.list().props.onSelect(index)); await view.settle(); };
 const input = (view, number = 1) => view.tree.root.findAllByType("SetInputRow").find((node) => node.props.setRow.setNumber === number);
+const inputFor = (view, exerciseId, number = 1) => view.tree.root.findAllByType("SetInputRow").find((node) => node.props.setRow.exerciseId === exerciseId && node.props.setRow.setNumber === number);
+const infoSheet = (view) => view.tree.root.findAllByType("ExerciseInfoSheet")[1];
 const rest = (view) => view.tree.root.findAllByType("RestTimer")[0];
 const confirmed = (local, count = 4) => ({ ...local, sets: local.sets.map((set) => set.exerciseId === "bench" && set.setNumber <= count ? { ...set, confirmed: true, reps: "8", weight: "40", logId: `saved-${set.setNumber}`, version: 1 } : set) });
+
+test("all exercises shows every editable card and logs the touched exercise", async () => {
+  const view = await player({ layout: "all", notes: { row: "Keep elbows close." } });
+  for (const id of ["incline", "bench", "row", "raise"]) assert.ok(host(view.tree, `player-all-card-${id}`));
+  assert.deepEqual(view.calls.filter((call) => call[0] === "noteRead").map((call) => call[1]).sort(), ["bench", "incline", "raise", "row"]);
+  assert.equal(view.tree.root.findAllByType("SetInputRow").length, 14);
+  await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
+  await view.settle();
+  assert.equal(view.list().props.currentIndex, 2);
+  assert.equal(inputFor(view, "bench").props.setRow.weight, "");
+  await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+  const saved = await view.store.loadActiveWorkout("A");
+  assert.equal(saved.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
+  assert.equal(saved.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 1).confirmed, false);
+  assert.equal(saved.restContext.exerciseId, "row");
+  assert.equal(view.calls.some((call) => call[0] === "log" && call[1] === "bench"), false);
+  assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  await act(async () => rest(view).props.onExpire());
+  assert.ok(host(view.tree, "player-all-rest-done"));
+  assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
+  await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
+  assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
+  await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
+  assert.ok(inputFor(view, "row"));
+  await act(async () => view.tree.unmount());
+});
+
+test("layout switch keeps cross-exercise drafts and restores the selected layout", async () => {
+  const view = await player();
+  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
+  await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "55"); inputFor(view, "row").props.onUpdate(1, "reps", "10"); });
+  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  assert.equal(input(view).props.setRow.exerciseId, "row"); assert.equal(input(view).props.setRow.weight, "55");
+  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  await view.remount();
+  assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
+  assert.equal(inputFor(view, "row").props.setRow.reps, "10");
+  assert.equal(view.calls.some((call) => call[0] === "log"), false);
+  await act(async () => view.tree.unmount());
+});
+
+test("large-text layout switch keeps the scroll view and focused radio mounted", async () => {
+  const view = await player({ fontScale: 2 });
+  const scroll = host(view.tree, "player-main-scroll");
+  const allRadio = host(view.tree, "player-layout-all");
+  assert.equal(host(view.tree, "player-layout-switch").props.style.flexDirection, "column");
+  assert.ok(host(view.tree, "player-layout-all").props.style.minHeight >= 44);
+  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
+  assert.strictEqual(host(view.tree, "player-layout-all"), allRadio);
+  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
+  await act(async () => view.tree.unmount());
+});
+
+test("all exercises keyboard save names and targets the selected exercise", async () => {
+  const view = await player({ layout: "all" });
+  await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
+  await view.showKeyboard();
+  const save = host(view.tree, "player-save-entered-sets");
+  assert.match(save.findByType("Text").children.join(""), /Save 1 sets · row/);
+  assert.match(save.props.accessibilityLabel, /for row/);
+  await act(async () => save.props.onPress()); await view.settle();
+  assert.equal((await view.store.loadActiveWorkout("A")).sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
+  assert.equal(view.calls.some((call) => call[0] === "log" && call[1] === "bench"), false);
+  await act(async () => view.tree.unmount());
+});
+
+for (const navigation of ["account", "route"]) test(`all-card and layout callbacks from an earlier ${navigation} epoch cannot act after ABA`, async () => {
+  const view = await player({ layout: "all" });
+  const oldLayout = host(view.tree, "player-layout-focus").props.onPress;
+  const oldToggle = host(view.tree, "player-all-toggle-row").props.onPress;
+  const oldInfo = host(view.tree, "player-all-info-row").props.onPress;
+  const oldEdit = inputFor(view, "row").props.onUpdate;
+  await act(async () => oldInfo());
+  assert.equal(infoSheet(view).props.visible, true);
+  const oldDismiss = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss).props.onDismiss;
+  if (navigation === "account") {
+    await view.auth("B"); assert.notEqual(infoSheet(view)?.props.visible, true);
+    await view.auth("A");
+  } else {
+    await view.route({ sessionId: "another-session" }); assert.notEqual(infoSheet(view)?.props.visible, true);
+    await view.route({ sessionId: "session" });
+  }
+  assert.equal(infoSheet(view).props.visible, false);
+  assert.equal(infoSheet(view).props.exerciseId, null);
+  await act(async () => oldDismiss());
+  assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
+  await act(async () => { oldLayout(); oldToggle(); oldInfo(); oldEdit(1, "weight", "100"); });
+  await view.settle();
+  assert.equal(view.getLayout(), "all");
+  assert.equal(infoSheet(view).props.visible, false);
+  assert.ok(inputFor(view, "row"));
+  assert.equal(inputFor(view, "row").props.setRow.weight, "");
+  await act(async () => view.tree.unmount());
+});
+
+test("all-card controls stay inert when selection is blocked by a set save", async () => {
+  let pause = false; const writing = deferred(), release = deferred();
+  const view = await player({ layout: "all", beforeWrite: async (key) => { if (pause && key.includes("active-workout")) { writing.resolve(); await release.promise; } } });
+  const toggle = host(view.tree, "player-all-toggle-row").props.onPress;
+  const info = host(view.tree, "player-all-info-row").props.onPress;
+  await act(async () => { inputFor(view, "bench").props.onUpdate(1, "weight", "45"); inputFor(view, "bench").props.onUpdate(1, "reps", "9"); });
+  await view.settle(); pause = true;
+  await act(async () => inputFor(view, "bench").props.onConfirm(1)); await writing.promise;
+  await act(async () => { toggle(); info(); });
+  assert.equal(infoSheet(view).props.visible, false);
+  assert.ok(inputFor(view, "row"));
+  pause = false; await act(async () => release.resolve()); await view.settle();
+  await act(async () => view.tree.unmount());
+});
+
+test("all exercises keeps one rest timer and uses a nonblocking expiry notice", async () => {
+  const deadline = Date.now() + 90000;
+  const view = await player({ local: { restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: true } } });
+  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  const snapshot = await view.store.loadActiveWorkout("A");
+  assert.equal(snapshot.restEndsAt, deadline); assert.equal(snapshot.restContext.suppressAutoAdvance, true);
+  assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  await act(async () => rest(view).props.onExpire());
+  assert.ok(host(view.tree, "player-all-rest-done")); assert.ok(host(view.tree, "player-all-card-bench"));
+  assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
+  await act(async () => host(view.tree, "player-dismiss-rest-done").props.onPress());
+  assert.equal(host(view.tree, "player-all-rest-done"), undefined);
+  await view.remount(); assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-bench"));
+  await act(async () => view.tree.unmount());
+});
 
 for (const savedCount of [0, 2, 4]) test(`choose any exercise with ${savedCount} saved sets preserves progress, drafts and cold-resume cursor`, async () => {
   const view = await player({ local: (local) => ({ ...confirmed(local, savedCount), workoutNote: "Workout note", exerciseNotes: { bench: "Exercise note" } }) });
@@ -498,6 +632,33 @@ test("exercise sheet dismissal restores accessible focus to its visible opening 
   await act(async () => modal.props.onDismiss());
   assert.deepEqual(view.calls.filter((call) => call[0] === "focus"), [["focus", 23]]);
   await act(async () => modal.props.onDismiss());
+  assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
+  await act(async () => view.tree.unmount());
+});
+
+for (const layout of ["focus", "all"]) test(`${layout} exercise info returns accessibility focus to its card trigger`, async () => {
+  const view = await player({ layout });
+  const id = layout === "all" ? "player-all-info-row" : "player-exercise-info";
+  await act(async () => host(view.tree, id).props.onPress());
+  assert.equal(infoSheet(view).props.visible, true);
+  const modal = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss);
+  await act(async () => infoSheet(view).props.onClose());
+  await act(async () => modal.props.onDismiss());
+  assert.deepEqual(view.calls.filter((call) => call[0] === "focus"), [["focus", 23]]);
+  await act(async () => modal.props.onDismiss());
+  assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
+  await act(async () => view.tree.unmount());
+});
+
+test("a late info dismiss cannot steal focus from a reopened info sheet", async () => {
+  const view = await player({ layout: "all" });
+  await act(async () => host(view.tree, "player-all-info-row").props.onPress());
+  const dismiss = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss).props.onDismiss;
+  await act(async () => infoSheet(view).props.onClose());
+  await act(async () => { host(view.tree, "player-all-info-bench").props.onPress(); dismiss(); });
+  assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
+  await act(async () => infoSheet(view).props.onClose());
+  await act(async () => dismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
   await act(async () => view.tree.unmount());
 });

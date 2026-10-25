@@ -182,9 +182,9 @@ test("delayed replacement candidates are fenced after same-account session chang
   assert.equal(view.controller.picker, null); assert.equal(view.controller.message, ""); await act(async () => view.tree.unmount());
 });
 
-test("inline exercise guidance keeps Close, Ask input and Send individually accessible", async () => {
+test("large-text exercise guidance scrolls without a fixed empty demo and keeps actions accessible", async () => {
   const AuthContext = React.createContext(null), calls = [];
-  const nativeGuidance = { ...native, KeyboardAvoidingView: "KeyboardAvoidingView", TextInput: "TextInput" };
+  const nativeGuidance = { ...native, KeyboardAvoidingView: "KeyboardAvoidingView", TextInput: "TextInput", useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 5 }) };
   const text = (props) => React.createElement("Text", props);
   const mocks = { react: React, "react-native": nativeGuidance, "@expo/vector-icons": { Ionicons: "Ionicons" }, "@/constants/theme": { Colors, Fonts },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView", useSafeAreaInsets: () => ({ top: 24, bottom: 0 }) },
@@ -197,6 +197,11 @@ test("inline exercise guidance keeps Close, Ask input and Send individually acce
   const { ExerciseInfoSheet } = load("components/workout/ExerciseInfoSheet.tsx", mocks);
   let tree; await act(async () => { tree = create(React.createElement(AuthContext.Provider, { value: { user: { id: "A" } } }, React.createElement(ExerciseInfoSheet, { inline: true, visible: true, exerciseId: "fly", exerciseName: "Chest Fly", token: "token", isLoggedIn: true, colors: Colors.light, onClose: () => calls.push("close") }))); });
   assert.equal(tree.root.findAllByType("Modal").length, 0);
+  assert.equal(tree.root.findAllByType("ExerciseMedia").length, 0);
+  const title = tree.root.findAllByType("Text").find((node) => textOf(node) === "Chest Fly");
+  assert.equal(title.props.accessibilityRole, "header");
+  let scroller = title; while (scroller && scroller.type !== "ScrollView") scroller = scroller.parent; assert.ok(scroller);
+  assert.equal(host(tree, "player-info-sheet-close").props.style.width, 44);
   for (const id of ["player-info-sheet-close", "exercise-ask-input", "exercise-ask-send"]) {
     const control = host(tree, id); assert.ok(control, id);
     for (let ancestor = control.parent; ancestor; ancestor = ancestor.parent) {
