@@ -623,6 +623,32 @@ for (const scheme of ["light", "dark"]) {
 const overviewIds = (view) => view.tree.root.findAllByType("AnimatedView").filter((node) => node.props.testID?.startsWith("workout-overview-card-")).map((node) => node.props.testID.replace("workout-overview-card-", ""));
 const gestureFor = (view, id) => host(view, `workout-overview-handle-${id}`).parent.parent.props.gesture;
 
+test("adjacent Main Lifts blocks share one heading and count without changing stored blocks or execution", async () => {
+  const original = day({ blocks: [{ blockType: "main", items: [day().blocks[0].items[0], day().blocks[1].items[0]] }] });
+  const added = appendedPlan(original);
+  const view = await detail({ plan: added });
+  const headings = host(view, "workout-detail-list").findAllByType("Text").map(textOf).filter((value) => value === "Main Lifts");
+  assert.deepEqual(headings, ["Main Lifts"]);
+  assert.ok(text(view, "3 exercises"));
+  assert.deepEqual(overviewIds(view), ["bench", "row", "curl"]);
+  assert.deepEqual(plain(view.week().weekPlan), added);
+  await tap(start(view));
+  const active = await view.store.loadActiveWorkout("user-A");
+  assert.deepEqual(plain(active.workoutSnapshot.blocks), added.workouts[0].blocks);
+  assert.deepEqual(active.effectiveWorkout.blocks.flatMap((block) => block.items.map((item) => item.exercise.id)), ["bench", "row", "curl"]);
+  await unmount(view);
+});
+
+test("same-role blocks separated by another role retain the chosen exercise sequence", async () => {
+  const original = appendedPlan().workouts[0];
+  const view = await detail({ plan: plan([original]) });
+  const headings = host(view, "workout-detail-list").findAllByType("Text").map(textOf).filter((value) => value === "Main Lifts" || value === "Accessories");
+  assert.deepEqual(headings, ["Main Lifts", "Accessories", "Main Lifts"]);
+  assert.deepEqual(overviewIds(view), ["bench", "row", "curl"]);
+  assert.deepEqual(plain(view.week().weekPlan.workouts[0]), original);
+  await unmount(view);
+});
+
 test("overview accessible moves cross role headings, persist across navigation, and only Start creates the ordered draft", async () => {
   const view = await detail(); resetCalls(view);
   await tap(host(view, "workout-overview-up-row"));

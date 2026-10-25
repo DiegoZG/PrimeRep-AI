@@ -510,13 +510,20 @@ export default function WorkoutDayDetailScreen() {
   };
 
   // Transform workout blocks to sections
-  const sections: WorkoutSection[] = displayedWorkout
-    ? displayedWorkout.blocks.map((block) => ({
+  const sections: WorkoutSection[] = [];
+  for (const block of displayedWorkout?.blocks ?? []) {
+    if (!block.items.length) continue;
+    const previous = sections[sections.length - 1];
+    if (previous?.blockType === block.blockType) {
+      previous.data.push(...block.items);
+    } else {
+      sections.push({
         title: BLOCK_TYPE_LABELS[block.blockType] || block.blockType,
         blockType: block.blockType,
-        data: block.items,
-      }))
-    : [];
+        data: [...block.items],
+      });
+    }
+  }
 
   // Render section header
   const { fontScale, width } = useWindowDimensions();
