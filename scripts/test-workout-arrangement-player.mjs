@@ -299,6 +299,10 @@ test("all exercises shows every editable card and logs the touched exercise", as
   for (const id of ["incline", "bench", "row", "raise"]) assert.ok(host(view.tree, `player-all-card-${id}`));
   assert.deepEqual(view.calls.filter((call) => call[0] === "noteRead").map((call) => call[1]).sort(), ["bench", "incline", "raise", "row"]);
   assert.equal(view.tree.root.findAllByType("SetInputRow").length, 14);
+  assert.equal(inputFor(view, "bench").props.compact, true);
+  assert.ok(host(view.tree, "player-add-set-bench"));
+  assert.ok(host(view.tree, "player-exercise-note-bench"));
+  assert.ok(host(view.tree, "player-feedback-bench"));
   await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
   await view.settle();
   assert.equal(view.list().props.currentIndex, 2);

@@ -1732,7 +1732,7 @@ export default function ActiveWorkoutScreen() {
     if (currentExerciseRef.current !== exerciseId) return selectExercise(exerciseId, false);
     return true;
   };
-  const renderSetInputs = (item: WorkoutItem, focus: boolean) => {
+  const renderSetInputs = (item: WorkoutItem, focus: boolean, cardActions?: React.ReactNode) => {
     const exerciseId = item.exercise.id;
     const itemSets = sets.filter((set) => set.exerciseId === exerciseId).sort((a, b) => a.setNumber - b.setNumber);
     const equipmentIds = item.exercise.requiredEquipmentIds ?? [];
@@ -1749,7 +1749,7 @@ export default function ActiveWorkoutScreen() {
     </Pressable> : null;
     return <>
       {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, marginBottom: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 8, marginBottom: focus ? 8 : 2 }}>
         <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
         <View style={{ flex: 1, marginRight: 8 }}>
           <ThemedText accessibilityLabel={expandedLayout ? `${columnLabel} (${weightUnit})` : undefined}
@@ -1768,7 +1768,7 @@ export default function ActiveWorkoutScreen() {
           : setRow.confirmed ? { ...setRow, syncing: false, syncStatus: "synced" as const } : setRow;
         const displaySetNumber = setRow.deleted ? undefined : itemSets.filter((set) => !set.deleted).findIndex((set) => set.setNumber === setRow.setNumber) + 1;
         return <SetInputRow key={`${exerciseId}-${setRow.setNumber}`} setRow={displaySet} displaySetNumber={displaySetNumber}
-          colors={colors} weightUnit={weightUnit} readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+          colors={colors} weightUnit={weightUnit} compact={!focus} readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
           issue={entryIssues[setEntryKey(setRow)]}
           lastTimeHint={formatLastTimeHint(findHistoryForSet(lastSetsByExercise[exerciseId], setRow.setNumber), weightUnit)}
           progressionTag={progressionTag}
@@ -1779,14 +1779,17 @@ export default function ActiveWorkoutScreen() {
           onRestore={(setNumber) => { if (activateExerciseForAll(exerciseId)) restoreSet(exerciseId, setNumber); }}
           onRetry={() => { if (activateExerciseForAll(exerciseId)) void retryFailedWrites(); }} />;
       })}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: focus ? 10 : 4, marginTop: focus ? 4 : 0,
+        borderTopWidth: focus ? 0 : 1, borderTopColor: colors.inputBorder, paddingTop: focus ? 0 : 4 }}>
         <Pressable testID={`player-add-set-${exerciseId}`} accessibilityRole="button"
           accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
           disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
           onPress={() => { if (activateExerciseForAll(exerciseId)) addSet(exerciseId); }}
-          style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.inputBorder }}>
-          <ThemedText style={{ fontWeight: "600", fontSize: 14 }}>+ Add set</ThemedText>
+          style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: focus ? 14 : 8, borderRadius: 10,
+            borderWidth: focus ? 1 : 0, borderColor: colors.inputBorder }}>
+          <ThemedText style={{ fontWeight: "600", fontSize: 14, color: focus ? colors.text : colors.primaryButton }}>+ Add set</ThemedText>
         </Pressable>
+        {cardActions}
         {!keyboardVisible ? saveAction : null}
       </View>
       {focus && saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
@@ -1797,7 +1800,6 @@ export default function ActiveWorkoutScreen() {
     const collapsed = Boolean(collapsedExercises[exerciseId]);
     const progress = getExerciseProgress(exerciseId);
     const isCurrent = currentItem?.exercise.id === exerciseId;
-    const initials = item.exercise.name.split(/[\s-]+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
     const suggestedWeight = item.prescription.suggestedWeightKg;
     const suggestion = suggestedWeight == null || !unitReady ? null : resolveFriendlyLoad({
       targetWeightKg: suggestedWeight,
@@ -1811,16 +1813,13 @@ export default function ActiveWorkoutScreen() {
     });
     const actionDisabled = finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement;
     return <View key={exerciseId} testID={`player-all-card-${exerciseId}`}
-      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 12, marginBottom: 16, backgroundColor: colors.background }}>
+      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 12, marginBottom: 12, backgroundColor: colors.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable testID={`player-all-toggle-${exerciseId}`} accessibilityRole="button"
           accessibilityLabel={`${collapsed ? "Expand" : "Collapse"} ${item.exercise.name}`}
           accessibilityState={{ expanded: !collapsed, disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled}
           onPress={() => { if (!activateExerciseForAll(exerciseId)) return; setCollapsedExercises((current) => ({ ...current, [exerciseId]: !current[exerciseId] })); }}
-          style={{ flex: 1, minHeight: 52, flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder, alignItems: "center", justifyContent: "center" }}>
-            <ThemedText allowFontScaling={false} accessible={false} style={{ fontSize: 13, fontWeight: "600" }}>{initials}</ThemedText>
-          </View>
+          style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold" style={{ fontSize: 18, flexShrink: 1 }}>{index + 1}. {item.exercise.name}</ThemedText>
             <ThemedText style={{ fontSize: 13, color: colors.placeholder }}>
@@ -1836,21 +1835,18 @@ export default function ActiveWorkoutScreen() {
           <Ionicons name="information-circle-outline" size={22} color={colors.placeholder} />
         </Pressable>
       </View>
-      {!collapsed ? <View style={{ marginTop: 8 }}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
-          {([
-            { id: `player-exercise-note-${exerciseId}`, label: "Exercise note", icon: "create-outline", action: () => openExerciseNoteEditor(exerciseId) },
-            { id: `player-feedback-${exerciseId}`, label: "Feedback", icon: "chatbubble-outline", action: () => openFeedbackEditor(exerciseId) },
-          ] as const).map((action) => <Pressable key={action.id} testID={action.id} accessibilityRole="button" accessibilityLabel={`${action.label} for ${item.exercise.name}`}
-            accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { if (activateExerciseForAll(exerciseId)) action.action(); }}
-            style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 5 }}>
-            <Ionicons name={action.icon} size={16} color={colors.placeholder} />
-            <ThemedText style={{ fontSize: 13, fontWeight: "500" }}>{action.label}</ThemedText>
-          </Pressable>)}
-        </View>
-        {exerciseNotes[exerciseId] ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>{exerciseNotes[exerciseId]}</ThemedText> : null}
-        {suggestion ? <ThemedText style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>Next setup: {suggestion.displayText}</ThemedText> : null}
-        {renderSetInputs(item, false)}
+      {!collapsed ? <View>
+        {exerciseNotes[exerciseId] ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginTop: 4 }}>{exerciseNotes[exerciseId]}</ThemedText> : null}
+        {suggestion ? <ThemedText style={{ color: colors.placeholder, fontSize: 13, marginTop: 4 }}>Next setup: {suggestion.displayText}</ThemedText> : null}
+        {renderSetInputs(item, false, ([
+          { id: `player-exercise-note-${exerciseId}`, label: "Note", accessibilityLabel: "Exercise note", icon: "create-outline", action: () => openExerciseNoteEditor(exerciseId) },
+          { id: `player-feedback-${exerciseId}`, label: "Feedback", accessibilityLabel: "Feedback", icon: "chatbubble-outline", action: () => openFeedbackEditor(exerciseId) },
+        ] as const).map((action) => <Pressable key={action.id} testID={action.id} accessibilityRole="button" accessibilityLabel={`${action.accessibilityLabel} for ${item.exercise.name}`}
+          accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { if (activateExerciseForAll(exerciseId)) action.action(); }}
+          style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8 }}>
+          <Ionicons name={action.icon} size={16} color={colors.placeholder} />
+          <ThemedText style={{ fontSize: 13, fontWeight: "500" }}>{action.label}</ThemedText>
+        </Pressable>))}
       </View> : null}
     </View>;
   };

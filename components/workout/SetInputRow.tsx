@@ -14,6 +14,7 @@ interface SetInputRowProps {
   weightUnit: WeightUnit;
   lastTimeHint?: string;
   progressionTag?: string;
+  compact?: boolean;
   readOnly?: boolean;
   issue?: string;
   onUpdate: (setNumber: number, field: "reps" | "weight", value: string) => void;
@@ -25,7 +26,7 @@ interface SetInputRowProps {
 }
 
 export const SetInputRow = React.memo(function SetInputRow({
-  setRow, displaySetNumber, colors, weightUnit, lastTimeHint, progressionTag, readOnly, issue,
+  setRow, displaySetNumber, colors, weightUnit, lastTimeHint, progressionTag, compact = false, readOnly, issue,
   onUpdate, onConfirm, onEdit, onRemove, onRestore, onRetry,
 }: SetInputRowProps) {
   const [menuVisible, setMenuVisible] = useState(false);
@@ -53,7 +54,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   };
 
   if (deleted) return (
-    <View style={{ borderBottomWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: 12, marginBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+    <View style={{ borderBottomWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: compact ? 4 : 12, marginBottom: compact ? 0 : 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <ThemedText style={{ color: secondaryColor, fontSize: 13 }}>Set {number} removed</ThemedText>
       <Pressable testID={`player-restore-set-${id}`} accessibilityRole="button" accessibilityLabel={`Undo removal of set ${number}`}
         accessibilityState={{ disabled: Boolean(readOnly) }}
@@ -64,9 +65,10 @@ export const SetInputRow = React.memo(function SetInputRow({
   );
 
   return (
-    <View testID={`player-set-row-${id}`} style={{ borderRadius: 12, backgroundColor: colors.inputBackground,
-      borderWidth: 1, borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
-      paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 }}>
+    <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: compact ? colors.background : colors.inputBackground,
+      borderWidth: compact ? 0 : 1, borderBottomWidth: compact ? 1 : undefined,
+      borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
+      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8, marginBottom: compact ? 0 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignItems: "center", gap: 2 }}>
           <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
