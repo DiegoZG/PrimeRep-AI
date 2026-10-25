@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { Keyboard, Modal, Pressable, TextInput, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Keyboard, Pressable, TextInput, View } from "react-native";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
@@ -16,7 +17,10 @@ interface SetInputRowProps {
   progressionTag?: string;
   compact?: boolean;
   readOnly?: boolean;
+  actionsOpen?: boolean;
   issue?: string;
+  onActionsOpen?: () => void;
+  onActionsClose?: () => void;
   onUpdate: (setNumber: number, field: "reps" | "weight", value: string) => void;
   onConfirm: (setNumber: number) => void;
   onEdit: (setNumber: number) => void;
@@ -26,14 +30,18 @@ interface SetInputRowProps {
 }
 
 export const SetInputRow = React.memo(function SetInputRow({
-  setRow, displaySetNumber, colors, weightUnit, lastTimeHint, progressionTag, compact = false, readOnly, issue,
+  setRow, displaySetNumber, colors, weightUnit, lastTimeHint, progressionTag, compact = false, readOnly, actionsOpen, issue,
+  onActionsOpen, onActionsClose,
   onUpdate, onConfirm, onEdit, onRemove, onRestore, onRetry,
 }: SetInputRowProps) {
-  const [menuVisible, setMenuVisible] = useState(false);
+  const swipeableRef = useRef<SwipeableMethods>(null);
+  const [actionsVisible, setActionsVisible] = useState(false);
   const { setNumber, reps, weight, confirmed, syncStatus, deleted, editing } = setRow;
   const number = displaySetNumber ?? setNumber;
   const logged = confirmed && !editing;
-  const removableEmpty = Boolean(setRow.isAdded && !confirmed && !setRow.logId && !editing && !weight.trim() && !reps.trim());
+  const emptyAdded = Boolean(setRow.isAdded && !confirmed && !setRow.logId && !editing && !weight.trim() && !reps.trim());
+  const canRevealActions = Boolean((logged || setRow.isAdded) && !readOnly && syncStatus !== "failed");
+  const trailingDisabled = Boolean(readOnly || ((logged || emptyAdded) && !canRevealActions));
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
   const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
@@ -54,6 +62,32 @@ export const SetInputRow = React.memo(function SetInputRow({
     backgroundColor: logged ? "transparent" : colors.background,
   };
 
+  useEffect(() => {
+    if (actionsOpen === false || !canRevealActions) {
+      swipeableRef.current?.close();
+      setActionsVisible(false);
+    }
+  }, [actionsOpen, canRevealActions]);
+
+  const openActions = () => {
+    Keyboard.dismiss();
+    if (actionsVisible) {
+      swipeableRef.current?.close();
+      onActionsClose?.();
+      return;
+    }
+    onActionsOpen?.();
+    swipeableRef.current?.openRight();
+  };
+
+  const chooseAction = (action: "edit" | "remove") => {
+    swipeableRef.current?.close();
+    setActionsVisible(false);
+    onActionsClose?.();
+    if (action === "edit") onEdit(setNumber);
+    else onRemove(setNumber);
+  };
+
   if (deleted) return (
     <View style={{ borderBottomWidth: 1, borderColor: colors.inputBorder, paddingHorizontal: compact ? 4 : 12, marginBottom: compact ? 0 : 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <ThemedText style={{ color: secondaryColor, fontSize: 13 }}>Set {number} removed</ThemedText>
@@ -66,10 +100,32 @@ export const SetInputRow = React.memo(function SetInputRow({
   );
 
   return (
+    <ReanimatedSwipeable ref={swipeableRef} enabled={canRevealActions} friction={1.5} rightThreshold={40}
+      dragOffsetFromRightEdge={16} overshootRight={false} enableTrackpadTwoFingerGesture
+      onSwipeableWillOpen={() => { setActionsVisible(true); onActionsOpen?.(); }}
+      onSwipeableWillClose={() => setActionsVisible(false)} onSwipeableClose={() => onActionsClose?.()}
+      containerStyle={{ borderRadius: compact ? 0 : 12, marginBottom: compact ? 0 : 8 }}
+      renderRightActions={() => <View testID={`player-set-actions-${id}`}
+        accessibilityElementsHidden={!actionsVisible} importantForAccessibility={actionsVisible ? "auto" : "no-hide-descendants"}
+        style={{ flexDirection: "row", alignItems: "stretch", borderBottomWidth: compact ? 1 : 0, borderColor: colors.inputBorder }}>
+        {logged ? <Pressable testID={`player-edit-set-${id}`} accessibilityRole="button" accessibilityLabel={`Edit set ${number}`}
+          disabled={!canRevealActions} accessibilityState={{ disabled: !canRevealActions }} onPress={() => chooseAction("edit")}
+          style={{ width: 64, minHeight: 44, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: colors.inputBackground }}>
+          <Ionicons name="create-outline" size={20} color={colors.text} />
+          <ThemedText style={{ fontSize: 11, color: colors.text }}>Edit</ThemedText>
+        </Pressable> : null}
+        <Pressable testID={`player-remove-set-${id}`} accessibilityRole="button" accessibilityLabel={`Remove set ${number}`}
+          disabled={!canRevealActions} accessibilityState={{ disabled: !canRevealActions }} onPress={() => chooseAction("remove")}
+          style={{ width: 64, minHeight: 44, alignItems: "center", justifyContent: "center", gap: 2,
+            backgroundColor: colors.background === Colors.dark.background ? "#3B2323" : "#FBEAEA" }}>
+          <Ionicons name="trash-outline" size={20} color={colors.background === Colors.dark.background ? "#FF8E86" : "#B42318"} />
+          <ThemedText style={{ fontSize: 11, color: colors.background === Colors.dark.background ? "#FF8E86" : "#B42318" }}>Remove</ThemedText>
+        </Pressable>
+      </View>}>
     <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: compact ? colors.background : colors.inputBackground,
       borderWidth: compact ? 0 : 1, borderBottomWidth: compact ? 1 : undefined,
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
-      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8, marginBottom: compact ? 0 : 8 }}>
+      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignItems: "center", gap: 2 }}>
           <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
@@ -87,14 +143,16 @@ export const SetInputRow = React.memo(function SetInputRow({
           value={editing ? setRow.editDraft?.reps ?? reps : reps}
           onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
           placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
-        <Pressable testID={removableEmpty ? `player-remove-empty-set-${id}` : logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
-          accessibilityLabel={removableEmpty ? `Remove empty set ${number}` : logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
-          accessibilityState={{ disabled: Boolean(readOnly) }} disabled={readOnly}
-          onPress={() => { Keyboard.dismiss(); if (removableEmpty) onRemove(setNumber); else if (logged) setMenuVisible(true); else onConfirm(setNumber); }}
+        <Pressable testID={emptyAdded || logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
+          accessibilityLabel={emptyAdded || logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
+          accessibilityHint={emptyAdded ? "Swipe left on the row or tap to show Remove" : logged ? "Swipe left on the row or tap to show Edit and Remove" : setRow.isAdded ? "Swipe left on this row to remove it" : undefined}
+          accessibilityActions={setRow.isAdded && !logged && !emptyAdded && canRevealActions ? [{ name: "showSetActions", label: "Show set actions" }] : undefined}
+          onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "showSetActions") openActions(); }}
+          accessibilityState={{ disabled: trailingDisabled }} disabled={trailingDisabled}
+          onPress={() => { if (emptyAdded || logged) openActions(); else { Keyboard.dismiss(); onConfirm(setNumber); } }}
           style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
-            borderWidth: logged || removableEmpty ? 0 : 1, borderColor: colors.inputBorder }}>
-          <Ionicons name={removableEmpty ? "trash-outline" : logged ? "ellipsis-horizontal" : "checkmark"} size={21}
-            color={removableEmpty ? secondaryColor : colors.text} />
+            borderWidth: logged || emptyAdded ? 0 : 1, borderColor: colors.inputBorder }}>
+          <Ionicons name={logged || emptyAdded ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
         </Pressable>
       </View>
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
@@ -107,24 +165,7 @@ export const SetInputRow = React.memo(function SetInputRow({
         Last time: {lastTimeHint}{progressionTag ? ` · ${progressionTag}` : ""}
       </ThemedText> : null}
 
-      <Modal visible={menuVisible} transparent animationType="none" onRequestClose={() => setMenuVisible(false)}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close set actions" onPress={() => setMenuVisible(false)}
-            style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0, backgroundColor: "rgba(0,0,0,0.45)" }} />
-          <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 360, borderRadius: 18, padding: 16, backgroundColor: colors.background }}>
-            <ThemedText type="defaultSemiBold" style={{ marginBottom: 8 }}>Set {number}</ThemedText>
-            {(["Edit", "Remove"] as const).map((action) => <Pressable key={action} testID={`player-${action.toLowerCase()}-set-${id}`}
-              accessibilityRole="button" disabled={syncStatus === "failed"} accessibilityState={{ disabled: syncStatus === "failed" }}
-              onPress={() => { setMenuVisible(false); if (action === "Edit") onEdit(setNumber); else onRemove(setNumber); }}
-              style={{ minHeight: 48, justifyContent: "center" }}>
-              <ThemedText style={{ color: action === "Remove" ? "#D14343" : colors.text }}>{action}</ThemedText>
-            </Pressable>)}
-            <Pressable accessibilityRole="button" onPress={() => setMenuVisible(false)} style={{ minHeight: 48, justifyContent: "center" }}>
-              <ThemedText>Cancel</ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
+    </ReanimatedSwipeable>
   );
 });

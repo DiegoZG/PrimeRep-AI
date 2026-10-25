@@ -344,6 +344,7 @@ export default function ActiveWorkoutScreen() {
   const savingEntriesRef = useRef(false);
   const savingEntriesEpochRef = useRef<number | null>(null);
   const [entryIssues, setEntryIssues] = useState<Record<string, string>>({});
+  const [openSetActionsId, setOpenSetActionsId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
   const [finishReviewVisible, setFinishReviewVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -708,8 +709,9 @@ export default function ActiveWorkoutScreen() {
   }, [navigationEpoch, cancelExerciseTransition]);
   manualNavigationRef.current = selectExercise;
   useEffect(() => {
-    setCollapsedExercises({}); setRestDoneExerciseId(null);
+    setCollapsedExercises({}); setRestDoneExerciseId(null); setOpenSetActionsId(null);
   }, [navigationEpoch]);
+  useEffect(() => { setOpenSetActionsId(null); }, [layout]);
   useEffect(() => {
     if (!allExercisesLayout || isRestoring) return;
     const context = restStateRef.current.context;
@@ -1803,6 +1805,9 @@ export default function ActiveWorkoutScreen() {
         const displaySetNumber = setRow.deleted ? undefined : itemSets.filter((set) => !set.deleted).findIndex((set) => set.setNumber === setRow.setNumber) + 1;
         return <SetInputRow key={`${exerciseId}-${setRow.setNumber}`} setRow={displaySet} displaySetNumber={displaySetNumber}
           colors={colors} weightUnit={weightUnit} compact={!focus} readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+          actionsOpen={openSetActionsId === `${exerciseId}:${setRow.setNumber}`}
+          onActionsOpen={() => setOpenSetActionsId(`${exerciseId}:${setRow.setNumber}`)}
+          onActionsClose={() => setOpenSetActionsId((current) => current === `${exerciseId}:${setRow.setNumber}` ? null : current)}
           issue={entryIssues[setEntryKey(setRow)]}
           lastTimeHint={formatLastTimeHint(findHistoryForSet(lastSetsByExercise[exerciseId], setRow.setNumber), weightUnit)}
           progressionTag={progressionTag}
