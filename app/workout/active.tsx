@@ -323,6 +323,7 @@ export default function ActiveWorkoutScreen() {
   const [storageError, setStorageError] = useState(false);
   const [isSavingEntries, setIsSavingEntries] = useState(false);
   const savingEntriesRef = useRef(false);
+  const savingEntriesEpochRef = useRef<number | null>(null);
   const [entryIssues, setEntryIssues] = useState<Record<string, string>>({});
   const [saveMessage, setSaveMessage] = useState("");
   const [finishReviewVisible, setFinishReviewVisible] = useState(false);
@@ -352,8 +353,12 @@ export default function ActiveWorkoutScreen() {
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string | null>>({});
   const [noteEditorVisible, setNoteEditorVisible] = useState(false);
   const [noteEditorTarget, setNoteEditorTarget] = useState<"workout" | "exercise">("workout");
+  const [noteEditorExerciseId, setNoteEditorExerciseId] = useState<string | null>(null);
+  const noteEditorEpochRef = useRef<number | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [feedbackEditorVisible, setFeedbackEditorVisible] = useState(false);
+  const [feedbackEditorExerciseId, setFeedbackEditorExerciseId] = useState<string | null>(null);
+  const feedbackEditorEpochRef = useRef<number | null>(null);
   const [feedbackDraft, setFeedbackDraft] = useState<{ effort: "easy" | "right" | "hard" | null; rir: number | null }>({ effort: null, rir: null });
 
   useEffect(() => {
@@ -570,6 +575,14 @@ export default function ActiveWorkoutScreen() {
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
   const currentExerciseRef = useRef(currentItem?.exercise.id); currentExerciseRef.current = currentItem?.exercise.id;
   const exercisesRef = useRef(exercises); exercisesRef.current = exercises;
+  const isCurrentWorkout = useCallback(() => navigationMountedRef.current
+    && navigationIdentityRef.current.epoch === navigationEpoch && navigationIdentityRef.current.key === navigationKey
+    && accountRef.current === user?.id, [navigationEpoch, navigationKey, user?.id]);
+  const canActOnWorkout = useCallback(() => isCurrentWorkout() && !navigationBlockedRef.current && !arrangementBusyRef.current()
+    && !savingEntriesRef.current && !isFinishingRef.current && !isTerminalRef.current
+    && !operationsRef.current.some((operation) => operation.type === "replace"), [isCurrentWorkout]);
+  const canActOnExercise = useCallback((exerciseId: string) => canActOnWorkout()
+    && exercisesRef.current.some((item) => item.exercise.id === exerciseId), [canActOnWorkout]);
   const currentEquipmentIds = currentItem?.exercise.requiredEquipmentIds ?? [];
   const weightColumnLabel = currentItem?.exercise.loadProfile?.implement_count === 1 ? "Weight" : currentEquipmentIds.includes("dumbbells")
     ? "Weight each"
@@ -639,7 +652,16 @@ export default function ActiveWorkoutScreen() {
     navigationMountedRef.current = true;
     return () => { navigationMountedRef.current = false; navigationIdentityRef.current.epoch += 1; if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current); };
   }, []);
-  useEffect(() => { cancelExerciseTransition(); setSheetVisible(false); listFocusRef.current = null; }, [navigationEpoch, cancelExerciseTransition]);
+  useEffect(() => {
+    cancelExerciseTransition(); setSheetVisible(false); listFocusRef.current = null;
+    noteEditorEpochRef.current = null; feedbackEditorEpochRef.current = null;
+    setNoteEditorVisible(false); setFeedbackEditorVisible(false);
+    if (savingEntriesEpochRef.current !== navigationEpoch) {
+      savingEntriesEpochRef.current = null;
+      savingEntriesRef.current = false;
+      setIsSavingEntries(false);
+    }
+  }, [navigationEpoch, cancelExerciseTransition]);
   const selectExercise = useCallback((exerciseId: string) => {
     if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current || isTerminalRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return;
     const snapshot = navigationSnapshotRef.current();
@@ -787,11 +809,12 @@ export default function ActiveWorkoutScreen() {
       exerciseFeedback,
       exerciseNotes,
       revision: ++workoutRevisionRef.current,
-    }).then(() => {
+    }, isCurrentWorkout).then(() => {
+      if (!isCurrentWorkout()) return;
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
-    }).catch(() => setStorageError(true));
-  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
+    }).catch(() => { if (isCurrentWorkout()) setStorageError(true); });
+  }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes, isCurrentWorkout]);
 
   const replayPendingWrites = useCallback(async () => {
     if (!token || !user || navigationIdentityRef.current.epoch !== navigationEpoch || replayInFlightRef.current || savingEntriesRef.current || isFinishingRef.current) return;
@@ -894,18 +917,20 @@ export default function ActiveWorkoutScreen() {
   }, [persistedRevision, operations, retryAt, replayPendingWrites]);
 
   const retryFailedWrites = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isCurrentWorkout()) return;
     const restored = await retryFailedWorkoutOperations(user.id);
-    if (restored) {
+    if (restored && isCurrentWorkout()) {
+      setsRef.current = restored.sets;
+      operationsRef.current = restored.operations;
       setSets(restored.sets);
       setOperations(restored.operations);
       setPersistedRevision((revision) => revision + 1);
     }
-  }, [user]);
+  }, [user, isCurrentWorkout]);
 
   const persistConfirmedMutation = useCallback(
     async (nextSets: SetState[], nextOperations: PendingWorkoutOperation[]) => {
-      if (!user || !workout || isRestoring || isTerminalRef.current) return;
+      if (!user || !workout || isRestoring || isTerminalRef.current || !isCurrentWorkout()) return;
       const localWorkout: LocalActiveWorkout = {
         userId: user.id,
         workoutDayId: workout.workoutDayId,
@@ -926,11 +951,12 @@ export default function ActiveWorkoutScreen() {
         exerciseNotes,
         revision: ++workoutRevisionRef.current,
       };
-      await saveActiveWorkout(localWorkout);
+      await saveActiveWorkout(localWorkout, isCurrentWorkout);
+      if (!isCurrentWorkout()) return;
       setStorageError(false);
       setPersistedRevision((revision) => revision + 1);
     },
-    [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes]
+    [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, isCurrentWorkout]
   );
 
   useEffect(() => {
@@ -1007,10 +1033,8 @@ export default function ActiveWorkoutScreen() {
   // ── Set input handlers ─────────────────────────────────────────────────────
 
   const updateSet = useCallback(
-    (setNumber: number, field: "reps" | "weight", value: string) => {
-      if (!currentItem) return;
-      const exerciseId = currentItem.exercise.id;
-      if (savingEntriesRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return;
+    (exerciseId: string, setNumber: number, field: "reps" | "weight", value: string) => {
+      if (!canActOnExercise(exerciseId)) return;
       const nextSets = setsRef.current.map((s) =>
           s.exerciseId === exerciseId && s.setNumber === setNumber
             ? s.editing
@@ -1023,12 +1047,14 @@ export default function ActiveWorkoutScreen() {
       setSaveMessage("");
       setEntryIssues((previous) => { const next = { ...previous }; delete next[`${exerciseId}:${setNumber}`]; return next; });
     },
-    [currentItem]
+    [canActOnExercise]
   );
 
   const saveEntries = useCallback(async (keys: string[], individual = false, replay = true) => {
-    if (!user || !workout || isRestoring || isTerminalRef.current || savingEntriesRef.current || finishStatus !== "idle" || operationsRef.current.some((operation) => operation.type === "replace")) return false;
+    if (!user || !workout || !isCurrentWorkout() || isRestoring || isTerminalRef.current || savingEntriesRef.current
+      || finishStatus !== "idle" || operationsRef.current.some((operation) => operation.type === "replace")) return false;
     savingEntriesRef.current = true;
+    savingEntriesEpochRef.current = navigationEpoch;
     setIsSavingEntries(true);
     Keyboard.dismiss();
     const snapshot: LocalActiveWorkout = {
@@ -1038,19 +1064,20 @@ export default function ActiveWorkoutScreen() {
       sets: setsRef.current, operations: operationsRef.current, workoutNote, exerciseFeedback, exerciseNotes,
       revision: ++workoutRevisionRef.current,
     };
-    if (individual && currentItem) {
+    if (individual) {
       const target = snapshot.sets.find((set) => setEntryKey(set) === keys[0]);
-      if (target && !target.editing && !("error" in validateSetEntry(target, weightUnit))) {
-        snapshot.restTotalSeconds = currentItem.prescription.restSeconds;
+      const exercise = exercises.find((item) => item.exercise.id === target?.exerciseId);
+      if (target && exercise && !target.editing && !("error" in validateSetEntry(target, weightUnit))) {
+        snapshot.restTotalSeconds = exercise.prescription.restSeconds;
         snapshot.restEndsAt = Date.now() + snapshot.restTotalSeconds * 1000;
-        snapshot.restContext = { exerciseId: currentItem.exercise.id,
+        snapshot.restContext = { exerciseId: target.exerciseId,
           isLastSetOfExercise: snapshot.sets.filter((set) => set.exerciseId === target.exerciseId && !set.deleted)
             .every((set) => set.confirmed || setEntryKey(set) === keys[0]) };
       }
     }
     try {
       const result = await saveWorkoutSetEntries(snapshot, keys, weightUnit);
-      if (accountRef.current !== user.id) return false;
+      if (!isCurrentWorkout()) return false;
       setEntryIssues(result.issues);
       if (result.savedCount > 0) {
         workoutRevisionRef.current = Math.max(workoutRevisionRef.current, result.workout.revision);
@@ -1070,41 +1097,47 @@ export default function ActiveWorkoutScreen() {
       } else setSaveMessage("Check the entries below before saving.");
       return result.savedCount > 0 && Object.keys(result.issues).length === 0;
     } catch {
-      if (accountRef.current === user.id) {
+      if (isCurrentWorkout()) {
         setStorageError(true);
         setSaveMessage("Couldn’t save on this device. Your entries are still here — try again.");
       }
       return false;
     } finally {
-      savingEntriesRef.current = false;
-      if (accountRef.current === user.id) {
+      if (savingEntriesEpochRef.current === navigationEpoch) {
+        savingEntriesEpochRef.current = null;
+        savingEntriesRef.current = false;
+      }
+      if (isCurrentWorkout()) {
         setIsSavingEntries(false);
         if (replay) setPersistedRevision((revision) => revision + 1);
       }
     }
   }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt, currentExerciseIndex,
-    restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, currentItem, weightUnit]);
+    restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, weightUnit, navigationEpoch, isCurrentWorkout]);
 
-  const confirmSet = useCallback((setNumber: number) => {
-    if (currentItem) void saveEntries([`${currentItem.exercise.id}:${setNumber}`], true);
-  }, [currentItem, saveEntries]);
+  const confirmSet = useCallback((exerciseId: string, setNumber: number) => {
+    if (!canActOnExercise(exerciseId)) return;
+    void saveEntries([`${exerciseId}:${setNumber}`], true);
+  }, [canActOnExercise, saveEntries]);
 
-  const saveExerciseEntries = useCallback(() => {
-    if (currentItem) void saveEntries(enteredSets(setsRef.current, currentItem.exercise.id).map(setEntryKey));
-  }, [currentItem, saveEntries]);
+  const saveExerciseEntries = useCallback((exerciseId: string) => {
+    if (!canActOnExercise(exerciseId)) return;
+    void saveEntries(enteredSets(setsRef.current, exerciseId).map(setEntryKey));
+  }, [canActOnExercise, saveEntries]);
 
-  const beginSetEdit = useCallback((setNumber: number) => {
-    if (!currentItem) return;
-    setSets((previous) => previous.map((set) =>
-      set.exerciseId === currentItem.exercise.id && set.setNumber === setNumber && set.syncStatus !== "failed"
+  const beginSetEdit = useCallback((exerciseId: string, setNumber: number) => {
+    if (!canActOnExercise(exerciseId)) return;
+    const nextSets = setsRef.current.map((set) =>
+      set.exerciseId === exerciseId && set.setNumber === setNumber && set.syncStatus !== "failed"
         ? { ...set, editing: true, editDraft: { reps: set.reps, weight: set.weight } }
         : set
-    ));
-  }, [currentItem]);
+    );
+    setsRef.current = nextSets;
+    setSets(nextSets);
+  }, [canActOnExercise]);
 
-  const removeSet = useCallback((setNumber: number) => {
-    if (!currentItem) return;
-    const exerciseId = currentItem.exercise.id;
+  const removeSet = useCallback((exerciseId: string, setNumber: number) => {
+    if (!canActOnExercise(exerciseId)) return;
     const target = setsRef.current.find((set) => set.exerciseId === exerciseId && set.setNumber === setNumber);
     if (!target || target.syncStatus === "failed") return;
     if (!target.logId) {
@@ -1119,8 +1152,8 @@ export default function ActiveWorkoutScreen() {
       setSets(nextSets);
       setOperations(nextOperations);
       void persistConfirmedMutation(nextSets, nextOperations)
-        .then(() => void replayPendingWrites())
-        .catch(() => setStorageError(true));
+        .then(() => { if (isCurrentWorkout()) void replayPendingWrites(); })
+        .catch(() => { if (isCurrentWorkout()) setStorageError(true); });
       return;
     }
     const nextSets: SetState[] = setsRef.current.map((set) =>
@@ -1137,13 +1170,12 @@ export default function ActiveWorkoutScreen() {
     setSets(nextSets);
     setOperations(nextOperations);
     void persistConfirmedMutation(nextSets, nextOperations)
-      .then(() => void replayPendingWrites())
-      .catch(() => setStorageError(true));
-  }, [currentItem, persistConfirmedMutation, replayPendingWrites]);
+      .then(() => { if (isCurrentWorkout()) void replayPendingWrites(); })
+      .catch(() => { if (isCurrentWorkout()) setStorageError(true); });
+  }, [canActOnExercise, persistConfirmedMutation, replayPendingWrites, isCurrentWorkout]);
 
-  const restoreSet = useCallback((setNumber: number) => {
-    if (!currentItem) return;
-    const exerciseId = currentItem.exercise.id;
+  const restoreSet = useCallback((exerciseId: string, setNumber: number) => {
+    if (!canActOnExercise(exerciseId)) return;
     const target = setsRef.current.find((set) => set.exerciseId === exerciseId && set.setNumber === setNumber);
     if (!target) return;
     if (!target.deletedLogId) {
@@ -1155,7 +1187,9 @@ export default function ActiveWorkoutScreen() {
       operationsRef.current = nextOperations;
       setSets(nextSets);
       setOperations(nextOperations);
-      void persistConfirmedMutation(nextSets, nextOperations).then(() => void replayPendingWrites()).catch(() => setStorageError(true));
+      void persistConfirmedMutation(nextSets, nextOperations)
+        .then(() => { if (isCurrentWorkout()) void replayPendingWrites(); })
+        .catch(() => { if (isCurrentWorkout()) setStorageError(true); });
       return;
     }
     const nextSets: SetState[] = setsRef.current.map((set) =>
@@ -1178,73 +1212,85 @@ export default function ActiveWorkoutScreen() {
     setSets(nextSets);
     setOperations(nextOperations);
     void persistConfirmedMutation(nextSets, nextOperations)
-      .then(() => void replayPendingWrites())
-      .catch(() => setStorageError(true));
-  }, [currentItem, persistConfirmedMutation, replayPendingWrites]);
+      .then(() => { if (isCurrentWorkout()) void replayPendingWrites(); })
+      .catch(() => { if (isCurrentWorkout()) setStorageError(true); });
+  }, [canActOnExercise, persistConfirmedMutation, replayPendingWrites, isCurrentWorkout]);
 
-  const addSet = useCallback(() => {
-    if (!currentItem) return;
-    const exerciseId = currentItem.exercise.id;
-    const nextSetNumber = sets
+  const addSet = useCallback((exerciseId: string) => {
+    if (!canActOnExercise(exerciseId)) return;
+    const nextSetNumber = setsRef.current
       .filter((set) => set.exerciseId === exerciseId)
       .reduce((maximum, set) => Math.max(maximum, set.setNumber), 0) + 1;
-    setSets((previous) => [...previous, {
+    const nextSets = [...setsRef.current, {
       exerciseId, setNumber: nextSetNumber, reps: "", weight: "", confirmed: false,
-      syncing: false, syncStatus: "synced", logId: null, isAdded: true,
-    }]);
-  }, [currentItem, sets]);
+      syncing: false, syncStatus: "synced" as const, logId: null, isAdded: true,
+    }];
+    setsRef.current = nextSets;
+    setSets(nextSets);
+  }, [canActOnExercise]);
 
   const openWorkoutNoteEditor = useCallback(() => {
+    if (!canActOnWorkout()) return;
+    noteEditorEpochRef.current = navigationEpoch;
     setNoteEditorTarget("workout");
+    setNoteEditorExerciseId(null);
     setNoteDraft(workoutNote ?? "");
     setNoteEditorVisible(true);
-  }, [workoutNote]);
+  }, [canActOnWorkout, navigationEpoch, workoutNote]);
 
-  const openExerciseNoteEditor = useCallback(() => {
-    if (!currentItem) return;
+  const openExerciseNoteEditor = useCallback((exerciseId: string) => {
+    if (!canActOnExercise(exerciseId)) return;
+    noteEditorEpochRef.current = navigationEpoch;
     setNoteEditorTarget("exercise");
-    setNoteDraft(exerciseNotes[currentItem.exercise.id] ?? "");
+    setNoteEditorExerciseId(exerciseId);
+    setNoteDraft(exerciseNotes[exerciseId] ?? "");
     setNoteEditorVisible(true);
-  }, [currentItem, exerciseNotes]);
+  }, [canActOnExercise, navigationEpoch, exerciseNotes]);
 
   const closeNoteEditor = useCallback(() => {
     Keyboard.dismiss();
+    noteEditorEpochRef.current = null;
     setNoteEditorVisible(false);
   }, []);
 
   const saveNote = useCallback(() => {
+    if (noteEditorEpochRef.current !== navigationEpoch || !canActOnWorkout()
+      || (noteEditorTarget === "exercise" && (!noteEditorExerciseId || !canActOnExercise(noteEditorExerciseId)))) return;
     const note = noteDraft.trim() || null;
     if (noteEditorTarget === "workout") {
       setWorkoutNote(note);
       setOperations((previous) => [...previous, {
         id: createClientId(), type: "update_workout_note", status: "pending", payload: { note },
       }]);
-    } else if (currentItem) {
-      const exerciseId = currentItem.exercise.id;
+    } else if (noteEditorExerciseId) {
+      const exerciseId = noteEditorExerciseId;
       setExerciseNotes((current) => ({ ...current, [exerciseId]: note }));
       setOperations((previous) => [...previous, {
         id: createClientId(), type: "update_exercise_note", status: "pending", payload: { exerciseId, note },
       }]);
     }
     closeNoteEditor();
-  }, [noteDraft, noteEditorTarget, currentItem, closeNoteEditor]);
+  }, [noteDraft, noteEditorTarget, noteEditorExerciseId, navigationEpoch, canActOnWorkout, canActOnExercise, closeNoteEditor]);
 
-  const openFeedbackEditor = useCallback(() => {
-    if (!currentItem) return;
-    setFeedbackDraft(exerciseFeedback[currentItem.exercise.id] ?? { effort: null, rir: null });
+  const openFeedbackEditor = useCallback((exerciseId: string) => {
+    if (!canActOnExercise(exerciseId)) return;
+    feedbackEditorEpochRef.current = navigationEpoch;
+    setFeedbackEditorExerciseId(exerciseId);
+    setFeedbackDraft(exerciseFeedback[exerciseId] ?? { effort: null, rir: null });
     setFeedbackEditorVisible(true);
-  }, [currentItem, exerciseFeedback]);
+  }, [canActOnExercise, navigationEpoch, exerciseFeedback]);
 
   const saveExerciseFeedback = useCallback(() => {
-    if (!currentItem) return;
-    const exerciseId = currentItem.exercise.id;
+    if (!feedbackEditorExerciseId || feedbackEditorEpochRef.current !== navigationEpoch || !canActOnExercise(feedbackEditorExerciseId)) return;
+    const exerciseId = feedbackEditorExerciseId;
     setExerciseFeedback((current) => ({ ...current, [exerciseId]: feedbackDraft }));
     setOperations((previous) => [...previous, {
       id: createClientId(), type: "update_exercise_feedback", status: "pending",
       payload: { exerciseId, effort: feedbackDraft.effort, rir: feedbackDraft.rir },
     }]);
+    feedbackEditorEpochRef.current = null;
     setFeedbackEditorVisible(false);
-  }, [currentItem, feedbackDraft]);
+  }, [feedbackEditorExerciseId, feedbackDraft, navigationEpoch, canActOnExercise]);
 
   // ── Complete workout ───────────────────────────────────────────────────────
 
@@ -1612,7 +1658,7 @@ export default function ActiveWorkoutScreen() {
   const saveEnteredAction = currentEnteredCount > 0 && currentItem ? <Pressable testID="player-save-entered-sets" accessibilityRole="button"
     accessibilityLabel={`Save ${currentEnteredCount} entered sets for ${currentItem.exercise.name}`}
     accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
-    disabled={isSavingEntries || finishStatus !== "idle"} onPress={saveExerciseEntries}
+    disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => saveExerciseEntries(currentItem.exercise.id)}
     style={{ flex: keyboardVisible ? undefined : 1, minWidth: 160, minHeight: 44, alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: colors.primaryButton }}>
     {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>Save entered sets ({currentEnteredCount})</ThemedText>}
   </Pressable> : null;
@@ -1797,7 +1843,7 @@ export default function ActiveWorkoutScreen() {
             Your latest change could not be saved on this device. Try again before leaving this workout.
           </ThemedText>
           <Pressable testID="player-retry-save" accessibilityRole="button" onPress={() => {
-            if (currentEnteredCount > 0) saveExerciseEntries(); else setOperations((current) => [...current]);
+            if (currentItem && currentEnteredCount > 0) saveExerciseEntries(currentItem.exercise.id); else setOperations((current) => [...current]);
           }} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText style={{ fontWeight: "600", fontSize: 14 }}>Retry save</ThemedText></Pressable>
           </View>
         ) : null}
@@ -1873,8 +1919,8 @@ export default function ActiveWorkoutScreen() {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: -8, marginBottom: 12 }}>
               {([
                 { id: "player-workout-note", label: "Workout note", icon: "document-text-outline", action: openWorkoutNoteEditor },
-                { id: `player-exercise-note-${currentItem.exercise.id}`, label: "Exercise note", icon: "create-outline", action: openExerciseNoteEditor },
-                { id: `player-feedback-${currentItem.exercise.id}`, label: "Feedback", icon: "chatbubble-outline", action: openFeedbackEditor },
+                { id: `player-exercise-note-${currentItem.exercise.id}`, label: "Exercise note", icon: "create-outline", action: () => openExerciseNoteEditor(currentItem.exercise.id) },
+                { id: `player-feedback-${currentItem.exercise.id}`, label: "Feedback", icon: "chatbubble-outline", action: () => openFeedbackEditor(currentItem.exercise.id) },
               ] as const).map((action) => <Pressable key={action.id} testID={action.id} accessibilityRole="button" accessibilityLabel={action.label}
                 accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
                 disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onPress={action.action}
@@ -1999,11 +2045,11 @@ export default function ActiveWorkoutScreen() {
                         weightUnit
                       )}
                       progressionTag={progressionTag}
-                      onUpdate={updateSet}
-                      onConfirm={confirmSet}
-                      onEdit={beginSetEdit}
-                      onRemove={removeSet}
-                      onRestore={restoreSet}
+                      onUpdate={(setNumber, field, value) => updateSet(setRow.exerciseId, setNumber, field, value)}
+                      onConfirm={(setNumber) => confirmSet(setRow.exerciseId, setNumber)}
+                      onEdit={(setNumber) => beginSetEdit(setRow.exerciseId, setNumber)}
+                      onRemove={(setNumber) => removeSet(setRow.exerciseId, setNumber)}
+                      onRestore={(setNumber) => restoreSet(setRow.exerciseId, setNumber)}
                       onRetry={() => void retryFailedWrites()}
                     />
                   );
@@ -2014,7 +2060,7 @@ export default function ActiveWorkoutScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
                   disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
-                  onPress={addSet}
+                  onPress={() => addSet(currentItem.exercise.id)}
                   style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.inputBorder }}
                 >
                   <ThemedText style={{ fontWeight: "600", fontSize: 14 }}>+ Add set</ThemedText>
@@ -2132,7 +2178,7 @@ export default function ActiveWorkoutScreen() {
                 </Pressable>
               </View>
               <TextInput
-                testID={noteEditorTarget === "workout" ? "player-workout-note-input" : `player-exercise-note-input-${currentItem?.exercise.id ?? ""}`}
+                testID={noteEditorTarget === "workout" ? "player-workout-note-input" : `player-exercise-note-input-${noteEditorExerciseId ?? ""}`}
                 value={noteDraft}
                 onChangeText={setNoteDraft}
                 placeholder="Add a note"

@@ -107,6 +107,146 @@ test("mounted player replacement with background replay and autosave keeps all r
   await act(async () => view.tree.unmount());
 });
 
+test("stale Add set cannot recreate a replaced exercise", async () => {
+  const view = await player(), oldAddBench = host(view.tree, "player-add-set-bench").props.onPress;
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
+  await act(async () => view.list().props.onReplace("bench")); await view.settle();
+  await act(async () => view.controller().setPicker({ ...view.controller().picker, selected: { id: "fly", name: "Chest Fly" } }));
+  await act(async () => view.controller().confirmReplacement()); await view.replacementStarted.promise;
+  await act(async () => view.replacementResponse.resolve()); await view.settle(); await view.runTimers(); await view.settle();
+  assert.equal(view.list().props.exercises[1].exercise.id, "fly");
+  await act(async () => oldAddBench());
+  const durable = await view.store.loadActiveWorkout("A");
+  assert.equal(durable.sets.filter((set) => set.exerciseId === "bench").length, 0);
+  assert.equal(durable.sets.filter((set) => set.exerciseId === "fly").length, 4);
+  await act(async () => view.tree.unmount());
+});
+
+test("stale Add set from an earlier account epoch cannot alter the current workout", async () => {
+  const view = await player(), oldAddBench = host(view.tree, "player-add-set-bench").props.onPress;
+  await view.auth("B"); await view.auth("A");
+  const before = await view.store.loadActiveWorkout("A");
+  await act(async () => oldAddBench());
+  const after = await view.store.loadActiveWorkout("A");
+  assert.equal(after.sets.filter((set) => set.exerciseId === "bench").length, before.sets.filter((set) => set.exerciseId === "bench").length);
+  await act(async () => view.tree.unmount());
+});
+
+test("captured set-row callbacks cannot edit or confirm the next owner's same exercise", async () => {
+  const view = await player(), staleRow = input(view).props;
+  await view.auth("B"); await view.auth("A");
+  const before = await view.store.loadActiveWorkout("A");
+  await act(async () => {
+    staleRow.onUpdate(1, "reps", "12");
+    staleRow.onUpdate(1, "weight", "99");
+    staleRow.onEdit(1);
+    staleRow.onConfirm(1);
+    staleRow.onRemove(1);
+  });
+  await view.settle(); await view.runTimers();
+  const after = await view.store.loadActiveWorkout("A");
+  assert.deepEqual(copy(after.sets), copy(before.sets));
+  assert.deepEqual(copy(after.operations), copy(before.operations));
+  assert.equal(view.calls.some((call) => call[0] === "log"), false);
+  await act(async () => input(view).props.onUpdate(1, "reps", "8"));
+  assert.equal(input(view).props.setRow.reps, "8");
+  await act(async () => view.tree.unmount());
+});
+
+test("captured set-row callbacks cannot act after a same-account session route changes", async () => {
+  const view = await player(), staleRow = input(view).props;
+  await view.route({ sessionId: "another-session" }); await view.route({ sessionId: "session" });
+  const before = await view.store.loadActiveWorkout("A");
+  await act(async () => { staleRow.onUpdate(1, "reps", "12"); staleRow.onConfirm(1); staleRow.onRemove(1); });
+  await view.settle();
+  const after = await view.store.loadActiveWorkout("A");
+  assert.deepEqual(copy(after.sets), copy(before.sets));
+  assert.deepEqual(copy(after.operations), copy(before.operations));
+  await act(async () => view.tree.unmount());
+});
+
+test("a delayed set save cannot replace edits after a same-account session route changes", async () => {
+  let pause = false; const writing = deferred(), release = deferred();
+  const view = await player({ beforeWrite: async (key, value) => {
+    if (pause && key.includes("active-workout") && JSON.parse(value).sets.some((set) => set.exerciseId === "bench" && set.setNumber === 1 && set.confirmed)) {
+      writing.resolve(); await release.promise;
+    }
+  } });
+  await act(async () => { input(view).props.onUpdate(1, "reps", "8"); input(view).props.onUpdate(1, "weight", "40"); });
+  await view.settle(); pause = true;
+  await act(async () => input(view).props.onConfirm(1)); await writing.promise;
+  await view.route({ sessionId: "another-session" }); await view.route({ sessionId: "session" });
+  assert.equal(view.list().props.selectionDisabled, false);
+  await act(async () => input(view).props.onUpdate(2, "reps", "11"));
+  const currentDraft = input(view, 2).props.setRow.reps;
+  pause = false; await act(async () => release.resolve()); await view.settle();
+  assert.equal(currentDraft, "11");
+  assert.equal(input(view, 2).props.setRow.reps, "11");
+  assert.equal(view.list().props.selectionDisabled, false);
+  await act(async () => view.tree.unmount());
+});
+
+test("a delayed set save from an earlier account epoch cannot replace the restored account workout", async () => {
+  let pause = false; const writing = deferred(), release = deferred();
+  const view = await player({ beforeWrite: async (key, value) => {
+    if (pause && key.includes("active-workout") && JSON.parse(value).sets.some((set) => set.exerciseId === "bench" && set.setNumber === 1 && set.confirmed)) {
+      writing.resolve(); await release.promise;
+    }
+  } });
+  await act(async () => { input(view).props.onUpdate(1, "reps", "8"); input(view).props.onUpdate(1, "weight", "40"); });
+  await view.settle(); pause = true;
+  await act(async () => input(view).props.onConfirm(1)); await writing.promise;
+  await view.auth("B"); await view.auth("A");
+  assert.equal(view.list().props.selectionDisabled, false);
+  await act(async () => input(view).props.onUpdate(2, "reps", "11"));
+  pause = false; await act(async () => release.resolve()); await view.settle();
+  assert.equal(input(view, 2).props.setRow.reps, "11");
+  assert.equal(view.list().props.selectionDisabled, false);
+  await act(async () => view.tree.unmount());
+});
+
+test("an old save completion cannot unlock a newer in-flight set save", async () => {
+  let pause = false; const firstWrite = deferred(), firstRelease = deferred(), secondWrite = deferred(), secondRelease = deferred();
+  const view = await player({ beforeWrite: async (key, value) => {
+    if (!pause || !key.includes("active-workout")) return;
+    const confirmed = JSON.parse(value).sets.filter((set) => set.exerciseId === "bench" && set.confirmed).map((set) => set.setNumber);
+    if (confirmed.includes(2)) { secondWrite.resolve(); await secondRelease.promise; }
+    else if (confirmed.includes(1)) { firstWrite.resolve(); await firstRelease.promise; }
+  } });
+  await act(async () => { input(view).props.onUpdate(1, "reps", "8"); input(view).props.onUpdate(1, "weight", "40"); });
+  await view.settle(); pause = true;
+  await act(async () => input(view).props.onConfirm(1)); await firstWrite.promise;
+  await view.auth("B"); await view.auth("A");
+  await act(async () => { input(view, 2).props.onUpdate(2, "reps", "9"); input(view, 2).props.onUpdate(2, "weight", "45"); });
+  await act(async () => input(view, 2).props.onConfirm(2));
+  assert.equal(view.list().props.selectionDisabled, true);
+  await act(async () => firstRelease.resolve()); await secondWrite.promise; await view.settle();
+  assert.equal(view.list().props.selectionDisabled, true);
+  pause = false; await act(async () => secondRelease.resolve()); await view.settle();
+  assert.equal(view.list().props.selectionDisabled, false);
+  assert.equal(input(view, 2).props.setRow.confirmed, true);
+  await act(async () => view.tree.unmount());
+});
+
+test("note and feedback editors close on identity change and stale Save cannot target the next session", async () => {
+  const view = await player();
+  await act(async () => host(view.tree, "player-exercise-note-bench").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-note-input-bench").props.onChangeText("Old account note"));
+  const staleNoteSave = host(view.tree, "player-save-note").props.onPress;
+  await view.auth("B"); await view.auth("A");
+  assert.equal(view.tree.root.findAllByType("Modal").filter((modal) => modal.props.visible).length, 0);
+  await act(async () => staleNoteSave()); await view.settle();
+  assert.equal((await view.store.loadActiveWorkout("A")).exerciseNotes?.bench ?? null, null);
+  await act(async () => host(view.tree, "player-feedback-bench").props.onPress());
+  const staleFeedbackSave = host(view.tree, "player-save-feedback").props.onPress;
+  await view.route({ sessionId: "another-session" }); await view.route({ sessionId: "session" });
+  assert.equal(view.tree.root.findAllByType("Modal").filter((modal) => modal.props.visible).length, 0);
+  await act(async () => staleFeedbackSave()); await view.settle();
+  const after = await view.store.loadActiveWorkout("A");
+  assert.equal(after.operations.some((operation) => operation.type === "update_exercise_note" || operation.type === "update_exercise_feedback"), false);
+  await act(async () => view.tree.unmount());
+});
+
 test("mounted player uses one native Modal while moving from exercise list to review to guidance", async () => {
   const view = await player(); await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   await act(async () => view.list().props.onMove("row", 0)); await view.settle();
@@ -183,6 +323,30 @@ test("manual navigation preserves editing drafts and leaves them unlogged", asyn
   assert.equal(set.editing, true); assert.deepEqual(copy(set.editDraft), { reps: "10", weight: "45" });
   assert.equal(set.reps, "8"); assert.equal(set.logId, "saved-1"); assert.equal(durable.operations.length, 0);
   assert.equal(view.calls.some((call) => call[0] === "log"), false);
+  await act(async () => view.tree.unmount());
+});
+
+test("exercise row actions stay bound to their own exercise after navigation", async () => {
+  const view = await player();
+  const benchRow = input(view), updateBench = benchRow.props.onUpdate, confirmBench = benchRow.props.onConfirm;
+  const addBenchSet = host(view.tree, "player-add-set-bench").props.onPress;
+  const openBenchNote = host(view.tree, "player-exercise-note-bench").props.onPress;
+  await choose(view, 2);
+  await act(async () => { updateBench(1, "reps", "9"); updateBench(1, "weight", "55"); addBenchSet(); });
+  await act(async () => confirmBench(1)); await view.settle(); await view.runTimers();
+  assert.equal(view.list().props.currentIndex, 2);
+  const durable = await view.store.loadActiveWorkout("A");
+  assert.equal(durable.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 1).confirmed, true);
+  assert.equal(durable.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, false);
+  assert.equal(durable.sets.filter((set) => set.exerciseId === "bench").length, 5);
+  assert.equal(durable.restContext.exerciseId, "bench");
+  assert.deepEqual(view.calls.filter((call) => call[0] === "log").map((call) => call[1]), ["bench"]);
+  await act(async () => openBenchNote());
+  assert.ok(host(view.tree, "player-exercise-note-input-bench"));
+  await act(async () => host(view.tree, "player-exercise-note-input-bench").props.onChangeText("Bench setup"));
+  await act(async () => host(view.tree, "player-save-note").props.onPress());
+  assert.equal(view.tree.root.findAllByType("ExerciseListSheet")[0].props.currentIndex, 2);
+  assert.equal((await view.store.loadActiveWorkout("A")).exerciseNotes.bench, "Bench setup");
   await act(async () => view.tree.unmount());
 });
 
