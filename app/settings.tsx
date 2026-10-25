@@ -1,3 +1,4 @@
+import { FeatureFlagsSettingsLink } from "@/components/settings/FeatureFlagsSettingsLink";
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -705,6 +706,8 @@ export default function SettingsScreen() {
             <View style={styles.rowContent}><ThemedText style={styles.rowTitle}>Download my data</ThemedText></View><Ionicons name="chevron-forward" size={20} color={colors.icon} accessible={false} />
           </Pressable>
         </View>
+
+        <FeatureFlagsSettingsLink />
 
         {/* AI Features section */}
         {isPremium ? <>
