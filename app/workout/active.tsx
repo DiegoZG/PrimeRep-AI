@@ -1606,7 +1606,9 @@ export default function ActiveWorkoutScreen() {
   const currentEnteredCount = enteredSets(sets, currentItem?.exercise.id).length;
   const invalidEntryCount = allEnteredSets.filter((set) => "error" in validateSetEntry(set, weightUnit)).length;
   const canFinish = confirmedCount > 0 || allEnteredSets.length > 0;
-  const exerciseComplete = currentSets.some((set) => !set.deleted) && currentSets.filter((set) => !set.deleted).every((set) => set.confirmed && !set.editing);
+  const nextExercise = exercises[currentExerciseIndex + 1];
+  const nextExerciseDisabled = exerciseSelectionDisabled || !currentItem || !nextExercise;
+  const emphasizeFinish = finishStatus === "idle" && canFinish && totalSets > 0 && confirmedCount >= totalSets && allEnteredSets.length === 0;
   const saveEnteredAction = currentEnteredCount > 0 && currentItem ? <Pressable testID="player-save-entered-sets" accessibilityRole="button"
     accessibilityLabel={`Save ${currentEnteredCount} entered sets for ${currentItem.exercise.name}`}
     accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
@@ -1720,6 +1722,20 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
           </Pressable>
         ) : null}
+        {currentItem && finishStatus === "idle" ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, marginBottom: 8 }}>
+          <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
+            accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
+            style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
+            <Ionicons name="list" size={20} color={colors.text} /><ThemedText style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>Exercises</ThemedText>
+          </Pressable>
+          <Pressable testID="player-next-exercise-shortcut" accessibilityRole="button" accessibilityLabel={nextExercise ? `Next exercise: ${nextExercise.exercise.name}` : "No next exercise"}
+            accessibilityHint="Move to the next exercise without logging unfinished sets" accessibilityState={{ disabled: nextExerciseDisabled }} disabled={nextExerciseDisabled}
+            onPress={() => { if (nextExercise) selectExercise(nextExercise.exercise.id); }}
+            style={{ width: fontScale > 1.5 ? "100%" : 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, borderWidth: nextExerciseDisabled ? 1 : 0, borderColor: colors.inputBorder, backgroundColor: nextExerciseDisabled ? colors.background : colors.primaryButton }}>
+            {fontScale > 1.5 ? <ThemedText style={{ fontSize: 14, fontWeight: "600", color: nextExerciseDisabled ? colors.placeholder : "#FFFFFF" }}>Next exercise</ThemedText> : null}
+            <Ionicons name="arrow-forward" size={22} color={nextExerciseDisabled ? colors.placeholder : "#FFFFFF"} />
+          </Pressable>
+        </View> : null}
         <Pressable
           testID="player-finish"
           onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
@@ -1727,10 +1743,10 @@ export default function ActiveWorkoutScreen() {
           accessibilityRole="button"
           accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish, busy: finishStatus === "syncing" }}
           style={{
-            backgroundColor: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? colors.primaryButton : colors.background,
-            borderWidth: finishStatus === "idle" && allEnteredSets.length === 0 && canFinish ? 0 : 1,
+            backgroundColor: emphasizeFinish ? colors.primaryButton : colors.background,
+            borderWidth: emphasizeFinish ? 0 : 1,
             borderColor: colors.inputBorder,
-            paddingVertical: keyboardVisible ? 8 : 16,
+            paddingVertical: keyboardVisible ? 8 : emphasizeFinish ? 16 : 12,
             minHeight: 44,
             borderRadius: 14,
             alignItems: "center",
@@ -1741,9 +1757,9 @@ export default function ActiveWorkoutScreen() {
             <ActivityIndicator color={colors.placeholder} />
           ) : (
             <ThemedText
-              type="defaultSemiBold"
+              type={emphasizeFinish ? "defaultSemiBold" : "default"}
               style={{
-                color: !canFinish ? colors.placeholder : finishStatus === "idle" && allEnteredSets.length === 0 ? "#FFFFFF" : colors.text,
+                color: !canFinish ? colors.placeholder : emphasizeFinish ? "#FFFFFF" : colors.text,
                 fontSize: 16,
                 textAlign: "center",
               }}
@@ -1854,11 +1870,6 @@ export default function ActiveWorkoutScreen() {
                 </ThemedText>
               </View>
             </View>
-            <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
-              accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
-              style={{ alignSelf: "flex-start", maxWidth: "100%", minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10, paddingHorizontal: 12, marginTop: -8, marginBottom: 16, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
-              <Ionicons name="list" size={20} color={colors.text} /><ThemedText style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>Choose exercise</ThemedText>
-            </Pressable>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: -8, marginBottom: 12 }}>
               {([
                 { id: "player-workout-note", label: "Workout note", icon: "document-text-outline", action: openWorkoutNoteEditor },
@@ -2011,12 +2022,6 @@ export default function ActiveWorkoutScreen() {
                 {!keyboardVisible ? saveEnteredAction : null}
                 </View>
                 {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
-                {exerciseComplete && currentExerciseIndex < exercises.length - 1 ? <Pressable testID="player-next-exercise" accessibilityRole="button"
-                  accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
-                  disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onPress={() => { Keyboard.dismiss(); setCurrentExerciseIndex((index) => index + 1); setSaveMessage(""); }}
-                  style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                  <ThemedText style={{ fontWeight: "600" }}>Next exercise</ThemedText><Ionicons name="arrow-forward" size={20} color={colors.text} />
-                </Pressable> : null}
               </>
           </>
         ) : null}

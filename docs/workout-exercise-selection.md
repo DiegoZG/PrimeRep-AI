@@ -1,9 +1,11 @@
 # Exercise selection during an active workout
 
-The player exposes **Choose exercise** below the current exercise heading and
-keeps the header's list shortcut. Both open the existing list, where unfinished
-and completed exercises remain selectable. Selection preserves exercise order,
-targets, per-exercise entries and logged progress; it does not log or skip sets.
+The player keeps **Exercises** in the bottom action area and the header's list
+shortcut. Both open the existing list, where unfinished and completed exercises
+remain selectable. The bottom arrow moves to the next planned exercise even
+when the current one is unfinished; it is disabled on the last exercise.
+Navigation preserves exercise order, targets, per-exercise entries and logged
+progress; it does not log or skip sets.
 
 An existing rest countdown keeps its original deadline and exercise. When the
 user views another exercise, the timer names its origin. Manual navigation
@@ -11,10 +13,11 @@ suppresses that timer's automatic transition, including after restarting the
 app. The optional suppression flag uses existing local rest-context JSON;
 there is no server API change or database migration.
 
-## Independent iOS verification
+## Independent iOS verification of the original control placement
 
-Verification used a new fictional Morgan account in the isolated task database,
-a separate iPhone 16e / iOS 18.5 simulator at 390 × 844 points, Metro 8092 and the
+The following checks preceded the footer relocation. Verification used a new
+fictional Morgan account in the isolated task database, a separate iPhone 16e /
+iOS 18.5 simulator at 390 × 844 points, Metro 8092 and the
 real local API on 8040. Existing user fixtures, devices and workout choices were
 not modified. The final reviewed bundle was cold-loaded before the final
 rest-persistence and maximum-text checks.

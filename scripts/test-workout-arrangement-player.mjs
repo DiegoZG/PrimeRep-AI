@@ -199,8 +199,29 @@ test("switching keeps the original rest deadline and source visible, persists su
   await choose(view, 1); await act(async () => rest(view).props.onExpire());
   assert.equal(view.list().props.currentIndex, 1); assert.equal(rest(view), undefined);
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
-  await act(async () => host(view.tree, "player-next-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-next-exercise-shortcut").props.onPress());
   assert.equal(view.list().props.currentIndex, 2);
+  await act(async () => view.tree.unmount());
+});
+
+test("footer Next leaves unfinished sets unlogged and keeps drafts and rest through restart", async () => {
+  const deadline = Date.now() + 90000;
+  const view = await player({ local: (local) => ({ ...local, restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } }) });
+  await act(async () => { input(view).props.onUpdate(1, "reps", "9"); input(view).props.onUpdate(1, "weight", "55"); });
+  assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, false);
+  await act(async () => host(view.tree, "player-next-exercise-shortcut").props.onPress());
+  await view.settle();
+  assert.equal(view.list().props.currentIndex, 2);
+  const durable = await view.store.loadActiveWorkout("A");
+  const draft = durable.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 1);
+  assert.equal(draft.reps, "9"); assert.equal(draft.weight, "55"); assert.equal(draft.confirmed, false);
+  assert.equal(durable.restEndsAt, deadline); assert.equal(durable.restContext.suppressAutoAdvance, true);
+  assert.equal(view.calls.some((call) => call[0] === "log"), false);
+  await act(async () => host(view.tree, "player-next-exercise-shortcut").props.onPress());
+  assert.equal(view.list().props.currentIndex, 3);
+  assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, true);
+  await view.remount(); assert.equal(view.list().props.currentIndex, 3);
+  await choose(view, 1); assert.equal(input(view).props.setRow.reps, "9");
   await act(async () => view.tree.unmount());
 });
 
@@ -324,8 +345,10 @@ test("same-turn selection waits for an entered-set save, then becomes available 
   const oldSelect = view.list().props.onSelect; pause = true;
   await act(async () => { input(view).props.onConfirm(1); oldSelect(2); }); await writing.promise;
   assert.equal(view.list().props.currentIndex, 1); assert.equal(view.list().props.selectionDisabled, true);
+  assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, true);
   pause = false; await act(async () => release.resolve()); await view.settle();
-  assert.equal(view.list().props.selectionDisabled, false); await choose(view, 2); assert.equal(view.list().props.currentIndex, 2);
+  assert.equal(view.list().props.selectionDisabled, false); assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, false);
+  await choose(view, 2); assert.equal(view.list().props.currentIndex, 2);
   await act(async () => view.tree.unmount());
 });
 
