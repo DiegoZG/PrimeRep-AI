@@ -26,6 +26,7 @@ import { getCoachItem, markCoachItemRead } from "@/services/coachService";
 import { HttpError } from "@/services/httpClient";
 import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
+import { WorkoutLayoutProvider } from "@/utils/workoutLayoutContext";
 import { ProfileProvider } from "@/utils/profileContext";
 import { HealthReadSync } from "@/utils/healthReadSync";
 import { HealthExportSync } from "@/utils/healthExportSync";
@@ -438,6 +439,7 @@ function ThemedRootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthProvider>
+          <WorkoutLayoutProvider>
           <HealthReadSync />
           <HealthExportSync />
           <ProfileProvider>
@@ -457,6 +459,7 @@ function ThemedRootLayout() {
             </OnboardingProvider>
           </NotificationsProvider>
           </ProfileProvider>
+          </WorkoutLayoutProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

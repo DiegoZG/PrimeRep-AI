@@ -96,6 +96,11 @@ export function mergeReplayAcknowledgement(
     .map((set): SetState => {
       const ack = replayedSets.get(`${set.exerciseId}:${set.setNumber}`);
       if (!ack) return set;
+      if (set.isAdded && set.deleted && !set.confirmed && !set.logId) {
+        if (!ack.confirmed && !ack.logId) return set;
+        return { ...set, ...ack, deleted: ack.deleted ?? false,
+          acknowledgedOperationIds: mergeSetAcknowledgements(set, ack).acknowledgedOperationIds };
+      }
       const draft = set.hasUnsavedInput || set.editing;
       const newerPendingSet = operations.some((operation) => !started.has(operation.id)
         && (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set")

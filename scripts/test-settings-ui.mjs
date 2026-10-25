@@ -34,7 +34,7 @@ async function renderSettings(options = {}) {
   const scheme = options.scheme ?? "light";
   const AuthContext = React.createContext(null);
   const NotificationsContext = React.createContext(null);
-  const calls = { routes: [], alerts: [], coachLoads: [], coachSaves: [], units: [], appearance: [], notifications: [], premium: [], accounts: [] };
+  const calls = { routes: [], alerts: [], coachLoads: [], coachSaves: [], units: [], appearance: [], layout: [], notifications: [], premium: [], accounts: [] };
   const user = { id: "A", subscription_tier: options.premium ? "premium" : "free", coach_insights_enabled: options.insights ?? false };
   const auth = { user, token: "token-A", logOut: async (...args) => { calls.accounts.push(["logout", ...args]); }, updateCoachPreference: async (value) => { calls.premium.push(value); if (options.premiumSave) await options.premiumSave(value); if (options.premiumFailure) throw new Error("offline"); } };
   const notifications = {
@@ -65,6 +65,11 @@ async function renderSettings(options = {}) {
       pauseHealthExport: (id) => calls.accounts.push(["pause", id]), resumeHealthExport: (id) => calls.accounts.push(["resume", id]), waitForHealthExportIdle: async () => calls.accounts.push(["idle"]),
     },
     "@/utils/preWorkoutOrderStore": { clearPreWorkoutOrdersForUser: async (id) => calls.accounts.push(["prestart-cleanup", id]) },
+    "@/utils/workoutLayoutPreference": { clearWorkoutLayoutForUser: async (id) => calls.accounts.push(["layout-cleanup", id]) },
+    "@/utils/workoutLayoutContext": { useWorkoutLayout: () => {
+      const [layout, setLayout] = React.useState(options.layout ?? "focus");
+      return { layout, isReady: options.layoutReady ?? true, isSaving: options.layoutBusy ?? false, setLayout: async (value) => { calls.layout.push(value); if (options.layoutFailure) throw new Error("offline"); setLayout(value); } };
+    } },
     "@/utils/healthExportAccountCleanup": { clearHealthExportAccount: async (id) => calls.accounts.push(["cleanup", id]) },
     "@/services/coachService": {
       getCoachPreferences: async (token) => { calls.coachLoads.push(token); return options.loadCoach ? options.loadCoach(token) : preferences(options.coachEnabled); },
@@ -143,10 +148,19 @@ for (const scheme of ["light", "dark"]) {
     }
     await tap(byLabel(tree, "Use dark appearance"));
     await tap(byLabel(tree, "Use pounds"));
+    const focus = byLabel(tree, "Focus workout layout"), all = byLabel(tree, "All exercises workout layout");
+    assert.equal(focus.props.accessibilityRole, "radio");
+    assert.equal(focus.props.accessibilityState.checked, true);
+    assert.equal(all.props.accessibilityState.checked, false);
+    assert.ok(flat(focus.props.style).minHeight >= 44);
+    assert.ok(flat(all.props.style).minHeight >= 44);
+    await tap(all);
     assert.deepEqual(calls.appearance, ["dark"]);
     assert.deepEqual(calls.units, ["LB"]);
+    assert.deepEqual(calls.layout, ["all"]);
     assert.equal(byLabel(tree, "Use dark appearance").props.accessibilityState.checked, true);
     assert.equal(byLabel(tree, "Use pounds").props.accessibilityState.checked, true);
+    assert.equal(byLabel(tree, "All exercises workout layout").props.accessibilityState.checked, true);
     await unmount(tree);
   });
 
@@ -154,6 +168,9 @@ for (const scheme of ["light", "dark"]) {
     for (const [width, fontScale] of [[320, 1], [375, 1], [430, 1], [375, 1.5], [375, 3]]) {
       const { tree } = await renderSettings({ scheme, width, fontScale, coachEnabled: true });
       const appearance = byLabel(tree, "Use system appearance").parent;
+      const layout = byLabel(tree, "All exercises workout layout");
+      assert.equal(layout.parent.props.accessibilityLabel, "Workout layout");
+      assert.equal(flat(layout.props.style).minHeight, 44);
       assert.equal(flat(appearance.props.style).flexDirection, "row");
       assert.equal(flat(appearance.props.style).width, 156);
       assert.equal(appearance.props.accessibilityLabel, "Appearance");
@@ -309,6 +326,15 @@ test("Settings failed unit or appearance persistence preserves previous selectio
   await unmount(tree);
 });
 
+test("Settings layout save failure keeps the previous selection and reports it", async () => {
+  const { tree, calls } = await renderSettings({ layoutFailure: true });
+  await tap(byLabel(tree, "All exercises workout layout"));
+  assert.equal(byLabel(tree, "Focus workout layout").props.accessibilityState.checked, true);
+  assert.deepEqual(calls.layout, ["all"]);
+  assert.equal(calls.alerts[0][0], "Could Not Save Workout Layout");
+  await unmount(tree);
+});
+
 test("Settings disabled appearance and unsupported notification controls remain disabled", async () => {
   const { tree } = await renderSettings({ appearanceReady: false, permission: "unsupported" });
   assert.equal(byLabel(tree, "Use dark appearance").props.disabled, true);
@@ -407,6 +433,6 @@ test("Settings logout and confirmed deletion preserve existing cleanup sequence"
   fixture = await renderSettings();
   await tap(byLabel(fixture.tree, "Delete account"));
   await act(async () => { await fixture.calls.alerts[0][2][1].onPress(); });
-  assert.deepEqual(plain(fixture.calls.accounts), [["pause", "A"], ["delete", "token-A"], ["prestart-cleanup", "A"], ["idle"], ["cleanup", "A"], ["logout", { forceLocal: true }]]);
+  assert.deepEqual(plain(fixture.calls.accounts), [["pause", "A"], ["delete", "token-A"], ["prestart-cleanup", "A"], ["layout-cleanup", "A"], ["idle"], ["cleanup", "A"], ["logout", { forceLocal: true }]]);
   await unmount(fixture.tree);
 });

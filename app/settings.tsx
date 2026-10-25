@@ -23,6 +23,8 @@ import { NotificationsContext } from "@/utils/notificationsContext";
 import { deleteAccount } from "@/services/userService";
 import { pauseHealthExport, resumeHealthExport, waitForHealthExportIdle } from "@/services/health/exportSync";
 import { clearPreWorkoutOrdersForUser } from "@/utils/preWorkoutOrderStore";
+import { clearWorkoutLayoutForUser, type WorkoutLayout } from "@/utils/workoutLayoutPreference";
+import { useWorkoutLayout } from "@/utils/workoutLayoutContext";
 import { clearHealthExportAccount } from "@/utils/healthExportAccountCleanup";
 import {
   getCoachPreferences,
@@ -56,6 +58,7 @@ export default function SettingsScreen() {
     isSaving: isSavingAppearance,
     setPreference: setThemePreference,
   } = useAppearance();
+  const { layout: workoutLayout, isReady: isWorkoutLayoutReady, isSaving: isSavingWorkoutLayout, setLayout: setWorkoutLayout } = useWorkoutLayout();
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
   const { width, fontScale } = useWindowDimensions();
@@ -255,6 +258,14 @@ export default function SettingsScreen() {
     }
   }, [setThemePreference]);
 
+  const handleWorkoutLayout = useCallback(async (layout: WorkoutLayout) => {
+    try {
+      await setWorkoutLayout(layout);
+    } catch {
+      Alert.alert("Could Not Save Workout Layout", "Please try again.");
+    }
+  }, [setWorkoutLayout]);
+
   const handleLogOut = useCallback(async () => {
     if (!token || isLoggingOut) return;
     setIsLoggingOut(true);
@@ -292,7 +303,7 @@ export default function SettingsScreen() {
               return;
             }
             try {
-              await clearPreWorkoutOrdersForUser(deletingUserId);
+              await Promise.all([clearPreWorkoutOrdersForUser(deletingUserId), clearWorkoutLayoutForUser(deletingUserId)]);
               await waitForHealthExportIdle();
               await clearHealthExportAccount(deletingUserId);
             } catch {
@@ -453,6 +464,24 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
+          </View>
+          <View style={[styles.preferenceDivider, { backgroundColor: colors.inputBorder }]} />
+          <View style={[styles.preferenceRow, styles.stackedPreferenceRow]}>
+            <ThemedText style={styles.preferenceLabel}>Workout layout</ThemedText>
+            <View accessibilityRole="radiogroup" accessibilityLabel="Workout layout" style={[styles.inlinePreferenceControl, styles.stackedPreferenceControl, { width: "100%", backgroundColor: colors.background, borderColor: colors.inputBorder }]}>
+              {(["focus", "all"] as const).map((layout) => {
+                const selected = workoutLayout === layout;
+                const disabled = !isWorkoutLayoutReady || isSavingWorkoutLayout;
+                return <Pressable key={layout} testID={`settings-workout-layout-${layout}`} accessibilityRole="radio"
+                  accessibilityLabel={layout === "focus" ? "Focus workout layout" : "All exercises workout layout"}
+                  accessibilityHint={layout === "focus" ? "Show one exercise at a time" : "Show and log every exercise in one scroll"}
+                  accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={() => void handleWorkoutLayout(layout)}
+                  style={({ pressed }) => [styles.preferenceOption, { backgroundColor: selected || pressed ? colors.inputBorder : "transparent", opacity: disabled ? 0.5 : 1 }]}>
+                  <ThemedText style={[styles.preferenceText, { color: selected ? colors.text : colors.icon, textAlign: "center" }]}>{layout === "focus" ? "Focus" : "All exercises"}</ThemedText>
+                </Pressable>;
+              })}
+            </View>
+            <ThemedText style={{ color: colors.icon, fontSize: 13 }}>Focus shows one exercise at a time. All exercises lets you log anywhere in the workout.</ThemedText>
           </View>
         </View>
 

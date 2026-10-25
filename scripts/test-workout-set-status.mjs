@@ -12,10 +12,18 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const filename = path.join(root, "components/workout/SetInputRow.tsx");
 const palette = { background: "#fff", inputBackground: "#fff", inputBorder: "#E5E5E5", text: "#11181C", placeholder: "#9BA1A6" };
+const SwipeableMock = React.forwardRef((props, ref) => {
+  const methods = { openRight: () => props.onSwipeableWillOpen?.("right"),
+    close: () => { props.onSwipeableWillClose?.("right"); props.onSwipeableClose?.("right"); } };
+  React.useImperativeHandle(ref, () => methods);
+  return React.createElement("Swipeable", props, props.children, props.renderRightActions?.({ value: 0 }, { value: 0 }, methods));
+});
+SwipeableMock.displayName = "SwipeableMock";
 const mocks = {
   react: React,
   "@expo/vector-icons": { Ionicons: "Ionicons" },
   "react-native": { View: "View", TextInput: "TextInput", Pressable: "Pressable", Modal: "Modal", Keyboard: { dismiss() {} } },
+  "react-native-gesture-handler/ReanimatedSwipeable": { __esModule: true, default: SwipeableMock },
   "@/components/workout/WorkoutText": { WorkoutText: "WorkoutText" },
   "@/constants/theme": { Colors: { dark: { background: "#151718" } }, Fonts: { sans: "system-ui" } },
 };
@@ -55,7 +63,10 @@ for (const [name, fields, icon, label] of [
     assert.equal(symbol.props.accessible, false);
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
     if (icon === "checkmark-done-outline") assert.equal(symbol.props.color, background === "#fff" ? "#237858" : "#70D5AD");
-    if (name === "failed") assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
+    if (name === "failed") {
+      assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
+      assert.equal(tree.root.findByProps({ testID: "player-set-menu-squat-1" }).props.disabled, true);
+    }
     if (name === "edited") {
       await act(async () => tree.root.findByProps({ testID: "player-confirm-set-squat-1" }).props.onPress());
       assert.equal(confirmed, 1);
@@ -63,4 +74,50 @@ for (const [name, fields, icon, label] of [
     }
     await act(async () => tree.unmount());
   }
+});
+
+test("an empty added set offers removal until the user enters a value", async () => {
+  let removed = null;
+  let confirmed = null;
+  let tree;
+  const props = { setRow: { ...base, setNumber: 5, isAdded: true, weight: "", reps: "" }, colors: palette,
+    weightUnit: "LB", compact: true, onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {},
+    onRemove: (number) => { removed = number; }, onRestore() {}, onRetry() {} };
+  await act(async () => { tree = create(React.createElement(SetInputRow, props)); });
+  const menu = tree.root.findByProps({ testID: "player-set-menu-squat-5" });
+  assert.equal(menu.props.accessibilityLabel, "Actions for set 5");
+  assert.ok(menu.props.style.width >= 44);
+  await act(async () => menu.props.onPress());
+  assert.equal(tree.root.findByProps({ testID: "player-set-actions-squat-5" }).props.accessibilityElementsHidden, false);
+  const remove = tree.root.findByProps({ testID: "player-remove-set-squat-5" });
+  assert.equal(remove.props.accessibilityLabel, "Remove set 5");
+  await act(async () => remove.props.onPress());
+  assert.equal(removed, 5);
+  assert.equal(confirmed, null);
+  await act(async () => tree.update(React.createElement(SetInputRow, { ...props, setRow: { ...props.setRow, reps: "8" } })));
+  assert.equal(tree.root.findAllByProps({ testID: "player-set-menu-squat-5" }).length, 0);
+  const logButton = tree.root.findByProps({ testID: "player-confirm-set-squat-5" });
+  assert.equal(logButton.props.accessibilityActions[0].name, "showSetActions");
+  await act(async () => logButton.props.onAccessibilityAction({ nativeEvent: { actionName: "showSetActions" } }));
+  assert.equal(tree.root.findByProps({ testID: "player-set-actions-squat-5" }).props.accessibilityElementsHidden, false);
+  await act(async () => tree.unmount());
+});
+
+test("three dots and swipe reveal the same inline Edit and Remove actions without a modal", async () => {
+  const chosen = [];
+  let tree;
+  await act(async () => { tree = create(React.createElement(SetInputRow, { setRow: { ...base, confirmed: true },
+    colors: palette, weightUnit: "LB", onUpdate() {}, onConfirm() {}, onEdit: () => chosen.push("edit"),
+    onRemove: () => chosen.push("remove"), onRestore() {}, onRetry() {} })); });
+  const swipeable = tree.root.findByType("Swipeable");
+  assert.equal(tree.root.findAllByType("Modal").length, 0);
+  assert.equal(tree.root.findByProps({ testID: "player-set-actions-squat-1" }).props.accessibilityElementsHidden, true);
+  await act(async () => tree.root.findByProps({ testID: "player-set-menu-squat-1" }).props.onPress());
+  assert.equal(tree.root.findByProps({ testID: "player-set-actions-squat-1" }).props.accessibilityElementsHidden, false);
+  await act(async () => tree.root.findByProps({ testID: "player-edit-set-squat-1" }).props.onPress());
+  assert.deepEqual(chosen, ["edit"]);
+  await act(async () => swipeable.props.onSwipeableWillOpen("right"));
+  await act(async () => tree.root.findByProps({ testID: "player-remove-set-squat-1" }).props.onPress());
+  assert.deepEqual(chosen, ["edit", "remove"]);
+  await act(async () => tree.unmount());
 });

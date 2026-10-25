@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,7 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { ContentSection } from "@/components/exercises/ContentSection";
 import { ExerciseAskThread } from "@/components/exercises/ExerciseAskThread";
 import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
-import { ThemedText } from "@/components/themed-text";
+import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import { useIsBeginner } from "@/hooks/use-is-beginner";
 import type { ExerciseDetail } from "@/interfaces/exercises";
@@ -58,6 +59,9 @@ export function ExerciseInfoSheet({
   const [owner, setOwner] = useState("");
   const isBeginner = useIsBeginner();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 2;
+  const hasDemo = Boolean(detail?.imageUrl || detail?.demoVideoUrl || detail?.media?.url || detail?.media?.poster_url);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,13 +141,13 @@ export function ExerciseInfoSheet({
                   paddingBottom: 12,
                 }}
               >
-                <ThemedText
+                {!largeText ? <ThemedText
                   type="defaultSemiBold"
                   style={{ fontSize: 18, flex: 1 }}
                   numberOfLines={1}
                 >
                   {exerciseName}
-                </ThemedText>
+                </ThemedText> : <View style={{ flex: 1 }} />}
                 <Pressable
                   testID="player-info-sheet-close"
                   accessibilityRole="button"
@@ -157,9 +161,10 @@ export function ExerciseInfoSheet({
 
               <ScrollView
                 style={{ paddingHorizontal: 20, flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 32 }}
+                contentContainerStyle={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
                 keyboardShouldPersistTaps="handled"
               >
+                {largeText ? <ThemedText accessibilityRole="header" type="subtitle" style={{ marginBottom: 16 }}>{exerciseName}</ThemedText> : null}
                 {isLoading || owner !== key ? (
                   <View style={{ paddingVertical: 40, alignItems: "center" }}>
                     <ActivityIndicator size="large" color={colors.primaryButton} />
@@ -168,16 +173,16 @@ export function ExerciseInfoSheet({
                   <ScreenState colors={colors} kind="error" title="Exercise unavailable" message={error} actionLabel="Retry" onAction={() => setRevision((value) => value + 1)} testID="player-info-retry" />
                 ) : detail ? (
                   <>
-                    <ExerciseMedia
+                    {hasDemo || !largeText ? <ExerciseMedia
                       imageUrl={detail.imageUrl}
                       demoVideoUrl={detail.demoVideoUrl}
                       media={detail.media}
                       active={visible}
                       exerciseName={detail.name}
                       colors={colors}
-                      height={180}
-                    />
-                    {detail.structuredContent?.cues.length ? <ContentSection title="Form cues" content={detail.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" /> : null}
+                      height={largeText ? Math.round(180 + (fontScale - 1) * 70) : 180}
+                    /> : <ThemedText style={{ color: colors.placeholder, marginBottom: 20 }}>Demo unavailable. Follow the written instructions below.</ThemedText>}
+                    {detail.structuredContent?.cues.length ? <ContentSection title="Form cues" content={detail.structuredContent.cues.join("\n\n")} colors={colors} icon="checkmark-circle-outline" detailPresentation /> : null}
 
                     {isBeginner && detail.beginnerNotes && (
                       <ContentSection
@@ -186,6 +191,7 @@ export function ExerciseInfoSheet({
                         colors={colors}
                         highlight
                         icon="sparkles"
+                        detailPresentation
                       />
                     )}
 
@@ -196,18 +202,21 @@ export function ExerciseInfoSheet({
                           content={detail.howTo}
                           colors={colors}
                           icon="list-outline"
+                          detailPresentation
                         />
                         <ContentSection
                           title="Why this exercise"
                           content={detail.whyItWorks}
                           colors={colors}
                           icon="bulb-outline"
+                          detailPresentation
                         />
                         <ContentSection
                           title="Common mistakes"
                           content={detail.commonMistakes}
                           colors={colors}
                           icon="warning-outline"
+                          detailPresentation
                         />
                       </View>
                     )}
@@ -221,6 +230,7 @@ export function ExerciseInfoSheet({
                         token={token}
                         isLoggedIn={isLoggedIn}
                         colors={colors}
+                        detailPresentation
                       />
                     </View>
                   </>
