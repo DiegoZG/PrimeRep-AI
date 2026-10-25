@@ -2,7 +2,8 @@
 
 Generated workouts now offer **Trainer-led** or a maximum time budget of
 25, 35, 45, 60, 75, 90, 105, or 120 minutes. Trainer-led leads with exercises
-and targets; its approximate duration is available under Workout details.
+and targets; its approximate duration is available in the read-only Workout
+information sheet opened with Info.
 The estimate is separate from the budget, and longer budgets do not add
 exercises solely to fill the available time.
 
@@ -13,6 +14,16 @@ fields, then offers Keep current plan or Update remaining workouts. A day-level
 change affects only that day. Started, completed, historical, and program
 workouts retain their plans. Planning also locks on returning to a cached
 overview immediately after starting a workout.
+
+The overview puts the exercise list first. Its compact toolbar contains the
+planning mode, Add, and Info; the header shows the date and exercise count.
+Info contains estimates, preparation/rest guidance, exercise-order help,
+and any Coach or equipment-coverage details. Skip Day is in the header's
+options menu. Exercise-order reset and error notices stay concise with
+read-only Details, while an order-saved acknowledgement floats above Start
+without moving the list. Dismissing a notice changes only its presentation.
+Programs show a static Program label; started and protected workouts retain
+their existing edit restrictions.
 
 ## API dependency and rollout
 
@@ -34,7 +45,7 @@ Existing duration endpoints and fields remain compatible with older clients.
 ## Automated verification
 
 The focused planning, overview, Settings, home, and player suite passed
-**166 tests**:
+**178 tests**:
 
 ```sh
 node --test scripts/test-workout-detail-ui.mjs scripts/test-training-preferences-ui.mjs scripts/test-home-ui.mjs scripts/test-workout-planning.mjs scripts/test-workout-arrangement-player.mjs scripts/test-workout-exercise-picker.mjs
@@ -61,7 +72,7 @@ warnings. Expo web export passed for **63 routes**. The local worktree reused
 ignored dependencies with a temporary resolver preload:
 
 ```sh
-EXPO_NO_METRO_WORKSPACE_ROOT=1 NODE_OPTIONS=--require=/private/tmp/primerep-workout-planning-metro-preload.cjs EXPO_PUBLIC_API_URL=https://api.example.invalid npx expo export --platform web --clear --output-dir /private/tmp/primerep-add-exercise-web-export
+EXPO_NO_METRO_WORKSPACE_ROOT=1 NODE_OPTIONS=--require=/private/tmp/primerep-workout-planning-metro-preload.cjs EXPO_PUBLIC_API_URL=https://api.example.invalid npx expo export --platform web --clear --output-dir /private/tmp/primerep-exercise-first-web-export
 ```
 
 The preload, environment files, credentials, disposable fixtures, and runtime
@@ -118,6 +129,8 @@ mounted harnesses rather than a live browser flow.
 ## Captures
 
 All captures show fictional data from the independent compact simulator.
+These planning and Add exercise captures predate the exercise-first toolbar
+and Info sheet; current overview captures are recorded separately below.
 
 - [Trainer-led overview](screenshots/workout-planning/ios-trainer-led.png)
 - [120-minute time-budget sheet](screenshots/workout-planning/ios-time-budget-120-sheet.png)
@@ -129,7 +142,7 @@ All captures show fictional data from the independent compact simulator.
 
 ## Add exercise verification
 
-Unstarted generated workouts expose **Add exercise** after the exercise list.
+Unstarted generated workouts expose **Add** in the overview toolbar.
 The searchable picker appends one exercise to this workout with 3 sets,
 8–12 reps and 90 seconds of rest. Existing and reference-only entries are
 visible but disabled. A timed workout that would exceed its budget requires
@@ -179,3 +192,57 @@ above also apply to this addition.
 - [Native searchable picker](screenshots/workout-planning/ios-add-picker.png)
 - [Truthful over-budget summary](screenshots/workout-planning/ios-added-over-budget.png)
 - [Dark picker at maximum text](screenshots/workout-planning/ios-add-picker-dark-max.png)
+
+
+## Exercise-first overview verification
+
+The compact mode / Add / information toolbar puts exercises directly below
+the title; workout options contain Skip Day. Facts, preparation, exercise-order
+instructions, applicable coverage and protection explanations live in the
+read-only information sheet. The prior QA-owned [overview capture](screenshots/workout-planning/ios-trainer-led.png)
+provides the published before comparison. User-supplied reference screenshots
+were used privately and are not included in repository assets.
+
+Native verification used a new fictional Priya signup and another independent
+iPhone 16e / iOS 18.5 simulator at 390 × 844 points, served by Metro 8091 with
+the unchanged API on 8040. Existing Jamie and Riley accounts, devices, choices
+and services were left untouched. The automated 178 focused / 205 related
+checks, TypeScript, focused ESLint and 63-route web export passed for this UI.
+
+| Scenario | Observed result |
+| --- | --- |
+| Normal Trainer-led geometry | Three complete exercise cards fit above the fixed Start footer without scrolling; mode, Add, information and More are visible. |
+| Timed / reset geometry | An actual 35-minute rebuild with a saved prior order displayed the compact Exercise order reset / Details / Dismiss row and three complete cards above Start. |
+| Information sheet | Estimated time, mode, focus, preparation and order instructions appeared after opening information. Empty equipment/rotation sections stayed absent. The long reset explanation appeared through Details. |
+| Dismissal invariance | Closing information and dismissing the reset notice left the entire server week, preferences, favorites and scoped local order-storage bytes identical. |
+| Order acknowledgement | Moving an exercise displayed Order saved above Start, then removed it automatically without moving the cards. |
+| Planning / Add / favorites | The native 35-minute rebuild worked; the selected favorite persisted. Toolbar Add appended Bench Press after the chosen Leg Curl-first order and required explicit confirmation above the budget. The compact overview showed the truthful over-budget notice. |
+| Real error and refresh | A concurrent change only to Priya's workout produced an actual stale-source response in the picker. Error / Refresh remained visible; returning to the overview blocked Start until an authoritative Refresh succeeded. |
+| Started protection | A real five-exercise / 18-target session retained the exact selected effective order. Returning to its overview disabled mode and Add while information explained the lock. |
+| Skip and overlay ownership | More closed before the existing Skip alert. Cancel preserved the plan; confirming Skip on another unstarted day removed that day ID and retained the active day's blocks exactly. Information, options, planning and confirmation were exercised sequentially without stacked overlays. |
+| Dark / maximum text | A cold launch at accessibility-extra-extra-extra-large wrapped the toolbar naturally. Information kept its full-size title inside the scroll content and Close reachable while scrolling. More / Skip Cancel worked; planning's Time budget card and 120-minute preset scrolled into view, with Apply enabled and Close available. No maximum-text planning change was submitted. |
+
+The native flow files and exact state comparisons remain private:
+
+```sh
+overview_qa_dir=/private/tmp/primerep-overview-design-qa
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/info-menu-order.yaml"
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/reset-dismiss.yaml"
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/add-order.yaml"
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/stale-add-barrier.yaml"
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/started-lock-skip.yaml"
+python3 "$overview_qa_dir/run-maestro.py" new "$overview_qa_dir/dark-max-planning-continue.yaml"
+```
+
+Program and historical lock variants, accessibility-focus restoration and
+pending confirmation dismissal were checked by mounted tests; the actual native
+lock case used a started workout. Full VoiceOver gestures, Android, physical
+devices and a live browser UI were not exercised. Maximum-text validation used
+a cold app launch. No backend behavior or API contract changed in this UI slice.
+
+These new captures contain only Priya's synthetic QA data:
+
+- [Trainer-led exercise-first overview](screenshots/workout-planning/ios-overview-trainer.png)
+- [Timed overview with compact order-reset notice](screenshots/workout-planning/ios-overview-timed-reset.png)
+- [Read-only workout information](screenshots/workout-planning/ios-overview-info.png)
+- [Dark information sheet at maximum text](screenshots/workout-planning/ios-overview-dark-max-info.png)

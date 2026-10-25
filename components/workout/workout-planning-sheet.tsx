@@ -1,24 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Platform, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { WORKOUT_TIME_OPTIONS, type WorkoutPlanningChoice } from "@/utils/workoutPlanning";
 
-export function WorkoutPlanningSheet({ visible, value, onClose, onApply, disabled = false }: {
+export function WorkoutPlanningSheet({ visible, value, onClose, onApply, onDismiss, disabled = false }: {
   visible: boolean; value: WorkoutPlanningChoice; onClose: () => void;
   onApply: (choice: WorkoutPlanningChoice) => void; disabled?: boolean;
+  onDismiss?: () => void;
 }) {
   const colors = Colors[useColorScheme() ?? "light"];
   const { fontScale } = useWindowDimensions();
   const scrollingTitle = fontScale >= 2;
   const [mode, setMode] = useState(value.planningMode);
   const [minutes, setMinutes] = useState(value.timeBudgetMinutes ?? 35);
+  const reducedMotion = useReducedMotion();
+  const [rendered, setRendered] = useState(visible);
+  useEffect(() => { if (visible) setRendered(true); }, [visible]);
+  useEffect(() => { if (Platform.OS === "android" && !visible && rendered) { setRendered(false); onDismiss?.(); } }, [visible, rendered, onDismiss]);
   useEffect(() => { if (visible) { setMode(value.planningMode); setMinutes(value.timeBudgetMinutes ?? 35); } }, [visible, value.planningMode, value.timeBudgetMinutes]);
-  if (!visible) return null;
-  return <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+  if (!visible && !rendered) return null;
+  return <Modal visible={visible} animationType={reducedMotion ? "none" : "slide"} presentationStyle="pageSheet" onRequestClose={onClose} onDismiss={() => { setRendered(false); onDismiss?.(); }}>
+    {visible ? <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
       <View style={[styles.header, scrollingTitle && styles.compactHeader]}>
         {!scrollingTitle ? <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Workout planning</Text> : <View style={{ flex: 1 }} />}
         <Pressable accessibilityRole="button" accessibilityLabel="Close workout planning" onPress={onClose} style={styles.close}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
@@ -50,7 +56,7 @@ export function WorkoutPlanningSheet({ visible, value, onClose, onApply, disable
         <Pressable testID="planning-apply" accessibilityRole="button" accessibilityLabel="Use this workout planning" accessibilityState={{ disabled }} disabled={disabled} onPress={() => onApply({ planningMode: mode, timeBudgetMinutes: mode === "time_budget" ? minutes : null })}
           style={({ pressed }) => [styles.apply, { backgroundColor: colors.primaryButton, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 }]}><Text style={styles.applyText}>Use this option</Text></Pressable>
       </View>
-    </SafeAreaView>
+    </SafeAreaView> : null}
   </Modal>;
 }
 

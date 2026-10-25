@@ -25,7 +25,7 @@ function load(file, mocks, globals = {}) {
   const module = { exports: {} };
   const fallback = createRequire(filename);
   const output = ts.transpileModule(source(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(output, { React, module, exports: module.exports, require: (name) => name in mocks ? mocks[name] : fallback(name), console: { ...console, warn() {} }, Date: Clock, setInterval, clearInterval, ...globals }, { filename });
+  vm.runInNewContext(output, { React, module, exports: module.exports, require: (name) => name in mocks ? mocks[name] : fallback(name), console: { ...console, warn() {} }, Date: Clock, setInterval, clearInterval, setTimeout, clearTimeout, ...globals }, { filename });
   return module.exports;
 }
 function SectionList({ sections, renderSectionHeader, renderItem, ListHeaderComponent, ...props }) {
@@ -47,7 +47,7 @@ const flat = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const error = (status, message = "Boundary request failed") => Object.assign(new Error(message), { status });
 const unmount = async (view) => { await act(async () => view.tree.unmount()); };
-const tap = async (node) => { assert.ok(node); assert.notEqual(node.props.disabled, true); await act(async () => { node.props.onPress(); }); };
+const tap = async (node) => { assert.ok(node); assert.notEqual(node.props.disabled, true); let rootNode = node; while (rootNode.parent) rootNode = rootNode.parent; await act(async () => { node.props.onPress(); }); await act(async () => { for (const modal of rootNode.findAllByType("Modal")) if (!modal.props.visible) modal.props.onDismiss?.(); }); };
 const day = (extra = {}) => ({ workoutDayId: "day-one", slotIndex: 1, date: weekStart, durationMinutes: 35, title: "Upper body strength", dayType: "upper_body", splitKey: "upper-lower", blocks: [
   { blockType: "main", items: [{ exercise: { id: "bench", name: "Barbell bench press", primaryMuscle: "chest", imageUrl: "https://images.example.invalid/bench.png" }, prescription: { sets: 3, reps: "8-12", restSeconds: 90 }, exerciseRationale: "A fictional pressing explanation." }] },
   { blockType: "accessory", items: [{ exercise: { id: "row", name: "Cable row", primaryMuscle: "back" }, prescription: { sets: 2, reps: "10", restSeconds: 60 } }] },
@@ -69,7 +69,7 @@ async function detail(options = {}) {
     getSession: async () => null,
   };
   let store;
-  const dragTimers = new Map(); let dragTimerId = 0;
+  const dragTimers = new Map(), noticeTimers = new Map(); let dragTimerId = 0, noticeTimerId = 0;
   const mocks = {
     react: React, "react-native": { ...native, useColorScheme: () => scheme, useWindowDimensions: () => ({ width: current.width ?? 430, height: current.height ?? 932, scale: 3, fontScale: current.fontScale ?? 1 }), Alert: { alert: (...args) => calls.alerts.push(args) }, AppState: { addEventListener: (_name, callback) => { appState.add(callback); return { remove: () => appState.delete(callback) }; } } },
     "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-image": { Image: "Image" }, "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
@@ -106,7 +106,9 @@ async function detail(options = {}) {
   mocks["react-native-worklets"] = { scheduleOnRN: (callback, ...args) => callback(...args) };
   mocks["react-native-reanimated"] = { __esModule: true, default: { View: "AnimatedView" }, LinearTransition: { duration: () => ({ reduceMotion: () => ({}) }) }, ReduceMotion: { System: "system" }, useReducedMotion: () => true, useSharedValue: (value) => React.useRef({ value }).current, useAnimatedStyle: (callback) => callback(), withTiming: (value) => value };
   mocks["react-native-gesture-handler"] = { GestureDetector: "GestureDetector", Gesture: { Pan: () => ({ callbacks: {}, enabled(value) { this.isEnabled = value; return this; }, minDistance() { return this; }, onStart(callback) { this.callbacks.start = callback; return this; }, onUpdate(callback) { this.callbacks.update = callback; return this; }, onEnd(callback) { this.callbacks.end = callback; return this; }, onFinalize(callback) { this.callbacks.finalize = callback; return this; } }) } };
-  mocks["react-native"].AccessibilityInfo = { announceForAccessibility: (message) => calls.focus.push(message) };
+  mocks["react-native"].AccessibilityInfo = { announceForAccessibility: (message) => calls.focus.push(message), setAccessibilityFocus: (node) => calls.focus.push(["restore", node]) };
+  mocks["react-native"].findNodeHandle = () => 123;
+  mocks["react-native"].Platform = { ...native.Platform, OS: current.platform ?? "ios" };
   for (const [alias, file] of [
     ["@/utils/appearanceContext", "utils/appearanceContext.tsx"], ["@/hooks/use-color-scheme", "hooks/use-color-scheme.ts"], ["@/hooks/use-theme-color", "hooks/use-theme-color.ts"],
     ["@/components/themed-text", "components/themed-text.tsx"], ["@/components/workout/WorkoutText", "components/workout/WorkoutText.tsx"],
@@ -119,7 +121,8 @@ async function detail(options = {}) {
   const { AppearanceProvider, useAppearance } = mocks["@/utils/appearanceContext"];
   const { WorkoutWeekProvider, WorkoutWeekContext } = mocks["@/utils/workoutWeekContext"];
   const { ActiveWorkoutProvider, useActiveWorkout } = mocks["@/utils/activeWorkoutContext"];
-  const { default: Screen } = load(routeFile, mocks);
+  mocks["@/components/workout/workout-info-sheet"] = load("components/workout/workout-info-sheet.tsx", mocks);
+  const { default: Screen } = load(routeFile, mocks, { setTimeout: (callback, delay) => { const id = ++noticeTimerId; noticeTimers.set(id, { callback, delay }); return id; }, clearTimeout: (id) => noticeTimers.delete(id) });
   let week, active, appearance, setAuth, remount, hide, repaint;
   function Bridge() {
     week = React.useContext(WorkoutWeekContext); active = useActiveWorkout(); appearance = useAppearance();
@@ -141,6 +144,10 @@ async function detail(options = {}) {
     store, prestart: mocks["@/utils/preWorkoutOrderStore"], coldPrestart: () => loadTypescript("utils/preWorkoutOrderStore.ts", mocks), tickAutoScroll: async () => { await act(async () => { for (const callback of dragTimers.values()) callback(); }); },
     options: (next) => { current = { ...current, ...next }; }, install: async (next) => { await act(async () => week.installWeekPlan(next)); },
     auth: async (token, id) => { await act(async () => setAuth(token, id)); }, remount: async () => { await act(async () => remount()); },
+    noticeCallbacks: () => [...noticeTimers.values()].map((entry) => entry.callback),
+    authNow: (token, id) => setAuth(token, id),
+    hideNow: () => hide(),
+    tickNotices: async () => { await act(async () => { for (const [id, timer] of [...noticeTimers]) { noticeTimers.delete(id); timer.callback(); } }); },
     hide: async () => { await act(async () => hide()); },
     refocus: async () => { await act(async () => { for (const entry of [...focusEffects]) { entry.cleanup?.(); entry.cleanup = entry.callback(); } }); },
     changeRoute: async (next) => { Object.assign(route, next); await act(async () => repaint()); },
@@ -148,7 +155,8 @@ async function detail(options = {}) {
   };
 }
 const start = (view) => host(view, "start-workout-button");
-const skip = (view) => host(view, "skip-day-button");
+const skip = (view) => host(view, "skip-day-button") ?? host(view, "workout-options-open");
+const tapSkip = async (view) => { if (!host(view, "skip-day-button")) await tap(host(view, "workout-options-open")); await tap(host(view, "skip-day-button")); };
 const duration = (view, value) => host(view, `planning-minutes-${value}`);
 const choosePlanning = async (view, mode, minutes) => { await tap(host(view, "workout-planning-open")); await tap(host(view, `planning-mode-${mode}`)); if (minutes) await tap(duration(view, minutes)); await tap(host(view, "planning-apply")); };
 const resetCalls = (view) => { for (const value of Object.values(view.calls)) value.length = 0; };
@@ -177,9 +185,11 @@ for (const scheme of ["light", "dark"]) {
     const view = await detail({ scheme, plan: plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, durationMinutes: 50, estimatedMinutes: 50 })]) });
     assert.match(textOf(view.tree.root), /Monday, Oct 12 • 2 exercises/);
     assert.equal(host(view, "workout-estimate"), undefined);
-    assert.ok(text(view, "Trainer-led · No time limit"));
-    await tap(host(view, "workout-estimate-toggle"));
-    assert.match(textOf(host(view, "workout-estimate")), /About 50 minutes.*not a time limit/);
+    assert.ok(text(view, "Trainer-led"));
+    assert.equal(text(view, "About 50 min"), undefined);
+    await tap(host(view, "workout-info-open"));
+    assert.ok(text(view, "About 50 min"));
+    await tap(host(view, "workout-info-close"));
     await tap(host(view, "workout-planning-open"));
     await tap(host(view, "planning-mode-time_budget"));
     assert.equal(duration(view, 35).props.accessibilityState.checked, true);
@@ -256,7 +266,7 @@ test("planning metadata changes reset a saved order even when exercise IDs and t
   const view = await detail(); await tap(host(view, "workout-overview-up-row"));
   await view.install(plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, durationMinutes: 35, planningSource: "override" })]));
   assert.deepEqual(overviewIds(view), ["bench", "row"]);
-  assert.match(textOf(host(view, "workout-overview-order-message")), /previous exercise order was reset/);
+  assert.match(textOf(host(view, "workout-overview-order-message")), /Exercise order reset/);
   await unmount(view);
 });
 
@@ -269,7 +279,7 @@ test("an uncertain planning response blocks new Starts until the authoritative w
   view.options({ getWeek: async () => plan([day({ planningMode: "trainer_led", timeBudgetMinutes: null, planningSource: "override" })]) });
   await tap(host(view, "workout-planning-refresh"));
   assert.equal(view.week().planningRefreshRequired, false); assert.equal(start(view).props.disabled, false);
-  assert.ok(text(view, "Trainer-led · No time limit")); await unmount(view);
+  assert.ok(text(view, "Trainer-led")); await unmount(view);
 });
 
 test("legacy saved exercise order survives equivalent server metadata but an explicit planning change invalidates it", async () => {
@@ -281,7 +291,7 @@ test("legacy saved exercise order survives equivalent server metadata but an exp
   assert.deepEqual(overviewIds(view), ["row", "bench"]);
   await view.install(plan([day({ planningMode: "time_budget", timeBudgetMinutes: 35, planningSource: "override" })]));
   assert.deepEqual(overviewIds(view), ["bench", "row"]);
-  assert.match(textOf(host(view, "workout-overview-order-message")), /previous exercise order was reset/);
+  assert.match(textOf(host(view, "workout-overview-order-message")), /Exercise order reset/);
   await unmount(view);
 });
 
@@ -403,11 +413,11 @@ for (const scheme of ["light", "dark"]) {
     const view = await detail({ scheme, activeError: true }); resetCalls(view); await tap(start(view)); assert.equal(view.calls.alerts[0][0], "Couldn’t start workout"); assert.deepEqual(view.calls.routes, []); assert.deepEqual(view.calls.abandons, []); await unmount(view);
   });
   test(`${scheme}: Skip confirmation can cancel without calling mutation`, async () => {
-    const view = await detail({ scheme }); resetCalls(view); await tap(skip(view)); assert.equal(view.calls.alerts[0][0], "Skip Workout"); assert.match(view.calls.alerts[0][1], /Upper body strength/); await view.confirm("Cancel"); assert.deepEqual(view.calls.skips, []); assert.deepEqual(view.calls.routes, []); await unmount(view);
+    const view = await detail({ scheme }); resetCalls(view); await tapSkip(view); assert.equal(view.calls.alerts[0][0], "Skip Workout"); assert.match(view.calls.alerts[0][1], /Upper body strength/); await view.confirm("Cancel"); assert.deepEqual(view.calls.skips, []); assert.deepEqual(view.calls.routes, []); await unmount(view);
   });
   test(`${scheme}: confirmed Skip uses same slot from returned plan rather than old context`, async () => {
     const returned = plan([day({ workoutDayId: "new-slot", title: "Replacement", slotIndex: 1 }), day({ workoutDayId: "first", slotIndex: 0 })], "2026-10-19");
-    const view = await detail({ scheme, skipPlan: returned }); resetCalls(view); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.deepEqual(view.calls.skips, [["token-A", "day-one", weekStart]]); assert.deepEqual(view.calls.routes, [["replace", { pathname: "/workouts/[workoutDayId]", params: { workoutDayId: "new-slot", weekStart: "2026-10-19" } }]]); assert.equal(view.calls.skips.length, 1); await unmount(view);
+    const view = await detail({ scheme, skipPlan: returned }); resetCalls(view); await tapSkip(view); await view.confirm("Skip", "Skip Workout"); assert.deepEqual(view.calls.skips, [["token-A", "day-one", weekStart]]); assert.deepEqual(view.calls.routes, [["replace", { pathname: "/workouts/[workoutDayId]", params: { workoutDayId: "new-slot", weekStart: "2026-10-19" } }]]); assert.equal(view.calls.skips.length, 1); await unmount(view);
   });
   test(`${scheme}: Skip fallback prefers today, then upcoming, then first slot, then Back for empty`, async () => {
     const variants = [
@@ -415,16 +425,16 @@ for (const scheme of ["light", "dark"]) {
       [[day({ workoutDayId: "past", slotIndex: 0, date: "2026-10-11" }), day({ workoutDayId: "upcoming", slotIndex: 4, date: "2026-10-14" })], "upcoming"],
       [[day({ workoutDayId: "last", slotIndex: 4, date: "2026-10-10" }), day({ workoutDayId: "first", slotIndex: 0, date: "2026-10-09" })], "first"], [[], null],
     ];
-    for (const [days, expected] of variants) { const view = await detail({ scheme, skipPlan: plan(days) }); resetCalls(view); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.deepEqual(view.calls.routes, expected ? [["replace", { pathname: "/workouts/[workoutDayId]", params: { workoutDayId: expected, weekStart } }]] : [["back"]]); await unmount(view); }
+    for (const [days, expected] of variants) { const view = await detail({ scheme, skipPlan: plan(days) }); resetCalls(view); await tapSkip(view); await view.confirm("Skip", "Skip Workout"); assert.deepEqual(view.calls.routes, expected ? [["replace", { pathname: "/workouts/[workoutDayId]", params: { workoutDayId: expected, weekStart } }]] : [["back"]]); await unmount(view); }
   });
   test(`${scheme}: Skip network failure preserves the plan, stops busy state and does not navigate`, async () => {
-    const view = await detail({ scheme, skip: async () => { throw error(503); } }); resetCalls(view); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.equal(view.week().error, "Boundary request failed"); assert.equal(skip(view).props.disabled, false); assert.deepEqual(view.calls.routes, []); assert.ok(text(view, "Upper body strength")); await unmount(view);
+    const view = await detail({ scheme, skip: async () => { throw error(503); } }); resetCalls(view); await tapSkip(view); await view.confirm("Skip", "Skip Workout"); assert.equal(view.week().error, "Boundary request failed"); assert.equal(skip(view).props.disabled, false); assert.deepEqual(view.calls.routes, []); assert.ok(text(view, "Upper body strength")); await unmount(view);
   });
   test(`${scheme}: program workout locks duration and retains original prescriptions and Start`, async () => {
-    const view = await detail({ scheme, plan: plan([day({ programActivationId: "activation-one" })]) }); assert.ok(host(view, "program-duration-locked")); assert.ok(text(view, "Duration and set targets come from your active program.")); assert.equal(duration(view, 25), undefined); assert.ok(text(view, "8-12")); assert.ok(start(view)); assert.deepEqual(view.calls.durations, []); await unmount(view);
+    const view = await detail({ scheme, plan: plan([day({ programActivationId: "activation-one" })]) }); assert.ok(host(view, "program-duration-locked")); await tap(host(view, "workout-info-open")); assert.ok(text(view, "Duration and set targets come from your active program.")); await tap(host(view, "workout-info-close")); assert.equal(duration(view, 25), undefined); assert.ok(text(view, "8-12")); assert.ok(start(view)); assert.deepEqual(view.calls.durations, []); await unmount(view);
   });
   test(`${scheme}: stale Skip retains provider plus missing-ID refresh and no mutation retry before Home OK`, async () => {
-    const view = await detail({ scheme, skip: async () => { throw error(404); } }); resetCalls(view); view.options({ getWeek: async () => plan([day({ workoutDayId: "replacement" })]) }); await tap(skip(view)); await view.confirm("Skip", "Skip Workout"); assert.equal(view.calls.skips.length, 1); assert.deepEqual(view.calls.weeks, [["token-A", weekStart, false], ["token-A", weekStart, false]]); assert.equal(view.calls.alerts.at(-1)[0], "Plan Refreshed"); assert.deepEqual(view.calls.routes, []); await view.confirm("OK", "Plan Refreshed"); assert.deepEqual(view.calls.routes, [["replace", "/(tabs)"]]); assert.equal(view.week().staleIdRefreshed, false); await unmount(view);
+    const view = await detail({ scheme, skip: async () => { throw error(404); } }); resetCalls(view); view.options({ getWeek: async () => plan([day({ workoutDayId: "replacement" })]) }); await tapSkip(view); await view.confirm("Skip", "Skip Workout"); assert.equal(view.calls.skips.length, 1); assert.deepEqual(view.calls.weeks, [["token-A", weekStart, false], ["token-A", weekStart, false]]); assert.equal(view.calls.alerts.at(-1)[0], "Plan Refreshed"); assert.deepEqual(view.calls.routes, []); await view.confirm("OK", "Plan Refreshed"); assert.deepEqual(view.calls.routes, [["replace", "/(tabs)"]]); assert.equal(view.week().staleIdRefreshed, false); await unmount(view);
   });
   test(`${scheme}: pending initial week shows actual loading state and named Back`, async () => {
     const pending = deferred(); const view = await detail({ scheme, getWeek: () => pending.promise }); assert.ok(text(view, "Loading workout...")); assert.equal(start(view), undefined); await tap(label(view, "Back from workout")); assert.deepEqual(view.calls.routes, [["back"]]); await act(async () => pending.resolve(plan())); assert.ok(start(view)); await unmount(view);
@@ -451,7 +461,7 @@ for (const scheme of ["light", "dark"]) {
     const pending = deferred(); const view = await detail({ scheme, favoriteIds: ["bench"], favoriteMutation: () => pending.promise }); resetCalls(view); await tap(host(view, "exercise-favorite-bench")); assert.equal(host(view, "exercise-favorite-bench").props.accessibilityLabel, "Add Barbell bench press to favorites"); await act(async () => pending.reject(error(503))); console.log(JSON.stringify({ probe: "delayed-original-favorite-rollback", scheme, favorite: view.calls.favorite, unfavorite: view.calls.unfavorite, label: host(view, "exercise-favorite-bench").props.accessibilityLabel })); assert.deepEqual(view.calls.favorite, [["bench", "token-A"]]); assert.deepEqual(view.calls.unfavorite, []); assert.equal(host(view, "exercise-favorite-bench").props.accessibilityLabel, "Remove Barbell bench press from favorites"); assert.deepEqual(view.calls.routes, []); await unmount(view);
   });
   test(`${scheme}: optional real Coach/rationale sections and equipment/rotation notices preserve content`, async () => {
-    const view = await detail({ scheme, plan: plan([day({ workoutIntent: "Fictional focus", unavailableMuscles: ["calves"], deferredMuscles: ["forearms"] })]) }); assert.ok(text(view, "Fictional focus")); assert.ok(text(view, "We couldn't add calves with your current equipment.")); assert.ok(text(view, "forearms will be prioritized in your next custom workout.")); const title = text(view, "Why this exercise"); let toggle = title.parent; while (toggle && toggle.type !== "Pressable") toggle = toggle.parent; await tap(toggle); assert.ok(text(view, "A fictional pressing explanation.")); await tap(toggle); assert.equal(text(view, "A fictional pressing explanation."), undefined); await unmount(view);
+    const view = await detail({ scheme, plan: plan([day({ workoutIntent: "Fictional focus", unavailableMuscles: ["calves"], deferredMuscles: ["forearms"] })]) }); assert.equal(text(view, "Fictional focus"), undefined); await tap(host(view, "workout-info-open")); assert.ok(text(view, "Fictional focus")); assert.ok(text(view, "We couldn't add calves with your current equipment.")); assert.ok(text(view, "forearms will be prioritized in your next custom workout.")); await tap(host(view, "workout-info-close")); const title = text(view, "Why this exercise"); let toggle = title.parent; while (toggle && toggle.type !== "Pressable") toggle = toggle.parent; await tap(toggle); assert.ok(text(view, "A fictional pressing explanation.")); await tap(toggle); assert.equal(text(view, "A fictional pressing explanation."), undefined); await unmount(view);
   });
   test(`${scheme}: explicit no-token screen context makes no session/favorite/week requests`, async () => {
     const view = await detail({ scheme, token: null }); assert.deepEqual(view.calls.weeks, []); assert.deepEqual(view.calls.active, []); assert.deepEqual(view.calls.favorites, []); assert.equal(start(view), undefined); await unmount(view);
@@ -500,12 +510,12 @@ for (const scheme of ["light", "dark"]) {
   });
   test(`${scheme}: Skip keeps its existing test ID, named button and neutral minimum target`, async () => {
     const view = await detail({ scheme });
-    const button = skip(view);
+    await tap(host(view, "workout-options-open"));
+    const button = host(view, "skip-day-button");
     assert.equal(button.props.testID, "skip-day-button");
     assert.equal(button.props.accessibilityRole, "button");
     assert.equal(button.props.accessibilityLabel, "Skip Day");
     assert.equal(flat(button.props.style).minHeight, 44);
-    assert.equal(flat(button.props.style).backgroundColor, view.colors.inputBackground);
     assert.deepEqual(plain(button.props.accessibilityState), { disabled: false, busy: false });
     assert.deepEqual(view.calls.skips, []);
     assert.deepEqual(view.calls.routes, []);
@@ -561,7 +571,7 @@ for (const scheme of ["light", "dark"]) {
       assert.equal(list.findAllByProps({ testID: "workout-scroll-heading" }).length, expanded ? 1 : 0);
       assert.equal(host(view, expanded ? "workout-header-heading" : "workout-scroll-heading"), undefined);
       assert.ok(text(view, title));
-      assert.ok(text(view, "Monday, Oct 12 • Up to 35 min"));
+      assert.ok(text(view, "Monday, Oct 12 • 2 exercises"));
       assert.equal(heading.findAllByType("Text").map(textOf).filter((value) => value === title).length, 1);
       for (const node of heading.findAllByType("Text")) {
         assert.notEqual(node.props.allowFontScaling, false);
@@ -573,7 +583,7 @@ for (const scheme of ["light", "dark"]) {
       if (expanded) {
         assert.equal(flat(back.props.style).width, 44);
         assert.equal(flat(back.props.style).height, 44);
-        assert.equal(back.parent.children.length, 1);
+        assert.equal(back.parent.children.length, 2);
         assert.equal(flat(back.parent.props.style).paddingVertical, 8);
         assert.equal(heading.parent.children[0], heading);
       } else {
@@ -675,7 +685,7 @@ test("overview keeps order through harmless metadata refresh and explicitly rese
   await view.install(plan([metadata])); assert.deepEqual(overviewIds(view), ["row", "bench"]);
   const changed = day(); changed.blocks[0].items[0].prescription.sets = 5;
   await view.install(plan([changed])); assert.deepEqual(overviewIds(view), ["bench", "row"]);
-  assert.match(textOf(host(view, "workout-overview-order-message")), /previous exercise order was reset/);
+  assert.match(textOf(host(view, "workout-overview-order-message")), /Exercise order reset/);
   await unmount(view);
 });
 
@@ -814,4 +824,133 @@ test("natural duplicate retries never duplicate the appended exercise or its sav
   let saved; const view = await detail({ add: async () => saved ??= appendedPlan() }); await tap(host(view, "workout-overview-up-row"));
   await act(async () => { await view.week().addExercise(addParams()); await view.week().addExercise(addParams()); });
   assert.deepEqual(overviewIds(view), ["row", "bench", "curl"]); assert.equal(overviewIds(view).filter((id) => id === "curl").length, 1); await unmount(view);
+});
+
+const contrastRatio = (first, second) => {
+  const light = (color) => { const hex = color.length === 4 ? `#${[...color.slice(1)].map((part) => part + part).join("")}` : color; return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255).map((part) => part <= 0.04045 ? part / 12.92 : ((part + 0.055) / 1.055) ** 2.4).reduce((sum, part, index) => sum + part * [0.2126, 0.7152, 0.0722][index], 0); };
+  const [high, low] = [light(first), light(second)].sort((a, b) => b - a); return (high + 0.05) / (low + 0.05);
+};
+for (const scheme of ["light", "dark"]) {
+  test(`${scheme}: exercise-first toolbar removes permanent prose, leads with counts and keeps readable action text`, async () => {
+    const view = await detail({ scheme, plan: plan([day({ workoutIntent: "Detailed coach focus", unavailableMuscles: ["calves"], deferredMuscles: ["forearms"] })]) });
+    for (const hidden of ["Choose your exercise order", "Detailed coach focus", "Workout details", "We couldn't add calves with your current equipment."]) assert.equal(text(view, hidden), undefined);
+    assert.equal(host(view, "workout-estimate-toggle"), undefined); assert.equal(host(view, "skip-day-button"), undefined);
+    const toolbar = host(view, "workout-overview-toolbar");
+    assert.ok(toolbar.findByProps({ testID: "workout-add-exercise" })); assert.ok(toolbar.findByProps({ testID: "workout-planning-open" })); assert.ok(toolbar.findByProps({ testID: "workout-info-open" }));
+    assert.ok(text(view, "Monday, Oct 12 • 2 exercises"));
+    const addText = host(view, "workout-add-exercise").findAllByType("Text").find((node) => textOf(node) === "Add");
+    assert.ok(contrastRatio(flat(addText.props.style).color, view.colors.background) >= 4.5);
+    await tap(host(view, "workout-info-open"));
+    for (const expected of ["Detailed coach focus", "We couldn't add calves with your current equipment.", "forearms will be prioritized in your next custom workout.", "Includes preparation and rest. Your pace may vary."]) assert.ok(text(view, expected));
+    assert.deepEqual(view.calls.planning, []); assert.deepEqual(view.calls.additions, []); assert.deepEqual(view.calls.skips, []);
+    await tap(host(view, "workout-info-close")); assert.equal(text(view, "Detailed coach focus"), undefined);
+    assert.ok(view.calls.focus.some((entry) => Array.isArray(entry) && entry[0] === "restore")); await unmount(view);
+  });
+}
+
+test("read-only Info omits absent sections and puts its maximum-text heading inside the scroll body", async () => {
+  const view = await detail({ fontScale: 3.2, width: 390, plan: plan([day({ workoutIntent: "", deferredMuscles: [], unavailableMuscles: [] })]) });
+  const before = plain([...view.storage]); await tap(host(view, "workout-info-open"));
+  const modal = view.tree.root.findAllByType("Modal").find((node) => node.props.visible);
+  const title = text(view, "Workout information"), scroll = host(view, "workout-info-scroll");
+  let titleParent = title.parent; while (titleParent && typeof titleParent.type !== "string") titleParent = titleParent.parent; assert.equal(titleParent, scroll); assert.equal(title.props.numberOfLines, undefined); assert.notEqual(title.props.allowFontScaling, false);
+  for (const absent of ["Today's focus", "Equipment update", "Muscle rotation"]) assert.equal(text(view, absent), undefined);
+  assert.equal(modal.props.animationType, "none");
+  const close = host(view, "workout-info-close"); assert.equal(flat(close.props.style).minHeight, 44);
+  await tap(close); assert.deepEqual(plain([...view.storage]), before); await unmount(view);
+});
+
+test("only one overlay owns presentation and iOS waits for native dismissal before reopening or showing mode confirmation", async () => {
+  const view = await detail(); await tap(host(view, "workout-info-open"));
+  await act(async () => host(view, "workout-planning-open").props.onPress());
+  assert.equal(view.tree.root.findAllByType("Modal").filter((node) => node.props.visible).length, 1);
+  await act(async () => host(view, "workout-info-close").props.onPress());
+  await act(async () => host(view, "workout-planning-open").props.onPress());
+  assert.equal(view.tree.root.findAllByType("Modal").filter((node) => node.props.visible).length, 0);
+  await act(async () => view.tree.root.findByType("Modal").props.onDismiss());
+  await tap(host(view, "workout-planning-open")); await tap(duration(view, 60));
+  await act(async () => host(view, "planning-apply").props.onPress());
+  assert.deepEqual(view.calls.alerts, []);
+  await act(async () => view.tree.root.findByType("Modal").props.onDismiss());
+  assert.equal(view.calls.alerts.at(-1)[0], "Rebuild this workout?"); await view.confirm("Cancel");
+  assert.deepEqual(view.calls.planning, []); await unmount(view);
+});
+
+for (const platform of ["android", "web"]) {
+  test(`${platform}: a closed Info sheet can reopen without an iOS-only callback dependency`, async () => {
+    const view = await detail({ platform }); await tap(host(view, "workout-info-open"));
+    await act(async () => host(view, "workout-info-close").props.onPress());
+    if (platform === "web") { const closing = view.tree.root.findByType("Modal"); assert.equal(closing.props.visible, false); await act(async () => closing.props.onDismiss()); }
+    else assert.equal(view.tree.root.findAllByType("Modal").length, 0);
+    await tap(host(view, "workout-planning-open")); assert.equal(view.tree.root.findAllByType("Modal").filter((node) => node.props.visible).length, 1);
+    await tap(label(view, "Close workout planning")); await tap(host(view, "workout-info-open"));
+    assert.ok(text(view, "Workout information")); await unmount(view);
+  });
+}
+
+test("blurring before native planning dismissal cancels only the queued confirmation and releases Start", async () => {
+  const view = await detail(); await tap(host(view, "workout-planning-open")); await tap(duration(view, 60));
+  await act(async () => host(view, "planning-apply").props.onPress());
+  assert.equal(start(view).props.disabled, true);
+  await view.refocus();
+  await act(async () => view.tree.root.findByType("Modal").props.onDismiss());
+  assert.deepEqual(view.calls.alerts, []); assert.deepEqual(view.calls.planning, []);
+  assert.equal(start(view).props.disabled, false);
+  await tap(host(view, "workout-overview-up-row")); assert.equal(view.noticeCallbacks().length, 1);
+  await view.refocus(); assert.equal(view.noticeCallbacks().length, 0);
+  assert.equal(host(view, "workout-overview-order-message"), undefined); await unmount(view);
+});
+
+test("native sheet hosts stay mounted and private content disappears across account loading before dismissal completes", async () => {
+  const view = await detail({ plan: plan([day({ workoutIntent: "Private A coach content" })]) });
+  await tap(host(view, "workout-info-open")); const originalHost = view.tree.root.findByType("Modal");
+  await view.auth(null, null);
+  const closingHost = view.tree.root.findByType("Modal"); assert.equal(closingHost, originalHost); assert.equal(closingHost.props.visible, false);
+  assert.equal(text(view, "Private A coach content"), undefined);
+  await act(async () => closingHost.props.onDismiss());
+  view.options({ getWeek: async () => plan([day({ workoutIntent: "Private B coach content" })]) });
+  await view.auth("token-B", "user-B"); await tap(host(view, "workout-info-open"));
+  assert.ok(text(view, "Private B coach content")); assert.equal(text(view, "Private A coach content"), undefined); await unmount(view);
+});
+
+test("Skip is a lightweight menu action and remains available for programs with unchanged cancellation and payload", async () => {
+  const view = await detail({ plan: plan([day({ programActivationId: "program-one" })]) });
+  await tap(host(view, "workout-options-open")); assert.ok(host(view, "workout-options-menu"));
+  assert.equal(host(view, "skip-day-button").props.disabled, false); assert.equal(view.tree.root.findAllByType("Modal").length, 0);
+  await tap(host(view, "skip-day-button")); assert.equal(host(view, "workout-options-menu"), undefined);
+  assert.equal(view.calls.alerts.at(-1)[0], "Skip Workout"); await view.confirm("Cancel"); assert.deepEqual(view.calls.skips, []);
+  await tapSkip(view); await view.confirm("Skip", "Skip Workout"); assert.deepEqual(view.calls.skips, [["token-A", "day-one", weekStart]]); await unmount(view);
+});
+
+test("pending overlay actions are cancelled on account ABA and old Skip confirmations cannot mutate the new lifetime", async () => {
+  const view = await detail(); await tap(host(view, "workout-planning-open")); await tap(duration(view, 60));
+  await act(async () => { host(view, "planning-apply").props.onPress(); view.authNow("token-B", "user-B"); });
+  const closing = view.tree.root.findAllByType("Modal").find((node) => !node.props.visible); if (closing) await act(async () => closing.props.onDismiss());
+  assert.deepEqual(view.calls.alerts, []); await view.auth("token-A", "user-A");
+  await tapSkip(view); const staleSkip = view.calls.alerts.at(-1)[2].find((entry) => entry.text === "Skip").onPress;
+  await view.auth("token-B", "user-B"); await view.auth("token-A", "user-A");
+  await act(async () => staleSkip()); assert.deepEqual(view.calls.skips, []); await unmount(view);
+});
+
+test("dismissing a reset notice changes presentation only and success acknowledgement never changes list layout", async () => {
+  const view = await detail(); await tap(host(view, "workout-overview-up-row"));
+  const acknowledgement = host(view, "workout-overview-order-message"); assert.equal(acknowledgement.parent, host(view, "workout-start-footer"));
+  assert.equal(acknowledgement.props.pointerEvents, "none"); assert.equal(flat(acknowledgement.props.style).position, "absolute");
+  const staleTimer = view.noticeCallbacks()[0]; const changed = day(); changed.blocks[0].items[0].prescription.sets = 9;
+  await view.install(plan([changed])); assert.match(textOf(host(view, "workout-overview-order-message")), /Exercise order reset/);
+  await act(async () => staleTimer()); assert.ok(host(view, "workout-overview-order-message"));
+  const before = plain([...view.storage]); await tap(host(view, "workout-order-dismiss"));
+  assert.equal(host(view, "workout-overview-order-message"), undefined); assert.deepEqual(plain([...view.storage]), before);
+  assert.deepEqual(overviewIds(view), ["bench", "row"]); await unmount(view);
+});
+
+test("order errors persist with actionable read-only details while the refresh barrier and over-budget warning stay visible", async () => {
+  const view = await detail({ orderSaveFailure: true, plan: plan([day({ planningMode: "time_budget", timeBudgetMinutes: 35, estimatedMinutes: 65 })]) });
+  assert.ok(host(view, "workout-over-budget-notice")); await tap(host(view, "workout-overview-up-row")); await view.tickNotices();
+  assert.match(textOf(host(view, "workout-overview-order-message")), /Check exercise order/);
+  await tap(host(view, "workout-order-details")); assert.match(textOf(view.tree.root), /Couldn’t save that order/);
+  await tap(host(view, "workout-info-close")); assert.ok(host(view, "workout-overview-order-message"));
+  await act(async () => view.week().markPlanningRefreshRequired());
+  assert.ok(host(view, "workout-planning-refresh")); assert.equal(start(view).props.disabled, true); assert.ok(host(view, "workout-info-open"));
+  assert.deepEqual(view.calls.planning, []); assert.deepEqual(view.calls.additions, []); await unmount(view);
 });

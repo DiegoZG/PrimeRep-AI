@@ -3,6 +3,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  findNodeHandle,
   ActivityIndicator,
   Alert,
   Pressable,
@@ -19,7 +21,7 @@ import { ThemedText } from "@/components/themed-text";
 import { WorkoutPlanningSheet } from "@/components/workout/workout-planning-sheet";
 import { workoutPlanningMode, workoutTimeBudget, workoutPlanningSummary, workoutPlanningError, type WorkoutPlanningChoice } from "@/utils/workoutPlanning";
 import { WorkoutOverviewList, type OverviewControls } from "@/components/workout/workout-overview-list";
-import { CoachCard } from "@/components/workout/CoachCard";
+import { WorkoutInfoSheet } from "@/components/workout/workout-info-sheet";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
@@ -83,6 +85,7 @@ export default function WorkoutDayDetailScreen() {
   }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const actionTextColor = colorScheme === "dark" ? "#C5BDFF" : colors.primaryButton;
   const { token, user, isLoggedIn } = useContext(AuthContext);
 
   // Workout week context
@@ -105,8 +108,14 @@ export default function WorkoutDayDetailScreen() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   const { markWorkoutTerminal, activeWorkout } = useActiveWorkout();
-  const [planningVisible, setPlanningVisible] = useState(false);
-  const [estimateVisible, setEstimateVisible] = useState(false);
+  type Overlay = { kind: "info" | "planning" | "options"; owner: string };
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
+  const overlayRef = useRef<Overlay | null>(null), dismissingSheetRef = useRef(false);
+  const infoTrigger = useRef<React.ElementRef<typeof Pressable>>(null), modeTrigger = useRef<React.ElementRef<typeof Pressable>>(null), optionsTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const restoreTarget = useRef<{ target: React.ElementRef<typeof Pressable> | null; owner: string; epoch: number } | null>(null);
+  const detailsTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const pendingSheetAction = useRef<{ owner: string; epoch: number; action: () => void; cancel: () => void } | null>(null);
+  const pendingSkip = useRef<{ owner: string; epoch: number } | null>(null);
   const planningPendingRef = useRef(false);
 
   const [todayIso, setTodayIso] = useState(localDateIso);
@@ -121,6 +130,7 @@ export default function WorkoutDayDetailScreen() {
   const workout =
     workoutDayId && isTargetWeekLoaded ? getWorkoutById(workoutDayId) : null;
 
+  const overlayWorkoutRef = useRef(workout); if (workout) overlayWorkoutRef.current = workout;
   const sourceFingerprint = workout ? preWorkoutOrderFingerprint(workout) : "missing";
   const orderUserId = user?.id;
   const sourceWorkoutRef = useRef(workout); sourceWorkoutRef.current = workout;
@@ -132,7 +142,7 @@ export default function WorkoutDayDetailScreen() {
   const mountedRef = useRef(true), startingRef = useRef(false);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; lifetimeEpochRef.current += 1; }; }, []);
   const [orderState, setOrderState] = useState<{ owner: string; exerciseIds: string[] | null } | null>(null);
-  const [orderMessage, setOrderMessage] = useState<{ owner: string; text: string } | null>(null);
+  const [orderMessage, setOrderMessage] = useState<{ owner: string; text: string; kind: "reset" | "success" | "error" } | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [localPlanningStatus, setLocalPlanningStatus] = useState<{ owner: string; started: boolean } | null>(null);
@@ -148,9 +158,45 @@ export default function WorkoutDayDetailScreen() {
         if (!cancelled && mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === requestEpoch) setLocalPlanningStatus({ owner: orderOwner, started: local?.workoutDayId === workoutDayId });
       }).catch(() => {});
     }
-    return () => { cancelled = true; };
+    return () => { cancelled = true; pendingSkip.current = null; pendingSheetAction.current?.cancel(); pendingSheetAction.current = null; setOrderMessage((current) => current?.kind === "success" && current.owner === orderOwner ? null : current); if (overlayRef.current?.kind !== "options" && overlayRef.current) dismissingSheetRef.current = true; overlayRef.current = null; setOverlay(null); restoreTarget.current = null; };
   }, [orderUserId, workoutDayId, orderOwner, lifetime]));
-  useEffect(() => { planningPendingRef.current = false; setIsActionLoading(false); setPlanningVisible(false); setEstimateVisible(false); }, [lifetime]);
+  const visibleOverlay = overlay?.owner === lifetime ? overlay.kind : null;
+  const restoreOverlayFocus = useCallback(() => {
+    const saved = restoreTarget.current; restoreTarget.current = null;
+    if (!saved || !mountedRef.current || saved.owner !== lifetimeRef.current || saved.epoch !== lifetimeEpochRef.current) return;
+    if (saved.target && typeof findNodeHandle === "function" && typeof AccessibilityInfo.setAccessibilityFocus === "function") {
+      const node = findNodeHandle(saved.target); if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }
+  }, []);
+  const openOverlay = useCallback((kind: Overlay["kind"], target: React.ElementRef<typeof Pressable> | null) => {
+    if (overlayRef.current || dismissingSheetRef.current) return;
+    const next = { kind, owner: lifetime };
+    restoreTarget.current = { target, owner: lifetime, epoch: lifetimeEpochRef.current };
+    overlayRef.current = next; setOverlay(next);
+  }, [lifetime]);
+  const closeOverlay = useCallback(() => {
+    if (overlayRef.current && overlayRef.current.kind !== "options") dismissingSheetRef.current = true;
+    overlayRef.current = null; setOverlay(null);
+  }, []);
+  const overlayDismissed = useCallback(() => {
+    if (overlayRef.current) return;
+    dismissingSheetRef.current = false;
+    const pending = pendingSheetAction.current; pendingSheetAction.current = null;
+    if (pending && mountedRef.current && pending.owner === lifetimeRef.current && pending.epoch === lifetimeEpochRef.current) { restoreTarget.current = null; pending.action(); }
+    else restoreOverlayFocus();
+  }, [restoreOverlayFocus]);
+  useEffect(() => {
+    planningPendingRef.current = false; setIsActionLoading(false);
+    pendingSkip.current = null; pendingSheetAction.current = null; restoreTarget.current = null;
+    if (overlayRef.current && overlayRef.current.kind !== "options") dismissingSheetRef.current = true;
+    overlayRef.current = null; setOverlay(null);
+  }, [lifetime]);
+  useEffect(() => {
+    if (orderMessage?.kind !== "success" || orderMessage.owner !== orderOwner) return;
+    const owner = lifetime, epoch = lifetimeEpochRef.current;
+    const timer = setTimeout(() => { if (mountedRef.current && lifetimeRef.current === owner && lifetimeEpochRef.current === epoch) setOrderMessage((current) => current?.kind === "success" && current.owner === orderOwner ? null : current); }, 2500);
+    return () => clearTimeout(timer);
+  }, [orderMessage, orderOwner, lifetime]);
   useEffect(() => {
     let cancelled = false;
     const requestEpoch = lifetimeEpochRef.current;
@@ -160,11 +206,11 @@ export default function WorkoutDayDetailScreen() {
     void loadPreWorkoutOrder(orderUserId, original).then((saved) => {
       if (cancelled || lifetimeRef.current !== lifetime || lifetimeEpochRef.current !== requestEpoch) return;
       setOrderState({ owner: orderOwner, exerciseIds: saved.exerciseIds });
-      if (saved.invalidated) setOrderMessage({ owner: orderOwner, text: "Your workout changed, so its previous exercise order was reset. Choose an order again." });
+      if (saved.invalidated) setOrderMessage({ owner: orderOwner, kind: "reset", text: "Your workout changed, so its previous exercise order was reset. Choose an order again." });
     }).catch(() => {
       if (!cancelled && lifetimeRef.current === lifetime && lifetimeEpochRef.current === requestEpoch) {
         setOrderState({ owner: orderOwner, exerciseIds: null });
-        setOrderMessage({ owner: orderOwner, text: "Couldn’t load your saved order. Try moving an exercise again before starting." });
+        setOrderMessage({ owner: orderOwner, kind: "error", text: "Couldn’t load your saved order. Try moving an exercise again before starting." });
       }
     });
     return () => { cancelled = true; };
@@ -184,11 +230,11 @@ export default function WorkoutDayDetailScreen() {
     setOrderState({ owner: orderOwner, exerciseIds: ids }); setIsSavingOrder(true);
     try {
       await savePreWorkoutOrder(user.id, workout, ids);
-      if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setOrderMessage({ owner: orderOwner, text: "Exercise order saved. Start when you’re ready." });
+      if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setOrderMessage({ owner: orderOwner, kind: "success", text: "Exercise order saved. Start when you’re ready." });
     } catch {
       if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) {
         setOrderState(previous);
-        setOrderMessage({ owner: orderOwner, text: "Couldn’t save that order. Your previous order is still here; try again." });
+        setOrderMessage({ owner: orderOwner, kind: "error", text: "Couldn’t save that order. Your previous order is still here; try again." });
       }
     } finally { if (mountedRef.current && lifetimeRef.current === lifetime && lifetimeEpochRef.current === renderEpoch) setIsSavingOrder(false); }
   }, [workout, displayedWorkout, user, planningRefreshRequired, isActionLoading, isOrderLoading, isSavingOrder, isStarting, orderState, orderOwner, lifetime, renderEpoch]);
@@ -359,6 +405,7 @@ export default function WorkoutDayDetailScreen() {
   // Handle skip day - uses returned plan for navigation (not context selectors)
   const handleSkipDay = useCallback(async () => {
     if (!workout || !workoutDayId) return;
+    const origin = lifetime, originEpoch = lifetimeEpochRef.current;
 
     Alert.alert(
       "Skip Workout",
@@ -369,6 +416,7 @@ export default function WorkoutDayDetailScreen() {
           text: "Skip",
           style: "destructive",
           onPress: async () => {
+            if (!mountedRef.current || lifetimeRef.current !== origin || lifetimeEpochRef.current !== originEpoch) return;
             // Capture prior slot index before mutation
             const priorSlotIndex = workout.slotIndex;
 
@@ -412,10 +460,18 @@ export default function WorkoutDayDetailScreen() {
         },
       ]
     );
-  }, [workout, workoutDayId, skipDay, targetWeekStart, todayIso, router]);
+  }, [workout, workoutDayId, skipDay, targetWeekStart, todayIso, router, lifetime]);
+
+  useEffect(() => {
+    if (visibleOverlay !== null) return;
+    const request = pendingSkip.current; pendingSkip.current = null;
+    if (request) {
+      if (mountedRef.current && request.owner === lifetimeRef.current && request.epoch === lifetimeEpochRef.current) { restoreTarget.current = null; void handleSkipDay(); }
+    } else if (!dismissingSheetRef.current) restoreOverlayFocus();
+  }, [visibleOverlay, lifetime, handleSkipDay, restoreOverlayFocus]);
 
   const handleUpdatePlanning = useCallback((choice: WorkoutPlanningChoice) => {
-    setPlanningVisible(false);
+    closeOverlay();
     if (!workout || !user || !token || !targetWeekStart || planningLocked || isCheckingLocalWorkout || planningPendingRef.current || startingRef.current) return;
     if (choice.planningMode === workoutPlanningMode(workout) && (choice.planningMode === "trainer_led" || choice.timeBudgetMinutes === workoutTimeBudget(workout))) return;
     const origin = lifetime, originEpoch = lifetimeEpochRef.current;
@@ -424,7 +480,7 @@ export default function WorkoutDayDetailScreen() {
     setIsActionLoading(true);
     const release = () => { if (isCurrent()) { planningPendingRef.current = false; setIsActionLoading(false); } };
     let submitted = false;
-    Alert.alert("Rebuild this workout?", "Your exercises and saved order may change. This only updates this workout, not your default in Settings.", [
+    const presentConfirmation = () => Alert.alert("Rebuild this workout?", "Your exercises and saved order may change. This only updates this workout, not your default in Settings.", [
       { text: "Cancel", style: "cancel", onPress: release },
       { text: "Rebuild workout", onPress: async () => {
         if (!isCurrent() || submitted) return;
@@ -439,7 +495,9 @@ export default function WorkoutDayDetailScreen() {
         finally { release(); }
       } },
     ], { cancelable: false });
-  }, [workout, user, token, targetWeekStart, planningLocked, isCheckingLocalWorkout, lifetime, setPlanning, markPlanningRefreshRequired]);
+    if (dismissingSheetRef.current) pendingSheetAction.current = { owner: origin, epoch: originEpoch, action: presentConfirmation, cancel: release };
+    else presentConfirmation();
+  }, [workout, user, token, targetWeekStart, planningLocked, isCheckingLocalWorkout, lifetime, setPlanning, markPlanningRefreshRequired, closeOverlay]);
 
   // Get formatted date
   const getFormattedDate = (dateStr: string): string => {
@@ -461,7 +519,7 @@ export default function WorkoutDayDetailScreen() {
     : [];
 
   // Render section header
-  const { fontScale } = useWindowDimensions();
+  const { fontScale, width } = useWindowDimensions();
   const largeText = fontScale > 1.3 && Boolean(workout);
 
   const renderSectionHeader = ({ section }: { section: WorkoutSection }) => (
@@ -542,83 +600,51 @@ export default function WorkoutDayDetailScreen() {
         {workout?.title || "Workout"}
       </ThemedText>
       {workout && (
-        <Text style={[styles.headerSubtitle, { color: colors.placeholder }]}>
-          {getFormattedDate(workout.date)} • {workoutPlanningSummary(workout)}
+        <Text style={[styles.headerSubtitle, { color: colors.icon }]}>
+          {getFormattedDate(workout.date)} • {workout.blocks.reduce((count, block) => count + block.items.length, 0)} exercises
         </Text>
       )}
     </View>
   );
 
-  // Render header with actions (Skip Day only - Regenerate moved to Home)
+  const controlsDisabled = planningLocked || isCheckingLocalWorkout || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting;
+  const overBudget = Boolean(workout && !workout.programActivationId && workoutPlanningMode(workout) === "time_budget" && workout.estimatedMinutes != null && workout.estimatedMinutes > workoutTimeBudget(workout));
+  const notice = orderMessage?.owner === orderOwner ? orderMessage : null;
   const renderListHeader = () => (
     <View style={styles.listHeader}>
       {largeText && renderWorkoutHeading()}
-      <View style={{ gap: 6, marginBottom: 16 }}>
-        <ThemedText type="defaultSemiBold">Choose your exercise order</ThemedText>
-        <ThemedText style={{ color: colors.placeholder }}>Drag a card using its handle, or use the move buttons. Your order is saved for this workout; targets can be reviewed after you start.</ThemedText>
-        {orderMessage?.owner === orderOwner ? <ThemedText testID="workout-overview-order-message" accessibilityLiveRegion="polite">{orderMessage.text}</ThemedText> : null}
+      <View testID="workout-overview-toolbar" style={styles.toolbar}>
+        {workout?.programActivationId ? <View testID="program-duration-locked" style={[styles.modeChip, { borderColor: colors.inputBorder }]}><ThemedText style={[styles.toolbarText, { color: colors.icon }]}>Program</ThemedText></View> : <Pressable ref={modeTrigger} testID="workout-planning-open" accessibilityRole="button" accessibilityLabel="Change workout planning" accessibilityState={{ disabled: controlsDisabled, busy: isCheckingLocalWorkout, expanded: visibleOverlay === "planning" }} disabled={controlsDisabled}
+          onPress={() => { if (!controlsDisabled) openOverlay("planning", modeTrigger.current); }} style={({ pressed }) => [styles.modeChip, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBorder : colors.background, opacity: controlsDisabled ? 0.55 : 1 }]}>
+          <ThemedText style={[styles.toolbarText, { color: colors.text }]}>{workout && workoutPlanningMode(workout) === "trainer_led" ? "Trainer-led" : workout ? `Up to ${workoutTimeBudget(workout)} min` : "Time budget"}</ThemedText>
+          {!controlsDisabled && <Ionicons name="chevron-down" size={14} color={colors.icon} />}
+        </Pressable>}
+        {!workout?.programActivationId && <Pressable testID="workout-add-exercise" accessibilityRole="button" accessibilityLabel="Add exercise to this workout" accessibilityHint="Choose an exercise to add only to this workout" disabled={controlsDisabled} accessibilityState={{ disabled: controlsDisabled }}
+          onPress={() => { if (!controlsDisabled && workout && targetWeekStart) router.push(`/workout/exercise-picker?workoutDayId=${encodeURIComponent(workout.workoutDayId)}&weekStart=${encodeURIComponent(targetWeekStart)}` as Href); }}
+          style={({ pressed }) => [styles.addAction, { opacity: controlsDisabled ? 0.45 : pressed ? 0.6 : 1 }]}><Ionicons name="add" size={20} color={colors.primaryButton} /><ThemedText style={[styles.toolbarText, { color: actionTextColor }]}>Add</ThemedText></Pressable>}
+        <Pressable ref={infoTrigger} testID="workout-info-open" accessibilityRole="button" accessibilityLabel="Workout information" accessibilityState={{ expanded: visibleOverlay === "info" }} onPress={() => openOverlay("info", infoTrigger.current)} style={({ pressed }) => [styles.infoAction, { backgroundColor: pressed ? colors.inputBorder : "transparent" }]}><Ionicons name="information-circle-outline" size={23} color={colors.icon} /></Pressable>
       </View>
-      {/* Coach intent — renders nothing when absent */}
-      <CoachCard intent={workout?.workoutIntent} colors={colors} />
-      {!!workout?.unavailableMuscles?.length && (
-        <View style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
-          <ThemedText style={styles.coverageNoticeTitle}>Equipment update</ThemedText>
-          <ThemedText style={{ color: colors.placeholder }}>
-            {`We couldn't add ${workout.unavailableMuscles.join(", ")} with your current equipment.`}
-          </ThemedText>
-        </View>
-      )}
-      {!!workout?.deferredMuscles?.length && (
-        <View style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
-          <ThemedText style={styles.coverageNoticeTitle}>Muscle rotation</ThemedText>
-          <ThemedText style={{ color: colors.placeholder }}>
-            {`${workout.deferredMuscles.join(", ")} will be prioritized in your next custom workout.`}
-          </ThemedText>
-        </View>
-      )}
-      {!workout?.programActivationId ? <View style={styles.durationSection}>
-        <Pressable testID="workout-planning-open" accessibilityRole="button" accessibilityLabel="Change workout planning" accessibilityState={{ disabled: planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired, busy: isCheckingLocalWorkout }} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired}
-          onPress={() => { if (!planningLocked && !isCheckingLocalWorkout && !isActionLoading && !planningRefreshRequired) setPlanningVisible(true); }} style={({ pressed }) => [styles.planningRow, { borderColor: colors.inputBorder, backgroundColor: pressed ? colors.inputBorder : colors.inputBackground }]}>
-          <View style={{ flex: 1, gap: 4 }}><ThemedText type="defaultSemiBold">Workout planning</ThemedText><ThemedText style={{ color: colors.icon }}>{workout && workoutPlanningMode(workout) === "trainer_led" ? "Trainer-led · No time limit" : workout ? workoutPlanningSummary(workout) : "Time budget"}</ThemedText></View>
-          {!planningLocked && !isCheckingLocalWorkout && <Ionicons name="chevron-forward" size={20} color={colors.icon} />}
-        </Pressable>
-        {planningLocked && <ThemedText style={{ color: colors.icon }}>Started and past workouts keep their original plan.</ThemedText>}
-        {workout && workoutPlanningMode(workout) === "trainer_led" && <>
-          <Pressable testID="workout-estimate-toggle" accessibilityRole="button" accessibilityLabel="Workout details" accessibilityState={{ expanded: estimateVisible }} onPress={() => setEstimateVisible((value) => !value)} style={styles.estimateToggle}>
-            <ThemedText style={{ color: colors.icon }}>Workout details</ThemedText><Ionicons name={estimateVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.icon} />
-          </Pressable>
-          {estimateVisible && <ThemedText testID="workout-estimate" style={{ color: colors.icon }}>About {workout.estimatedMinutes ?? workout.durationMinutes} minutes, including preparation and rest. This is an estimate, not a time limit.</ThemedText>}
-        </>}
-      </View> : (
-        <View testID="program-duration-locked" style={[styles.coverageNotice, { backgroundColor: colors.inputBackground }]}>
-          <ThemedText style={styles.coverageNoticeTitle}>Program workout</ThemedText>
-          <ThemedText style={{ color: colors.placeholder }}>Duration and set targets come from your active program.</ThemedText>
-        </View>
-      )}
-
-      {planningRefreshRequired && <View style={styles.coverageNotice}>
-        <ThemedText accessibilityRole="alert">Refresh to confirm the latest workout before starting.</ThemedText>
-        <Pressable testID="workout-planning-refresh" accessibilityRole="button" accessibilityLabel="Refresh workout plan" onPress={() => void refreshWeek({ weekStart: targetWeekStart })} style={styles.estimateToggle}><ThemedText type="defaultSemiBold">Refresh workout plan</ThemedText></Pressable>
+      {notice && notice.kind !== "success" && <View testID="workout-overview-order-message" style={styles.notice}>
+        <ThemedText accessibilityLiveRegion="polite" style={[styles.noticeText, { color: colors.icon }]}>{notice.kind === "reset" ? "Exercise order reset" : "Check exercise order"}</ThemedText>
+        <Pressable ref={detailsTrigger} testID="workout-order-details" accessibilityRole="button" accessibilityLabel="Exercise order details" onPress={() => openOverlay("info", detailsTrigger.current)} style={styles.noticeAction}><ThemedText style={[styles.toolbarText, { color: actionTextColor }]}>Details</ThemedText></Pressable>
+        <Pressable testID="workout-order-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss exercise order notice" onPress={() => setOrderMessage(null)} style={styles.infoAction}><Ionicons name="close" size={17} color={colors.icon} /></Pressable>
       </View>}
-      {/* Skip Day action button */}
-      <Pressable
-        testID="skip-day-button"
-        accessibilityRole="button"
-        accessibilityLabel="Skip Day"
-        onPress={handleSkipDay}
-        disabled={isActionLoading || planningRefreshRequired}
-        accessibilityState={{ disabled: isActionLoading, busy: isActionLoading }}
-        style={[styles.skipButton, { backgroundColor: colors.inputBackground }]}
-      >
-        <Ionicons name="play-skip-forward" size={18} color={colors.text} />
-        <Text style={[styles.skipButtonText, { color: colors.text }]}>
-          Skip Day
-        </Text>
-      </Pressable>
+      {overBudget && <View testID="workout-over-budget-notice" style={styles.notice}><Ionicons name="time-outline" size={16} color={colors.icon} /><ThemedText style={[styles.noticeText, { color: colors.icon }]}>{workout && workoutPlanningSummary(workout)}</ThemedText></View>}
+      {planningRefreshRequired && <View style={styles.notice}>
+        <ThemedText accessibilityRole="alert" style={[styles.noticeText, { color: colors.icon }]}>Refresh before starting.</ThemedText>
+        <Pressable testID="workout-planning-refresh" accessibilityRole="button" accessibilityLabel="Refresh workout plan" onPress={() => void refreshWeek({ weekStart: targetWeekStart })} style={styles.noticeAction}><ThemedText style={[styles.toolbarText, { color: actionTextColor }]}>Refresh</ThemedText></Pressable>
+      </View>}
     </View>
   );
 
-  // Loading state
+  const renderOverlaySheets = () => {
+    const sheetWorkout = overlayWorkoutRef.current;
+    return <React.Fragment key="workout-overlay-sheets">
+      {sheetWorkout && <WorkoutPlanningSheet visible={visibleOverlay === "planning"} value={{ planningMode: workoutPlanningMode(sheetWorkout), timeBudgetMinutes: workoutTimeBudget(sheetWorkout) }} onClose={closeOverlay} onDismiss={overlayDismissed} onApply={handleUpdatePlanning} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired} />}
+      {sheetWorkout && <WorkoutInfoSheet visible={visibleOverlay === "info"} workout={sheetWorkout} locked={planningLocked} noticeDetails={notice?.text} onClose={closeOverlay} onDismiss={overlayDismissed} />}
+    </React.Fragment>;
+  };
+
   if (isWeekLoading && !workout) {
     return (
       <SafeAreaView
@@ -640,6 +666,7 @@ export default function WorkoutDayDetailScreen() {
           <ActivityIndicator size="large" color={colors.primaryButton} />
           <ThemedText style={styles.loadingText}>Loading workout...</ThemedText>
         </View>
+        {renderOverlaySheets()}
       </SafeAreaView>
     );
   }
@@ -684,6 +711,7 @@ export default function WorkoutDayDetailScreen() {
             <Text style={styles.retryButtonText}>Go Back</Text>
           </Pressable>
         </View>
+        {renderOverlaySheets()}
       </SafeAreaView>
     );
   }
@@ -693,8 +721,9 @@ export default function WorkoutDayDetailScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
+      {visibleOverlay === "options" && <Pressable testID="workout-options-backdrop" accessibilityRole="button" accessibilityLabel="Close workout options" onPress={closeOverlay} style={styles.optionsBackdrop} />}
       {/* Header */}
-      <View style={largeText ? styles.largeTextHeader : styles.header}>
+      <View style={[largeText ? styles.largeTextHeader : styles.header, { zIndex: 60 }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back from workout details"
@@ -705,7 +734,12 @@ export default function WorkoutDayDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         {!largeText && renderWorkoutHeading()}
-        {!largeText && <View style={styles.headerSpacer} />}
+        <View style={styles.optionsAnchor}>
+          <Pressable ref={optionsTrigger} testID="workout-options-open" accessibilityRole="button" accessibilityLabel="Workout options" disabled={isActionLoading || planningRefreshRequired} accessibilityState={{ expanded: visibleOverlay === "options", disabled: isActionLoading || planningRefreshRequired, busy: isActionLoading }} onPress={() => { if (visibleOverlay === "options") closeOverlay(); else openOverlay("options", optionsTrigger.current); }} style={styles.infoAction}><Ionicons name="ellipsis-horizontal" size={23} color={colors.icon} /></Pressable>
+          {visibleOverlay === "options" && <View testID="workout-options-menu" style={[styles.optionsMenu, { width: Math.min(width - 40, 300), backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+            <Pressable testID="skip-day-button" accessibilityRole="button" accessibilityLabel="Skip Day" disabled={isActionLoading || planningRefreshRequired} accessibilityState={{ disabled: isActionLoading || planningRefreshRequired, busy: isActionLoading }} onPress={() => { if (!isActionLoading && !planningRefreshRequired) { pendingSkip.current = { owner: lifetime, epoch: lifetimeEpochRef.current }; closeOverlay(); } }} style={styles.optionAction}><Ionicons name="play-skip-forward" size={18} color={colors.text} /><ThemedText style={{ color: colors.text, flexShrink: 1 }}>Skip Day</ThemedText></Pressable>
+          </View>}
+        </View>
       </View>
 
       {/* Action loading overlay */}
@@ -720,17 +754,15 @@ export default function WorkoutDayDetailScreen() {
         <WorkoutOverviewList sections={sections} colors={colors} disabled={!user || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
           onMove={(id, destination) => void moveOverviewExercise(id, destination)}
           renderItem={(item, controls) => renderWorkoutItem({ item, controls })} renderSectionHeader={(section) => renderSectionHeader({ section })}
-          header={renderListHeader()} contentContainerStyle={styles.listContent}
-          footer={!workout.programActivationId ? <Pressable testID="workout-add-exercise" accessibilityRole="button" accessibilityLabel="Add exercise to this workout" accessibilityHint="Choose an exercise to add only to this workout" disabled={planningLocked || isCheckingLocalWorkout || planningRefreshRequired || isActionLoading || isOrderLoading || isSavingOrder || isStarting}
-            onPress={() => { if (!planningLocked && !isCheckingLocalWorkout && !planningRefreshRequired && !isActionLoading && !isOrderLoading && !isSavingOrder && !isStarting && targetWeekStart) router.push(`/workout/exercise-picker?workoutDayId=${encodeURIComponent(workout.workoutDayId)}&weekStart=${encodeURIComponent(targetWeekStart)}` as Href); }}
-            style={({ pressed }) => ({ minHeight: 52, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: planningLocked || isCheckingLocalWorkout ? 0.45 : pressed ? 0.6 : 1 })}><Ionicons name="add-circle-outline" size={22} color={colors.primaryButton} /><ThemedText style={{ color: colors.primaryButton, fontWeight: "600", flexShrink: 1 }}>Add exercise</ThemedText></Pressable> : null} />
+          header={renderListHeader()} contentContainerStyle={styles.listContent} />
       ) : null}
 
-      {workout && <WorkoutPlanningSheet visible={planningVisible} value={{ planningMode: workoutPlanningMode(workout), timeBudgetMinutes: workoutTimeBudget(workout) }} onClose={() => setPlanningVisible(false)} onApply={handleUpdatePlanning} disabled={planningLocked || isCheckingLocalWorkout || isActionLoading || planningRefreshRequired} />}
+      {renderOverlaySheets()}
 
       {/* Start Workout button */}
       {workout && (
         <View testID="workout-start-footer" style={[styles.startButtonContainer, { backgroundColor: colors.background }]}>
+          {notice?.kind === "success" && <View testID="workout-overview-order-message" pointerEvents="none" style={[styles.successPill, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}><ThemedText accessibilityLiveRegion="polite" style={{ color: colors.icon, fontSize: 14 }}>Order saved</ThemedText></View>}
           <Pressable
             testID="start-workout-button"
             accessibilityRole="button"
@@ -757,12 +789,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -836,9 +868,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-  listHeader: {
-    paddingBottom: 20,
-  },
+  listHeader: { paddingBottom: 8, gap: 8 },
+  successPill: { position: "absolute", bottom: "100%", alignSelf: "center", marginBottom: 8, maxWidth: "90%", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 18, borderWidth: 1 },
+  toolbar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  toolbarText: { fontSize: 14, fontWeight: "600" },
+  modeChip: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 22, flexShrink: 1 },
+  addAction: { minHeight: 44, minWidth: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 8, flexShrink: 1 },
+  infoAction: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 22 },
+  notice: { minHeight: 44, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  noticeText: { fontSize: 14, flex: 1, minWidth: 100 },
+  noticeAction: { minHeight: 44, minWidth: 44, paddingHorizontal: 4, alignItems: "center", justifyContent: "center" },
+  optionsAnchor: { position: "relative", marginLeft: "auto" },
+  optionsMenu: { position: "absolute", top: 48, right: 0, padding: 8, borderRadius: 12, borderWidth: 1, zIndex: 80, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" },
+  optionAction: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
+  optionsBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 50 },
   durationSection: {
     marginBottom: 16,
   },
@@ -992,14 +1035,15 @@ const styles = StyleSheet.create({
   largeTextHeader: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    alignItems: "flex-start",
+    alignItems: "center",
+    flexDirection: "row",
   },
   largeTextBackButton: {
     width: 44,
     height: 44,
   },
   scrollHeading: {
-    paddingBottom: 20,
+    paddingBottom: 8,
     gap: 4,
   },
 });

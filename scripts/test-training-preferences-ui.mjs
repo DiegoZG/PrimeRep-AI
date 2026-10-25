@@ -49,6 +49,7 @@ async function renderScreen(options = {}) {
   const auth = { token: options.token === undefined ? "token-A" : options.token, user: { id: "user-A" } };
   const mocks = {
     react: React,
+    "react-native-reanimated": { useReducedMotion: () => true },
     "@expo/vector-icons": { Ionicons: "Ionicons" },
     "expo-router": { useRouter: () => ({ back: () => calls.routes.push("back") }) },
     "react-native": {
