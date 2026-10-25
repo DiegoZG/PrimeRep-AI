@@ -49,7 +49,7 @@ export function ExerciseListSheet({ visible, inline = false, exercises, currentI
           </View>
           <ScrollView scrollEnabled={!dragging} contentInsetAdjustmentBehavior="automatic" style={{ paddingHorizontal: 12, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
             {scrollingTitle ? <ThemedText accessibilityRole="header" type="defaultSemiBold" style={{ fontSize: 20, paddingHorizontal: 8, marginBottom: 12 }}>Exercises</ThemedText> : null}
-            {canArrange ? <ThemedText style={{ paddingHorizontal: 8, paddingBottom: 12, color: colors.placeholder }}>Drag an exercise or use Move up and Move down. Changes apply to this workout.</ThemedText> : null}
+            {canArrange ? <ThemedText style={{ paddingHorizontal: 8, paddingBottom: 12, color: colors.placeholder }}>Drag an exercise or use the arrows to reorder. Changes apply to this workout.</ThemedText> : null}
             {message ? <ThemedText testID="player-arrangement-message" accessibilityLiveRegion="polite" style={{ paddingHorizontal: 8, paddingBottom: 12 }}>{message}</ThemedText> : null}
             {exercises.map((item, index) => <ExerciseOrderRow key={item.exercise.id} item={item} index={index} count={exercises.length}
               isCurrent={index === currentIndex} colors={colors} progress={getProgress(item.exercise.id)} onSelect={() => onSelect(index)} selectionDisabled={selectionDisabled}
@@ -93,12 +93,12 @@ function ExerciseOrderRow({ item, index, count, isCurrent, colors, progress, onS
       </Pressable>
     </View>
     {enabled ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", flexWrap: "wrap" }}>
-      <RowAction id={`player-move-up-${item.exercise.id}`} label="Move up" accessibilityLabel={`Move ${item.exercise.name} up`} disabled={index === 0} onPress={() => onMove(index - 1)} colors={colors} />
-      <RowAction id={`player-move-down-${item.exercise.id}`} label="Move down" accessibilityLabel={`Move ${item.exercise.name} down`} disabled={index === count - 1} onPress={() => onMove(index + 1)} colors={colors} />
+      <RowAction id={`player-move-up-${item.exercise.id}`} label="Move up" icon="arrow-up" accessibilityLabel={`Move ${item.exercise.name} up`} disabled={index === 0} onPress={() => onMove(index - 1)} colors={colors} />
+      <RowAction id={`player-move-down-${item.exercise.id}`} label="Move down" icon="arrow-down" accessibilityLabel={`Move ${item.exercise.name} down`} disabled={index === count - 1} onPress={() => onMove(index + 1)} colors={colors} />
       {onReplace ? <RowAction id={`player-replace-${item.exercise.id}`} label="Replace" accessibilityLabel={`Replace ${item.exercise.name}`} disabled={!canReplace} onPress={onReplace} colors={colors} /> : null}
     </View> : null}
   </Animated.View>;
 }
-function RowAction({ id, label, accessibilityLabel, disabled, onPress, colors }: { id: string; label: string; accessibilityLabel?: string; disabled: boolean; onPress: () => void; colors: typeof Colors.light }) {
-  return <Pressable testID={id} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 12, justifyContent: "center", opacity: disabled ? 0.45 : pressed ? 0.65 : 1 })}><ThemedText style={{ color: colors.text, fontSize: 14 }}>{label}</ThemedText></Pressable>;
+function RowAction({ id, label, icon, accessibilityLabel, disabled, onPress, colors }: { id: string; label: string; icon?: "arrow-up" | "arrow-down"; accessibilityLabel?: string; disabled: boolean; onPress: () => void; colors: typeof Colors.light }) {
+  return <Pressable testID={id} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minWidth: 44, minHeight: 44, paddingHorizontal: icon ? 0 : 12, alignItems: "center", justifyContent: "center", opacity: disabled ? 0.45 : pressed ? 0.65 : 1 })}>{icon ? <Ionicons name={icon} size={18} color={colors.text} /> : <ThemedText style={{ color: colors.text, fontSize: 14 }}>{label}</ThemedText>}</Pressable>;
 }
