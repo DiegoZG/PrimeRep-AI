@@ -120,7 +120,7 @@ export interface LocalActiveWorkout {
   currentExerciseIndex: number;
   restEndsAt: number | null;
   restTotalSeconds: number;
-  restContext: { exerciseId?: string; exerciseIndex?: number; isLastSetOfExercise: boolean } | null;
+  restContext: { exerciseId?: string; exerciseIndex?: number; isLastSetOfExercise: boolean; suppressAutoAdvance?: boolean } | null;
   revision: number;
   sets: SetState[];
   operations: SequencedWorkoutOperation[];

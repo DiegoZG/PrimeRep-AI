@@ -131,6 +131,14 @@ for (const scheme of ["light", "dark"]) {
     for (const text of tree.root.findAllByType("Text")) assert.equal(text.props.numberOfLines, undefined);
     await act(async () => tree.update(React.createElement(ExerciseListSheet, { ...props, canArrange: false })));
     assert.equal(host(tree, "player-order-handle-row"), undefined); assert.equal(host(tree, "player-replace-row"), undefined);
+    const rows = tree.root.findAllByType("Pressable").filter((node) => node.props.testID === "player-sheet-exercise-row");
+    for (const row of rows) { assert.equal(row.props.disabled, false); assert.ok(row.props.style.minHeight >= 44); }
+    await act(async () => rows[1].props.onPress()); assert.deepEqual(calls.findLast((call) => call[0] === "select"), ["select", 1]);
+    const heading = tree.root.findAllByType("Text").find((node) => textOf(node) === "Exercises");
+    let scroller = heading; while (scroller && scroller.type !== "ScrollView") scroller = scroller.parent; assert.ok(scroller);
+    assert.ok(host(tree, "player-sheet-close").props.style.minHeight >= 44);
+    await act(async () => tree.update(React.createElement(ExerciseListSheet, { ...props, selectionDisabled: true })));
+    for (const row of tree.root.findAllByType("Pressable").filter((node) => node.props.testID === "player-sheet-exercise-row")) assert.equal(row.props.accessibilityState.disabled, true);
     await act(async () => tree.unmount());
   });
 }

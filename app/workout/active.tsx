@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Alert, AppState, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseInfoSheet } from "@/components/workout/ExerciseInfoSheet";
@@ -305,6 +305,14 @@ export default function ActiveWorkoutScreen() {
   const [finishStatus, setFinishStatus] = useState<"idle" | "syncing" | "pendingOffline" | "pendingSets" | "failed">("idle");
   const [isRestoring, setIsRestoring] = useState(true);
   const [clientSessionId, setClientSessionId] = useState(createClientId);
+  const navigationKey = `${user?.id ?? "guest"}:${requestedSessionId ?? workout?.workoutDayId ?? "new"}:${clientSessionId}`;
+  const navigationIdentityRef = useRef({ key: navigationKey, epoch: 0 });
+  if (navigationIdentityRef.current.key !== navigationKey) navigationIdentityRef.current = { key: navigationKey, epoch: navigationIdentityRef.current.epoch + 1 };
+  const navigationEpoch = navigationIdentityRef.current.epoch;
+  const navigationRevisionRef = useRef(0), navigationMountedRef = useRef(true), navigationBlockedRef = useRef(true);
+  const arrangementBusyRef = useRef<() => boolean>(() => true);
+  const navigationSnapshotRef = useRef<() => LocalActiveWorkout | null>(() => null);
+  const manualNavigationRef = useRef<(exerciseId: string) => void>(() => {});
   const [startedAt, setStartedAt] = useState(Date.now);
   const [operations, setOperations] = useState<PendingWorkoutOperation[]>([]);
   const hasPendingReplacement = operations.some((operation) => operation.type === "replace");
@@ -548,12 +556,20 @@ export default function ActiveWorkoutScreen() {
   const [currentExerciseId, setCurrentExerciseId] = useState<string | null>(null);
   const currentExerciseIndex = Math.max(0, exercises.findIndex((item) => item.exercise.id === currentExerciseId));
   const setCurrentExerciseIndex = useCallback((next: number | ((index: number) => number)) => {
+    if (navigationIdentityRef.current.epoch !== navigationEpoch) return;
     const index = typeof next === "function" ? next(currentExerciseIndex) : next;
-    setCurrentExerciseId(exercises[index]?.exercise.id ?? exercises[0]?.exercise.id ?? null);
-  }, [currentExerciseIndex, exercises]);
+    const id = exercises[index]?.exercise.id;
+    if (id) manualNavigationRef.current(id);
+  }, [currentExerciseIndex, exercises, navigationEpoch]);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const sheetVisibleRef = useRef(sheetVisible); sheetVisibleRef.current = sheetVisible;
+  const exerciseOverlayVisibleRef = useRef(false);
+  const chooseExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null), listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const listFocusRef = useRef<{ epoch: number; target: React.ElementRef<typeof Pressable> | null } | null>(null);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
+  const currentExerciseRef = useRef(currentItem?.exercise.id); currentExerciseRef.current = currentItem?.exercise.id;
+  const exercisesRef = useRef(exercises); exercisesRef.current = exercises;
   const currentEquipmentIds = currentItem?.exercise.requiredEquipmentIds ?? [];
   const weightColumnLabel = currentItem?.exercise.loadProfile?.implement_count === 1 ? "Weight" : currentEquipmentIds.includes("dumbbells")
     ? "Weight each"
@@ -602,12 +618,61 @@ export default function ActiveWorkoutScreen() {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restTotalSeconds, setRestTotalSeconds] = useState(0);
   const [restContext, setRestContext] = useState<RestContext | null>(null);
+  const restStateRef = useRef({ endsAt: restEndsAt, context: restContext });
+  restStateRef.current = { endsAt: restEndsAt, context: restContext };
   const [pendingTransition, setPendingTransition] = useState<{
+    sourceExerciseId: string;
+    epoch: number;
     nextExerciseId: string;
     nextName: string;
   } | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTransitionRef = useRef(pendingTransition); pendingTransitionRef.current = pendingTransition;
   const restoredWorkoutKey = useRef<string | null>(null);
+  const cancelExerciseTransition = useCallback(() => {
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = null;
+    pendingTransitionRef.current = null;
+    setPendingTransition(null);
+  }, []);
+  useEffect(() => {
+    navigationMountedRef.current = true;
+    return () => { navigationMountedRef.current = false; navigationIdentityRef.current.epoch += 1; if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current); };
+  }, []);
+  useEffect(() => { cancelExerciseTransition(); setSheetVisible(false); listFocusRef.current = null; }, [navigationEpoch, cancelExerciseTransition]);
+  const selectExercise = useCallback((exerciseId: string) => {
+    if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current || isTerminalRef.current || operationsRef.current.some((operation) => operation.type === "replace")) return;
+    const snapshot = navigationSnapshotRef.current();
+    const index = exercisesRef.current.findIndex((item) => item.exercise.id === exerciseId);
+    if (!snapshot || index < 0 || snapshot.userId !== accountRef.current) return;
+    const context = restStateRef.current.context ? { ...restStateRef.current.context, suppressAutoAdvance: true } : null;
+    navigationRevisionRef.current += 1;
+    cancelExerciseTransition(); Keyboard.dismiss();
+    currentExerciseRef.current = exerciseId;
+    restStateRef.current = { ...restStateRef.current, context };
+    sheetVisibleRef.current = false;
+    setCurrentExerciseId(exerciseId); setRestContext(context); setSheetVisible(false); setSaveMessage("");
+    snapshot.currentExerciseId = exerciseId; snapshot.currentExerciseIndex = index; snapshot.restContext = context; snapshot.restEndsAt = restStateRef.current.endsAt;
+    snapshot.revision = ++workoutRevisionRef.current;
+    void saveActiveWorkout(snapshot, () => navigationMountedRef.current && navigationIdentityRef.current.epoch === navigationEpoch).then(() => {
+      if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch) return;
+      setPersistedRevision((revision) => revision + 1);
+    }).catch(() => { if (navigationMountedRef.current && navigationIdentityRef.current.epoch === navigationEpoch) setStorageError(true); });
+  }, [navigationEpoch, cancelExerciseTransition]);
+  manualNavigationRef.current = selectExercise;
+  const openExerciseList = useCallback((target: React.ElementRef<typeof Pressable> | null) => {
+    if (navigationIdentityRef.current.epoch !== navigationEpoch || navigationBlockedRef.current || arrangementBusyRef.current() || savingEntriesRef.current || isFinishingRef.current) return;
+    Keyboard.dismiss(); listFocusRef.current = { epoch: navigationEpoch, target }; sheetVisibleRef.current = true; setSheetVisible(true);
+  }, [navigationEpoch]);
+  const restoreExerciseListFocus = useCallback(() => {
+    const saved = listFocusRef.current;
+    if (!saved) return;
+    if (!navigationMountedRef.current || saved.epoch !== navigationIdentityRef.current.epoch) { listFocusRef.current = null; return; }
+    if (sheetVisibleRef.current || exerciseOverlayVisibleRef.current) return;
+    listFocusRef.current = null;
+    if (!saved.target) return;
+    if (typeof findNodeHandle === "function" && typeof AccessibilityInfo?.setAccessibilityFocus === "function") { const node = findNodeHandle(saved.target); if (node) AccessibilityInfo.setAccessibilityFocus(node); }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -729,11 +794,12 @@ export default function ActiveWorkoutScreen() {
   }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, finishStatus, isRestoring, user, workout, sets, clientSessionId, sessionId, startedAt, currentExerciseIndex, restEndsAt, restTotalSeconds, restContext, operations, workoutNote, exerciseFeedback, exerciseNotes]);
 
   const replayPendingWrites = useCallback(async () => {
-    if (!token || !user || replayInFlightRef.current || savingEntriesRef.current || isFinishingRef.current) return;
+    if (!token || !user || navigationIdentityRef.current.epoch !== navigationEpoch || replayInFlightRef.current || savingEntriesRef.current || isFinishingRef.current) return;
+    const selectedRevision = navigationRevisionRef.current;
     replayInFlightRef.current = true;
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
-      if (accountRef.current !== user.id) return;
+      if (accountRef.current !== user.id || navigationIdentityRef.current.epoch !== navigationEpoch) return;
       if (!result.workout) return;
       if (isFinishingRef.current && !result.completed && !result.abandoned) return;
       if (isContinuingRef.current && !result.completed && !result.abandoned) return;
@@ -743,7 +809,7 @@ export default function ActiveWorkoutScreen() {
       if (result.workout.effectiveWorkout) setSnapshotWorkout(result.workout.effectiveWorkout);
       if (result.workout.workoutSnapshot) setOriginalWorkout(result.workout.workoutSnapshot);
       setArrangementRevision(result.workout.arrangementRevision); setTargetReviewExerciseIds(result.workout.targetReviewExerciseIds);
-      if (result.workout.currentExerciseId) setCurrentExerciseId(result.workout.currentExerciseId);
+      if (result.workout.currentExerciseId && navigationRevisionRef.current === selectedRevision) setCurrentExerciseId(result.workout.currentExerciseId);
       const conflictOperations = result.workout.operations.filter(
         (operation): operation is Extract<PendingWorkoutOperation, { type: "update_set" }> =>
           operation.type === "update_set" && operation.status === "failed" && operation.payload.conflict === true
@@ -812,7 +878,7 @@ export default function ActiveWorkoutScreen() {
         setOperations((current) => [...current]);
       }
     }
-  }, [token, user, markWorkoutTerminal, weightUnit]);
+  }, [token, user, markWorkoutTerminal, weightUnit, navigationEpoch]);
 
   const retryAt = useMemo(() => Math.min(
     ...operations
@@ -877,62 +943,58 @@ export default function ActiveWorkoutScreen() {
     return () => subscription.remove();
   }, [retryFailedWrites]);
 
-  const isRestingCurrentExercise =
-    restEndsAt !== null && (restContext?.exerciseId ?? exercises[restContext?.exerciseIndex ?? -1]?.exercise.id) === currentItem?.exercise.id;
-
-  const finishRest = useCallback(() => {
+  const restingExercise = exercises.find((item) => item.exercise.id === restContext?.exerciseId) ?? exercises[restContext?.exerciseIndex ?? -1];
+  const finishRest = useCallback((deadline: number | null) => {
+    if (!navigationMountedRef.current || navigationIdentityRef.current.epoch !== navigationEpoch || restStateRef.current.endsAt !== deadline || deadline === null) return false;
+    const ctx = restStateRef.current.context;
+    restStateRef.current = { endsAt: null, context: null };
     setRestEndsAt(null);
-    setRestContext((ctx) => {
-      if (ctx?.isLastSetOfExercise) {
-        const nextIndex = exercises.findIndex((item) => item.exercise.id === (ctx.exerciseId ?? exercises[ctx.exerciseIndex ?? -1]?.exercise.id)) + 1;
-        if (nextIndex < exercises.length) {
-          setPendingTransition({ nextExerciseId: exercises[nextIndex].exercise.id, nextName: exercises[nextIndex].exercise.name });
-        }
-      }
-      return null;
-    });
-  }, [exercises]);
+    setRestContext(null);
+    const sourceId = ctx?.exerciseId ?? exercisesRef.current[ctx?.exerciseIndex ?? -1]?.exercise.id;
+    const sourceIndex = exercisesRef.current.findIndex((item) => item.exercise.id === sourceId);
+    const next = exercisesRef.current[sourceIndex + 1];
+    if (ctx?.isLastSetOfExercise && !ctx.suppressAutoAdvance && sourceIndex >= 0 && sourceId === currentExerciseRef.current && next) {
+      const transition = { sourceExerciseId: sourceId, epoch: navigationEpoch, nextExerciseId: next.exercise.id, nextName: next.exercise.name };
+      pendingTransitionRef.current = transition; setPendingTransition(transition);
+    }
+    return true;
+  }, [navigationEpoch]);
 
   useEffect(() => {
     setPendingTransition((current) => {
       if (!current) return null;
+      if (current.epoch !== navigationEpoch || current.sourceExerciseId !== currentItem?.exercise.id) { pendingTransitionRef.current = null; return null; }
       const next = exercises[currentExerciseIndex + 1];
-      if (!next) return null;
-      return current.nextExerciseId === next.exercise.id ? current : { nextExerciseId: next.exercise.id, nextName: next.exercise.name };
+      if (!next) { pendingTransitionRef.current = null; return null; }
+      return current.nextExerciseId === next.exercise.id ? current : { ...current, nextExerciseId: next.exercise.id, nextName: next.exercise.name };
     });
-  }, [exercises, currentExerciseIndex]);
+  }, [exercises, currentExerciseIndex, currentItem, navigationEpoch]);
 
-  const handleRestExpire = useCallback(() => {
-    playRestEndFeedback();
-    finishRest();
+  const handleRestExpire = useCallback((deadline: number) => {
+    if (finishRest(deadline)) playRestEndFeedback();
   }, [playRestEndFeedback, finishRest]);
 
   const handleRestSkip = useCallback(() => {
-    finishRest();
+    finishRest(restStateRef.current.endsAt);
   }, [finishRest]);
 
   const adjustRest = useCallback((deltaSeconds: number) => {
-    setRestEndsAt((prev) => (prev === null ? prev : prev + deltaSeconds * 1000));
+    const deadline = restStateRef.current.endsAt;
+    const next = deadline === null ? null : deadline + deltaSeconds * 1000;
+    restStateRef.current = { ...restStateRef.current, endsAt: next }; setRestEndsAt(next);
   }, []);
 
-  const handleContinueTransition = useCallback(() => {
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-      transitionTimeoutRef.current = null;
-    }
-    setPendingTransition((current) => {
-      if (!current) return null;
-      setCurrentExerciseId(current.nextExerciseId);
-      return null;
-    });
+  const handleContinueTransition = useCallback((expected = pendingTransitionRef.current) => {
+    if (!expected || pendingTransitionRef.current !== expected || expected.epoch !== navigationIdentityRef.current.epoch || expected.sourceExerciseId !== currentExerciseRef.current || navigationBlockedRef.current || arrangementBusyRef.current() || sheetVisibleRef.current) return;
+    manualNavigationRef.current(expected.nextExerciseId);
   }, []);
 
   // Auto-advance the "Next up" transition after a short delay; the user can
   // also tap Continue to skip the wait.
   useEffect(() => {
-    if (!pendingTransition) return;
+    if (!pendingTransition || sheetVisible) return;
     transitionTimeoutRef.current = setTimeout(() => {
-      handleContinueTransition();
+      handleContinueTransition(pendingTransition);
     }, 2200);
     return () => {
       if (transitionTimeoutRef.current) {
@@ -940,7 +1002,7 @@ export default function ActiveWorkoutScreen() {
         transitionTimeoutRef.current = null;
       }
     };
-  }, [pendingTransition, handleContinueTransition]);
+  }, [pendingTransition, handleContinueTransition, sheetVisible]);
 
   // ── Set input handlers ─────────────────────────────────────────────────────
 
@@ -1442,6 +1504,13 @@ export default function ActiveWorkoutScreen() {
   }, []);
   const arrangement = useWorkoutArrangement({ token, userId: user?.id, sessionKey: `${requestedSessionId ?? workout?.workoutDayId ?? "new"}:${clientSessionId}`, snapshot: arrangementSnapshot, apply: applyArrangement, persist: persistArrangementSnapshot });
   const pendingArrangement = operations.find((operation) => operation.type === "order" || operation.type === "replace");
+  const exerciseSelectionDisabled = isRestoring || isResolvingSession || finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement || isExiting || didComplete;
+  navigationBlockedRef.current = exerciseSelectionDisabled;
+  arrangementBusyRef.current = arrangement.isBusy;
+  navigationSnapshotRef.current = arrangementSnapshot;
+  const exerciseOverlayVisible = sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance);
+  exerciseOverlayVisibleRef.current = exerciseOverlayVisible;
+  useEffect(() => { if (Platform.OS === "android" && !exerciseOverlayVisible) restoreExerciseListFocus(); }, [exerciseOverlayVisible, restoreExerciseListFocus]);
 
   // ── Loading / error states ─────────────────────────────────────────────────
 
@@ -1569,7 +1638,8 @@ export default function ActiveWorkoutScreen() {
         </Pressable>
         {!expandedLayout ? <Pressable
           style={{ flex: 1, alignItems: "center" }}
-          onPress={() => setSheetVisible(true)}
+          disabled={exerciseSelectionDisabled}
+          onPress={() => openExerciseList(listExerciseTrigger.current)}
         >
           <ThemedText type="defaultSemiBold">{workout.title}</ThemedText>
           <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
@@ -1579,9 +1649,12 @@ export default function ActiveWorkoutScreen() {
         </Pressable> : null}
         <Pressable
           testID="player-exercise-list-button"
+          ref={listExerciseTrigger}
           accessibilityRole="button"
           accessibilityLabel="Open exercise list"
-          onPress={() => setSheetVisible(true)}
+          accessibilityState={{ disabled: exerciseSelectionDisabled }}
+          disabled={exerciseSelectionDisabled}
+          onPress={() => openExerciseList(listExerciseTrigger.current)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
         >
@@ -1593,7 +1666,8 @@ export default function ActiveWorkoutScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Open exercise list for ${workout.title}`}
           style={{ minHeight: 44, alignItems: "center", paddingHorizontal: 20, paddingBottom: 12 }}
-          onPress={() => setSheetVisible(true)}
+          disabled={exerciseSelectionDisabled}
+          onPress={() => openExerciseList(listExerciseTrigger.current)}
         >
           <ThemedText type="defaultSemiBold" style={{ textAlign: "center" }}>{workout.title}</ThemedText>
           <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
@@ -1721,7 +1795,7 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
             <Pressable
               testID="player-next-exercise"
-              onPress={handleContinueTransition}
+              onPress={() => handleContinueTransition()}
               style={{
                 backgroundColor: colors.primaryButton,
                 paddingHorizontal: 32,
@@ -1780,6 +1854,11 @@ export default function ActiveWorkoutScreen() {
                 </ThemedText>
               </View>
             </View>
+            <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
+              accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
+              style={{ alignSelf: "flex-start", maxWidth: "100%", minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10, paddingHorizontal: 12, marginTop: -8, marginBottom: 16, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
+              <Ionicons name="list" size={20} color={colors.text} /><ThemedText style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>Choose exercise</ThemedText>
+            </Pressable>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: -8, marginBottom: 12 }}>
               {([
                 { id: "player-workout-note", label: "Workout note", icon: "document-text-outline", action: openWorkoutNoteEditor },
@@ -1822,14 +1901,15 @@ export default function ActiveWorkoutScreen() {
               </View>
             ) : null}
 
-            {isRestingCurrentExercise && restEndsAt !== null ? (
+            {restEndsAt !== null ? (
               <RestTimer
                 restEndsAt={restEndsAt}
                 totalSeconds={restTotalSeconds}
+                exerciseName={restingExercise?.exercise.id !== currentItem.exercise.id ? restingExercise?.exercise.name : undefined}
                 colors={colors}
                 onAdjust={adjustRest}
                 onSkip={handleRestSkip}
-                onExpire={handleRestExpire}
+                onExpire={() => handleRestExpire(restEndsAt)}
                 disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
               />
             ) : null}
@@ -1978,7 +2058,7 @@ export default function ActiveWorkoutScreen() {
         {pendingArrangement.type === "replace" && pendingArrangement.payload.conflict ? <Pressable testID="player-replacement-use-server" accessibilityRole="button" disabled={arrangement.busy} onPress={arrangement.dismissPending} style={{ minHeight: 44, justifyContent: "center" }}><ThemedText type="defaultSemiBold">Use latest saved workout</ThemedText></Pressable> : null}
       </View> : null}
       {arrangement.message && !sheetVisible ? <ThemedText accessibilityLiveRegion="polite" style={{ paddingHorizontal: 20, paddingVertical: 6 }}>{arrangement.message}</ThemedText> : null}
-      <Modal transparent animationType="slide" visible={sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance)} onRequestClose={() => {
+      <Modal transparent animationType="slide" onDismiss={restoreExerciseListFocus} visible={sheetVisible || infoSheetVisible || Boolean(arrangement.review || arrangement.picker || arrangement.guidance)} onRequestClose={() => {
         if (arrangement.busy) return;
         if (arrangement.guidance) arrangement.setGuidance(null);
         else if (infoSheetVisible) setInfoSheetVisible(false);
@@ -1992,6 +2072,7 @@ export default function ActiveWorkoutScreen() {
         exercises={exercises}
         canArrange={arrangementRevision != null && finishStatus === "idle"}
         busy={arrangement.busy || isSavingEntries || isRestoring}
+        selectionDisabled={exerciseSelectionDisabled}
         message={arrangement.message}
         onMove={arrangement.move}
         onReplace={arrangement.openReplacement}
@@ -2001,8 +2082,8 @@ export default function ActiveWorkoutScreen() {
         colors={colors}
         getProgress={getExerciseProgress}
         onSelect={(index) => {
-          setCurrentExerciseIndex(index);
-          setSheetVisible(false);
+          const id = exercises[index]?.exercise.id;
+          if (id) selectExercise(id);
         }}
         onClose={() => setSheetVisible(false)}
       />
