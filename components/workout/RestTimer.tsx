@@ -10,6 +10,7 @@ interface RestTimerProps {
   restEndsAt: number;
   /** Original rest duration in seconds, used as the progress bar denominator. */
   totalSeconds: number;
+  exerciseName?: string;
   colors: typeof Colors.light;
   onAdjust: (deltaSeconds: number) => void;
   onSkip: () => void;
@@ -32,6 +33,7 @@ function formatCountdown(totalSeconds: number): string {
 export function RestTimer({
   restEndsAt,
   totalSeconds,
+  exerciseName,
   colors,
   onAdjust,
   onSkip,
@@ -102,7 +104,7 @@ export function RestTimer({
           marginBottom: 4,
         }}
       >
-        Resting
+        {exerciseName ? `Resting · ${exerciseName}` : "Resting"}
       </ThemedText>
 
       <ThemedText

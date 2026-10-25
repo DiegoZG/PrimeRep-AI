@@ -162,5 +162,6 @@ export function useWorkoutArrangement({ token, userId, sessionKey, snapshot, app
     await save(adoptSessionArrangement({ ...local, targetReviewExerciseIds: null, operations: local.operations.filter((operation) => !(operation.type === "order" && (operation.payload.conflict || (operation.attempts ?? 0) === 0)) && !(operation.type === "replace" && operation.payload.conflict)) }, server), guard);
     setReview(null); setMessage("Latest saved workout restored.");
   }), [run, persist, userId, token, save]);
-  return { busy, message, review, setReview, picker, setPicker, guidance, setGuidance, move, reviewPending, applyOrder, openReplacement, confirmReplacement, dismissPending };
+  const isBusy = useCallback(() => lock.current, []);
+  return { busy, isBusy, message, review, setReview, picker, setPicker, guidance, setGuidance, move, reviewPending, applyOrder, openReplacement, confirmReplacement, dismissPending };
 }

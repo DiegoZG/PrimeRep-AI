@@ -44,4 +44,5 @@ export interface RestContext {
   exerciseId?: string;
   exerciseIndex?: number;
   isLastSetOfExercise: boolean;
+  suppressAutoAdvance?: boolean;
 }
