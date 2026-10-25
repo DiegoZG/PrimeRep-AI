@@ -41,7 +41,7 @@ async function player(options = {}) {
     replaceSessionExercise: async (...args) => { calls.push(["replace", ...args]); replacementStarted.resolve(); await replacementResponse.promise; server = { ...server, arrangementRevision: server.arrangementRevision + 1, effectiveWorkout: api({ ...workout, blocks: workout.blocks.map((block) => ({ ...block, items: block.items.map((entry) => entry.exercise.id === "bench" ? item("fly") : entry) })) }) }; return copy(server); },
   };
   class HttpError extends Error { constructor(message, status) { super(message); this.status = status; } }
-  const mocks = { react: React, "react-native": native, "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-av": { Audio: { Sound: { createAsync: async () => ({ sound: { unloadAsync: async () => {}, replayAsync: async () => {} } }) } } }, "expo-status-bar": { StatusBar: "StatusBar" },
+  const mocks = { react: React, "react-native": native, "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-image": { Image: "Image" }, "expo-av": { Audio: { Sound: { createAsync: async () => ({ sound: { unloadAsync: async () => {}, replayAsync: async () => {} } }) } } }, "expo-status-bar": { StatusBar: "StatusBar" },
     "expo-router": { useRouter: () => router, useLocalSearchParams: () => route }, "expo-haptics": { notificationAsync: async () => {}, impactAsync: async () => {}, NotificationFeedbackType: { Success: "success" }, ImpactFeedbackStyle: { Medium: "medium" } },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView", useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/hooks/use-workout-week": { useWorkoutWeek: () => week },
     "@/utils/authContext": { AuthContext }, "@/utils/equipmentWeightsContext": { EquipmentWeightsContext }, "@/utils/activeWorkoutContext": { useActiveWorkout: () => activeWorkout },
@@ -299,6 +299,7 @@ test("all exercises shows every editable card and logs the touched exercise", as
   for (const id of ["incline", "bench", "row", "raise"]) assert.ok(host(view.tree, `player-all-card-${id}`));
   assert.deepEqual(view.calls.filter((call) => call[0] === "noteRead").map((call) => call[1]).sort(), ["bench", "incline", "raise", "row"]);
   assert.equal(view.tree.root.findAllByType("SetInputRow").length, 14);
+  assert.ok(host(view.tree, "player-all-thumb-bench"));
   assert.equal(inputFor(view, "bench").props.compact, true);
   assert.ok(host(view.tree, "player-add-set-bench"));
   assert.ok(host(view.tree, "player-exercise-note-bench"));
@@ -321,6 +322,20 @@ test("all exercises shows every editable card and logs the touched exercise", as
   assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.ok(inputFor(view, "row"));
+  await act(async () => view.tree.unmount());
+});
+
+test("all exercise thumbnail shows supplied image and falls back when it fails", async () => {
+  const withImage = copy(workout);
+  withImage.blocks[0].items[1].exercise.imageUrl = "https://example.com/bench.png";
+  const view = await player({ layout: "all", server: { effectiveWorkout: api(withImage), workoutSnapshot: api(withImage) },
+    local: (local) => ({ ...local, effectiveWorkout: withImage, workoutSnapshot: withImage }) });
+  const thumb = host(view.tree, "player-all-thumb-bench");
+  const photo = thumb.findByType("Image");
+  assert.equal(photo.props.source.uri, "https://example.com/bench.png");
+  await act(async () => photo.props.onError());
+  assert.equal(thumb.findAllByType("Image").length, 0);
+  assert.ok(thumb.findAllByType("Text").length > 0);
   await act(async () => view.tree.unmount());
 });
 

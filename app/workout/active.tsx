@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -66,6 +67,18 @@ function formatTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function ExerciseThumbnail({ exercise, colors }: { exercise: WorkoutItem["exercise"]; colors: typeof Colors.light }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initials = exercise.name.split(/[\s-]+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+  return <View testID={`player-all-thumb-${exercise.id}`} accessible={false}
+    style={{ width: 40, height: 40, borderRadius: 10, overflow: "hidden", backgroundColor: colors.inputBackground,
+      borderWidth: 1, borderColor: colors.inputBorder, alignItems: "center", justifyContent: "center" }}>
+    {exercise.imageUrl && !imageFailed ? <Image source={{ uri: exercise.imageUrl }} style={{ width: "100%", height: "100%" }}
+      contentFit="cover" accessible={false} onError={() => setImageFailed(true)} />
+      : <ThemedText allowFontScaling={false} accessible={false} style={{ fontSize: 13, fontWeight: "600", color: colors.placeholder }}>{initials}</ThemedText>}
+  </View>;
 }
 
 function findHistoryForSet(history: LastSet[] | undefined, setNumber: number): LastSet | undefined {
@@ -1820,6 +1833,7 @@ export default function ActiveWorkoutScreen() {
           accessibilityState={{ expanded: !collapsed, disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled}
           onPress={() => { if (!activateExerciseForAll(exerciseId)) return; setCollapsedExercises((current) => ({ ...current, [exerciseId]: !current[exerciseId] })); }}
           style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {fontScale <= 2 ? <ExerciseThumbnail key={item.exercise.imageUrl ?? exerciseId} exercise={item.exercise} colors={colors} /> : null}
           <View style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold" style={{ fontSize: 18, flexShrink: 1 }}>{index + 1}. {item.exercise.name}</ThemedText>
             <ThemedText style={{ fontSize: 13, color: colors.placeholder }}>
