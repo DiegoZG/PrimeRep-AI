@@ -76,6 +76,24 @@ for (const [name, fields, icon, label] of [
   }
 });
 
+test("a logged row keeps its input borders and previous-result height", async () => {
+  let tree;
+  const props = { setRow: base, colors: palette, weightUnit: "LB", lastTimeHint: "40 lb × 8", compact: true,
+    onUpdate() {}, onConfirm() {}, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {} };
+  await act(async () => { tree = create(React.createElement(SetInputRow, props)); });
+  const inputBefore = tree.root.findByProps({ testID: "player-weight-input-squat-1" });
+  const hintBefore = tree.root.findAllByType("WorkoutText").find((node) => String(node.props.children).includes("Last time:"));
+  assert.equal(inputBefore.props.style.borderWidth, 1);
+  assert.equal(hintBefore.props.style.opacity, 1);
+  await act(async () => tree.update(React.createElement(SetInputRow, { ...props, setRow: { ...base, confirmed: true } })));
+  const inputAfter = tree.root.findByProps({ testID: "player-weight-input-squat-1" });
+  const hintAfter = tree.root.findAllByType("WorkoutText").find((node) => String(node.props.children).includes("Last time:"));
+  assert.equal(inputAfter.props.style.borderWidth, inputBefore.props.style.borderWidth);
+  assert.equal(hintAfter.props.style.lineHeight, hintBefore.props.style.lineHeight);
+  assert.equal(hintAfter.props.style.opacity, 0);
+  await act(async () => tree.unmount());
+});
+
 test("an empty added set offers removal until the user enters a value", async () => {
   let removed = null;
   let confirmed = null;

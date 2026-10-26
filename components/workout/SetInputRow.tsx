@@ -56,7 +56,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   const statusIcon: React.ComponentProps<typeof Ionicons>["name"] = needsAttention ? "alert-circle-outline"
     : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : "ellipse-outline";
   const inputStyle = {
-    minHeight: 44, flex: 1, borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder,
+    minHeight: 44, flex: 1, borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
     fontFamily: Fonts.sans, fontWeight: "600" as const, color: colors.text,
     backgroundColor: logged ? "transparent" : colors.background,
@@ -161,7 +161,8 @@ export const SetInputRow = React.memo(function SetInputRow({
         onPress={onRetry} style={{ minHeight: 44, marginLeft: 36, justifyContent: "center" }}>
         <ThemedText style={{ fontSize: 13, fontWeight: "600" }}>Retry sync</ThemedText>
       </Pressable> : null}
-      {!confirmed && lastTimeHint ? <ThemedText style={{ fontSize: 12, lineHeight: 18, color: secondaryColor, marginLeft: 36, marginTop: 2 }}>
+      {lastTimeHint ? <ThemedText accessibilityElementsHidden={confirmed} importantForAccessibility={confirmed ? "no-hide-descendants" : "auto"}
+        style={{ fontSize: 12, lineHeight: 18, color: secondaryColor, marginLeft: 36, marginTop: 2, opacity: confirmed ? 0 : 1 }}>
         Last time: {lastTimeHint}{progressionTag ? ` · ${progressionTag}` : ""}
       </ThemedText> : null}
 

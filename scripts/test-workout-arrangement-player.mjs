@@ -315,8 +315,12 @@ test("all exercises shows every editable card and logs the touched exercise", as
   assert.equal(saved.restContext.exerciseId, "row");
   assert.equal(view.calls.some((call) => call[0] === "log" && call[1] === "bench"), false);
   assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  assert.equal(rest(view).props.compact, true);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByType("RestTimer").length, 0);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-save-confirmation" }).length, 0);
   await act(async () => rest(view).props.onExpire());
   assert.ok(host(view.tree, "player-all-rest-done"));
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-all-rest-done" }).length, 0);
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
@@ -451,6 +455,8 @@ test("all exercises keeps one rest timer and uses a nonblocking expiry notice", 
   const snapshot = await view.store.loadActiveWorkout("A");
   assert.equal(snapshot.restEndsAt, deadline); assert.equal(snapshot.restContext.suppressAutoAdvance, true);
   assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  assert.equal(rest(view).props.compact, true);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByType("RestTimer").length, 0);
   await act(async () => rest(view).props.onExpire());
   assert.ok(host(view.tree, "player-all-rest-done")); assert.ok(host(view.tree, "player-all-card-bench"));
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);

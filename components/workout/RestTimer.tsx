@@ -16,6 +16,7 @@ interface RestTimerProps {
   onSkip: () => void;
   onExpire: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 function formatCountdown(totalSeconds: number): string {
@@ -39,6 +40,7 @@ export function RestTimer({
   onSkip,
   onExpire,
   disabled,
+  compact = false,
 }: RestTimerProps) {
   const [remainingMs, setRemainingMs] = useState(() =>
     Math.max(0, restEndsAt - Date.now())
@@ -82,26 +84,28 @@ export function RestTimer({
 
   return (
     <View
+      testID={compact ? "player-sticky-rest" : undefined}
       style={{
-        borderRadius: 12,
+        borderRadius: compact ? 0 : 12,
         borderWidth: 1,
         borderColor: colors.inputBorder,
         backgroundColor: colors.inputBackground,
-        padding: 12,
-        marginBottom: 16,
+        paddingHorizontal: compact ? 20 : 12,
+        paddingVertical: compact ? 8 : 12,
+        marginBottom: compact ? 0 : 16,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12 }}>
-      <View style={{ flex: 1, minWidth: 80 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12, rowGap: compact ? 4 : 0 }}>
+      <View style={{ flex: 1, minWidth: compact ? 120 : 80 }}>
       <ThemedText
         style={{
-          fontSize: 12,
+          fontSize: compact ? 11 : 12,
           fontWeight: "600",
           fontFamily: Fonts.sans,
           color: colors.placeholder,
           textTransform: "uppercase",
           letterSpacing: 0.5,
-          marginBottom: 4,
+          marginBottom: compact ? 0 : 4,
         }}
       >
         {exerciseName ? `Resting · ${exerciseName}` : "Resting"}
@@ -109,7 +113,7 @@ export function RestTimer({
 
       <ThemedText
         style={{
-          fontSize: 28,
+          fontSize: compact ? 22 : 28,
           fontWeight: "700",
           fontFamily: Fonts.sans,
           color: colors.text,
@@ -124,7 +128,7 @@ export function RestTimer({
       </View>
 
       {/* Adjust + skip controls */}
-      <View style={{ flexDirection: "row", gap: 6 }}>
+      <View style={{ flexDirection: "row", flexWrap: compact ? "wrap" : "nowrap", gap: 6, maxWidth: "100%" }}>
         <Pressable
           onPress={() => onAdjust(-15)}
           disabled={disabled}
@@ -133,11 +137,12 @@ export function RestTimer({
           accessibilityLabel="Reduce rest by 15 seconds"
           style={{
             minHeight: 44,
+            minWidth: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -159,9 +164,10 @@ export function RestTimer({
           accessibilityLabel="Skip rest"
           style={{
             minHeight: 44,
+            minWidth: 44,
             alignItems: "center",
             justifyContent: "center",
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -181,11 +187,12 @@ export function RestTimer({
           accessibilityLabel="Extend rest by 15 seconds"
           style={{
             minHeight: 44,
+            minWidth: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -199,7 +206,7 @@ export function RestTimer({
         </Pressable>
       </View>
       </View>
-      <View style={{ height: 3, borderRadius: 2, backgroundColor: colors.inputBorder, overflow: "hidden", marginTop: 10 }}>
+      <View style={{ height: compact ? 2 : 3, borderRadius: 2, backgroundColor: colors.inputBorder, overflow: "hidden", marginTop: compact ? 5 : 10 }}>
         <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: colors.primaryButton }} />
       </View>
     </View>

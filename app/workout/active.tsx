@@ -239,7 +239,7 @@ export default function ActiveWorkoutScreen() {
   const expandedLayout = fontScale > 1.3 || height - insets.top - insets.bottom < 480;
   const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
-  const colors = { ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" };
+  const colors = useMemo(() => ({ ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" }), [colorScheme]);
   const { token, user } = useContext(AuthContext);
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
@@ -2049,6 +2049,8 @@ export default function ActiveWorkoutScreen() {
                 color: !canFinish ? colors.placeholder : emphasizeFinish ? "#FFFFFF" : colors.text,
                 fontSize: 16,
                 textAlign: "center",
+                maxWidth: "100%",
+                flexShrink: 1,
               }}
             >
               {finishStatus === "idle" ? `Finish Workout (${confirmedCount}/${totalSets})` : "Retry Finish"}
@@ -2120,22 +2122,8 @@ export default function ActiveWorkoutScreen() {
               <ThemedText style={{ fontSize: 14 }}>Workout note</ThemedText>
             </Pressable>
             {workoutNote ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>{workoutNote}</ThemedText> : null}
-            {restEndsAt !== null ? <RestTimer restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
-              exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
-              onExpire={() => handleRestExpire(restEndsAt)}
-              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} /> : null}
-            {restDoneExerciseId ? <View testID="player-all-rest-done" style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <ThemedText accessibilityLiveRegion="polite" style={{ flex: 1, color: colors.primaryButton, fontSize: 14 }}>
-                Rest done · {exercises.find((item) => item.exercise.id === restDoneExerciseId)?.exercise.name ?? "Exercise"}
-              </ThemedText>
-              <Pressable testID="player-dismiss-rest-done" accessibilityRole="button" accessibilityLabel="Dismiss rest complete notice"
-                onPress={() => { if (isCurrentWorkout()) setRestDoneExerciseId(null); }} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="close" size={18} color={colors.placeholder} />
-              </Pressable>
-            </View> : null}
             <WeightUnitControl unit={weightUnit} colors={colors}
               disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
-            {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginBottom: 12 }}>{saveMessage}</ThemedText> : null}
             {exercises.map(renderAllExerciseCard)}
           </>
         ) : currentItem ? (
@@ -2245,10 +2233,25 @@ export default function ActiveWorkoutScreen() {
         ) : null}
         </View>
         </TouchableWithoutFeedback>
-        {expandedLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
+        {expandedLayout && !allExercisesLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
       </ScrollView>
 
-      {!expandedLayout ? <View key="fixed-footer">{footer}</View> : null}
+      {allExercisesLayout && restEndsAt !== null ? <RestTimer compact restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
+        exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
+        onExpire={() => handleRestExpire(restEndsAt)}
+        disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} /> : null}
+      {allExercisesLayout && restEndsAt === null && restDoneExerciseId ? <View testID="player-all-rest-done"
+        style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 4, borderTopWidth: 1,
+          borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }}>
+        <ThemedText accessibilityLiveRegion="polite" style={{ flex: 1, flexShrink: 1, flexWrap: "wrap", color: colors.primaryButton, fontSize: 14 }}>
+          Rest done · {exercises.find((item) => item.exercise.id === restDoneExerciseId)?.exercise.name ?? "Exercise"}
+        </ThemedText>
+        <Pressable testID="player-dismiss-rest-done" accessibilityRole="button" accessibilityLabel="Dismiss rest complete notice"
+          onPress={() => { if (isCurrentWorkout()) setRestDoneExerciseId(null); }} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="close" size={18} color={colors.placeholder} />
+        </Pressable>
+      </View> : null}
+      {(!expandedLayout || allExercisesLayout) && !(expandedLayout && keyboardVisible && allExercisesLayout) ? <View key="fixed-footer">{footer}</View> : null}
       {expandedLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
       </KeyboardAvoidingView>
 
