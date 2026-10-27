@@ -297,6 +297,9 @@ const confirmed = (local, count = 4) => ({ ...local, sets: local.sets.map((set) 
 
 test("all exercises shows every editable card and logs the touched exercise", async () => {
   const view = await player({ layout: "all", notes: { row: "Keep elbows close." } });
+  assert.ok(host(view.tree, "player-fixed-header").findAllByProps({ testID: "player-finish" }).length === 1);
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  assert.equal(host(view.tree, "player-finish").props.disabled, true);
   for (const id of ["incline", "bench", "row", "raise"]) assert.ok(host(view.tree, `player-all-card-${id}`));
   assert.deepEqual(view.calls.filter((call) => call[0] === "noteRead").map((call) => call[1]).sort(), ["bench", "incline", "raise", "row"]);
   assert.equal(view.tree.root.findAllByType("SetInputRow").length, 14);
@@ -309,7 +312,10 @@ test("all exercises shows every editable card and logs the touched exercise", as
   await view.settle();
   assert.equal(view.list().props.currentIndex, 2);
   assert.equal(inputFor(view, "bench").props.setRow.weight, "");
+  const card = host(view.tree, "player-all-card-row");
   await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+  assert.strictEqual(host(view.tree, "player-all-card-row"), card);
+  assert.equal(host(view.tree, "player-finish").props.disabled, false);
   const saved = await view.store.loadActiveWorkout("A");
   assert.equal(saved.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
   assert.equal(saved.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 1).confirmed, false);
@@ -321,12 +327,54 @@ test("all exercises shows every editable card and logs the touched exercise", as
   assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-save-confirmation" }).length, 0);
   await act(async () => rest(view).props.onExpire());
   assert.ok(host(view.tree, "player-all-rest-done"));
+  assert.strictEqual(host(view.tree, "player-all-card-row"), card);
   assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-all-rest-done" }).length, 0);
+  await act(async () => host(view.tree, "player-dismiss-rest-done").props.onPress());
+  assert.equal(host(view.tree, "player-all-rest-done"), undefined);
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.ok(inputFor(view, "row"));
+  await act(async () => view.tree.unmount());
+});
+
+test("compact rest dock stays outside the exercise list and uses short adjustment labels", async () => {
+  const view = await player({ layout: "all", realRestTimer: true,
+    local: { restEndsAt: Date.now() + 90000, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } } });
+  const dock = host(view.tree, "player-sticky-rest");
+  assert.ok(dock);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-sticky-rest" }).length, 0);
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  const labels = dock.findAllByType("Text").map((node) => node.children.join(""));
+  assert.ok(labels.includes("Rest · bench"));
+  assert.ok(labels.includes("−15"));
+  assert.ok(labels.includes("+15"));
+  for (const id of ["player-rest-minus", "player-rest-plus", "player-rest-skip"]) assert.ok(host(view.tree, id).props.style.minHeight >= 44);
+  await view.showKeyboard();
+  assert.ok(host(view.tree, "player-sticky-rest"));
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  await act(async () => view.tree.unmount());
+});
+
+test("large-text rest dock wraps controls without shrinking touch targets", async () => {
+  const view = await player({ layout: "all", fontScale: 2, realRestTimer: true,
+    local: { restEndsAt: Date.now() + 90000, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } } });
+  assert.ok(host(view.tree, "player-sticky-rest"));
+  assert.equal(host(view.tree, "player-rest-minus").props.style.flex, 1);
+  assert.equal(host(view.tree, "player-rest-plus").props.style.flex, 1);
+  assert.ok(host(view.tree, "player-finish"));
+  for (const id of ["player-rest-minus", "player-rest-plus", "player-rest-skip"]) assert.ok(host(view.tree, id).props.style.minHeight >= 44);
+  await act(async () => view.tree.unmount());
+});
+
+test("all exercises keeps finish recovery actions visible without a footer", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...confirmed(local, 1),
+    operations: [{ id: "finish", type: "complete", status: "failed", payload: {} }] }) });
+  assert.ok(host(view.tree, "player-finish-recovery"));
+  assert.ok(host(view.tree, "player-continue-logging"));
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  assert.equal(host(view.tree, "player-finish").props.accessibilityLabel, "Retry finishing workout");
   await act(async () => view.tree.unmount());
 });
 

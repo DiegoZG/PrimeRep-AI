@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Pressable, View } from "react-native";
+import { AppState, Pressable, useWindowDimensions, View } from "react-native";
 
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
@@ -42,6 +42,7 @@ export function RestTimer({
   disabled,
   compact = false,
 }: RestTimerProps) {
+  const { width, fontScale } = useWindowDimensions();
   const [remainingMs, setRemainingMs] = useState(() =>
     Math.max(0, restEndsAt - Date.now())
   );
@@ -81,6 +82,57 @@ export function RestTimer({
   const remainingSeconds = Math.ceil(remainingMs / 1000);
   const progress =
     totalSeconds > 0 ? Math.min(1, Math.max(0, remainingMs / (totalSeconds * 1000))) : 0;
+
+  if (compact) {
+    const stacked = fontScale > 1.5 || width < 340;
+    const controlBackground = colors.background === "#fff" ? "#F2F3F5" : "#2B2D2F";
+    const adjustButton = (seconds: number, label: string) => (
+      <Pressable
+        testID={seconds < 0 ? "player-rest-minus" : "player-rest-plus"}
+        onPress={() => onAdjust(seconds)}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={seconds < 0 ? "Reduce rest by 15 seconds" : "Extend rest by 15 seconds"}
+        accessibilityState={{ disabled: Boolean(disabled) }}
+        style={{ minWidth: stacked ? 0 : 56, flex: stacked ? 1 : undefined, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: controlBackground }}
+      >
+        <ThemedText style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>{label}</ThemedText>
+      </Pressable>
+    );
+    const countdown = <ThemedText
+      accessibilityLabel={`Rest time remaining ${formatCountdown(remainingSeconds)}`}
+      style={{ flex: 1, minWidth: 72, textAlign: stacked ? "left" : "center", fontSize: 26, fontWeight: "700", fontFamily: Fonts.sans, fontVariant: ["tabular-nums"], color: colors.text, includeFontPadding: false }}
+    >{formatCountdown(remainingSeconds)}</ThemedText>;
+    const skipButton = <Pressable
+      testID="player-rest-skip"
+      onPress={onSkip}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel="Skip rest"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      style={{ minWidth: stacked ? 88 : 64, minHeight: 44, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: colors.primaryButton }}
+    >
+      <ThemedText style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans, color: "#FFFFFF" }}>Skip</ThemedText>
+    </Pressable>;
+
+    return <View testID="player-sticky-rest" style={{ backgroundColor: colors.background, borderTopWidth: 1, borderColor: colors.inputBorder }}>
+      <View style={{ height: 3, backgroundColor: colors.inputBorder }}>
+        <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: colors.primaryButton }} />
+      </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 }}>
+        <ThemedText numberOfLines={stacked ? 2 : 1} accessibilityLabel={exerciseName ? `Resting after ${exerciseName}` : "Resting"}
+          style={{ color: colors.placeholder, fontSize: 12, marginBottom: 4 }}>
+          {exerciseName ? `Rest · ${exerciseName}` : "Rest"}
+        </ThemedText>
+        {stacked ? <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{countdown}{skipButton}</View>
+          <View style={{ flexDirection: "row", gap: 8 }}>{adjustButton(-15, "−15")}{adjustButton(15, "+15")}</View>
+        </View> : <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {adjustButton(-15, "−15")}{countdown}{adjustButton(15, "+15")}{skipButton}
+        </View>}
+      </View>
+    </View>;
+  }
 
   return (
     <View
