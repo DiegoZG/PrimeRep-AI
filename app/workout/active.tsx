@@ -348,6 +348,8 @@ export default function ActiveWorkoutScreen() {
   const [saveMessage, setSaveMessage] = useState("");
   const [finishReviewVisible, setFinishReviewVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const keyboardHeightRef = useRef(0);
+  const [postSaveScrollSpace, setPostSaveScrollSpace] = useState(0);
   const accountRef = useRef(user?.id);
   accountRef.current = user?.id;
   const [didComplete, setDidComplete] = useState(false);
@@ -384,10 +386,15 @@ export default function ActiveWorkoutScreen() {
   const [restDoneExerciseId, setRestDoneExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
-    const shown = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const shown = Keyboard.addListener("keyboardDidShow", (event) => {
+      keyboardHeightRef.current = event.endCoordinates.height;
+      setKeyboardVisible(true);
+    });
     const hidden = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
     return () => { shown.remove(); hidden.remove(); };
   }, []);
+
+  useEffect(() => { setPostSaveScrollSpace(0); }, [navigationEpoch]);
 
   useEffect(() => {
     operationsRef.current = operations;
@@ -1167,8 +1174,9 @@ export default function ActiveWorkoutScreen() {
 
   const confirmSet = useCallback((exerciseId: string, setNumber: number) => {
     if (!canActOnExercise(exerciseId)) return;
+    if (allExercisesLayout && keyboardVisible) setPostSaveScrollSpace(Math.max(240, keyboardHeightRef.current));
     void saveEntries([`${exerciseId}:${setNumber}`], true);
-  }, [canActOnExercise, saveEntries]);
+  }, [allExercisesLayout, canActOnExercise, keyboardVisible, saveEntries]);
 
   const saveExerciseEntries = useCallback((exerciseId: string) => {
     if (!canActOnExercise(exerciseId)) return;
@@ -1627,6 +1635,7 @@ export default function ActiveWorkoutScreen() {
   const changeLayout = (next: WorkoutLayout) => {
     if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return;
     Keyboard.dismiss();
+    setPostSaveScrollSpace(0);
     if (next === "all") {
       if (restStateRef.current.context || pendingTransitionRef.current) {
         const id = currentExerciseRef.current;
@@ -2070,7 +2079,14 @@ export default function ActiveWorkoutScreen() {
       <ScrollView
         testID="player-main-scroll"
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 + postSaveScrollSpace }}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          if (postSaveScrollSpace > 0 && !keyboardVisible) {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+            if (contentOffset.y < contentSize.height - layoutMeasurement.height - postSaveScrollSpace - 20) setPostSaveScrollSpace(0);
+          }
+        }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}

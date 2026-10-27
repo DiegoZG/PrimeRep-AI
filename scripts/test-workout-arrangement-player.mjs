@@ -83,7 +83,8 @@ async function player(options = {}) {
   const controller = () => tree.root.findByType("WorkoutArrangementSheets").props.controller;
   const result = { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, replayStarted, replayResponse, getServer: () => copy(server), memory, timers,
     getLayout: () => layoutChoice,
-    showKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidShow")?.()); },
+    showKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidShow")?.({ endCoordinates: { height: 300 } })); },
+    hideKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidHide")?.()); },
     remount: async () => { await act(async () => tree.unmount()); await act(async () => { tree = mount(); result.tree = tree; }); await settle(); },
     auth: async (id) => { identity = { token: "token", user: { id } }; await act(async () => tree.update(element())); await settle(); },
     route: async (next) => { route = next; await act(async () => tree.update(element())); await settle(); },
@@ -326,6 +327,21 @@ test("all exercises shows every editable card and logs the touched exercise", as
   assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.ok(inputFor(view, "row"));
+  await act(async () => view.tree.unmount());
+});
+
+test("keyboard-open logging preserves room to keep the tapped row in view", async () => {
+  const view = await player({ layout: "all" });
+  await view.showKeyboard();
+  await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
+  await view.settle();
+  await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+  assert.equal(host(view.tree, "player-main-scroll").props.contentContainerStyle.paddingBottom, 320);
+  await view.hideKeyboard();
+  await act(async () => host(view.tree, "player-main-scroll").props.onScroll({ nativeEvent: {
+    contentOffset: { y: 100 }, contentSize: { height: 1000 }, layoutMeasurement: { height: 500 },
+  } }));
+  assert.equal(host(view.tree, "player-main-scroll").props.contentContainerStyle.paddingBottom, 20);
   await act(async () => view.tree.unmount());
 });
 

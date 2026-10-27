@@ -149,7 +149,7 @@ export const SetInputRow = React.memo(function SetInputRow({
           accessibilityActions={setRow.isAdded && !logged && !emptyAdded && canRevealActions ? [{ name: "showSetActions", label: "Show set actions" }] : undefined}
           onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "showSetActions") openActions(); }}
           accessibilityState={{ disabled: trailingDisabled }} disabled={trailingDisabled}
-          onPress={() => { if (emptyAdded || logged) openActions(); else { Keyboard.dismiss(); onConfirm(setNumber); } }}
+          onPress={() => { if (emptyAdded || logged) openActions(); else onConfirm(setNumber); }}
           style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
             borderWidth: logged || emptyAdded ? 0 : 1, borderColor: colors.inputBorder }}>
           <Ionicons name={logged || emptyAdded ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
