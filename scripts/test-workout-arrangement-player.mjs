@@ -457,14 +457,17 @@ test("large-text layout switch keeps the scroll view and focused radio mounted",
 
 test("all exercises keeps a compact save action in the card with the keyboard open", async () => {
   const view = await player({ layout: "all" });
+  const emptySave = host(view.tree, "player-save-entered-sets-row");
+  assert.equal(emptySave.props.disabled, true);
+  assert.equal(emptySave.findByType("Ionicons").props.name, "checkmark-done-outline");
   await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
   await view.showKeyboard();
   const save = host(view.tree, "player-save-entered-sets-row");
   assert.equal(host(view.tree, "player-save-entered-sets"), undefined);
-  assert.match(save.findByType("Text").children.join(""), /Save 1 set/);
   assert.equal(save.findByType("Ionicons").props.name, "checkmark-done-outline");
-  assert.ok(save.props.style.minHeight >= 44);
+  assert.ok(save.props.style.height >= 44);
   assert.ok(host(view.tree, "player-all-card-row").findAllByType("Pressable").includes(save));
+  assert.equal(save.props.disabled, false);
   assert.match(save.props.accessibilityLabel, /for row/);
   await act(async () => save.props.onPress()); await view.settle();
   assert.equal((await view.store.loadActiveWorkout("A")).sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);

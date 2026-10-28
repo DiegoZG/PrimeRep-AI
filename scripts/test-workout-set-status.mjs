@@ -39,15 +39,15 @@ const { SetInputRow } = module.exports;
 const base = { exerciseId: "squat", setNumber: 1, weight: "40", reps: "8", confirmed: false, syncStatus: "synced" };
 
 for (const [name, fields, icon, label] of [
-  ["empty", { weight: "", reps: "" }, "ellipse-outline", "Not logged yet"],
-  ["suggested", {}, "ellipse-outline", "Suggested values. Not logged yet"],
+  ["empty", { weight: "", reps: "" }, null, "Not logged yet"],
+  ["suggested", {}, null, "Suggested values. Not logged yet"],
   ["edited", { hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
   ["saved", { confirmed: true }, "checkmark-done-outline", "Saved and synced"],
   ["pending", { confirmed: true, syncStatus: "pending" }, "time-outline", "Saved on this device. Pending sync"],
   ["retrying", { confirmed: true, syncStatus: "retrying" }, "time-outline", "Pending sync"],
   ["failed", { confirmed: true, syncStatus: "failed" }, "alert-circle-outline", "Sync failed"],
   ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
-]) test(`${name} set has a truthful icon and spoken status in both themes`, async () => {
+]) test(`${name} set has a truthful visual and spoken status in both themes`, async () => {
   for (const background of ["#fff", "#151718"]) {
     let tree;
     let confirmed = null;
@@ -56,11 +56,11 @@ for (const [name, fields, icon, label] of [
       onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {},
     })); });
     const status = tree.root.findByProps({ testID: "player-set-status-squat-1" });
-    const symbol = status.findByType("Ionicons");
-    assert.equal(symbol.props.name, icon);
+    const symbol = status.findAllByType("Ionicons")[0];
+    assert.equal(symbol?.props.name, icon ?? undefined);
     assert.ok(status.props.accessibilityLabel.includes(label));
-    assert.equal(status.props.accessibilityRole, "image");
-    assert.equal(symbol.props.accessible, false);
+    assert.equal(status.props.accessibilityRole, icon ? "image" : "text");
+    if (icon) assert.equal(symbol.props.accessible, false);
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
     if (icon === "checkmark-done-outline") assert.equal(symbol.props.color, background === "#fff" ? "#237858" : "#70D5AD");
     if (name === "failed") {

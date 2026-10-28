@@ -53,8 +53,8 @@ export const SetInputRow = React.memo(function SetInputRow({
     : unsaved ? "Unsaved changes" : editing ? "Editing saved set" : logged
       ? saved ? "Saved and synced" : "Saved on this device. Pending sync."
       : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
-  const statusIcon: React.ComponentProps<typeof Ionicons>["name"] = needsAttention ? "alert-circle-outline"
-    : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : "ellipse-outline";
+  const statusIcon: React.ComponentProps<typeof Ionicons>["name"] | null = needsAttention ? "alert-circle-outline"
+    : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : null;
   const inputStyle = {
     minHeight: 44, flex: 1, borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
@@ -129,10 +129,11 @@ export const SetInputRow = React.memo(function SetInputRow({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignItems: "center", gap: 2 }}>
           <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
-          <View testID={`player-set-status-${id}`} accessible accessibilityRole="image"
+          <View testID={`player-set-status-${id}`} accessible accessibilityRole={statusIcon ? "image" : "text"}
             accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite">
-            <Ionicons name={statusIcon} size={18} accessible={false}
+            {statusIcon ? <Ionicons name={statusIcon} size={18} accessible={false}
               color={needsAttention ? "#D14343" : saved && !unsaved ? successColor : secondaryColor} />
+              : <View style={{ width: 18, height: 18 }} />}
           </View>
         </View>
         <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}

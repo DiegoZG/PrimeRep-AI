@@ -1784,20 +1784,19 @@ export default function ActiveWorkoutScreen() {
     const columnLabel = item.exercise.loadProfile?.implement_count === 1 ? "Weight" : equipmentIds.includes("dumbbells")
       ? "Weight each" : equipmentIds.includes("olympic_barbell") ? "Total weight" : "Weight";
     const enteredCount = enteredSets(sets, exerciseId).length;
-    const saveAction = focus ? saveEnteredAction : enteredCount > 0 ? <Pressable
+    const saveAction = focus ? saveEnteredAction : <Pressable
       testID={`player-save-entered-sets-${exerciseId}`} accessibilityRole="button"
-      accessibilityLabel={`Save ${enteredCount} entered sets for ${item.exercise.name}`}
+      accessibilityLabel={`Save all entered sets for ${item.exercise.name}`}
       accessibilityHint="Saves all entered sets for this exercise"
-      accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
-      disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
-      style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
-        marginLeft: "auto", paddingHorizontal: 10, borderRadius: 10, backgroundColor: `${colors.primaryButton}1A` }}>
+      accessibilityState={{ disabled: enteredCount === 0 || isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
+      disabled={enteredCount === 0 || isSavingEntries || finishStatus !== "idle"}
+      onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
+      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
+        backgroundColor: enteredCount > 0 ? `${colors.primaryButton}1A` : colors.inputBackground }}>
       {isSavingEntries ? <ActivityIndicator size="small" color={colors.primaryButton} />
-        : <Ionicons name="checkmark-done-outline" size={19} color={colors.primaryButton} accessible={false} />}
-      <ThemedText style={{ color: colors.primaryButton, fontWeight: "700", fontSize: 14 }}>
-        Save {enteredCount} {enteredCount === 1 ? "set" : "sets"}
-      </ThemedText>
-    </Pressable> : null;
+        : <Ionicons name="checkmark-done-outline" size={22}
+          color={enteredCount > 0 ? colors.primaryButton : colors.placeholder} accessible={false} />}
+    </Pressable>;
     return <>
       {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 8, marginBottom: focus ? 8 : 2 }}>
