@@ -1787,10 +1787,16 @@ export default function ActiveWorkoutScreen() {
     const saveAction = focus ? saveEnteredAction : enteredCount > 0 ? <Pressable
       testID={`player-save-entered-sets-${exerciseId}`} accessibilityRole="button"
       accessibilityLabel={`Save ${enteredCount} entered sets for ${item.exercise.name}`}
+      accessibilityHint="Saves all entered sets for this exercise"
       accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
       disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
-      style={{ minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.primaryButton }}>
-      <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>Save entered sets ({enteredCount})</ThemedText>
+      style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
+        marginLeft: "auto", paddingHorizontal: 10, borderRadius: 10, backgroundColor: `${colors.primaryButton}1A` }}>
+      {isSavingEntries ? <ActivityIndicator size="small" color={colors.primaryButton} />
+        : <Ionicons name="checkmark-done-outline" size={19} color={colors.primaryButton} accessible={false} />}
+      <ThemedText style={{ color: colors.primaryButton, fontWeight: "700", fontSize: 14 }}>
+        Save {enteredCount} {enteredCount === 1 ? "set" : "sets"}
+      </ThemedText>
     </Pressable> : null;
     return <>
       {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
@@ -1838,7 +1844,7 @@ export default function ActiveWorkoutScreen() {
           <ThemedText style={{ fontWeight: "600", fontSize: 14, color: focus ? colors.text : colors.primaryButton }}>+ Add set</ThemedText>
         </Pressable>
         {cardActions}
-        {!keyboardVisible ? saveAction : null}
+        {!focus || !keyboardVisible ? saveAction : null}
       </View>
       {focus && saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
     </>;
@@ -2260,7 +2266,7 @@ export default function ActiveWorkoutScreen() {
         {expandedLayout && !allExercisesLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
       </ScrollView>
 
-      {(expandedLayout || allExercisesLayout) && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
+      {expandedLayout && !allExercisesLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
       {allExercisesLayout && restEndsAt !== null ? <RestTimer compact restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
         exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
         onExpire={() => handleRestExpire(restEndsAt)}
