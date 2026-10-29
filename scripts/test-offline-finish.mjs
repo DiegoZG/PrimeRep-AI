@@ -86,6 +86,10 @@ function harness(gateCompletion = null, options = {}) {
       "@/services/httpClient": { HttpError },
       "@/services/workoutLoggingService": service,
       "./workoutSetEntries": loadTypescript("utils/workoutSetEntries.ts", { "@react-native-async-storage/async-storage": storage }),
+      "./workoutArrangement": loadTypescript("utils/workoutArrangement.ts", {
+        "@react-native-async-storage/async-storage": { __esModule: true, default: storage },
+        "@/services/workoutWeekService": { mapApiWorkoutDay: (day) => ({ ...day, blocks: day.exerciseBlocks ?? day.blocks }) },
+      }),
     };
     const require = (name) => mocks[name] ?? fallback(name);
     const Clock = class extends Date { static now() { return Date.now() + (options.clockOffset ?? 0); } };
@@ -162,7 +166,7 @@ test("partial network failure retains stable operation ID and blocks completion 
   assert.equal(fixture.session.setLogs.filter((set) => set.setNumber === 3).length, 1);
 });
 
-test("bulk save waits for replay, rebases log IDs, and never touches another account", async () => {
+test("bulk save commits during replay, preserves its acknowledgement, and never touches another account", async () => {
   const gateSet = deferred();
   const fixture = harness(null, { gateSet });
   const store = fixture.load();
@@ -172,12 +176,14 @@ test("bulk save waits for replay, rebases log IDs, and never touches another acc
   const replay = store.replayPendingWorkoutOperations("token", "user-1");
   const next = { ...saved.workout, sets: [...saved.workout.sets, enteredRow(3)] };
   const batch = store.saveWorkoutSetEntries(next, ["squat:3"], "KG");
+  const committed = await batch;
+  assert.equal(committed.workout.sets.find((row) => row.setNumber === 3).confirmed, true);
   gateSet.resolve();
   await replay;
-  const result = await batch;
-  assert.equal(result.workout.sets[0].logId, "log-2");
-  assert.equal(result.workout.operations.length, 1);
-  assert.equal(result.workout.operations[0].payload.setNumber, 3);
+  const result = await store.loadActiveWorkout("user-1");
+  assert.equal(result.sets[0].logId, "log-2");
+  assert.equal(result.operations.length, 1);
+  assert.equal(result.operations[0].payload.setNumber, 3);
   assert.equal(await store.loadActiveWorkout("user-2"), null);
 });
 

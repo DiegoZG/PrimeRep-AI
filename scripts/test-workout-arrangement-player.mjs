@@ -21,6 +21,8 @@ async function player(options = {}) {
   let route = options.noExisting ? { workoutDayId: "day" } : { sessionId: "session" };
   let layoutChoice = options.layout ?? "focus";
   let timerCounter = 0;
+  let clockOffset = 0;
+  class Clock extends Date { static now() { return Date.now() + clockOffset; } }
   const AuthContext = React.createContext(null), EquipmentWeightsContext = React.createContext(null);
   let server = { id: "session", clientSessionId: "client", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", arrangementRevision: 0,
     effectiveWorkout: api(workout), workoutSnapshot: api(workout), status: "in_progress", startedAt: new Date(100).toISOString(), setLogs: [], deletedSetLogs: [], exerciseFeedback: [], workoutNote: null };
@@ -34,7 +36,7 @@ async function player(options = {}) {
   const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, planningRefreshRequired: Boolean(options.barrier), refreshWeek: async () => { calls.push(["refresh"]); } };
   const services = {
     getActiveSession: async () => identity.user?.id === "A" ? copy(server) : null, getSession: async () => { if (identity.user?.id !== "A") throw new Error("Not this owner's session"); return copy(server); }, getUserExerciseNote: async (_token, id) => { calls.push(["noteRead", id]); return options.notes?.[id] ? { note: options.notes[id] } : null; }, fetchLastSetsForExercises: async () => ({}),
-    logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
+    logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.expiredToken && _token === "token") throw new HttpError("Access token expired", 401); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
     getReplacementCandidates: async () => [{ id: "fly", name: "Chest Fly" }],
     previewExerciseOrder: async (_token, _session, ids) => ({ arrangementRevision: server.arrangementRevision, exerciseIds: ids, targetsChanged: false, targetChanges: [], effectiveWorkout: server.effectiveWorkout, message: "Targets unchanged." }),
     updateExerciseOrder: async (_token, _session, ids) => { const byId = new Map(server.effectiveWorkout.exerciseBlocks.flatMap((block) => block.items.map((item) => [item.exercise.id, item]))); server = { ...server, arrangementRevision: server.arrangementRevision + 1, effectiveWorkout: api({ ...workout, blocks: [{ blockType: "main", items: ids.map((id) => byId.get(id)) }] }) }; return copy(server); },
@@ -56,7 +58,7 @@ async function player(options = {}) {
     const filename = path.join(root, relative); if (cache.has(filename)) return cache.get(filename).exports;
     const module = { exports: {} }; cache.set(filename, module);
     const output = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
-    vm.runInNewContext(output, { React, module, exports: module.exports, console, Date, JSON, Promise, Map, Set,
+    vm.runInNewContext(output, { React, module, exports: module.exports, console, Date: Clock, JSON, Promise, Map, Set,
       setTimeout: (callback, delay) => { const id = ++timerCounter; timers.set(id, { callback, delay }); return id; }, clearTimeout: (id) => timers.delete(id),
       setInterval: (callback) => { const id = ++timerCounter; intervals.set(id, callback); return id; }, clearInterval: (id) => intervals.delete(id),
       require: (name) => {
@@ -73,12 +75,13 @@ async function player(options = {}) {
   if (!options.noExisting) await store.saveActiveWorkout(local);
   if (options.realRestTimer) mocks["@/components/workout/RestTimer"] = load("components/workout/RestTimer.tsx");
   const { default: Screen } = load("app/workout/active.tsx");
-  const element = () => React.createElement(AuthContext.Provider, { value: identity }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
+  const refreshUser = async () => { calls.push(["refreshAuth"]); if (options.expiredToken) { identity = { ...identity, token: "fresh-token" }; tree.update(element()); } };
+  const element = () => React.createElement(AuthContext.Provider, { value: { ...identity, refreshUser } }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
   const mount = () => create(element(), { createNodeMock: (node) => node.type === "Pressable" ? {} : null });
   let tree; await act(async () => { tree = mount(); });
   const settle = async () => { await act(async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); }); };
   await settle();
-  const runTimers = async () => { await act(async () => { const pending = [...timers]; for (const [id, timer] of pending) if (timer.delay === 0) { timers.delete(id); timer.callback(); } }); await settle(); };
+  const runTimers = async (maxDelay = 0) => { clockOffset += maxDelay; await act(async () => { const pending = [...timers]; for (const [id, timer] of pending) if (timer.delay <= maxDelay) { timers.delete(id); timer.callback(); } }); await settle(); };
   const list = () => tree.root.findByType("ExerciseListSheet");
   const controller = () => tree.root.findByType("WorkoutArrangementSheets").props.controller;
   const result = { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, replayStarted, replayResponse, getServer: () => copy(server), memory, timers,
@@ -453,6 +456,64 @@ test("large-text layout switch keeps the scroll view and focused radio mounted",
   await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
   assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
   await act(async () => view.tree.unmount());
+});
+
+test("an expired login token refreshes automatically while the logged set stays recorded", async () => {
+  const view = await player({ layout: "all", expiredToken: true });
+  try {
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    await view.runTimers();
+    assert.equal(view.calls.filter((call) => call[0] === "refreshAuth").length, 1);
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, true);
+    assert.equal(inputFor(view, "row").props.setRow.syncStatus, "pending");
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+    await view.runTimers(5000);
+    assert.equal((await view.store.loadActiveWorkout("A")).operations.length, 0);
+    assert.equal(view.getServer().setLogs.length, 1);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("logging and exercise navigation stay available while cloud sync is stalled, then sync resumes automatically", async () => {
+  const view = await player({ layout: "all", deferReplay: true });
+  try {
+    await act(async () => { inputFor(view, "bench").props.onUpdate(1, "weight", "45"); inputFor(view, "bench").props.onUpdate(1, "reps", "9"); });
+    await act(async () => inputFor(view, "bench").props.onConfirm(1)); await view.settle();
+    await view.runTimers(); await view.replayStarted.promise;
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => host(view.tree, "player-save-entered-sets-row").props.onPress()); await view.settle();
+    const local = await view.store.loadActiveWorkout("A");
+    assert.equal(local.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+    assert.equal(host(view.tree, "player-finish").props.disabled, false);
+    assert.equal(host(view.tree, "player-save-entered-sets-row").findAllByType("ActivityIndicator").length, 0);
+    assert.equal(view.calls.filter((call) => call[0] === "log").length, 1);
+    await choose(view, 3);
+    assert.equal(view.list().props.currentIndex, 3);
+    assert.equal(local.restContext.exerciseId, "bench");
+    await act(async () => view.replayResponse.resolve()); await view.settle();
+    await view.runTimers(); await view.settle();
+    assert.equal((await view.store.loadActiveWorkout("A")).operations.length, 0);
+    assert.equal(view.calls.filter((call) => call[0] === "log").length, 2);
+  } finally { view.replayResponse.resolve(); await act(async () => view.tree.unmount()); }
+});
+
+test("a failed device write keeps entered values unlogged and allows a successful retry", async () => {
+  let fail = false;
+  const view = await player({ layout: "all", beforeWrite: async (key) => { if (fail && key.includes("active-workout")) throw new Error("Device storage unavailable"); } });
+  try {
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await view.settle(); fail = true;
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, false);
+    assert.equal(inputFor(view, "row").props.setRow.reps, "12");
+    assert.equal(view.tree.root.findAllByType("RestTimer").length, 0);
+    assert.ok(host(view.tree, "player-retry-save"));
+    assert.equal(view.calls.some((call) => call[0] === "log"), false);
+    fail = false;
+    await act(async () => host(view.tree, "player-retry-save").props.onPress()); await view.settle();
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, true);
+  } finally { await act(async () => view.tree.unmount()); }
 });
 
 test("all exercises keeps a compact save action in the card with the keyboard open", async () => {

@@ -240,7 +240,7 @@ export default function ActiveWorkoutScreen() {
   const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
   const colors = useMemo(() => ({ ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" }), [colorScheme]);
-  const { token, user } = useContext(AuthContext);
+  const { token, user, refreshUser } = useContext(AuthContext);
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek, planningRefreshRequired } = useWorkoutWeek();
@@ -342,6 +342,7 @@ export default function ActiveWorkoutScreen() {
   const [storageError, setStorageError] = useState(false);
   const [isSavingEntries, setIsSavingEntries] = useState(false);
   const savingEntriesRef = useRef(false);
+  const localSetSaveRef = useRef<Promise<unknown> | null>(null);
   const savingEntriesEpochRef = useRef<number | null>(null);
   const [entryIssues, setEntryIssues] = useState<Record<string, string>>({});
   const [openSetActionsId, setOpenSetActionsId] = useState<string | null>(null);
@@ -689,6 +690,7 @@ export default function ActiveWorkoutScreen() {
     noteEditorEpochRef.current = null; feedbackEditorEpochRef.current = null;
     setNoteEditorVisible(false); setFeedbackEditorVisible(false);
     if (savingEntriesEpochRef.current !== navigationEpoch) {
+      localSetSaveRef.current = null;
       savingEntriesEpochRef.current = null;
       savingEntriesRef.current = false;
       setIsSavingEntries(false);
@@ -875,6 +877,7 @@ export default function ActiveWorkoutScreen() {
     replayInFlightRef.current = true;
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
+      await localSetSaveRef.current?.catch(() => undefined);
       if (accountRef.current !== user.id || navigationIdentityRef.current.epoch !== navigationEpoch) return;
       if (!result.workout) return;
       if (isFinishingRef.current && !result.completed && !result.abandoned) return;
@@ -945,6 +948,7 @@ export default function ActiveWorkoutScreen() {
         markWorkoutTerminal();
         if (result.completed) setDidComplete(true);
       }
+      if (result.authenticationRequired) await refreshUser();
     } catch {
       // The operation remains durable and will be retried on the next retry window.
     } finally {
@@ -954,7 +958,7 @@ export default function ActiveWorkoutScreen() {
         setOperations((current) => [...current]);
       }
     }
-  }, [token, user, markWorkoutTerminal, weightUnit, navigationEpoch]);
+  }, [token, user, refreshUser, markWorkoutTerminal, weightUnit, navigationEpoch]);
 
   const retryAt = useMemo(() => Math.min(
     ...operations
@@ -1133,7 +1137,9 @@ export default function ActiveWorkoutScreen() {
       }
     }
     try {
-      const result = await saveWorkoutSetEntries(snapshot, keys, weightUnit);
+      const localSave = saveWorkoutSetEntries(snapshot, keys, weightUnit);
+      localSetSaveRef.current = localSave;
+      const result = await localSave;
       if (!isCurrentWorkout()) return false;
       setEntryIssues(result.issues);
       if (result.savedCount > 0) {
@@ -1161,6 +1167,7 @@ export default function ActiveWorkoutScreen() {
       return false;
     } finally {
       if (savingEntriesEpochRef.current === navigationEpoch) {
+        localSetSaveRef.current = null;
         savingEntriesEpochRef.current = null;
         savingEntriesRef.current = false;
       }
@@ -1767,7 +1774,7 @@ export default function ActiveWorkoutScreen() {
     accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
     disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => saveExerciseEntries(currentItem.exercise.id)}
     style={{ flex: keyboardVisible ? undefined : 1, minWidth: 160, minHeight: 44, alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: colors.primaryButton }}>
-    {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>{allExercisesLayout ? `Save ${currentEnteredCount} sets · ${currentItem.exercise.name}` : `Save entered sets (${currentEnteredCount})`}</ThemedText>}
+    <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>Save entered sets ({currentEnteredCount})</ThemedText>
   </Pressable> : null;
 
   const activateExerciseForAll = (exerciseId: string) => {
@@ -1793,9 +1800,8 @@ export default function ActiveWorkoutScreen() {
       onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
       style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
         backgroundColor: enteredCount > 0 ? `${colors.primaryButton}1A` : colors.inputBackground }}>
-      {isSavingEntries ? <ActivityIndicator size="small" color={colors.primaryButton} />
-        : <Ionicons name="checkmark-done-outline" size={22}
-          color={enteredCount > 0 ? colors.primaryButton : colors.placeholder} accessible={false} />}
+      <Ionicons name="checkmark-done-outline" size={22}
+        color={enteredCount > 0 ? colors.primaryButton : colors.placeholder} accessible={false} />
     </Pressable>;
     return <>
       {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}

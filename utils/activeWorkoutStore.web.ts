@@ -251,20 +251,20 @@ export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = fal
 }
 
 export function saveWorkoutSetEntries(incoming: LocalActiveWorkout, keys: string[], unit: WeightUnit) {
-  const task = replayQueue.then(() => {
-    const write = writeQueue.then(async () => {
-      const durable = await loadActiveWorkout(incoming.userId);
-      if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.operations.some((operation) => operation.type === "complete")) {
-        throw new Error("Workout is no longer editable");
-      }
-      const result = prepareSetEntries(incoming, durable, keys, unit, createClientId);
-      if (result.savedCount > 0) await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(result.workout));
-      return result;
-    });
-    writeQueue = write.then(() => undefined, () => undefined);
-    return write;
+  const task = writeQueue.then(async () => {
+    const durable = await loadActiveWorkout(incoming.userId);
+    if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.finishedAt != null
+      || durable.operations.some((operation) => operation.type === "complete" || operation.type === "abandon" || operation.type === "replace")) {
+      throw new Error("Workout is no longer editable");
+    }
+    const result = prepareSetEntries(mergeSavedArrangement(durable, incoming), durable, keys, unit, createClientId);
+    if (result.savedCount > 0) {
+      result.workout.operations = normalizeOperationSequences(result.workout.operations);
+      await AsyncStorage.setItem(keyFor(incoming.userId), JSON.stringify(result.workout));
+    }
+    return result;
   });
-  replayQueue = task.then(() => undefined, () => undefined);
+  writeQueue = task.then(() => undefined, () => undefined);
   return task;
 }
 
@@ -329,7 +329,7 @@ export async function retryFailedWorkoutOperations(userId: string): Promise<Loca
 }
 
 function isRetryable(error: unknown): boolean {
-  return !(error instanceof HttpError) || error.status == null || error.status === 408 || error.status === 429 || error.status >= 500;
+  return !(error instanceof HttpError) || error.status == null || error.status === 401 || error.status === 408 || error.status === 429 || error.status >= 500;
 }
 
 function nextAttempt(attempts: number): number {
@@ -350,12 +350,13 @@ function hasCanonicalEffectiveSets(workout: LocalActiveWorkout, session: Session
 
 async function replay(token: string, userId: string) {
   const workout = await loadActiveWorkout(userId);
-  if (!workout) return { workout: null, completed: false, abandoned: false, completedSession: null, completionBlocked: false, startedOperationIds: [] };
+  if (!workout) return { workout: null, completed: false, abandoned: false, completedSession: null, completionBlocked: false, startedOperationIds: [], authenticationRequired: false };
   const remaining: PendingWorkoutOperation[] = [];
   let completed = false;
   let abandoned = false;
   let completedSession: SessionResponse | null = null;
   let completionBlocked = false;
+  let authenticationRequired = false;
   const operations = workout.operations.map((operation) => operation.status === "retrying" ? { ...operation, status: "pending" as const } : operation)
     .sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER)) as SequencedWorkoutOperation[];
   const startedOperationIds = operations.map((operation) => operation.id);
@@ -512,6 +513,7 @@ async function replay(token: string, userId: string) {
         }
       }
       const retryable = isRetryable(error);
+      authenticationRequired = error instanceof HttpError && error.status === 401;
       const failedOperation = {
         ...operation,
         status: retryable ? "pending" as const : "failed" as const,
@@ -548,7 +550,7 @@ async function replay(token: string, userId: string) {
   workout.operations = remaining;
   workout.revision += 1;
   await saveReplayWorkout(workout, startedOperationIds);
-  return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds };
+  return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds, authenticationRequired };
 }
 
 export function replayPendingWorkoutOperations(token: string, userId: string) {
