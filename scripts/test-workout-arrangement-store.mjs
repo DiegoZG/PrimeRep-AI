@@ -78,6 +78,28 @@ function storageHarness(platform, handlers = {}) {
 }
 
 for (const platform of ["native", "web"]) {
+  test(`${platform}: an offline correction stays visible through restart while its upload waits`, async () => {
+    const entered = deferred(), network = deferred();
+    const harness = storageHarness(platform, { updateLoggedSet: async (_token, _session, id, reps, weightKg, version) => {
+      entered.resolve(); await network.promise;
+      return { id, exerciseId: "a", setNumber: 1, reps, weightKg, version: version + 1 };
+    } });
+    const initial = draft({ sets: [set("a", { hasUnsavedInput: true }), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(initial);
+    const first = await harness.store.saveWorkoutSetEntries(initial, ["a:1"], "KG");
+    const edited = { ...first.workout, sets: first.workout.sets.map((row) => row.exerciseId === "a"
+      ? { ...row, editing: true, hasUnsavedInput: true, editDraft: { weight: "35", reps: "12" } } : row) };
+    await harness.store.saveWorkoutSetEntries(edited, ["a:1"], "KG");
+    const replay = harness.store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    try {
+      const restored = await harness.reload().loadActiveWorkout("user");
+      assert.equal(restored.sets[0].reps, "12");
+      assert.equal(restored.sets[0].weight, "35");
+      assert.equal(restored.sets[0].weightKg, 35);
+    } finally { network.resolve(); await replay; }
+  });
+
   test(`${platform}: expired authentication preserves the queued set for automatic retry`, async (context) => {
     let expired = true;
     const harness = storageHarness(platform, { logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => {

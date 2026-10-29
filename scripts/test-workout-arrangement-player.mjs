@@ -458,6 +458,54 @@ test("large-text layout switch keeps the scroll view and focused radio mounted",
   await act(async () => view.tree.unmount());
 });
 
+for (const status of ["failed", "pending"]) test(`the head of the sync queue controls retries when it is ${status}`, async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local,
+    sets: local.sets.map((set) => set.setNumber === 1 && ["bench", "row"].includes(set.exerciseId)
+      ? { ...set, confirmed: true, reps: "8", weight: "20" } : set),
+    operations: [
+      { id: "head", type: "set", status, nextAttemptAt: status === "pending" ? Date.now() + 60_000 : undefined,
+        payload: { exerciseId: "bench", setNumber: 1, reps: 8, weightKg: 20 } },
+      { id: "tail", type: "set", status: "pending", payload: { exerciseId: "row", setNumber: 1, reps: 8, weightKg: 20 } },
+    ],
+  }) });
+  try {
+    const immediate = [...view.timers.values()].filter((timer) => timer.delay === 0);
+    assert.equal(immediate.length, 0);
+    if (status === "pending") assert.ok([...view.timers.values()].some((timer) => timer.delay > 50_000));
+    await view.runTimers();
+    assert.equal(view.calls.some((call) => call[0] === "log"), false);
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("a blocking set failure stays visible when a later correction is queued", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local,
+    sets: local.sets.map((set) => set.exerciseId === "bench" && set.setNumber === 1
+      ? { ...set, confirmed: true, reps: "12", weight: "35" } : set),
+    operations: [
+      { id: "head", type: "set", status: "failed", payload: { exerciseId: "bench", setNumber: 1, reps: 8, weightKg: 20 } },
+      { id: "correction", type: "update_set", status: "pending", payload: { exerciseId: "bench", setNumber: 1, logId: "", reps: 12,
+        weightKg: 35, expectedVersion: 1, previousReps: "8", previousWeight: "20", previousVersion: 1, resolveAfterPending: true } },
+    ],
+  }) });
+  try {
+    assert.equal(inputFor(view, "bench").props.setRow.syncStatus, "failed");
+    assert.equal(inputFor(view, "bench").props.setRow.reps, "12");
+    assert.equal([...view.timers.values()].filter((timer) => timer.delay === 0).length, 0);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("a finish blocked by an arrangement conflict does not repeatedly wake sync", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local, operations: [
+    { id: "order", type: "order", status: "failed", payload: { exerciseIds: ["incline", "bench", "row", "raise"], expectedRevision: 0, applyRevisedTargets: false, conflict: true } },
+    { id: "finish", type: "complete", status: "pending", payload: {} },
+  ] }) });
+  try {
+    assert.equal([...view.timers.values()].filter((timer) => timer.delay === 0).length, 0);
+    assert.ok(host(view.tree, "player-continue-logging"));
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
 test("an expired login token refreshes automatically while the logged set stays recorded", async () => {
   const view = await player({ layout: "all", expiredToken: true });
   try {

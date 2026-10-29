@@ -49,6 +49,7 @@ import {
   saveWorkoutSetEntries,
   type LocalActiveWorkout,
   type PendingWorkoutOperation,
+  type SequencedWorkoutOperation,
 } from "@/utils/activeWorkoutStore";
 import {
   convertWeightString,
@@ -211,7 +212,8 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
   const mutationBySet = new Map<string, PendingWorkoutOperation>();
   for (const operation of operations) {
     if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
-      mutationBySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+      const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
+      if (mutationBySet.get(key)?.status !== "failed") mutationBySet.set(key, operation);
     }
   }
   return sets.map((set) => {
@@ -521,7 +523,8 @@ export default function ActiveWorkoutScreen() {
     const bySet = new Map<string, PendingWorkoutOperation>();
     for (const operation of operations) {
       if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
-        bySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+        const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
+        if (bySet.get(key)?.status !== "failed") bySet.set(key, operation);
       }
     }
     return bySet;
@@ -960,14 +963,23 @@ export default function ActiveWorkoutScreen() {
     }
   }, [token, user, refreshUser, markWorkoutTerminal, weightUnit, navigationEpoch]);
 
-  const retryAt = useMemo(() => Math.min(
-    ...operations
-      .filter((operation) => operation.status !== "failed")
-      .map((operation) => operation.nextAttemptAt ?? Date.now())
-  ), [operations]);
+  const retryAt = useMemo(() => {
+    let arrangementBlocked = false;
+    const ordered: SequencedWorkoutOperation[] = [...operations];
+    ordered.sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER));
+    for (const operation of ordered) {
+      if ((operation.type === "order" || operation.type === "replace") && (operation.payload.conflict || operation.payload.unsupported)) {
+        arrangementBlocked = true;
+        continue;
+      }
+      if (operation.status === "failed" || (arrangementBlocked && (operation.type === "replace" || operation.type === "complete"))) return Infinity;
+      return operation.nextAttemptAt ?? Date.now();
+    }
+    return Infinity;
+  }, [operations]);
 
   useEffect(() => {
-    if (persistedRevision === 0 || operations.length === 0 || operations.every((operation) => operation.status === "failed")) return;
+    if (persistedRevision === 0 || !Number.isFinite(retryAt)) return;
     const delay = Math.max(0, retryAt - Date.now());
     const retryTimer = setTimeout(() => void replayPendingWrites(), delay);
     return () => clearTimeout(retryTimer);
