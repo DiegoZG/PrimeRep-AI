@@ -38,16 +38,16 @@ vm.runInNewContext(source, { module, exports: module.exports, require: (name) =>
 const { SetInputRow } = module.exports;
 const base = { exerciseId: "squat", setNumber: 1, weight: "40", reps: "8", confirmed: false, syncStatus: "synced" };
 
-for (const [name, fields, icon, label] of [
-  ["empty", { weight: "", reps: "" }, null, "Not logged yet"],
-  ["suggested", {}, null, "Suggested values. Not logged yet"],
-  ["edited", { hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
-  ["saved", { confirmed: true }, "checkmark-done-outline", "Saved and synced"],
-  ["pending", { confirmed: true, syncStatus: "pending" }, "time-outline", "Saved on this device. Pending sync"],
-  ["retrying", { confirmed: true, syncStatus: "retrying" }, "time-outline", "Pending sync"],
-  ["failed", { confirmed: true, syncStatus: "failed" }, "alert-circle-outline", "Sync failed"],
-  ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
-]) test(`${name} set has a truthful visual and spoken status in both themes`, async () => {
+for (const [name, fields, label] of [
+  ["empty", { weight: "", reps: "" }, "Not logged yet"],
+  ["suggested", {}, "Suggested values. Not logged yet"],
+  ["edited", { hasUnsavedInput: true }, "Unsaved changes"],
+  ["saved", { confirmed: true }, "Saved and synced"],
+  ["pending", { confirmed: true, syncStatus: "pending" }, "Saved on this device. Pending sync"],
+  ["retrying", { confirmed: true, syncStatus: "retrying" }, "Pending sync"],
+  ["failed", { confirmed: true, syncStatus: "failed" }, "Sync failed"],
+  ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "Unsaved changes"],
+]) test(`${name} set centers its number and announces status in both themes`, async () => {
   for (const background of ["#fff", "#151718"]) {
     let tree;
     let confirmed = null;
@@ -55,14 +55,12 @@ for (const [name, fields, icon, label] of [
       setRow: { ...base, ...fields }, colors: { ...palette, background }, weightUnit: "LB", lastTimeHint: "40 lb × 8",
       onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {},
     })); });
-    const status = tree.root.findByProps({ testID: "player-set-status-squat-1" });
-    const symbol = status.findAllByType("Ionicons")[0];
-    assert.equal(symbol?.props.name, icon ?? undefined);
-    assert.ok(status.props.accessibilityLabel.includes(label));
-    assert.equal(status.props.accessibilityRole, icon ? "image" : "text");
-    if (icon) assert.equal(symbol.props.accessible, false);
+    const setNumber = tree.root.findByProps({ testID: "player-set-number-squat-1" });
+    assert.ok(setNumber.props.accessibilityLabel.includes(label));
+    assert.equal(setNumber.props.accessibilityRole, "text");
+    assert.equal(setNumber.parent.props.style.justifyContent, "center");
+    assert.equal(setNumber.parent.findAllByType("Ionicons").length, 0);
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
-    if (icon === "checkmark-done-outline") assert.equal(symbol.props.color, background === "#fff" ? "#237858" : "#70D5AD");
     if (name === "failed") {
       assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
       assert.equal(tree.root.findByProps({ testID: "player-set-menu-squat-1" }).props.disabled, true);

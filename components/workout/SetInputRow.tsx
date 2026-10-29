@@ -44,17 +44,13 @@ export const SetInputRow = React.memo(function SetInputRow({
   const trailingDisabled = Boolean(readOnly || ((logged || emptyAdded) && !canRevealActions));
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
-  const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
-  const needsAttention = Boolean(issue) || syncStatus === "failed";
   const saved = logged && syncStatus === "synced";
   const status = issue ? `Needs attention: ${issue}` : syncStatus === "failed" ? "Sync failed. Retry available."
     : unsaved ? "Unsaved changes" : editing ? "Editing saved set" : logged
       ? saved ? "Saved and synced" : "Saved on this device. Pending sync."
       : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
-  const statusIcon: React.ComponentProps<typeof Ionicons>["name"] | null = needsAttention ? "alert-circle-outline"
-    : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : null;
   const inputStyle = {
     minHeight: 44, flex: 1, borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
@@ -127,14 +123,10 @@ export const SetInputRow = React.memo(function SetInputRow({
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
       paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 28, alignItems: "center", gap: 2 }}>
-          <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
-          <View testID={`player-set-status-${id}`} accessible accessibilityRole={statusIcon ? "image" : "text"}
-            accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite">
-            {statusIcon ? <Ionicons name={statusIcon} size={18} accessible={false}
-              color={needsAttention ? "#D14343" : saved && !unsaved ? successColor : secondaryColor} />
-              : <View style={{ width: 18, height: 18 }} />}
-          </View>
+        <View style={{ width: 28, alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
+          <ThemedText testID={`player-set-number-${id}`} accessibilityRole="text"
+            accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite"
+            style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
         </View>
         <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
           value={editing ? setRow.editDraft?.weight ?? weight : weight}
