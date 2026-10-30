@@ -61,7 +61,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   };
   const fieldOutlineStyle = {
     position: "absolute" as const, alignSelf: "center" as const, width: compact ? "84%" as const : "100%" as const,
-    maxWidth: compact ? 112 : undefined, top: compact ? 6 : 0, bottom: compact ? 6 : 0,
+    maxWidth: compact ? 118 : undefined, top: compact ? 6 : 0, bottom: compact ? 6 : 0,
     borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder, borderRadius: 8,
     backgroundColor: logged ? "transparent" : colors.background,
   };
