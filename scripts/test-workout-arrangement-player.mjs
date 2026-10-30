@@ -95,6 +95,14 @@ async function player(options = {}) {
   return result;
 }
 
+async function switchLayout(view, next) {
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
+  assert.equal(view.list().props.visible, true);
+  await act(async () => view.list().props.onLayoutChange(next));
+  await view.settle();
+  assert.equal(view.list().props.visible, false);
+}
+
 test("mounted player replacement with background replay and autosave keeps all replacement sets and clears pending state", async () => {
   const view = await player();
   assert.equal(view.list().props.getProgress("bench").total, 4);
@@ -431,12 +439,13 @@ test("removing a blank added set leaves no row or delete operation after restart
 
 test("layout switch keeps cross-exercise drafts and restores the selected layout", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.equal(host(view.tree, "player-layout-switch"), undefined);
+  await switchLayout(view, "all");
   assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
   await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "55"); inputFor(view, "row").props.onUpdate(1, "reps", "10"); });
-  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  await switchLayout(view, "focus");
   assert.equal(input(view).props.setRow.exerciseId, "row"); assert.equal(input(view).props.setRow.weight, "55");
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  await switchLayout(view, "all");
   await view.remount();
   assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
   assert.equal(inputFor(view, "row").props.setRow.reps, "10");
@@ -444,16 +453,13 @@ test("layout switch keeps cross-exercise drafts and restores the selected layout
   await act(async () => view.tree.unmount());
 });
 
-test("large-text layout switch keeps the scroll view and focused radio mounted", async () => {
+test("large-text layout switch keeps the scroll view mounted", async () => {
   const view = await player({ fontScale: 2 });
   const scroll = host(view.tree, "player-main-scroll");
-  const allRadio = host(view.tree, "player-layout-all");
-  assert.equal(host(view.tree, "player-layout-switch").props.style.flexDirection, "column");
-  assert.ok(host(view.tree, "player-layout-all").props.style.minHeight >= 44);
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.equal(host(view.tree, "player-layout-switch"), undefined);
+  await switchLayout(view, "all");
   assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
-  assert.strictEqual(host(view.tree, "player-layout-all"), allRadio);
-  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  await switchLayout(view, "focus");
   assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
   await act(async () => view.tree.unmount());
 });
@@ -587,7 +593,7 @@ test("all exercises keeps a compact save action in the card with the keyboard op
 
 for (const navigation of ["account", "route"]) test(`all-card and layout callbacks from an earlier ${navigation} epoch cannot act after ABA`, async () => {
   const view = await player({ layout: "all" });
-  const oldLayout = host(view.tree, "player-layout-focus").props.onPress;
+  const oldLayout = view.list().props.onLayoutChange;
   const oldToggle = host(view.tree, "player-all-toggle-row").props.onPress;
   const oldInfo = host(view.tree, "player-all-info-row").props.onPress;
   const oldEdit = inputFor(view, "row").props.onUpdate;
@@ -605,7 +611,7 @@ for (const navigation of ["account", "route"]) test(`all-card and layout callbac
   assert.equal(infoSheet(view).props.exerciseId, null);
   await act(async () => oldDismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
-  await act(async () => { oldLayout(); oldToggle(); oldInfo(); oldEdit(1, "weight", "100"); });
+  await act(async () => { oldLayout("focus"); oldToggle(); oldInfo(); oldEdit(1, "weight", "100"); });
   await view.settle();
   assert.equal(view.getLayout(), "all");
   assert.equal(infoSheet(view).props.visible, false);
@@ -632,7 +638,7 @@ test("all-card controls stay inert when selection is blocked by a set save", asy
 test("all exercises keeps one rest timer and uses a nonblocking expiry notice", async () => {
   const deadline = Date.now() + 90000;
   const view = await player({ local: { restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: true } } });
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  await switchLayout(view, "all");
   const snapshot = await view.store.loadActiveWorkout("A");
   assert.equal(snapshot.restEndsAt, deadline); assert.equal(snapshot.restContext.suppressAutoAdvance, true);
   assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);

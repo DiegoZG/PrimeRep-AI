@@ -1657,18 +1657,19 @@ export default function ActiveWorkoutScreen() {
   navigationSnapshotRef.current = arrangementSnapshot;
   const layoutSwitchDisabled = !isLayoutReady || isLayoutSaving || exerciseSelectionDisabled;
   const changeLayout = (next: WorkoutLayout) => {
-    if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return;
+    if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return false;
     Keyboard.dismiss();
     setPostSaveScrollSpace(0);
     if (next === "all") {
       if (restStateRef.current.context || pendingTransitionRef.current) {
         const id = currentExerciseRef.current;
-        if (!id || !selectExercise(id, false)) return;
+        if (!id || !selectExercise(id, false)) return false;
       }
       allExercisesLayoutRef.current = true;
       cancelExerciseTransition();
     } else allExercisesLayoutRef.current = false;
     void setLayout(next).catch(() => { if (isCurrentWorkout()) Alert.alert("Couldn't save workout layout", "Try changing the layout again."); });
+    return true;
   };
   const showExerciseInfo = (exerciseId: string, target: React.ElementRef<typeof Pressable> | null, source: "focus" | "all") => {
     if (!canActOnExercise(exerciseId)) return;
@@ -1889,7 +1890,7 @@ export default function ActiveWorkoutScreen() {
     });
     const actionDisabled = finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement;
     return <View key={exerciseId} testID={`player-all-card-${exerciseId}`}
-      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 10, marginBottom: 8, backgroundColor: colors.background }}>
+      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 10, marginHorizontal: 4, marginBottom: 8, backgroundColor: colors.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable testID={`player-all-toggle-${exerciseId}`} accessibilityRole="button"
           accessibilityLabel={`${collapsed ? "Expand" : "Collapse"} ${item.exercise.name}`}
@@ -2027,19 +2028,6 @@ export default function ActiveWorkoutScreen() {
             backgroundColor: colors.primaryButton,
           }}
         />
-      </View>
-      <View testID="player-layout-switch" accessibilityRole="radiogroup"
-        style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, paddingHorizontal: 20, paddingVertical: allExercisesLayout ? 4 : 8, borderBottomWidth: 1, borderBottomColor: colors.inputBorder }}>
-        {([{"id": "focus", "label": "Focus"}, {"id": "all", "label": "All exercises"}] as const).map((option) => <Pressable
-          key={option.id} testID={`player-layout-${option.id}`} accessibilityRole="radio" accessibilityLabel={`${option.label} workout layout`}
-          accessibilityState={{ selected: layout === option.id, disabled: layoutSwitchDisabled }} disabled={layoutSwitchDisabled}
-          onPress={() => changeLayout(option.id)}
-          style={{ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
-            borderWidth: layout === option.id ? 1 : 0, borderColor: layout === option.id ? colors.primaryButton : colors.inputBorder,
-            backgroundColor: layout === option.id ? colors.inputBackground : colors.background, paddingHorizontal: 10, paddingVertical: 8,
-            opacity: layoutSwitchDisabled ? 0.5 : 1 }}>
-          <ThemedText style={{ fontSize: 14, fontWeight: layout === option.id ? "700" : "500", textAlign: "center" }}>{option.label}</ThemedText>
-        </Pressable>)}
       </View>
   </>;
   const footer = (
@@ -2365,6 +2353,12 @@ export default function ActiveWorkoutScreen() {
         canArrange={arrangementRevision != null && finishStatus === "idle"}
         busy={arrangement.busy || isSavingEntries || isRestoring}
         selectionDisabled={exerciseSelectionDisabled}
+        layout={layout}
+        layoutDisabled={layoutSwitchDisabled}
+        onLayoutChange={(next) => {
+          if (next === layout) { setSheetVisible(false); return; }
+          if (changeLayout(next)) setSheetVisible(false);
+        }}
         message={arrangement.message}
         onMove={arrangement.move}
         onReplace={arrangement.openReplacement}

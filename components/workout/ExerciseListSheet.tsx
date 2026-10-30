@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import type { WorkoutItem } from "@/interfaces/workouts";
+import type { WorkoutLayout } from "@/utils/workoutLayoutPreference";
 
 interface ExerciseListSheetProps {
   visible: boolean;
@@ -26,10 +27,14 @@ interface ExerciseListSheetProps {
   onReplace?: (exerciseId: string) => void;
   canReplace?: (exerciseId: string) => boolean;
   message?: string;
+  layout?: WorkoutLayout;
+  layoutDisabled?: boolean;
+  onLayoutChange?: (layout: WorkoutLayout) => void;
 }
 
 export function ExerciseListSheet({ visible, inline = false, exercises, currentIndex, colors, getProgress, onSelect, onClose,
-  canArrange = false, busy = false, selectionDisabled = false, onMove, onReplace, canReplace, message }: ExerciseListSheetProps) {
+  canArrange = false, busy = false, selectionDisabled = false, onMove, onReplace, canReplace, message,
+  layout, layoutDisabled = false, onLayoutChange }: ExerciseListSheetProps) {
   const [dragging, setDragging] = useState(false);
   const { fontScale } = useWindowDimensions();
   const scrollingTitle = fontScale >= 2;
@@ -43,14 +48,36 @@ export function ExerciseListSheet({ visible, inline = false, exercises, currentI
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
         <Pressable accessibilityLabel="Close exercise list" onPress={onClose} style={{ flex: 1 }} />
         <SafeAreaView edges={["bottom"]} style={{ maxHeight: "85%", backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, flexShrink: 1 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12 }}>
-            {!scrollingTitle ? <ThemedText type="defaultSemiBold" style={{ fontSize: 20, flexShrink: 1 }}>Exercises</ThemedText> : <View />}
+          <View accessible={false} style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.inputBorder, alignSelf: "center", marginTop: 10 }} />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
+            {!scrollingTitle ? <View style={{ flex: 1 }}>
+              <ThemedText accessibilityRole="header" type="defaultSemiBold" style={{ fontSize: 20 }}>Exercises</ThemedText>
+              <ThemedText style={{ fontSize: 12, color: colors.placeholder }}>{exercises.length} in this workout</ThemedText>
+            </View> : <View />}
             <Pressable testID="player-sheet-close" accessibilityRole="button" accessibilityLabel="Close exercise list" onPress={onClose} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}><Ionicons name="close" size={22} color={colors.text} /></Pressable>
           </View>
-          <ScrollView scrollEnabled={!dragging} contentInsetAdjustmentBehavior="automatic" style={{ paddingHorizontal: 12, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
-            {scrollingTitle ? <ThemedText accessibilityRole="header" type="defaultSemiBold" style={{ fontSize: 20, paddingHorizontal: 8, marginBottom: 12 }}>Exercises</ThemedText> : null}
-            {canArrange ? <ThemedText style={{ paddingHorizontal: 8, paddingBottom: 12, color: colors.placeholder }}>Drag an exercise or use the arrows to reorder. Changes apply to this workout.</ThemedText> : null}
-            {message ? <ThemedText testID="player-arrangement-message" accessibilityLiveRegion="polite" style={{ paddingHorizontal: 8, paddingBottom: 12 }}>{message}</ThemedText> : null}
+          <ScrollView scrollEnabled={!dragging} contentInsetAdjustmentBehavior="automatic" style={{ paddingHorizontal: 16, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+            {scrollingTitle ? <ThemedText accessibilityRole="header" type="defaultSemiBold" style={{ fontSize: 20, marginBottom: 4 }}>Exercises</ThemedText> : null}
+            {scrollingTitle ? <ThemedText style={{ fontSize: 12, color: colors.placeholder, marginBottom: 12 }}>{exercises.length} in this workout</ThemedText> : null}
+            {layout && onLayoutChange ? <View style={{ marginBottom: 18, marginTop: scrollingTitle ? 0 : 10 }}>
+              <ThemedText style={{ fontSize: 13, color: colors.placeholder, marginBottom: 8 }}>View</ThemedText>
+              <View testID="player-layout-switch" accessibilityRole="radiogroup"
+                style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 4, padding: 4, borderRadius: 14,
+                  backgroundColor: colors.background === Colors.dark.background ? "#27292B" : "#F1F1F5" }}>
+                {([{ id: "focus", label: "Focus", icon: "square-outline" }, { id: "all", label: "All exercises", icon: "list-outline" }] as const).map((option) => <Pressable
+                  key={option.id} testID={`player-layout-${option.id}`} accessibilityRole="radio" accessibilityLabel={`${option.label} workout layout`}
+                  accessibilityState={{ selected: layout === option.id, disabled: layoutDisabled }} disabled={layoutDisabled}
+                  onPress={() => onLayoutChange(option.id)}
+                  style={{ flex: 1, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+                    paddingHorizontal: 10, borderRadius: 10, borderWidth: layout === option.id ? 1 : 0,
+                    borderColor: colors.primaryButton, backgroundColor: layout === option.id ? colors.background : "transparent", opacity: layoutDisabled ? 0.5 : 1 }}>
+                  <Ionicons name={option.icon} size={18} color={layout === option.id ? colors.primaryButton : colors.placeholder} accessible={false} />
+                  <ThemedText style={{ fontSize: 14, fontWeight: layout === option.id ? "700" : "500", textAlign: "center" }}>{option.label}</ThemedText>
+                </Pressable>)}
+              </View>
+            </View> : null}
+            {canArrange ? <ThemedText style={{ marginBottom: 10, fontSize: 13, color: colors.placeholder }}>Drag or use arrows to reorder</ThemedText> : null}
+            {message ? <ThemedText testID="player-arrangement-message" accessibilityLiveRegion="polite" style={{ marginBottom: 10 }}>{message}</ThemedText> : null}
             {exercises.map((item, index) => <ExerciseOrderRow key={item.exercise.id} item={item} index={index} count={exercises.length}
               isCurrent={index === currentIndex} colors={colors} progress={getProgress(item.exercise.id)} onSelect={() => onSelect(index)} selectionDisabled={selectionDisabled}
               enabled={canArrange && !busy} onDragStart={() => setDragging(true)} onDragCancel={() => setDragging(false)} onMove={(destination) => move(item.exercise.id, destination)}
@@ -84,7 +111,9 @@ function ExerciseOrderRow({ item, index, count, isCurrent, colors, progress, onS
     }).onFinalize((_event, success) => { if (!success) { translateY.value = 0; active.value = 0; scheduleOnRN(cancel); } }), [enabled, active, begin, translateY, count, index, stride, reduced, drop, cancel]);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }], zIndex: active.value ? 20 : 0, opacity: active.value ? 0.9 : 1 }));
   const complete = progress.total > 0 && progress.confirmed === progress.total;
-  return <Animated.View testID={`player-order-row-${item.exercise.id}`} onLayout={(event) => { stride.value = event.nativeEvent.layout.height + 6; }} layout={LinearTransition.duration(reduced ? 0 : 180).reduceMotion(ReduceMotion.System)} style={[{ backgroundColor: isCurrent ? colors.inputBackground : colors.background, borderRadius: 14, borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, marginBottom: 6, padding: 6 }, animatedStyle]}>
+  return <Animated.View testID={`player-order-row-${item.exercise.id}`} onLayout={(event) => { stride.value = event.nativeEvent.layout.height + 4; }} layout={LinearTransition.duration(reduced ? 0 : 180).reduceMotion(ReduceMotion.System)} style={[{ backgroundColor: isCurrent ? colors.background === Colors.dark.background ? "#26223A" : "#F6F3FF" : colors.background,
+    borderRadius: isCurrent ? 14 : 0, borderWidth: isCurrent ? 1 : 0, borderBottomWidth: 1,
+    borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, marginBottom: 4, padding: 6 }, animatedStyle]}>
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       {enabled ? <GestureDetector gesture={gesture}><Animated.View><View testID={`player-order-handle-${item.exercise.id}`} accessible accessibilityRole="adjustable" accessibilityLabel={`Reorder ${item.exercise.name}`} accessibilityValue={{ text: `Position ${index + 1} of ${count}` }} accessibilityHint="Drag up or down, or use Move up and Move down" accessibilityActions={[...(index > 0 ? [{ name: "decrement", label: "Move up" }] : []), ...(index < count - 1 ? [{ name: "increment", label: "Move down" }] : [])]} onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "decrement" && index > 0) onMove(index - 1); if (event.nativeEvent.actionName === "increment" && index < count - 1) onMove(index + 1); }} style={{ minHeight: 44, width: 44, alignItems: "center", justifyContent: "center" }}><Ionicons name="reorder-three-outline" size={24} color={colors.text} /></View></Animated.View></GestureDetector> : null}
       <Pressable testID="player-sheet-exercise-row" accessibilityRole="button" accessibilityLabel={`Open ${item.exercise.name}, position ${index + 1} of ${count}, ${progress.confirmed} of ${progress.total} sets saved${isCurrent ? ", current exercise" : ""}`} accessibilityState={{ disabled: selectionDisabled, selected: isCurrent }} disabled={selectionDisabled} onPress={onSelect} style={{ flex: 1, minHeight: 52, padding: 8, opacity: selectionDisabled ? 0.5 : 1 }}>
