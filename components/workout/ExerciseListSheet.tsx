@@ -7,9 +7,11 @@ import { scheduleOnRN } from "react-native-worklets";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
+import { WeightUnitControl } from "@/components/workout/WeightUnitControl";
 import { Colors } from "@/constants/theme";
 import type { WorkoutItem } from "@/interfaces/workouts";
 import type { WorkoutLayout } from "@/utils/workoutLayoutPreference";
+import type { WeightUnit } from "@/utils/weightUnits";
 
 interface ExerciseListSheetProps {
   visible: boolean;
@@ -30,11 +32,14 @@ interface ExerciseListSheetProps {
   layout?: WorkoutLayout;
   layoutDisabled?: boolean;
   onLayoutChange?: (layout: WorkoutLayout) => void;
+  weightUnit?: WeightUnit;
+  weightUnitDisabled?: boolean;
+  onWeightUnitChange?: () => void;
 }
 
 export function ExerciseListSheet({ visible, inline = false, exercises, currentIndex, colors, getProgress, onSelect, onClose,
   canArrange = false, busy = false, selectionDisabled = false, onMove, onReplace, canReplace, message,
-  layout, layoutDisabled = false, onLayoutChange }: ExerciseListSheetProps) {
+  layout, layoutDisabled = false, onLayoutChange, weightUnit, weightUnitDisabled = false, onWeightUnitChange }: ExerciseListSheetProps) {
   const [dragging, setDragging] = useState(false);
   const { fontScale } = useWindowDimensions();
   const scrollingTitle = fontScale >= 2;
@@ -75,6 +80,10 @@ export function ExerciseListSheet({ visible, inline = false, exercises, currentI
                   <ThemedText style={{ fontSize: 14, fontWeight: layout === option.id ? "700" : "500", textAlign: "center" }}>{option.label}</ThemedText>
                 </Pressable>)}
               </View>
+            </View> : null}
+            {weightUnit && onWeightUnitChange ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", alignItems: fontScale > 1.5 ? "stretch" : "center", justifyContent: "space-between", gap: 8, borderTopWidth: 1, borderTopColor: colors.inputBorder, paddingTop: 12, marginBottom: 18 }}>
+              <ThemedText style={{ fontSize: 13, color: colors.placeholder }}>Weight unit</ThemedText>
+              <WeightUnitControl compact unit={weightUnit} colors={colors} disabled={weightUnitDisabled} onChange={onWeightUnitChange} />
             </View> : null}
             {canArrange ? <ThemedText style={{ marginBottom: 10, fontSize: 13, color: colors.placeholder }}>Drag or use arrows to reorder</ThemedText> : null}
             {message ? <ThemedText testID="player-arrangement-message" accessibilityLiveRegion="polite" style={{ marginBottom: 10 }}>{message}</ThemedText> : null}

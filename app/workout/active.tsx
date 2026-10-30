@@ -14,7 +14,6 @@ import { adoptSessionArrangement, reorderWorkout } from "@/utils/workoutArrangem
 import { ExerciseListSheet } from "@/components/workout/ExerciseListSheet";
 import { RestTimer } from "@/components/workout/RestTimer";
 import { SetInputRow } from "@/components/workout/SetInputRow";
-import { WeightUnitControl } from "@/components/workout/WeightUnitControl";
 import { StatusBar } from "expo-status-bar";
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
@@ -603,7 +602,7 @@ export default function ActiveWorkoutScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const sheetVisibleRef = useRef(sheetVisible); sheetVisibleRef.current = sheetVisible;
   const exerciseOverlayVisibleRef = useRef(false);
-  const chooseExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null), listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
   const listFocusRef = useRef<{ epoch: number; target: React.ElementRef<typeof Pressable> | null; infoSource?: "focus" | "all"; exerciseId?: string } | null>(null);
   const focusInfoTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
   const allInfoTriggers = useRef(new Map<string, React.ElementRef<typeof Pressable>>());
@@ -1822,13 +1821,12 @@ export default function ActiveWorkoutScreen() {
         color={enteredCount > 0 ? colors.primaryButton : colors.placeholder} accessible={false} />
     </Pressable>;
     return <>
-      {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 4, marginBottom: focus ? 8 : 2 }}>
         <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, paddingRight: focus ? 0 : 8, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
         <View style={{ flex: 1, marginRight: 8 }}>
           <ThemedText accessibilityLabel={expandedLayout ? `${columnLabel} (${weightUnit})` : undefined}
             style={{ textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
-            {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : columnLabel}
+            {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : `${columnLabel} (${weightUnit})`}
           </ThemedText>
         </View>
         <ThemedText style={{ flex: 1, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
@@ -2065,12 +2063,7 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
           </Pressable>
         ) : null}
-        {currentItem && finishStatus === "idle" && !allExercisesLayout ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, marginBottom: 8 }}>
-          <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
-            accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
-            style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
-            <Ionicons name="list" size={20} color={colors.text} /><ThemedText style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>Exercises</ThemedText>
-          </Pressable>
+        {currentItem && finishStatus === "idle" && !allExercisesLayout ? <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
           <Pressable testID="player-next-exercise-shortcut" accessibilityRole="button" accessibilityLabel={nextExercise ? `Next exercise: ${nextExercise.exercise.name}` : "No next exercise"}
             accessibilityHint="Move to the next exercise without logging unfinished sets" accessibilityState={{ disabled: nextExerciseDisabled }} disabled={nextExerciseDisabled}
             onPress={() => { if (nextExercise) selectExercise(nextExercise.exercise.id); }}
@@ -2163,8 +2156,6 @@ export default function ActiveWorkoutScreen() {
               <Ionicons name="document-text-outline" size={16} color={colors.placeholder} />
               <ThemedText style={{ fontSize: 14 }}>Workout note</ThemedText>
             </Pressable>
-            <WeightUnitControl compact unit={weightUnit} colors={colors}
-              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
             </View>
             {workoutNote ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 8 }}>{workoutNote}</ThemedText> : null}
             {exercises.map(renderAllExerciseCard)}
@@ -2355,6 +2346,9 @@ export default function ActiveWorkoutScreen() {
         selectionDisabled={exerciseSelectionDisabled}
         layout={layout}
         layoutDisabled={layoutSwitchDisabled}
+        weightUnit={weightUnit}
+        weightUnitDisabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+        onWeightUnitChange={toggleWeightUnit}
         onLayoutChange={(next) => {
           if (next === layout) { setSheetVisible(false); return; }
           if (changeLayout(next)) setSheetVisible(false);

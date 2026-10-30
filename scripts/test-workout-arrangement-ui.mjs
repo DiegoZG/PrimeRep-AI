@@ -117,12 +117,20 @@ for (const scheme of ["light", "dark"]) {
       "react-native-reanimated": { __esModule: true, default: { View: "AnimatedView" }, LinearTransition: { duration: () => ({ reduceMotion: () => ({}) }) }, ReduceMotion: { System: "system" }, useReducedMotion: () => true, useSharedValue: (value) => React.useRef({ value }).current, useAnimatedStyle: (callback) => callback(), withTiming: (value) => value },
       "react-native-gesture-handler": { GestureDetector: "GestureDetector", GestureHandlerRootView: "GestureHandlerRootView", Gesture: { Pan: () => { const gesture = { callbacks: {}, enabled(value) { this.isEnabled = value; return this; }, minDistance() { return this; }, onStart(cb) { this.callbacks.start = cb; return this; }, onUpdate(cb) { this.callbacks.update = cb; return this; }, onEnd(cb) { this.callbacks.end = cb; return this; }, onFinalize(cb) { this.callbacks.finalize = cb; return this; } }; return gesture; } } },
     };
+    mocks["@/components/workout/WeightUnitControl"] = load("components/workout/WeightUnitControl.tsx", mocks);
     const { ExerciseListSheet } = load("components/workout/ExerciseListSheet.tsx", mocks);
-    const props = { visible: true, exercises: [item("press"), item("row")], currentIndex: 0, colors, getProgress: (id) => ({ confirmed: id === "press" ? 1 : 0, total: 2 }), onSelect: (index) => calls.push(["select", index]), onClose: () => calls.push(["close"]), canArrange: true, onMove: (id, destination) => calls.push(["move", id, destination]), onReplace: (id) => calls.push(["replace", id]), canReplace: (id) => id !== "press", layout: "focus", onLayoutChange: (layout) => calls.push(["layout", layout]) };
+    const props = { visible: true, exercises: [item("press"), item("row")], currentIndex: 0, colors, getProgress: (id) => ({ confirmed: id === "press" ? 1 : 0, total: 2 }), onSelect: (index) => calls.push(["select", index]), onClose: () => calls.push(["close"]), canArrange: true, onMove: (id, destination) => calls.push(["move", id, destination]), onReplace: (id) => calls.push(["replace", id]), canReplace: (id) => id !== "press", layout: "focus", onLayoutChange: (layout) => calls.push(["layout", layout]), weightUnit: "LB", onWeightUnitChange: () => calls.push(["unit"]) };
     let tree; await act(async () => { tree = create(React.createElement(ExerciseListSheet, props)); });
     assert.equal(host(tree, "player-layout-switch").props.style.flexDirection, "column");
     assert.ok(host(tree, "player-layout-all").props.style.minHeight >= 44);
     assert.equal(host(tree, "player-layout-focus").props.accessibilityState.selected, true);
+    assert.equal(host(tree, "player-unit-lb").props.accessibilityState.selected, true);
+    assert.ok(host(tree, "player-unit-kg").props.style.minHeight >= 44);
+    await act(async () => host(tree, "player-unit-kg").props.onPress());
+    assert.deepEqual(calls.findLast((call) => call[0] === "unit"), ["unit"]);
+    await act(async () => tree.update(React.createElement(ExerciseListSheet, { ...props, weightUnitDisabled: true })));
+    assert.equal(host(tree, "player-unit-kg").props.disabled, true);
+    await act(async () => tree.update(React.createElement(ExerciseListSheet, props)));
     await act(async () => host(tree, "player-layout-all").props.onPress());
     assert.deepEqual(calls.findLast((call) => call[0] === "layout"), ["layout", "all"]);
     await act(async () => tree.update(React.createElement(ExerciseListSheet, { ...props, layoutDisabled: true })));

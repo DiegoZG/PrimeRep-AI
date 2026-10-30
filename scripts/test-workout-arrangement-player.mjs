@@ -656,7 +656,7 @@ test("all exercises keeps one rest timer and uses a nonblocking expiry notice", 
 for (const savedCount of [0, 2, 4]) test(`choose any exercise with ${savedCount} saved sets preserves progress, drafts and cold-resume cursor`, async () => {
   const view = await player({ local: (local) => ({ ...confirmed(local, savedCount), workoutNote: "Workout note", exerciseNotes: { bench: "Exercise note" } }) });
   const before = await view.store.loadActiveWorkout("A");
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   assert.equal(view.list().props.visible, true);
   assert.equal(view.list().props.selectionDisabled, false);
   await choose(view, 2);
@@ -837,7 +837,7 @@ test("finishing and pending replacement states disable both navigation entry poi
     const view = await player({ local: { operations: [operation] } });
     assert.equal(view.list().props.selectionDisabled, true);
     assert.equal(host(view.tree, "player-exercise-list-button").props.disabled, true);
-    const control = host(view.tree, "player-choose-exercise"); if (control) assert.equal(control.props.disabled, true);
+    const control = host(view.tree, "player-exercise-list-button"); if (control) assert.equal(control.props.disabled, true);
     const before = await view.store.loadActiveWorkout("A"); await choose(view, 2);
     assert.equal(view.list().props.currentIndex, 1); assert.equal((await view.store.loadActiveWorkout("A")).currentExerciseId, before.currentExerciseId);
     await act(async () => view.tree.unmount());
@@ -857,7 +857,7 @@ test("old selection callbacks cannot navigate after account ABA or component res
 
 test("exercise sheet dismissal restores accessible focus to its visible opening control", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   await choose(view, 2);
   const modal = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss);
   await act(async () => modal.props.onDismiss());
@@ -939,7 +939,7 @@ test("selection callbacks from an earlier same-account session route cannot act 
 
 test("Android focus restoration waits until every shared overlay closes", async () => {
   const view = await player({ platform: "android" });
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   await act(async () => { view.list().props.onClose(); view.controller().setGuidance({ id: "bench", name: "bench" }); });
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
   await act(async () => view.controller().setGuidance(null));
@@ -949,10 +949,10 @@ test("Android focus restoration waits until every shared overlay closes", async 
 
 test("a late native dismiss does not consume the focus target of a reopened list", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   const dismiss = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss).props.onDismiss;
   await act(async () => view.list().props.onClose());
-  await act(async () => { host(view.tree, "player-choose-exercise").props.onPress(); dismiss(); }); assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
+  await act(async () => { host(view.tree, "player-exercise-list-button").props.onPress(); dismiss(); }); assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
   await act(async () => view.list().props.onClose()); await act(async () => dismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
   await act(async () => view.tree.unmount());
@@ -975,4 +975,17 @@ test("the swipe tip waits for a locally saved set and keyboard dismissal without
     await view.remount();
     assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
   } finally { view.replayResponse.resolve(); await act(async () => view.tree.unmount()); }
+});
+
+test("weight unit is set in the exercise sheet without a duplicate Focus footer control", async () => {
+  const view = await player();
+  assert.equal(view.tree.root.findAllByType("WeightUnitControl").length, 0);
+  assert.equal(host(view.tree, "player-choose-exercise"), undefined);
+  assert.ok(host(view.tree, "player-next-exercise-shortcut"));
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
+  assert.equal(view.list().props.weightUnit, "LB");
+  await act(async () => view.list().props.onWeightUnitChange());
+  assert.equal(view.list().props.weightUnit, "KG");
+  assert.equal(view.list().props.visible, true);
+  await act(async () => view.tree.unmount());
 });
