@@ -60,8 +60,8 @@ export const SetInputRow = React.memo(function SetInputRow({
     textAlign: compact ? "center" as const : "left" as const, backgroundColor: "transparent",
   };
   const fieldOutlineStyle = {
-    position: "absolute" as const, alignSelf: "center" as const, width: compact ? "84%" as const : "100%" as const,
-    maxWidth: compact ? 118 : undefined, top: compact ? 6 : 0, bottom: compact ? 6 : 0,
+    position: "absolute" as const, alignSelf: "center" as const, width: compact ? "88%" as const : "100%" as const,
+    maxWidth: compact ? 124 : undefined, top: compact ? 5 : 0, bottom: compact ? 5 : 0,
     borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder, borderRadius: 8,
     backgroundColor: logged ? "transparent" : colors.background,
   };
@@ -129,7 +129,7 @@ export const SetInputRow = React.memo(function SetInputRow({
     <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: logged ? completedBackground : compact ? colors.background : colors.inputBackground,
       borderWidth: compact ? 0 : 1,
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
-      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 1 : 8 }}>
+      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 0 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
           <ThemedText testID={`player-set-number-${id}`} accessibilityRole="text"
