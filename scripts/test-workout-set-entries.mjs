@@ -67,17 +67,24 @@ test("logged draft rebases onto the latest server version after in-flight replay
   assert.equal(result.workout.sets[0].editing, false);
 });
 
-test("pending unsynced edits reuse the stable operation ID, including queued corrections", () => {
+test("queued payloads stay immutable when another local correction is saved", () => {
   const incoming = workout([row(1, { confirmed: true, editing: true, hasUnsavedInput: true, editDraft: { reps: "12", weight: "60" } })]);
   incoming.operations = [{ id: "stable", type: "set", status: "pending", payload: { exerciseId: "squat", setNumber: 1, reps: 8, weightKg: 40 } }];
-  assert.equal(prepare(incoming).workout.operations[0].id, "stable");
+  const unsynced = prepare(incoming);
+  assert.equal(unsynced.workout.operations.length, 2);
+  assert.equal(unsynced.workout.operations[0].id, "stable");
+  assert.equal(unsynced.workout.operations[0].payload.reps, 8);
+  assert.equal(unsynced.workout.operations[1].payload.reps, 12);
+  assert.equal(unsynced.workout.operations[1].payload.resolveAfterPending, true);
   incoming.sets[0].logId = "log";
   incoming.operations = [{ id: "update", type: "update_set", status: "retrying", payload: { exerciseId: "squat", setNumber: 1,
     logId: "log", expectedVersion: 2, previousVersion: 2, previousReps: "8", previousWeight: "40", reps: 10, weightKg: 50 } }];
   const result = prepare(incoming);
-  assert.equal(result.workout.operations.length, 1);
+  assert.equal(result.workout.operations.length, 2);
   assert.equal(result.workout.operations[0].id, "update");
   assert.equal(result.workout.operations[0].payload.expectedVersion, 2);
+  assert.equal(result.workout.operations[0].payload.reps, 10);
+  assert.equal(result.workout.operations[1].payload.resolveAfterPending, true);
 });
 
 test("exercise scope leaves other entered rows for the explicit finish flow", () => {

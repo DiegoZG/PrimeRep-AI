@@ -38,16 +38,16 @@ vm.runInNewContext(source, { module, exports: module.exports, require: (name) =>
 const { SetInputRow } = module.exports;
 const base = { exerciseId: "squat", setNumber: 1, weight: "40", reps: "8", confirmed: false, syncStatus: "synced" };
 
-for (const [name, fields, icon, label] of [
-  ["empty", { weight: "", reps: "" }, "ellipse-outline", "Not logged yet"],
-  ["suggested", {}, "ellipse-outline", "Suggested values. Not logged yet"],
-  ["edited", { hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
-  ["saved", { confirmed: true }, "checkmark-done-outline", "Saved and synced"],
-  ["pending", { confirmed: true, syncStatus: "pending" }, "time-outline", "Saved on this device. Pending sync"],
-  ["retrying", { confirmed: true, syncStatus: "retrying" }, "time-outline", "Pending sync"],
-  ["failed", { confirmed: true, syncStatus: "failed" }, "alert-circle-outline", "Sync failed"],
-  ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "create-outline", "Unsaved changes"],
-]) test(`${name} set has a truthful icon and spoken status in both themes`, async () => {
+for (const [name, fields, label] of [
+  ["empty", { weight: "", reps: "" }, "Not logged yet"],
+  ["suggested", {}, "Suggested values. Not logged yet"],
+  ["edited", { hasUnsavedInput: true }, "Unsaved changes"],
+  ["saved", { confirmed: true }, "Saved and synced"],
+  ["pending", { confirmed: true, syncStatus: "pending" }, "Saved on this device. Pending sync"],
+  ["retrying", { confirmed: true, syncStatus: "retrying" }, "Pending sync"],
+  ["failed", { confirmed: true, syncStatus: "failed" }, "Sync failed"],
+  ["editing saved", { confirmed: true, editing: true, hasUnsavedInput: true }, "Unsaved changes"],
+]) test(`${name} set centers its number and announces status in both themes`, async () => {
   for (const background of ["#fff", "#151718"]) {
     let tree;
     let confirmed = null;
@@ -55,14 +55,16 @@ for (const [name, fields, icon, label] of [
       setRow: { ...base, ...fields }, colors: { ...palette, background }, weightUnit: "LB", lastTimeHint: "40 lb × 8",
       onUpdate() {}, onConfirm: (number) => { confirmed = number; }, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {},
     })); });
-    const status = tree.root.findByProps({ testID: "player-set-status-squat-1" });
-    const symbol = status.findByType("Ionicons");
-    assert.equal(symbol.props.name, icon);
-    assert.ok(status.props.accessibilityLabel.includes(label));
-    assert.equal(status.props.accessibilityRole, "image");
-    assert.equal(symbol.props.accessible, false);
+    const setNumber = tree.root.findByProps({ testID: "player-set-number-squat-1" });
+    assert.ok(setNumber.props.accessibilityLabel.includes(label));
+    assert.equal(setNumber.props.accessibilityRole, "text");
+    assert.equal(setNumber.parent.props.style.justifyContent, "center");
+    assert.equal(setNumber.parent.findAllByType("Ionicons").length, 0);
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
-    if (icon === "checkmark-done-outline") assert.equal(symbol.props.color, background === "#fff" ? "#237858" : "#70D5AD");
+    const button = tree.root.findByProps({ testID: fields.confirmed && !fields.editing ? "player-set-menu-squat-1" : "player-confirm-set-squat-1" });
+    assert.equal(button.findByType("Ionicons").props.name, "checkmark");
+    assert.equal(button.findByType("Ionicons").parent.props.style.backgroundColor, fields.confirmed && !fields.editing ? "#55BC22" : palette.inputBackground);
+    assert.equal(button.findByType("Ionicons").props.color, fields.confirmed && !fields.editing ? "#FFFFFF" : palette.text);
     if (name === "failed") {
       assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
       assert.equal(tree.root.findByProps({ testID: "player-set-menu-squat-1" }).props.disabled, true);
@@ -74,6 +76,24 @@ for (const [name, fields, icon, label] of [
     }
     await act(async () => tree.unmount());
   }
+});
+
+test("a logged row keeps its input borders and previous-result height", async () => {
+  let tree;
+  const props = { setRow: base, colors: palette, weightUnit: "LB", lastTimeHint: "40 lb × 8", compact: true,
+    onUpdate() {}, onConfirm() {}, onEdit() {}, onRemove() {}, onRestore() {}, onRetry() {} };
+  await act(async () => { tree = create(React.createElement(SetInputRow, props)); });
+  const inputBefore = tree.root.findByProps({ testID: "player-weight-input-squat-1" });
+  const hintBefore = tree.root.findAllByType("WorkoutText").find((node) => String(node.props.children).includes("Last time:"));
+  assert.equal(inputBefore.props.style.borderWidth, 1);
+  assert.equal(hintBefore.props.style.opacity, 1);
+  await act(async () => tree.update(React.createElement(SetInputRow, { ...props, setRow: { ...base, confirmed: true } })));
+  const inputAfter = tree.root.findByProps({ testID: "player-weight-input-squat-1" });
+  const hintAfter = tree.root.findAllByType("WorkoutText").find((node) => String(node.props.children).includes("Last time:"));
+  assert.equal(inputAfter.props.style.borderWidth, inputBefore.props.style.borderWidth);
+  assert.equal(hintAfter.props.style.lineHeight, hintBefore.props.style.lineHeight);
+  assert.equal(hintAfter.props.style.opacity, 0);
+  await act(async () => tree.unmount());
 });
 
 test("an empty added set offers removal until the user enters a value", async () => {
@@ -103,7 +123,7 @@ test("an empty added set offers removal until the user enters a value", async ()
   await act(async () => tree.unmount());
 });
 
-test("three dots and swipe reveal the same inline Edit and Remove actions without a modal", async () => {
+test("saved check and swipe reveal the same inline Edit and Remove actions without a modal", async () => {
   const chosen = [];
   let tree;
   await act(async () => { tree = create(React.createElement(SetInputRow, { setRow: { ...base, confirmed: true },

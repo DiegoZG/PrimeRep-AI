@@ -102,10 +102,10 @@ export function mergeReplayAcknowledgement(
           acknowledgedOperationIds: mergeSetAcknowledgements(set, ack).acknowledgedOperationIds };
       }
       const draft = set.hasUnsavedInput || set.editing;
-      const newerPendingSet = operations.some((operation) => !started.has(operation.id)
+      const pendingSetMutation = operations.some((operation) => operation.status !== "failed"
         && (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set")
         && operation.payload.exerciseId === set.exerciseId && operation.payload.setNumber === set.setNumber);
-      return { ...set, ...(!draft && !newerPendingSet ? ack : {
+      return { ...set, ...(!draft && !pendingSetMutation ? ack : {
         logId: ack.logId ?? set.logId, version: Math.max(set.version ?? 1, ack.version ?? 1),
       }), acknowledgedOperationIds: mergeSetAcknowledgements(set, ack).acknowledgedOperationIds };
     });

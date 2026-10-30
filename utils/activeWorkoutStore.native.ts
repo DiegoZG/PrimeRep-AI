@@ -555,17 +555,18 @@ export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = fal
 }
 
 export function saveWorkoutSetEntries(incoming: LocalActiveWorkout, keys: string[], unit: WeightUnit) {
-  const task = replayQueue.then(() => serializeWrite(async () => {
+  return serializeWrite(async () => {
     const durable = await loadActiveWorkout(incoming.userId);
-    if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.operations.some((operation) => operation.type === "complete")) {
+    if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.finishedAt != null
+      || durable.operations.some((operation) => operation.type === "complete" || operation.type === "abandon" || operation.type === "replace")) {
       throw new Error("Workout is no longer editable");
     }
-    const result = prepareSetEntries(incoming, durable, keys, unit, createClientId);
-    if (result.savedCount > 0) await persistActiveWorkout(await database(), result.workout);
+    const result = prepareSetEntries(mergeSavedArrangement(durable, incoming), durable, keys, unit, createClientId);
+    if (result.savedCount > 0 && !await persistActiveWorkout(await database(), result.workout)) {
+      throw new Error("Workout is no longer editable");
+    }
     return result;
-  }));
-  replayQueue = task.then(() => undefined, () => undefined);
-  return task;
+  });
 }
 
 export type ContinueWorkoutLoggingResult =
@@ -630,7 +631,7 @@ export async function retryFailedWorkoutOperations(userId: string): Promise<Loca
 
 function isRetryableError(error: unknown): boolean {
   if (!(error instanceof HttpError) || error.status == null) return true;
-  return error.status === 408 || error.status === 429 || error.status >= 500;
+  return error.status === 401 || error.status === 408 || error.status === 429 || error.status >= 500;
 }
 
 function nextRetryAt(attempts: number): number {
@@ -653,14 +654,15 @@ function hasCanonicalEffectiveSets(workout: LocalActiveWorkout, session: Session
 async function replayPendingWorkoutOperationsInternal(
   token: string,
   userId: string
-): Promise<{ workout: LocalActiveWorkout | null; completed: boolean; abandoned: boolean; completedSession: SessionResponse | null; completionBlocked: boolean; startedOperationIds: string[] }> {
+): Promise<{ workout: LocalActiveWorkout | null; completed: boolean; abandoned: boolean; completedSession: SessionResponse | null; completionBlocked: boolean; startedOperationIds: string[]; authenticationRequired: boolean }> {
   const workout = await loadActiveWorkout(userId);
-  if (!workout) return { workout: null, completed: false, abandoned: false, completedSession: null, completionBlocked: false, startedOperationIds: [] };
+  if (!workout) return { workout: null, completed: false, abandoned: false, completedSession: null, completionBlocked: false, startedOperationIds: [], authenticationRequired: false };
 
   let completed = false;
   let abandoned = false;
   let completedSession: SessionResponse | null = null;
   let completionBlocked = false;
+  let authenticationRequired = false;
   const remaining: PendingWorkoutOperation[] = [];
   // Use an immutable pass list because each attempt is durably written before
   // it goes to the network.
@@ -903,6 +905,7 @@ async function replayPendingWorkoutOperationsInternal(
         }
       }
       const retryable = isRetryableError(error);
+      authenticationRequired = error instanceof HttpError && error.status === 401;
       const failedOperation = {
         ...operation,
         status: retryable ? "pending" as const : "failed" as const,
@@ -937,13 +940,13 @@ async function replayPendingWorkoutOperationsInternal(
   workout.operations = remaining;
   workout.revision += 1;
   await saveReplayWorkout(workout, startedOperationIds);
-  return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds };
+  return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds, authenticationRequired };
 }
 
 export function replayPendingWorkoutOperations(
   token: string,
   userId: string
-): Promise<{ workout: LocalActiveWorkout | null; completed: boolean; abandoned: boolean; completedSession: SessionResponse | null; completionBlocked: boolean; startedOperationIds: string[] }> {
+): Promise<{ workout: LocalActiveWorkout | null; completed: boolean; abandoned: boolean; completedSession: SessionResponse | null; completionBlocked: boolean; startedOperationIds: string[]; authenticationRequired: boolean }> {
   const run = async () => {
     const result = await replayPendingWorkoutOperationsInternal(token, userId);
     if ((result.completed || result.abandoned) && result.workout) {

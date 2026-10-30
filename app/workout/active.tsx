@@ -14,13 +14,13 @@ import { adoptSessionArrangement, reorderWorkout } from "@/utils/workoutArrangem
 import { ExerciseListSheet } from "@/components/workout/ExerciseListSheet";
 import { RestTimer } from "@/components/workout/RestTimer";
 import { SetInputRow } from "@/components/workout/SetInputRow";
-import { WeightUnitControl } from "@/components/workout/WeightUnitControl";
 import { StatusBar } from "expo-status-bar";
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useWorkoutWeek } from "@/hooks/use-workout-week";
 import { useWorkoutLayout } from "@/utils/workoutLayoutContext";
+import { useSetSwipeHint } from "@/utils/useSetSwipeHint";
 import type { WorkoutLayout } from "@/utils/workoutLayoutPreference";
 import type { RestContext, SetState, WorkoutDay, WorkoutItem } from "@/interfaces/workouts";
 import {
@@ -49,6 +49,7 @@ import {
   saveWorkoutSetEntries,
   type LocalActiveWorkout,
   type PendingWorkoutOperation,
+  type SequencedWorkoutOperation,
 } from "@/utils/activeWorkoutStore";
 import {
   convertWeightString,
@@ -211,7 +212,8 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
   const mutationBySet = new Map<string, PendingWorkoutOperation>();
   for (const operation of operations) {
     if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
-      mutationBySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+      const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
+      if (mutationBySet.get(key)?.status !== "failed") mutationBySet.set(key, operation);
     }
   }
   return sets.map((set) => {
@@ -235,12 +237,12 @@ function reconcileSetSyncState(sets: SetState[], operations: PendingWorkoutOpera
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { fontScale, height } = useWindowDimensions();
+  const { fontScale, height, width } = useWindowDimensions();
   const expandedLayout = fontScale > 1.3 || height - insets.top - insets.bottom < 480;
   const { workoutDayId, sessionId: requestedSessionId } = useLocalSearchParams<{ workoutDayId?: string; sessionId?: string }>();
   const colorScheme = useColorScheme();
-  const colors = { ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" };
-  const { token, user } = useContext(AuthContext);
+  const colors = useMemo(() => ({ ...Colors[colorScheme ?? "light"], placeholder: colorScheme === "dark" ? Colors.dark.placeholder : "#68727A" }), [colorScheme]);
+  const { token, user, refreshUser } = useContext(AuthContext);
   const equipmentWeights = useContext(EquipmentWeightsContext);
   const { markWorkoutTerminal } = useActiveWorkout();
   const { getWorkoutById, isLoading: isWeekLoading, refreshWeek, planningRefreshRequired } = useWorkoutWeek();
@@ -342,12 +344,15 @@ export default function ActiveWorkoutScreen() {
   const [storageError, setStorageError] = useState(false);
   const [isSavingEntries, setIsSavingEntries] = useState(false);
   const savingEntriesRef = useRef(false);
+  const localSetSaveRef = useRef<Promise<unknown> | null>(null);
   const savingEntriesEpochRef = useRef<number | null>(null);
   const [entryIssues, setEntryIssues] = useState<Record<string, string>>({});
   const [openSetActionsId, setOpenSetActionsId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
   const [finishReviewVisible, setFinishReviewVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const keyboardHeightRef = useRef(0);
+  const [postSaveScrollSpace, setPostSaveScrollSpace] = useState(0);
   const accountRef = useRef(user?.id);
   accountRef.current = user?.id;
   const [didComplete, setDidComplete] = useState(false);
@@ -384,10 +389,15 @@ export default function ActiveWorkoutScreen() {
   const [restDoneExerciseId, setRestDoneExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
-    const shown = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const shown = Keyboard.addListener("keyboardDidShow", (event) => {
+      keyboardHeightRef.current = event.endCoordinates.height;
+      setKeyboardVisible(true);
+    });
     const hidden = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
     return () => { shown.remove(); hidden.remove(); };
   }, []);
+
+  useEffect(() => { setPostSaveScrollSpace(0); }, [navigationEpoch]);
 
   useEffect(() => {
     operationsRef.current = operations;
@@ -513,7 +523,8 @@ export default function ActiveWorkoutScreen() {
     const bySet = new Map<string, PendingWorkoutOperation>();
     for (const operation of operations) {
       if (operation.type === "set" || operation.type === "update_set" || operation.type === "delete_set" || operation.type === "restore_set") {
-        bySet.set(`${operation.payload.exerciseId}:${operation.payload.setNumber}`, operation);
+        const key = `${operation.payload.exerciseId}:${operation.payload.setNumber}`;
+        if (bySet.get(key)?.status !== "failed") bySet.set(key, operation);
       }
     }
     return bySet;
@@ -591,12 +602,15 @@ export default function ActiveWorkoutScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const sheetVisibleRef = useRef(sheetVisible); sheetVisibleRef.current = sheetVisible;
   const exerciseOverlayVisibleRef = useRef(false);
-  const chooseExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null), listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
+  const listExerciseTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
   const listFocusRef = useRef<{ epoch: number; target: React.ElementRef<typeof Pressable> | null; infoSource?: "focus" | "all"; exerciseId?: string } | null>(null);
   const focusInfoTrigger = useRef<React.ElementRef<typeof Pressable>>(null);
   const allInfoTriggers = useRef(new Map<string, React.ElementRef<typeof Pressable>>());
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
+  const swipeHint = useSetSwipeHint(user?.id ?? null, allExercisesLayout && !keyboardVisible && !isSavingEntries
+    && finishStatus === "idle" && !sheetVisible && !infoSheetVisible && !noteEditorVisible && !feedbackEditorVisible && !finishReviewVisible);
+  const { request: requestSwipeHint, dismiss: dismissSwipeHint } = swipeHint;
   const infoSheetEpochRef = useRef<number | null>(null);
   const currentItem: WorkoutItem | undefined = exercises[currentExerciseIndex];
   const currentExerciseRef = useRef(currentItem?.exercise.id); currentExerciseRef.current = currentItem?.exercise.id;
@@ -682,6 +696,7 @@ export default function ActiveWorkoutScreen() {
     noteEditorEpochRef.current = null; feedbackEditorEpochRef.current = null;
     setNoteEditorVisible(false); setFeedbackEditorVisible(false);
     if (savingEntriesEpochRef.current !== navigationEpoch) {
+      localSetSaveRef.current = null;
       savingEntriesEpochRef.current = null;
       savingEntriesRef.current = false;
       setIsSavingEntries(false);
@@ -868,6 +883,7 @@ export default function ActiveWorkoutScreen() {
     replayInFlightRef.current = true;
     try {
       const result = await replayPendingWorkoutOperations(token, user.id);
+      await localSetSaveRef.current?.catch(() => undefined);
       if (accountRef.current !== user.id || navigationIdentityRef.current.epoch !== navigationEpoch) return;
       if (!result.workout) return;
       if (isFinishingRef.current && !result.completed && !result.abandoned) return;
@@ -938,6 +954,7 @@ export default function ActiveWorkoutScreen() {
         markWorkoutTerminal();
         if (result.completed) setDidComplete(true);
       }
+      if (result.authenticationRequired) await refreshUser();
     } catch {
       // The operation remains durable and will be retried on the next retry window.
     } finally {
@@ -947,16 +964,25 @@ export default function ActiveWorkoutScreen() {
         setOperations((current) => [...current]);
       }
     }
-  }, [token, user, markWorkoutTerminal, weightUnit, navigationEpoch]);
+  }, [token, user, refreshUser, markWorkoutTerminal, weightUnit, navigationEpoch]);
 
-  const retryAt = useMemo(() => Math.min(
-    ...operations
-      .filter((operation) => operation.status !== "failed")
-      .map((operation) => operation.nextAttemptAt ?? Date.now())
-  ), [operations]);
+  const retryAt = useMemo(() => {
+    let arrangementBlocked = false;
+    const ordered: SequencedWorkoutOperation[] = [...operations];
+    ordered.sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER));
+    for (const operation of ordered) {
+      if ((operation.type === "order" || operation.type === "replace") && (operation.payload.conflict || operation.payload.unsupported)) {
+        arrangementBlocked = true;
+        continue;
+      }
+      if (operation.status === "failed" || (arrangementBlocked && (operation.type === "replace" || operation.type === "complete"))) return Infinity;
+      return operation.nextAttemptAt ?? Date.now();
+    }
+    return Infinity;
+  }, [operations]);
 
   useEffect(() => {
-    if (persistedRevision === 0 || operations.length === 0 || operations.every((operation) => operation.status === "failed")) return;
+    if (persistedRevision === 0 || !Number.isFinite(retryAt)) return;
     const delay = Math.max(0, retryAt - Date.now());
     const retryTimer = setTimeout(() => void replayPendingWrites(), delay);
     return () => clearTimeout(retryTimer);
@@ -1126,7 +1152,9 @@ export default function ActiveWorkoutScreen() {
       }
     }
     try {
-      const result = await saveWorkoutSetEntries(snapshot, keys, weightUnit);
+      const localSave = saveWorkoutSetEntries(snapshot, keys, weightUnit);
+      localSetSaveRef.current = localSave;
+      const result = await localSave;
       if (!isCurrentWorkout()) return false;
       setEntryIssues(result.issues);
       if (result.savedCount > 0) {
@@ -1142,6 +1170,7 @@ export default function ActiveWorkoutScreen() {
           setRestContext(result.workout.restContext);
         }
         setStorageError(false);
+        requestSwipeHint();
         setSaveMessage(`${result.savedCount} ${result.savedCount === 1 ? "set" : "sets"} saved on this device.${Object.keys(result.issues).length ? ` ${Object.keys(result.issues).length} need attention.` : ""}`);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       } else setSaveMessage("Check the entries below before saving.");
@@ -1154,6 +1183,7 @@ export default function ActiveWorkoutScreen() {
       return false;
     } finally {
       if (savingEntriesEpochRef.current === navigationEpoch) {
+        localSetSaveRef.current = null;
         savingEntriesEpochRef.current = null;
         savingEntriesRef.current = false;
       }
@@ -1163,12 +1193,13 @@ export default function ActiveWorkoutScreen() {
       }
     }
   }, [originalWorkout, arrangementRevision, targetReviewExerciseIds, currentExerciseId, exercises, user, workout, isRestoring, finishStatus, clientSessionId, sessionId, startedAt,
-    restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, weightUnit, navigationEpoch, isCurrentWorkout]);
+    restEndsAt, restTotalSeconds, restContext, workoutNote, exerciseFeedback, exerciseNotes, weightUnit, navigationEpoch, isCurrentWorkout, requestSwipeHint]);
 
   const confirmSet = useCallback((exerciseId: string, setNumber: number) => {
     if (!canActOnExercise(exerciseId)) return;
+    if (allExercisesLayout && keyboardVisible) setPostSaveScrollSpace(Math.max(240, keyboardHeightRef.current));
     void saveEntries([`${exerciseId}:${setNumber}`], true);
-  }, [canActOnExercise, saveEntries]);
+  }, [allExercisesLayout, canActOnExercise, keyboardVisible, saveEntries]);
 
   const saveExerciseEntries = useCallback((exerciseId: string) => {
     if (!canActOnExercise(exerciseId)) return;
@@ -1625,17 +1656,19 @@ export default function ActiveWorkoutScreen() {
   navigationSnapshotRef.current = arrangementSnapshot;
   const layoutSwitchDisabled = !isLayoutReady || isLayoutSaving || exerciseSelectionDisabled;
   const changeLayout = (next: WorkoutLayout) => {
-    if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return;
+    if (!canActOnWorkout() || layoutSwitchDisabled || layout === next) return false;
     Keyboard.dismiss();
+    setPostSaveScrollSpace(0);
     if (next === "all") {
       if (restStateRef.current.context || pendingTransitionRef.current) {
         const id = currentExerciseRef.current;
-        if (!id || !selectExercise(id, false)) return;
+        if (!id || !selectExercise(id, false)) return false;
       }
       allExercisesLayoutRef.current = true;
       cancelExerciseTransition();
     } else allExercisesLayoutRef.current = false;
     void setLayout(next).catch(() => { if (isCurrentWorkout()) Alert.alert("Couldn't save workout layout", "Try changing the layout again."); });
+    return true;
   };
   const showExerciseInfo = (exerciseId: string, target: React.ElementRef<typeof Pressable> | null, source: "focus" | "all") => {
     if (!canActOnExercise(exerciseId)) return;
@@ -1758,7 +1791,7 @@ export default function ActiveWorkoutScreen() {
     accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
     disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => saveExerciseEntries(currentItem.exercise.id)}
     style={{ flex: keyboardVisible ? undefined : 1, minWidth: 160, minHeight: 44, alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: colors.primaryButton }}>
-    {isSavingEntries ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>{allExercisesLayout ? `Save ${currentEnteredCount} sets · ${currentItem.exercise.name}` : `Save entered sets (${currentEnteredCount})`}</ThemedText>}
+    <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14, textAlign: "center" }}>Save entered sets ({currentEnteredCount})</ThemedText>
   </Pressable> : null;
 
   const activateExerciseForAll = (exerciseId: string) => {
@@ -1775,25 +1808,28 @@ export default function ActiveWorkoutScreen() {
     const columnLabel = item.exercise.loadProfile?.implement_count === 1 ? "Weight" : equipmentIds.includes("dumbbells")
       ? "Weight each" : equipmentIds.includes("olympic_barbell") ? "Total weight" : "Weight";
     const enteredCount = enteredSets(sets, exerciseId).length;
-    const saveAction = focus ? saveEnteredAction : enteredCount > 0 ? <Pressable
+    const saveAction = focus ? saveEnteredAction : <Pressable
       testID={`player-save-entered-sets-${exerciseId}`} accessibilityRole="button"
-      accessibilityLabel={`Save ${enteredCount} entered sets for ${item.exercise.name}`}
-      accessibilityState={{ disabled: isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
-      disabled={isSavingEntries || finishStatus !== "idle"} onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
-      style={{ minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.primaryButton }}>
-      <ThemedText style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>Save entered sets ({enteredCount})</ThemedText>
-    </Pressable> : null;
+      accessibilityLabel={`Save all entered sets for ${item.exercise.name}`}
+      accessibilityHint="Saves all entered sets for this exercise"
+      accessibilityState={{ disabled: enteredCount === 0 || isSavingEntries || finishStatus !== "idle", busy: isSavingEntries }}
+      disabled={enteredCount === 0 || isSavingEntries || finishStatus !== "idle"}
+      onPress={() => { if (activateExerciseForAll(exerciseId)) saveExerciseEntries(exerciseId); }}
+      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
+        backgroundColor: enteredCount > 0 ? `${colors.primaryButton}1A` : colors.inputBackground }}>
+      <Ionicons name="checkmark-done-outline" size={22}
+        color={enteredCount > 0 ? colors.primaryButton : colors.placeholder} accessible={false} />
+    </Pressable>;
     return <>
-      {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 8, marginBottom: focus ? 8 : 2 }}>
-        <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 4, marginBottom: focus ? 8 : 2 }}>
+        <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, paddingRight: focus ? 0 : 8, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
         <View style={{ flex: 1, marginRight: 8 }}>
           <ThemedText accessibilityLabel={expandedLayout ? `${columnLabel} (${weightUnit})` : undefined}
-            style={{ fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
-            {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : columnLabel}
+            style={{ textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
+            {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : `${columnLabel} (${weightUnit})`}
           </ThemedText>
         </View>
-        <ThemedText style={{ flex: 1, fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
+        <ThemedText style={{ flex: 1, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
         <View style={{ width: 52 }} />
       </View>
       {itemSets.map((setRow) => {
@@ -1806,7 +1842,7 @@ export default function ActiveWorkoutScreen() {
         return <SetInputRow key={`${exerciseId}-${setRow.setNumber}`} setRow={displaySet} displaySetNumber={displaySetNumber}
           colors={colors} weightUnit={weightUnit} compact={!focus} readOnly={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
           actionsOpen={openSetActionsId === `${exerciseId}:${setRow.setNumber}`}
-          onActionsOpen={() => setOpenSetActionsId(`${exerciseId}:${setRow.setNumber}`)}
+          onActionsOpen={() => { dismissSwipeHint(); setOpenSetActionsId(`${exerciseId}:${setRow.setNumber}`); }}
           onActionsClose={() => setOpenSetActionsId((current) => current === `${exerciseId}:${setRow.setNumber}` ? null : current)}
           issue={entryIssues[setEntryKey(setRow)]}
           lastTimeHint={formatLastTimeHint(findHistoryForSet(lastSetsByExercise[exerciseId], setRow.setNumber), weightUnit)}
@@ -1819,7 +1855,7 @@ export default function ActiveWorkoutScreen() {
           onRetry={() => { if (activateExerciseForAll(exerciseId)) void retryFailedWrites(); }} />;
       })}
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: focus ? 10 : 4, marginTop: focus ? 4 : 0,
-        borderTopWidth: focus ? 0 : 1, borderTopColor: colors.inputBorder, paddingTop: focus ? 0 : 4 }}>
+        paddingTop: focus ? 0 : 4 }}>
         <Pressable testID={`player-add-set-${exerciseId}`} accessibilityRole="button"
           accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
           disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
@@ -1829,7 +1865,7 @@ export default function ActiveWorkoutScreen() {
           <ThemedText style={{ fontWeight: "600", fontSize: 14, color: focus ? colors.text : colors.primaryButton }}>+ Add set</ThemedText>
         </Pressable>
         {cardActions}
-        {!keyboardVisible ? saveAction : null}
+        {!focus || !keyboardVisible ? saveAction : null}
       </View>
       {focus && saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginTop: 10 }}>{saveMessage}</ThemedText> : null}
     </>;
@@ -1852,17 +1888,17 @@ export default function ActiveWorkoutScreen() {
     });
     const actionDisabled = finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement;
     return <View key={exerciseId} testID={`player-all-card-${exerciseId}`}
-      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 12, marginBottom: 12, backgroundColor: colors.background }}>
+      style={{ borderWidth: 1, borderColor: isCurrent ? colors.primaryButton : colors.inputBorder, borderRadius: 16, padding: 10, marginHorizontal: 4, marginBottom: 8, backgroundColor: colors.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Pressable testID={`player-all-toggle-${exerciseId}`} accessibilityRole="button"
           accessibilityLabel={`${collapsed ? "Expand" : "Collapse"} ${item.exercise.name}`}
           accessibilityState={{ expanded: !collapsed, disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled}
           onPress={() => { if (!activateExerciseForAll(exerciseId)) return; setCollapsedExercises((current) => ({ ...current, [exerciseId]: !current[exerciseId] })); }}
-          style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          style={{ flex: 1, minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 }}>
           {fontScale <= 2 ? <ExerciseThumbnail key={item.exercise.imageUrl ?? exerciseId} exercise={item.exercise} colors={colors} /> : null}
           <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold" style={{ fontSize: 18, flexShrink: 1 }}>{index + 1}. {item.exercise.name}</ThemedText>
-            <ThemedText style={{ fontSize: 13, color: colors.placeholder }}>
+            <ThemedText type="defaultSemiBold" style={{ fontSize: 16, flexShrink: 1 }}>{index + 1}. {item.exercise.name}</ThemedText>
+            <ThemedText style={{ fontSize: 12, color: colors.placeholder }}>
               {progress.confirmed}/{progress.total} sets · {item.prescription.sets} × {item.prescription.reps} · {item.prescription.restSeconds}s rest
             </ThemedText>
           </View>
@@ -1891,14 +1927,44 @@ export default function ActiveWorkoutScreen() {
     </View>;
   };
 
+  const finishDisabled = finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish;
+  const finishButton = (compact: boolean) => <Pressable
+    testID="player-finish"
+    onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
+    disabled={finishDisabled}
+    accessibilityRole="button"
+    accessibilityLabel={finishStatus === "idle" ? "Finish workout" : "Retry finishing workout"}
+    accessibilityState={{ disabled: finishDisabled, busy: finishStatus === "syncing" }}
+    style={{
+      minHeight: 44,
+      minWidth: compact ? 72 : undefined,
+      paddingHorizontal: compact ? 12 : 0,
+      paddingVertical: compact ? 8 : keyboardVisible ? 8 : emphasizeFinish ? 16 : 12,
+      borderRadius: compact ? 12 : 14,
+      borderWidth: emphasizeFinish ? 0 : 1,
+      borderColor: colors.inputBorder,
+      backgroundColor: emphasizeFinish ? colors.primaryButton : colors.background,
+      alignItems: "center",
+      justifyContent: "center",
+      opacity: finishStatus === "syncing" ? 0.6 : 1,
+    }}
+  >
+    {finishStatus === "syncing" ? <ActivityIndicator color={colors.placeholder} /> : <ThemedText
+      type={emphasizeFinish ? "defaultSemiBold" : "default"}
+      style={{ color: !canFinish ? colors.placeholder : emphasizeFinish ? "#FFFFFF" : colors.text, fontSize: compact ? 14 : 16, textAlign: "center", flexShrink: 1 }}
+    >{finishStatus === "idle" ? compact ? "Finish" : `Finish Workout (${confirmedCount}/${totalSets})` : compact ? "Retry" : "Retry Finish"}</ThemedText>}
+  </Pressable>;
+
+  const allTitleBelow = allExercisesLayout && (fontScale > 1.1 || width < 360);
   const header = <>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: expandedLayout ? "space-between" : undefined,
+          justifyContent: expandedLayout || allTitleBelow ? "space-between" : undefined,
           paddingHorizontal: 20,
-          paddingVertical: 12,
+          paddingVertical: allExercisesLayout ? 8 : 12,
+          gap: allExercisesLayout ? 4 : 0,
           borderBottomWidth: 1,
           borderBottomColor: colors.inputBorder,
         }}
@@ -1912,15 +1978,16 @@ export default function ActiveWorkoutScreen() {
         >
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        {!expandedLayout ? <Pressable
-          style={{ flex: 1, alignItems: "center" }}
+        {!expandedLayout && !allTitleBelow ? <Pressable
+          style={{ flex: 1, minWidth: 0, alignItems: "center" }}
           disabled={exerciseSelectionDisabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${workout.title}, ${formatTime(elapsedSeconds)}, ${confirmedCount} of ${totalSets} sets`}
           onPress={() => openExerciseList(listExerciseTrigger.current)}
         >
-          <ThemedText type="defaultSemiBold">{workout.title}</ThemedText>
+          <ThemedText type="defaultSemiBold" numberOfLines={1} style={allExercisesLayout ? { fontSize: 17 } : undefined}>{workout.title}</ThemedText>
           <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
-            {formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}
-            {exercises.length} • {confirmedCount}/{totalSets} sets
+            {allExercisesLayout ? `${formatTime(elapsedSeconds)} · ${confirmedCount}/${totalSets} sets` : <>{formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}{exercises.length} • {confirmedCount}/{totalSets} sets</>}
           </ThemedText>
         </Pressable> : null}
         <Pressable
@@ -1936,19 +2003,19 @@ export default function ActiveWorkoutScreen() {
         >
           <Ionicons name="list" size={22} color={colors.text} />
         </Pressable>
+        {allExercisesLayout ? finishButton(true) : null}
       </View>
 
-      {expandedLayout ? <Pressable
+      {expandedLayout || allTitleBelow ? <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open exercise list for ${workout.title}`}
+          accessibilityLabel={`Open exercise list for ${workout.title}, ${formatTime(elapsedSeconds)}, ${confirmedCount} of ${totalSets} sets`}
           style={{ minHeight: 44, alignItems: "center", paddingHorizontal: 20, paddingBottom: 12 }}
           disabled={exerciseSelectionDisabled}
           onPress={() => openExerciseList(listExerciseTrigger.current)}
         >
-          <ThemedText type="defaultSemiBold" style={{ textAlign: "center" }}>{workout.title}</ThemedText>
+          <ThemedText type="defaultSemiBold" numberOfLines={2} style={{ textAlign: "center", width: "100%", fontSize: allExercisesLayout ? 17 : undefined }}>{workout.title}</ThemedText>
           <ThemedText style={{ fontSize: 13, color: colors.placeholder, textAlign: "center" }}>
-            {formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}
-            {exercises.length} • {confirmedCount}/{totalSets} sets
+            {allExercisesLayout ? `${formatTime(elapsedSeconds)} · ${confirmedCount}/${totalSets} sets` : <>{formatTime(elapsedSeconds)} • Exercise {currentExerciseIndex + 1} of{" "}{exercises.length} • {confirmedCount}/{totalSets} sets</>}
           </ThemedText>
         </Pressable> : null}
       <View style={{ height: 3, backgroundColor: colors.inputBorder }}>
@@ -1959,19 +2026,6 @@ export default function ActiveWorkoutScreen() {
             backgroundColor: colors.primaryButton,
           }}
         />
-      </View>
-      <View testID="player-layout-switch" accessibilityRole="radiogroup"
-        style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.inputBorder }}>
-        {([{"id": "focus", "label": "Focus"}, {"id": "all", "label": "All exercises"}] as const).map((option) => <Pressable
-          key={option.id} testID={`player-layout-${option.id}`} accessibilityRole="radio" accessibilityLabel={`${option.label} workout layout`}
-          accessibilityState={{ selected: layout === option.id, disabled: layoutSwitchDisabled }} disabled={layoutSwitchDisabled}
-          onPress={() => changeLayout(option.id)}
-          style={{ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 10,
-            borderWidth: layout === option.id ? 1 : 0, borderColor: layout === option.id ? colors.primaryButton : colors.inputBorder,
-            backgroundColor: layout === option.id ? colors.inputBackground : colors.background, paddingHorizontal: 10, paddingVertical: 8,
-            opacity: layoutSwitchDisabled ? 0.5 : 1 }}>
-          <ThemedText style={{ fontSize: 14, fontWeight: layout === option.id ? "700" : "500", textAlign: "center" }}>{option.label}</ThemedText>
-        </Pressable>)}
       </View>
   </>;
   const footer = (
@@ -2009,52 +2063,17 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
           </Pressable>
         ) : null}
-        {currentItem && finishStatus === "idle" && !allExercisesLayout ? <View style={{ flexDirection: fontScale > 1.5 ? "column" : "row", gap: 8, marginBottom: 8 }}>
-          <Pressable ref={chooseExerciseTrigger} testID="player-choose-exercise" accessibilityRole="button" accessibilityLabel="Choose exercise" accessibilityHint="Open this workout's exercise list and choose what to do now"
-            accessibilityState={{ disabled: exerciseSelectionDisabled }} disabled={exerciseSelectionDisabled} onPress={() => openExerciseList(chooseExerciseTrigger.current)}
-            style={{ flex: 1, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, opacity: exerciseSelectionDisabled ? 0.5 : 1 }}>
-            <Ionicons name="list" size={20} color={colors.text} /><ThemedText style={{ fontSize: 14, fontWeight: "600", flexShrink: 1 }}>Exercises</ThemedText>
-          </Pressable>
+        <View testID="player-focus-footer-actions" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flex: 1 }}>{finishButton(false)}</View>
+          {currentItem && finishStatus === "idle" && !allExercisesLayout ? (
           <Pressable testID="player-next-exercise-shortcut" accessibilityRole="button" accessibilityLabel={nextExercise ? `Next exercise: ${nextExercise.exercise.name}` : "No next exercise"}
             accessibilityHint="Move to the next exercise without logging unfinished sets" accessibilityState={{ disabled: nextExerciseDisabled }} disabled={nextExerciseDisabled}
             onPress={() => { if (nextExercise) selectExercise(nextExercise.exercise.id); }}
-            style={{ width: fontScale > 1.5 ? "100%" : 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, borderWidth: nextExerciseDisabled ? 1 : 0, borderColor: colors.inputBorder, backgroundColor: nextExerciseDisabled ? colors.background : colors.primaryButton }}>
-            {fontScale > 1.5 ? <ThemedText style={{ fontSize: 14, fontWeight: "600", color: nextExerciseDisabled ? colors.placeholder : "#FFFFFF" }}>Next exercise</ThemedText> : null}
+            style={{ width: 48, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: nextExerciseDisabled ? 1 : 0, borderColor: colors.inputBorder, backgroundColor: nextExerciseDisabled ? colors.background : colors.primaryButton }}>
             <Ionicons name="arrow-forward" size={22} color={nextExerciseDisabled ? colors.placeholder : "#FFFFFF"} />
           </Pressable>
-        </View> : null}
-        <Pressable
-          testID="player-finish"
-          onPress={finishStatus === "idle" ? handleComplete : () => void finishWorkout(true)}
-          disabled={finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: finishStatus === "syncing" || isSavingEntries || arrangement.busy || hasPendingReplacement || !canFinish, busy: finishStatus === "syncing" }}
-          style={{
-            backgroundColor: emphasizeFinish ? colors.primaryButton : colors.background,
-            borderWidth: emphasizeFinish ? 0 : 1,
-            borderColor: colors.inputBorder,
-            paddingVertical: keyboardVisible ? 8 : emphasizeFinish ? 16 : 12,
-            minHeight: 44,
-            borderRadius: 14,
-            alignItems: "center",
-            opacity: finishStatus === "syncing" ? 0.6 : 1,
-          }}
-        >
-          {finishStatus === "syncing" ? (
-            <ActivityIndicator color={colors.placeholder} />
-          ) : (
-            <ThemedText
-              type={emphasizeFinish ? "defaultSemiBold" : "default"}
-              style={{
-                color: !canFinish ? colors.placeholder : emphasizeFinish ? "#FFFFFF" : colors.text,
-                fontSize: 16,
-                textAlign: "center",
-              }}
-            >
-              {finishStatus === "idle" ? `Finish Workout (${confirmedCount}/${totalSets})` : "Retry Finish"}
-            </ThemedText>
-          )}
-        </Pressable>
+          ) : null}
+        </View>
       </View>
   );
 
@@ -2062,13 +2081,31 @@ export default function ActiveWorkoutScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      {!expandedLayout ? <View key="fixed-header">{header}</View> : null}
+      {!expandedLayout ? <View key="fixed-header" testID="player-fixed-header">{header}</View> : null}
+      {allExercisesLayout && finishStatus !== "idle" && finishStatus !== "syncing" ? <View testID="player-finish-recovery"
+        style={{ flexDirection: fontScale > 1.5 ? "column" : "row", alignItems: fontScale > 1.5 ? "stretch" : "center", paddingHorizontal: 16, paddingVertical: 4, gap: 8, borderBottomWidth: 1, borderBottomColor: colors.inputBorder, backgroundColor: colors.inputBackground }}>
+        <ThemedText style={{ flex: 1, color: finishStatus === "failed" ? "#DC2626" : colors.placeholder, fontSize: 13 }}>
+          {finishStatus === "failed" ? "Couldn’t finish. Your sets are safe." : finishStatus === "pendingSets" ? "Sets are saving. Finish will resume." : "Saved on this device. Finish when online."}
+        </ThemedText>
+        <Pressable testID="player-continue-logging" accessibilityRole="button" onPress={() => void continueLogging()}
+          style={{ minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.primaryButton }}>
+          <ThemedText type="defaultSemiBold" style={{ color: "#FFFFFF", fontSize: 14 }}>Continue logging</ThemedText>
+        </Pressable>
+      </View> : null}
 
       {/* Main content */}
+      <View style={{ flex: 1 }}>
       <ScrollView
         testID="player-main-scroll"
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: allExercisesLayout && !expandedLayout ? 8 : 20, paddingBottom: 20 + postSaveScrollSpace }}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          if (postSaveScrollSpace > 0 && !keyboardVisible) {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+            if (contentOffset.y < contentSize.height - layoutMeasurement.height - postSaveScrollSpace - 20) setPostSaveScrollSpace(0);
+          }
+        }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
@@ -2112,30 +2149,16 @@ export default function ActiveWorkoutScreen() {
           </View>
         ) : allExercisesLayout ? (
           <>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
             <Pressable testID="player-workout-note" accessibilityRole="button" accessibilityLabel="Workout note"
               accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
               disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
-              onPress={openWorkoutNoteEditor} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginBottom: 12 }}>
+              onPress={openWorkoutNoteEditor} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
               <Ionicons name="document-text-outline" size={16} color={colors.placeholder} />
               <ThemedText style={{ fontSize: 14 }}>Workout note</ThemedText>
             </Pressable>
-            {workoutNote ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 12 }}>{workoutNote}</ThemedText> : null}
-            {restEndsAt !== null ? <RestTimer restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
-              exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
-              onExpire={() => handleRestExpire(restEndsAt)}
-              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} /> : null}
-            {restDoneExerciseId ? <View testID="player-all-rest-done" style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <ThemedText accessibilityLiveRegion="polite" style={{ flex: 1, color: colors.primaryButton, fontSize: 14 }}>
-                Rest done · {exercises.find((item) => item.exercise.id === restDoneExerciseId)?.exercise.name ?? "Exercise"}
-              </ThemedText>
-              <Pressable testID="player-dismiss-rest-done" accessibilityRole="button" accessibilityLabel="Dismiss rest complete notice"
-                onPress={() => { if (isCurrentWorkout()) setRestDoneExerciseId(null); }} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="close" size={18} color={colors.placeholder} />
-              </Pressable>
-            </View> : null}
-            <WeightUnitControl unit={weightUnit} colors={colors}
-              disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} />
-            {saveMessage ? <ThemedText testID="player-save-confirmation" accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 20, color: colors.placeholder, marginBottom: 12 }}>{saveMessage}</ThemedText> : null}
+            </View>
+            {workoutNote ? <ThemedText numberOfLines={2} style={{ color: colors.placeholder, fontSize: 13, marginBottom: 8 }}>{workoutNote}</ThemedText> : null}
             {exercises.map(renderAllExerciseCard)}
           </>
         ) : currentItem ? (
@@ -2245,11 +2268,37 @@ export default function ActiveWorkoutScreen() {
         ) : null}
         </View>
         </TouchableWithoutFeedback>
-        {expandedLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
+        {expandedLayout && !allExercisesLayout ? <View key="scroll-footer" style={{ marginHorizontal: -20, marginBottom: -20, marginTop: 20 }}>{footer}</View> : null}
       </ScrollView>
+      {swipeHint.visible ? <View testID="player-set-swipe-hint" accessibilityLiveRegion="polite"
+        style={{ position: "absolute", bottom: 8, left: 16, right: 16, flexDirection: "row", alignItems: "center", gap: 8,
+          paddingLeft: 12, borderRadius: 12, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.inputBorder }}>
+        <Ionicons name="arrow-back" size={18} color={colors.primaryButton} accessible={false} />
+        <ThemedText style={{ flex: 1, fontSize: 13 }}>Swipe left on a set to edit or remove it.</ThemedText>
+        <Pressable testID="player-dismiss-swipe-hint" accessibilityRole="button" accessibilityLabel="Dismiss swipe tip" onPress={dismissSwipeHint}
+          style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="close" size={18} color={colors.placeholder} />
+        </Pressable>
+      </View> : null}
+      </View>
 
-      {!expandedLayout ? <View key="fixed-footer">{footer}</View> : null}
-      {expandedLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
+      {expandedLayout && !allExercisesLayout && keyboardVisible && finishStatus === "idle" && saveEnteredAction ? <View key="keyboard-save" style={{ paddingHorizontal: 20, paddingVertical: 12, backgroundColor: colors.background }}>{saveEnteredAction}</View> : null}
+      {allExercisesLayout && restEndsAt !== null ? <RestTimer compact restEndsAt={restEndsAt} totalSeconds={restTotalSeconds}
+        exerciseName={restingExercise?.exercise.name} colors={colors} onAdjust={adjustRest} onSkip={handleRestSkip}
+        onExpire={() => handleRestExpire(restEndsAt)}
+        disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} /> : null}
+      {allExercisesLayout && restEndsAt === null && restDoneExerciseId ? <View testID="player-all-rest-done"
+        style={{ flexDirection: "row", alignItems: "center", minHeight: fontScale > 1.5 ? 72 : 48, paddingHorizontal: 16, paddingVertical: fontScale > 1.5 ? 10 : 0, borderTopWidth: 1,
+          borderColor: colors.inputBorder, backgroundColor: colors.background }}>
+        <ThemedText accessibilityLiveRegion="polite" numberOfLines={fontScale > 1.5 ? 2 : 1} style={{ flex: 1, flexShrink: 1, color: colors.text, fontSize: 14 }}>
+          Rest done · {exercises.find((item) => item.exercise.id === restDoneExerciseId)?.exercise.name ?? "Exercise"}
+        </ThemedText>
+        <Pressable testID="player-dismiss-rest-done" accessibilityRole="button" accessibilityLabel="Dismiss rest complete notice"
+          onPress={() => { if (isCurrentWorkout()) setRestDoneExerciseId(null); }} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="close" size={18} color={colors.placeholder} />
+        </Pressable>
+      </View> : null}
+      {!allExercisesLayout && !expandedLayout ? <View key="fixed-footer" testID="player-fixed-footer">{footer}</View> : null}
       </KeyboardAvoidingView>
 
       <Modal visible={finishReviewVisible} transparent animationType="none" onRequestClose={() => setFinishReviewVisible(false)}>
@@ -2296,6 +2345,15 @@ export default function ActiveWorkoutScreen() {
         canArrange={arrangementRevision != null && finishStatus === "idle"}
         busy={arrangement.busy || isSavingEntries || isRestoring}
         selectionDisabled={exerciseSelectionDisabled}
+        layout={layout}
+        layoutDisabled={layoutSwitchDisabled}
+        weightUnit={weightUnit}
+        weightUnitDisabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}
+        onWeightUnitChange={toggleWeightUnit}
+        onLayoutChange={(next) => {
+          if (next === layout) { setSheetVisible(false); return; }
+          if (changeLayout(next)) setSheetVisible(false);
+        }}
         message={arrangement.message}
         onMove={arrangement.move}
         onReplace={arrangement.openReplacement}

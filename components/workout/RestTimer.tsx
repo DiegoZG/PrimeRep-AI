@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Pressable, View } from "react-native";
+import { AppState, Pressable, useWindowDimensions, View } from "react-native";
 
 import { WorkoutText as ThemedText } from "@/components/workout/WorkoutText";
 import { Colors, Fonts } from "@/constants/theme";
@@ -16,6 +16,7 @@ interface RestTimerProps {
   onSkip: () => void;
   onExpire: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 function formatCountdown(totalSeconds: number): string {
@@ -39,7 +40,9 @@ export function RestTimer({
   onSkip,
   onExpire,
   disabled,
+  compact = false,
 }: RestTimerProps) {
+  const { width, fontScale } = useWindowDimensions();
   const [remainingMs, setRemainingMs] = useState(() =>
     Math.max(0, restEndsAt - Date.now())
   );
@@ -80,28 +83,81 @@ export function RestTimer({
   const progress =
     totalSeconds > 0 ? Math.min(1, Math.max(0, remainingMs / (totalSeconds * 1000))) : 0;
 
+  if (compact) {
+    const stacked = fontScale > 1.5 || width < 340;
+    const controlBackground = colors.background === "#fff" ? "#F2F3F5" : "#2B2D2F";
+    const adjustButton = (seconds: number, label: string) => (
+      <Pressable
+        testID={seconds < 0 ? "player-rest-minus" : "player-rest-plus"}
+        onPress={() => onAdjust(seconds)}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={seconds < 0 ? "Reduce rest by 15 seconds" : "Extend rest by 15 seconds"}
+        accessibilityState={{ disabled: Boolean(disabled) }}
+        style={{ minWidth: stacked ? 0 : 56, flex: stacked ? 1 : undefined, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: controlBackground }}
+      >
+        <ThemedText style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans }}>{label}</ThemedText>
+      </Pressable>
+    );
+    const countdown = <ThemedText
+      accessibilityLabel={`Rest time remaining ${formatCountdown(remainingSeconds)}`}
+      style={{ flex: 1, minWidth: 72, textAlign: stacked ? "left" : "center", fontSize: 26, fontWeight: "700", fontFamily: Fonts.sans, fontVariant: ["tabular-nums"], color: colors.text, includeFontPadding: false }}
+    >{formatCountdown(remainingSeconds)}</ThemedText>;
+    const skipButton = <Pressable
+      testID="player-rest-skip"
+      onPress={onSkip}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel="Skip rest"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      style={{ minWidth: stacked ? 88 : 64, minHeight: 44, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: colors.primaryButton }}
+    >
+      <ThemedText style={{ fontSize: 15, fontWeight: "600", fontFamily: Fonts.sans, color: "#FFFFFF" }}>Skip</ThemedText>
+    </Pressable>;
+
+    return <View testID="player-sticky-rest" style={{ backgroundColor: colors.background, borderTopWidth: 1, borderColor: colors.inputBorder }}>
+      <View style={{ height: 3, backgroundColor: colors.inputBorder }}>
+        <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: colors.primaryButton }} />
+      </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 }}>
+        <ThemedText numberOfLines={stacked ? 2 : 1} accessibilityLabel={exerciseName ? `Resting after ${exerciseName}` : "Resting"}
+          style={{ color: colors.placeholder, fontSize: 12, marginBottom: 4 }}>
+          {exerciseName ? `Rest · ${exerciseName}` : "Rest"}
+        </ThemedText>
+        {stacked ? <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{countdown}{skipButton}</View>
+          <View style={{ flexDirection: "row", gap: 8 }}>{adjustButton(-15, "−15")}{adjustButton(15, "+15")}</View>
+        </View> : <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {adjustButton(-15, "−15")}{countdown}{adjustButton(15, "+15")}{skipButton}
+        </View>}
+      </View>
+    </View>;
+  }
+
   return (
     <View
+      testID={compact ? "player-sticky-rest" : undefined}
       style={{
-        borderRadius: 12,
+        borderRadius: compact ? 0 : 12,
         borderWidth: 1,
         borderColor: colors.inputBorder,
         backgroundColor: colors.inputBackground,
-        padding: 12,
-        marginBottom: 16,
+        paddingHorizontal: compact ? 20 : 12,
+        paddingVertical: compact ? 8 : 12,
+        marginBottom: compact ? 0 : 16,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12 }}>
-      <View style={{ flex: 1, minWidth: 80 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12, rowGap: compact ? 4 : 0 }}>
+      <View style={{ flex: 1, minWidth: compact ? 120 : 80 }}>
       <ThemedText
         style={{
-          fontSize: 12,
+          fontSize: compact ? 11 : 12,
           fontWeight: "600",
           fontFamily: Fonts.sans,
           color: colors.placeholder,
           textTransform: "uppercase",
           letterSpacing: 0.5,
-          marginBottom: 4,
+          marginBottom: compact ? 0 : 4,
         }}
       >
         {exerciseName ? `Resting · ${exerciseName}` : "Resting"}
@@ -109,7 +165,7 @@ export function RestTimer({
 
       <ThemedText
         style={{
-          fontSize: 28,
+          fontSize: compact ? 22 : 28,
           fontWeight: "700",
           fontFamily: Fonts.sans,
           color: colors.text,
@@ -124,7 +180,7 @@ export function RestTimer({
       </View>
 
       {/* Adjust + skip controls */}
-      <View style={{ flexDirection: "row", gap: 6 }}>
+      <View style={{ flexDirection: "row", flexWrap: compact ? "wrap" : "nowrap", gap: 6, maxWidth: "100%" }}>
         <Pressable
           onPress={() => onAdjust(-15)}
           disabled={disabled}
@@ -133,11 +189,12 @@ export function RestTimer({
           accessibilityLabel="Reduce rest by 15 seconds"
           style={{
             minHeight: 44,
+            minWidth: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -159,9 +216,10 @@ export function RestTimer({
           accessibilityLabel="Skip rest"
           style={{
             minHeight: 44,
+            minWidth: 44,
             alignItems: "center",
             justifyContent: "center",
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -181,11 +239,12 @@ export function RestTimer({
           accessibilityLabel="Extend rest by 15 seconds"
           style={{
             minHeight: 44,
+            minWidth: 44,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 4,
-            padding: 8,
+            padding: compact ? 6 : 8,
             borderRadius: 12,
             backgroundColor: colors.background,
             borderWidth: 1,
@@ -199,7 +258,7 @@ export function RestTimer({
         </Pressable>
       </View>
       </View>
-      <View style={{ height: 3, borderRadius: 2, backgroundColor: colors.inputBorder, overflow: "hidden", marginTop: 10 }}>
+      <View style={{ height: compact ? 2 : 3, borderRadius: 2, backgroundColor: colors.inputBorder, overflow: "hidden", marginTop: compact ? 5 : 10 }}>
         <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: colors.primaryButton }} />
       </View>
     </View>

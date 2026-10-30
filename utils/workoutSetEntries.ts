@@ -80,6 +80,7 @@ export function prepareSetEntries(
     if (!selected.has(key) || original.deleted || (original.confirmed && !original.editing)) {
       return stored && !original.hasUnsavedInput && !original.editing ? {
         ...stored, ...original, confirmed: original.confirmed || stored.confirmed,
+        ...(stored.confirmed ? { reps: stored.reps, weight: stored.weight, weightKg: stored.weightKg } : {}),
         logId: stored.logId, version: stored.version, syncing: stored.syncing, syncStatus: stored.syncStatus,
       } : original;
     }
@@ -94,25 +95,21 @@ export function prepareSetEntries(
     const pendingIndex = operations.map((operation) =>
       (operation.type === "set" || operation.type === "update_set") ? setEntryKey(operation.payload) : "").lastIndexOf(key);
     const pending = operations[pendingIndex];
-    const alreadyAttempted = pending && (pending.attempts ?? 0) > 0;
-    if (pending?.type === "set" && !alreadyAttempted) {
-      operations[pendingIndex] = { ...pending, status: "pending", nextAttemptAt: undefined,
-        payload: { ...pending.payload, reps, weightKg: weightKg ?? undefined } };
-    } else if (target.logId || alreadyAttempted) {
+    // Replay may already hold this payload; corrections must keep its operation ID immutable.
+    if (target.logId || pending) {
       const operation: PendingWorkoutOperation = {
-        id: !alreadyAttempted && pending ? pending.id : createId(), type: "update_set", status: "pending",
+        id: createId(), type: "update_set", status: "pending",
         payload: {
           logId: target.logId ?? "", exerciseId: target.exerciseId, setNumber: target.setNumber, reps, weightKg,
           displayWeight: draft.weight,
-          expectedVersion: !alreadyAttempted && pending?.type === "update_set" ? pending.payload.expectedVersion : target.version ?? 1,
-          previousReps: !alreadyAttempted && pending?.type === "update_set" ? pending.payload.previousReps : stored?.reps ?? target.reps,
-          previousWeight: !alreadyAttempted && pending?.type === "update_set" ? pending.payload.previousWeight : stored?.weight ?? target.weight,
-          previousVersion: !alreadyAttempted && pending?.type === "update_set" ? pending.payload.previousVersion : target.version ?? 1,
-          resolveAfterPending: alreadyAttempted || (pending?.type === "update_set" && pending.payload.resolveAfterPending) || undefined,
+          expectedVersion: target.version ?? 1,
+          previousReps: stored?.reps ?? target.reps,
+          previousWeight: stored?.weight ?? target.weight,
+          previousVersion: target.version ?? 1,
+          resolveAfterPending: Boolean(pending) || undefined,
         },
       };
-      if (pendingIndex >= 0 && !alreadyAttempted) operations[pendingIndex] = operation;
-      else operations.push(operation);
+      operations.push(operation);
     } else {
       operations.push({ id: createId(), type: "set", status: "pending",
         payload: { exerciseId: target.exerciseId, setNumber: target.setNumber, reps, weightKg: weightKg ?? undefined } });

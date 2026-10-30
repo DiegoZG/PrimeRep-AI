@@ -21,6 +21,8 @@ async function player(options = {}) {
   let route = options.noExisting ? { workoutDayId: "day" } : { sessionId: "session" };
   let layoutChoice = options.layout ?? "focus";
   let timerCounter = 0;
+  let clockOffset = 0;
+  class Clock extends Date { static now() { return Date.now() + clockOffset; } }
   const AuthContext = React.createContext(null), EquipmentWeightsContext = React.createContext(null);
   let server = { id: "session", clientSessionId: "client", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", arrangementRevision: 0,
     effectiveWorkout: api(workout), workoutSnapshot: api(workout), status: "in_progress", startedAt: new Date(100).toISOString(), setLogs: [], deletedSetLogs: [], exerciseFeedback: [], workoutNote: null };
@@ -34,7 +36,7 @@ async function player(options = {}) {
   const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, planningRefreshRequired: Boolean(options.barrier), refreshWeek: async () => { calls.push(["refresh"]); } };
   const services = {
     getActiveSession: async () => identity.user?.id === "A" ? copy(server) : null, getSession: async () => { if (identity.user?.id !== "A") throw new Error("Not this owner's session"); return copy(server); }, getUserExerciseNote: async (_token, id) => { calls.push(["noteRead", id]); return options.notes?.[id] ? { note: options.notes[id] } : null; }, fetchLastSetsForExercises: async () => ({}),
-    logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
+    logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.expiredToken && _token === "token") throw new HttpError("Access token expired", 401); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
     getReplacementCandidates: async () => [{ id: "fly", name: "Chest Fly" }],
     previewExerciseOrder: async (_token, _session, ids) => ({ arrangementRevision: server.arrangementRevision, exerciseIds: ids, targetsChanged: false, targetChanges: [], effectiveWorkout: server.effectiveWorkout, message: "Targets unchanged." }),
     updateExerciseOrder: async (_token, _session, ids) => { const byId = new Map(server.effectiveWorkout.exerciseBlocks.flatMap((block) => block.items.map((item) => [item.exercise.id, item]))); server = { ...server, arrangementRevision: server.arrangementRevision + 1, effectiveWorkout: api({ ...workout, blocks: [{ blockType: "main", items: ids.map((id) => byId.get(id)) }] }) }; return copy(server); },
@@ -56,7 +58,7 @@ async function player(options = {}) {
     const filename = path.join(root, relative); if (cache.has(filename)) return cache.get(filename).exports;
     const module = { exports: {} }; cache.set(filename, module);
     const output = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true, target: ts.ScriptTarget.ES2022 } }).outputText;
-    vm.runInNewContext(output, { React, module, exports: module.exports, console, Date, JSON, Promise, Map, Set,
+    vm.runInNewContext(output, { React, module, exports: module.exports, console, Date: Clock, JSON, Promise, Map, Set,
       setTimeout: (callback, delay) => { const id = ++timerCounter; timers.set(id, { callback, delay }); return id; }, clearTimeout: (id) => timers.delete(id),
       setInterval: (callback) => { const id = ++timerCounter; intervals.set(id, callback); return id; }, clearInterval: (id) => intervals.delete(id),
       require: (name) => {
@@ -73,22 +75,32 @@ async function player(options = {}) {
   if (!options.noExisting) await store.saveActiveWorkout(local);
   if (options.realRestTimer) mocks["@/components/workout/RestTimer"] = load("components/workout/RestTimer.tsx");
   const { default: Screen } = load("app/workout/active.tsx");
-  const element = () => React.createElement(AuthContext.Provider, { value: identity }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
+  const refreshUser = async () => { calls.push(["refreshAuth"]); if (options.expiredToken) { identity = { ...identity, token: "fresh-token" }; tree.update(element()); } };
+  const element = () => React.createElement(AuthContext.Provider, { value: { ...identity, refreshUser } }, React.createElement(EquipmentWeightsContext.Provider, { value: { hasLoaded: true, dumbbellWeights: [], plateWeights: [] } }, React.createElement(Screen)));
   const mount = () => create(element(), { createNodeMock: (node) => node.type === "Pressable" ? {} : null });
   let tree; await act(async () => { tree = mount(); });
   const settle = async () => { await act(async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); }); };
   await settle();
-  const runTimers = async () => { await act(async () => { const pending = [...timers]; for (const [id, timer] of pending) if (timer.delay === 0) { timers.delete(id); timer.callback(); } }); await settle(); };
+  const runTimers = async (maxDelay = 0) => { clockOffset += maxDelay; await act(async () => { const pending = [...timers]; for (const [id, timer] of pending) if (timer.delay <= maxDelay) { timers.delete(id); timer.callback(); } }); await settle(); };
   const list = () => tree.root.findByType("ExerciseListSheet");
   const controller = () => tree.root.findByType("WorkoutArrangementSheets").props.controller;
   const result = { tree, store, calls, list, controller, settle, runTimers, replacementStarted, replacementResponse, replayStarted, replayResponse, getServer: () => copy(server), memory, timers,
     getLayout: () => layoutChoice,
-    showKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidShow")?.()); },
+    showKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidShow")?.({ endCoordinates: { height: 300 } })); },
+    hideKeyboard: async () => { await act(async () => keyboardListeners.get("keyboardDidHide")?.()); },
     remount: async () => { await act(async () => tree.unmount()); await act(async () => { tree = mount(); result.tree = tree; }); await settle(); },
     auth: async (id) => { identity = { token: "token", user: { id } }; await act(async () => tree.update(element())); await settle(); },
     route: async (next) => { route = next; await act(async () => tree.update(element())); await settle(); },
     setBarrier: async (value) => { week.planningRefreshRequired = value; await act(async () => tree.update(element())); await settle(); } };
   return result;
+}
+
+async function switchLayout(view, next) {
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
+  assert.equal(view.list().props.visible, true);
+  await act(async () => view.list().props.onLayoutChange(next));
+  await view.settle();
+  assert.equal(view.list().props.visible, false);
 }
 
 test("mounted player replacement with background replay and autosave keeps all replacement sets and clears pending state", async () => {
@@ -296,6 +308,9 @@ const confirmed = (local, count = 4) => ({ ...local, sets: local.sets.map((set) 
 
 test("all exercises shows every editable card and logs the touched exercise", async () => {
   const view = await player({ layout: "all", notes: { row: "Keep elbows close." } });
+  assert.ok(host(view.tree, "player-fixed-header").findAllByProps({ testID: "player-finish" }).length === 1);
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  assert.equal(host(view.tree, "player-finish").props.disabled, true);
   for (const id of ["incline", "bench", "row", "raise"]) assert.ok(host(view.tree, `player-all-card-${id}`));
   assert.deepEqual(view.calls.filter((call) => call[0] === "noteRead").map((call) => call[1]).sort(), ["bench", "incline", "raise", "row"]);
   assert.equal(view.tree.root.findAllByType("SetInputRow").length, 14);
@@ -308,20 +323,84 @@ test("all exercises shows every editable card and logs the touched exercise", as
   await view.settle();
   assert.equal(view.list().props.currentIndex, 2);
   assert.equal(inputFor(view, "bench").props.setRow.weight, "");
+  const card = host(view.tree, "player-all-card-row");
   await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+  assert.strictEqual(host(view.tree, "player-all-card-row"), card);
+  assert.equal(host(view.tree, "player-finish").props.disabled, false);
   const saved = await view.store.loadActiveWorkout("A");
   assert.equal(saved.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
   assert.equal(saved.sets.find((set) => set.exerciseId === "bench" && set.setNumber === 1).confirmed, false);
   assert.equal(saved.restContext.exerciseId, "row");
   assert.equal(view.calls.some((call) => call[0] === "log" && call[1] === "bench"), false);
   assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  assert.equal(rest(view).props.compact, true);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByType("RestTimer").length, 0);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-save-confirmation" }).length, 0);
   await act(async () => rest(view).props.onExpire());
   assert.ok(host(view.tree, "player-all-rest-done"));
+  assert.strictEqual(host(view.tree, "player-all-card-row"), card);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-all-rest-done" }).length, 0);
+  await act(async () => host(view.tree, "player-dismiss-rest-done").props.onPress());
+  assert.equal(host(view.tree, "player-all-rest-done"), undefined);
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.equal(inputFor(view, "row"), undefined); assert.ok(inputFor(view, "bench"));
   await act(async () => host(view.tree, "player-all-toggle-row").props.onPress());
   assert.ok(inputFor(view, "row"));
+  await act(async () => view.tree.unmount());
+});
+
+test("compact rest dock stays outside the exercise list and uses short adjustment labels", async () => {
+  const view = await player({ layout: "all", realRestTimer: true,
+    local: { restEndsAt: Date.now() + 90000, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } } });
+  const dock = host(view.tree, "player-sticky-rest");
+  assert.ok(dock);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByProps({ testID: "player-sticky-rest" }).length, 0);
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  const labels = dock.findAllByType("Text").map((node) => node.children.join(""));
+  assert.ok(labels.includes("Rest · bench"));
+  assert.ok(labels.includes("−15"));
+  assert.ok(labels.includes("+15"));
+  for (const id of ["player-rest-minus", "player-rest-plus", "player-rest-skip"]) assert.ok(host(view.tree, id).props.style.minHeight >= 44);
+  await view.showKeyboard();
+  assert.ok(host(view.tree, "player-sticky-rest"));
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  await act(async () => view.tree.unmount());
+});
+
+test("large-text rest dock wraps controls without shrinking touch targets", async () => {
+  const view = await player({ layout: "all", fontScale: 2, realRestTimer: true,
+    local: { restEndsAt: Date.now() + 90000, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } } });
+  assert.ok(host(view.tree, "player-sticky-rest"));
+  assert.equal(host(view.tree, "player-rest-minus").props.style.flex, 1);
+  assert.equal(host(view.tree, "player-rest-plus").props.style.flex, 1);
+  assert.ok(host(view.tree, "player-finish"));
+  for (const id of ["player-rest-minus", "player-rest-plus", "player-rest-skip"]) assert.ok(host(view.tree, id).props.style.minHeight >= 44);
+  await act(async () => view.tree.unmount());
+});
+
+test("all exercises keeps finish recovery actions visible without a footer", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...confirmed(local, 1),
+    operations: [{ id: "finish", type: "complete", status: "failed", payload: {} }] }) });
+  assert.ok(host(view.tree, "player-finish-recovery"));
+  assert.ok(host(view.tree, "player-continue-logging"));
+  assert.equal(host(view.tree, "player-fixed-footer"), undefined);
+  assert.equal(host(view.tree, "player-finish").props.accessibilityLabel, "Retry finishing workout");
+  await act(async () => view.tree.unmount());
+});
+
+test("keyboard-open logging preserves room to keep the tapped row in view", async () => {
+  const view = await player({ layout: "all" });
+  await view.showKeyboard();
+  await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
+  await view.settle();
+  await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+  assert.equal(host(view.tree, "player-main-scroll").props.contentContainerStyle.paddingBottom, 320);
+  await view.hideKeyboard();
+  await act(async () => host(view.tree, "player-main-scroll").props.onScroll({ nativeEvent: {
+    contentOffset: { y: 100 }, contentSize: { height: 1000 }, layoutMeasurement: { height: 500 },
+  } }));
+  assert.equal(host(view.tree, "player-main-scroll").props.contentContainerStyle.paddingBottom, 20);
   await act(async () => view.tree.unmount());
 });
 
@@ -360,12 +439,13 @@ test("removing a blank added set leaves no row or delete operation after restart
 
 test("layout switch keeps cross-exercise drafts and restores the selected layout", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.equal(host(view.tree, "player-layout-switch"), undefined);
+  await switchLayout(view, "all");
   assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
   await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "55"); inputFor(view, "row").props.onUpdate(1, "reps", "10"); });
-  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  await switchLayout(view, "focus");
   assert.equal(input(view).props.setRow.exerciseId, "row"); assert.equal(input(view).props.setRow.weight, "55");
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  await switchLayout(view, "all");
   await view.remount();
   assert.equal(view.getLayout(), "all"); assert.ok(host(view.tree, "player-all-card-row"));
   assert.equal(inputFor(view, "row").props.setRow.reps, "10");
@@ -373,26 +453,137 @@ test("layout switch keeps cross-exercise drafts and restores the selected layout
   await act(async () => view.tree.unmount());
 });
 
-test("large-text layout switch keeps the scroll view and focused radio mounted", async () => {
+test("large-text layout switch keeps the scroll view mounted", async () => {
   const view = await player({ fontScale: 2 });
   const scroll = host(view.tree, "player-main-scroll");
-  const allRadio = host(view.tree, "player-layout-all");
-  assert.equal(host(view.tree, "player-layout-switch").props.style.flexDirection, "column");
-  assert.ok(host(view.tree, "player-layout-all").props.style.minHeight >= 44);
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  assert.equal(host(view.tree, "player-layout-switch"), undefined);
+  await switchLayout(view, "all");
   assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
-  assert.strictEqual(host(view.tree, "player-layout-all"), allRadio);
-  await act(async () => host(view.tree, "player-layout-focus").props.onPress()); await view.settle();
+  await switchLayout(view, "focus");
   assert.strictEqual(host(view.tree, "player-main-scroll"), scroll);
   await act(async () => view.tree.unmount());
 });
 
-test("all exercises keyboard save names and targets the selected exercise", async () => {
+for (const status of ["failed", "pending"]) test(`the head of the sync queue controls retries when it is ${status}`, async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local,
+    sets: local.sets.map((set) => set.setNumber === 1 && ["bench", "row"].includes(set.exerciseId)
+      ? { ...set, confirmed: true, reps: "8", weight: "20" } : set),
+    operations: [
+      { id: "head", type: "set", status, nextAttemptAt: status === "pending" ? Date.now() + 60_000 : undefined,
+        payload: { exerciseId: "bench", setNumber: 1, reps: 8, weightKg: 20 } },
+      { id: "tail", type: "set", status: "pending", payload: { exerciseId: "row", setNumber: 1, reps: 8, weightKg: 20 } },
+    ],
+  }) });
+  try {
+    const immediate = [...view.timers.values()].filter((timer) => timer.delay === 0);
+    assert.equal(immediate.length, 0);
+    if (status === "pending") assert.ok([...view.timers.values()].some((timer) => timer.delay > 50_000));
+    await view.runTimers();
+    assert.equal(view.calls.some((call) => call[0] === "log"), false);
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("a blocking set failure stays visible when a later correction is queued", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local,
+    sets: local.sets.map((set) => set.exerciseId === "bench" && set.setNumber === 1
+      ? { ...set, confirmed: true, reps: "12", weight: "35" } : set),
+    operations: [
+      { id: "head", type: "set", status: "failed", payload: { exerciseId: "bench", setNumber: 1, reps: 8, weightKg: 20 } },
+      { id: "correction", type: "update_set", status: "pending", payload: { exerciseId: "bench", setNumber: 1, logId: "", reps: 12,
+        weightKg: 35, expectedVersion: 1, previousReps: "8", previousWeight: "20", previousVersion: 1, resolveAfterPending: true } },
+    ],
+  }) });
+  try {
+    assert.equal(inputFor(view, "bench").props.setRow.syncStatus, "failed");
+    assert.equal(inputFor(view, "bench").props.setRow.reps, "12");
+    assert.equal([...view.timers.values()].filter((timer) => timer.delay === 0).length, 0);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("a finish blocked by an arrangement conflict does not repeatedly wake sync", async () => {
+  const view = await player({ layout: "all", local: (local) => ({ ...local, operations: [
+    { id: "order", type: "order", status: "failed", payload: { exerciseIds: ["incline", "bench", "row", "raise"], expectedRevision: 0, applyRevisedTargets: false, conflict: true } },
+    { id: "finish", type: "complete", status: "pending", payload: {} },
+  ] }) });
+  try {
+    assert.equal([...view.timers.values()].filter((timer) => timer.delay === 0).length, 0);
+    assert.ok(host(view.tree, "player-continue-logging"));
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("an expired login token refreshes automatically while the logged set stays recorded", async () => {
+  const view = await player({ layout: "all", expiredToken: true });
+  try {
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    await view.runTimers();
+    assert.equal(view.calls.filter((call) => call[0] === "refreshAuth").length, 1);
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, true);
+    assert.equal(inputFor(view, "row").props.setRow.syncStatus, "pending");
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+    await view.runTimers(5000);
+    assert.equal((await view.store.loadActiveWorkout("A")).operations.length, 0);
+    assert.equal(view.getServer().setLogs.length, 1);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("logging and exercise navigation stay available while cloud sync is stalled, then sync resumes automatically", async () => {
+  const view = await player({ layout: "all", deferReplay: true });
+  try {
+    await act(async () => { inputFor(view, "bench").props.onUpdate(1, "weight", "45"); inputFor(view, "bench").props.onUpdate(1, "reps", "9"); });
+    await act(async () => inputFor(view, "bench").props.onConfirm(1)); await view.settle();
+    await view.runTimers(); await view.replayStarted.promise;
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => host(view.tree, "player-save-entered-sets-row").props.onPress()); await view.settle();
+    const local = await view.store.loadActiveWorkout("A");
+    assert.equal(local.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+    assert.equal(host(view.tree, "player-finish").props.disabled, false);
+    assert.equal(host(view.tree, "player-save-entered-sets-row").findAllByType("ActivityIndicator").length, 0);
+    assert.equal(view.calls.filter((call) => call[0] === "log").length, 1);
+    await choose(view, 3);
+    assert.equal(view.list().props.currentIndex, 3);
+    assert.equal(local.restContext.exerciseId, "bench");
+    await act(async () => view.replayResponse.resolve()); await view.settle();
+    await view.runTimers(); await view.settle();
+    assert.equal((await view.store.loadActiveWorkout("A")).operations.length, 0);
+    assert.equal(view.calls.filter((call) => call[0] === "log").length, 2);
+  } finally { view.replayResponse.resolve(); await act(async () => view.tree.unmount()); }
+});
+
+test("a failed device write keeps entered values unlogged and allows a successful retry", async () => {
+  let fail = false;
+  const view = await player({ layout: "all", beforeWrite: async (key) => { if (fail && key.includes("active-workout")) throw new Error("Device storage unavailable"); } });
+  try {
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await view.settle(); fail = true;
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, false);
+    assert.equal(inputFor(view, "row").props.setRow.reps, "12");
+    assert.equal(view.tree.root.findAllByType("RestTimer").length, 0);
+    assert.ok(host(view.tree, "player-retry-save"));
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    assert.equal(view.calls.some((call) => call[0] === "log"), false);
+    fail = false;
+    await act(async () => host(view.tree, "player-retry-save").props.onPress()); await view.settle();
+    assert.equal(inputFor(view, "row").props.setRow.confirmed, true);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("all exercises keeps a compact save action in the card with the keyboard open", async () => {
   const view = await player({ layout: "all" });
+  const emptySave = host(view.tree, "player-save-entered-sets-row");
+  assert.equal(emptySave.props.disabled, true);
+  assert.equal(emptySave.findByType("Ionicons").props.name, "checkmark-done-outline");
   await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "45"); inputFor(view, "row").props.onUpdate(1, "reps", "9"); });
   await view.showKeyboard();
-  const save = host(view.tree, "player-save-entered-sets");
-  assert.match(save.findByType("Text").children.join(""), /Save 1 sets · row/);
+  const save = host(view.tree, "player-save-entered-sets-row");
+  assert.equal(host(view.tree, "player-save-entered-sets"), undefined);
+  assert.equal(save.findByType("Ionicons").props.name, "checkmark-done-outline");
+  assert.ok(save.props.style.height >= 44);
+  assert.ok(host(view.tree, "player-all-card-row").findAllByType("Pressable").includes(save));
+  assert.equal(save.props.disabled, false);
   assert.match(save.props.accessibilityLabel, /for row/);
   await act(async () => save.props.onPress()); await view.settle();
   assert.equal((await view.store.loadActiveWorkout("A")).sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
@@ -402,7 +593,7 @@ test("all exercises keyboard save names and targets the selected exercise", asyn
 
 for (const navigation of ["account", "route"]) test(`all-card and layout callbacks from an earlier ${navigation} epoch cannot act after ABA`, async () => {
   const view = await player({ layout: "all" });
-  const oldLayout = host(view.tree, "player-layout-focus").props.onPress;
+  const oldLayout = view.list().props.onLayoutChange;
   const oldToggle = host(view.tree, "player-all-toggle-row").props.onPress;
   const oldInfo = host(view.tree, "player-all-info-row").props.onPress;
   const oldEdit = inputFor(view, "row").props.onUpdate;
@@ -420,7 +611,7 @@ for (const navigation of ["account", "route"]) test(`all-card and layout callbac
   assert.equal(infoSheet(view).props.exerciseId, null);
   await act(async () => oldDismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
-  await act(async () => { oldLayout(); oldToggle(); oldInfo(); oldEdit(1, "weight", "100"); });
+  await act(async () => { oldLayout("focus"); oldToggle(); oldInfo(); oldEdit(1, "weight", "100"); });
   await view.settle();
   assert.equal(view.getLayout(), "all");
   assert.equal(infoSheet(view).props.visible, false);
@@ -447,10 +638,12 @@ test("all-card controls stay inert when selection is blocked by a set save", asy
 test("all exercises keeps one rest timer and uses a nonblocking expiry notice", async () => {
   const deadline = Date.now() + 90000;
   const view = await player({ local: { restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: true } } });
-  await act(async () => host(view.tree, "player-layout-all").props.onPress()); await view.settle();
+  await switchLayout(view, "all");
   const snapshot = await view.store.loadActiveWorkout("A");
   assert.equal(snapshot.restEndsAt, deadline); assert.equal(snapshot.restContext.suppressAutoAdvance, true);
   assert.equal(view.tree.root.findAllByType("RestTimer").length, 1);
+  assert.equal(rest(view).props.compact, true);
+  assert.equal(host(view.tree, "player-main-scroll").findAllByType("RestTimer").length, 0);
   await act(async () => rest(view).props.onExpire());
   assert.ok(host(view.tree, "player-all-rest-done")); assert.ok(host(view.tree, "player-all-card-bench"));
   assert.equal([...view.timers.values()].some((timer) => timer.delay === 2200), false);
@@ -463,7 +656,7 @@ test("all exercises keeps one rest timer and uses a nonblocking expiry notice", 
 for (const savedCount of [0, 2, 4]) test(`choose any exercise with ${savedCount} saved sets preserves progress, drafts and cold-resume cursor`, async () => {
   const view = await player({ local: (local) => ({ ...confirmed(local, savedCount), workoutNote: "Workout note", exerciseNotes: { bench: "Exercise note" } }) });
   const before = await view.store.loadActiveWorkout("A");
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   assert.equal(view.list().props.visible, true);
   assert.equal(view.list().props.selectionDisabled, false);
   await choose(view, 2);
@@ -543,6 +736,10 @@ test("switching keeps the original rest deadline and source visible, persists su
 test("footer Next leaves unfinished sets unlogged and keeps drafts and rest through restart", async () => {
   const deadline = Date.now() + 90000;
   const view = await player({ local: (local) => ({ ...local, restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } }) });
+  const actions = host(view.tree, "player-focus-footer-actions");
+  assert.equal(actions.props.style.flexDirection, "row");
+  assert.equal(actions.findAllByProps({ testID: "player-finish" }).length, 1);
+  assert.equal(actions.findAllByProps({ testID: "player-next-exercise-shortcut" }).length, 1);
   await act(async () => { input(view).props.onUpdate(1, "reps", "9"); input(view).props.onUpdate(1, "weight", "55"); });
   assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, false);
   await act(async () => host(view.tree, "player-next-exercise-shortcut").props.onPress());
@@ -644,7 +841,7 @@ test("finishing and pending replacement states disable both navigation entry poi
     const view = await player({ local: { operations: [operation] } });
     assert.equal(view.list().props.selectionDisabled, true);
     assert.equal(host(view.tree, "player-exercise-list-button").props.disabled, true);
-    const control = host(view.tree, "player-choose-exercise"); if (control) assert.equal(control.props.disabled, true);
+    const control = host(view.tree, "player-exercise-list-button"); if (control) assert.equal(control.props.disabled, true);
     const before = await view.store.loadActiveWorkout("A"); await choose(view, 2);
     assert.equal(view.list().props.currentIndex, 1); assert.equal((await view.store.loadActiveWorkout("A")).currentExerciseId, before.currentExerciseId);
     await act(async () => view.tree.unmount());
@@ -664,7 +861,7 @@ test("old selection callbacks cannot navigate after account ABA or component res
 
 test("exercise sheet dismissal restores accessible focus to its visible opening control", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   await choose(view, 2);
   const modal = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss);
   await act(async () => modal.props.onDismiss());
@@ -746,7 +943,7 @@ test("selection callbacks from an earlier same-account session route cannot act 
 
 test("Android focus restoration waits until every shared overlay closes", async () => {
   const view = await player({ platform: "android" });
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   await act(async () => { view.list().props.onClose(); view.controller().setGuidance({ id: "bench", name: "bench" }); });
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
   await act(async () => view.controller().setGuidance(null));
@@ -756,11 +953,43 @@ test("Android focus restoration waits until every shared overlay closes", async 
 
 test("a late native dismiss does not consume the focus target of a reopened list", async () => {
   const view = await player();
-  await act(async () => host(view.tree, "player-choose-exercise").props.onPress());
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
   const dismiss = view.tree.root.findAllByType("Modal").find((node) => node.props.onDismiss).props.onDismiss;
   await act(async () => view.list().props.onClose());
-  await act(async () => { host(view.tree, "player-choose-exercise").props.onPress(); dismiss(); }); assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
+  await act(async () => { host(view.tree, "player-exercise-list-button").props.onPress(); dismiss(); }); assert.equal(view.calls.filter((call) => call[0] === "focus").length, 0);
   await act(async () => view.list().props.onClose()); await act(async () => dismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
+  await act(async () => view.tree.unmount());
+});
+
+test("the swipe tip waits for a locally saved set and keyboard dismissal without replacing the scroll view", async () => {
+  const view = await player({ layout: "all", deferReplay: true });
+  try {
+    const scroll = host(view.tree, "player-main-scroll");
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.showKeyboard();
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.hideKeyboard();
+    assert.ok(host(view.tree, "player-set-swipe-hint"));
+    assert.equal(host(view.tree, "player-main-scroll"), scroll);
+    await act(async () => inputFor(view, "row").props.onActionsOpen());
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.remount();
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+  } finally { view.replayResponse.resolve(); await act(async () => view.tree.unmount()); }
+});
+
+test("weight unit is set in the exercise sheet without a duplicate Focus footer control", async () => {
+  const view = await player();
+  assert.equal(view.tree.root.findAllByType("WeightUnitControl").length, 0);
+  assert.equal(host(view.tree, "player-choose-exercise"), undefined);
+  assert.ok(host(view.tree, "player-next-exercise-shortcut"));
+  await act(async () => host(view.tree, "player-exercise-list-button").props.onPress());
+  assert.equal(view.list().props.weightUnit, "LB");
+  await act(async () => view.list().props.onWeightUnitChange());
+  assert.equal(view.list().props.weightUnit, "KG");
+  assert.equal(view.list().props.visible, true);
   await act(async () => view.tree.unmount());
 });

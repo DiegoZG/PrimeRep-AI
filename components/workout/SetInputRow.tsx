@@ -44,21 +44,25 @@ export const SetInputRow = React.memo(function SetInputRow({
   const trailingDisabled = Boolean(readOnly || ((logged || emptyAdded) && !canRevealActions));
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
-  const successColor = colors.background === Colors.dark.background ? "#70D5AD" : "#237858";
+  const successColor = "#55BC22";
+  const completedBackground = colors.background === Colors.dark.background ? "#163008" : "#EEF7E9";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
-  const needsAttention = Boolean(issue) || syncStatus === "failed";
   const saved = logged && syncStatus === "synced";
   const status = issue ? `Needs attention: ${issue}` : syncStatus === "failed" ? "Sync failed. Retry available."
     : unsaved ? "Unsaved changes" : editing ? "Editing saved set" : logged
       ? saved ? "Saved and synced" : "Saved on this device. Pending sync."
       : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
-  const statusIcon: React.ComponentProps<typeof Ionicons>["name"] = needsAttention ? "alert-circle-outline"
-    : unsaved || editing ? "create-outline" : logged ? saved ? "checkmark-done-outline" : "time-outline" : "ellipse-outline";
   const inputStyle = {
-    minHeight: 44, flex: 1, borderWidth: logged ? 0 : 1, borderColor: colors.inputBorder,
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
+    minHeight: 44, width: "100%" as const, borderWidth: 1, borderColor: "transparent",
+    borderRadius: 8, paddingHorizontal: compact ? 0 : 10, paddingVertical: compact ? 6 : 10, fontSize: 16,
     fontFamily: Fonts.sans, fontWeight: "600" as const, color: colors.text,
+    textAlign: compact ? "center" as const : "left" as const, backgroundColor: "transparent",
+  };
+  const fieldOutlineStyle = {
+    position: "absolute" as const, alignSelf: "center" as const, width: compact ? "88%" as const : "100%" as const,
+    maxWidth: compact ? 124 : undefined, top: compact ? 5 : 0, bottom: compact ? 5 : 0,
+    borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder, borderRadius: 8,
     backgroundColor: logged ? "transparent" : colors.background,
   };
 
@@ -107,7 +111,7 @@ export const SetInputRow = React.memo(function SetInputRow({
       containerStyle={{ borderRadius: compact ? 0 : 12, marginBottom: compact ? 0 : 8 }}
       renderRightActions={() => <View testID={`player-set-actions-${id}`}
         accessibilityElementsHidden={!actionsVisible} importantForAccessibility={actionsVisible ? "auto" : "no-hide-descendants"}
-        style={{ flexDirection: "row", alignItems: "stretch", borderBottomWidth: compact ? 1 : 0, borderColor: colors.inputBorder }}>
+        style={{ flexDirection: "row", alignItems: "stretch", borderColor: colors.inputBorder }}>
         {logged ? <Pressable testID={`player-edit-set-${id}`} accessibilityRole="button" accessibilityLabel={`Edit set ${number}`}
           disabled={!canRevealActions} accessibilityState={{ disabled: !canRevealActions }} onPress={() => chooseAction("edit")}
           style={{ width: 64, minHeight: 44, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: colors.inputBackground }}>
@@ -122,37 +126,41 @@ export const SetInputRow = React.memo(function SetInputRow({
           <ThemedText style={{ fontSize: 11, color: colors.background === Colors.dark.background ? "#FF8E86" : "#B42318" }}>Remove</ThemedText>
         </Pressable>
       </View>}>
-    <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: compact ? colors.background : colors.inputBackground,
-      borderWidth: compact ? 0 : 1, borderBottomWidth: compact ? 1 : undefined,
+    <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: logged ? completedBackground : compact ? colors.background : colors.inputBackground,
+      borderWidth: compact ? 0 : 1,
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
-      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8 }}>
+      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 0 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 28, alignItems: "center", gap: 2 }}>
-          <ThemedText style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
-          <View testID={`player-set-status-${id}`} accessible accessibilityRole="image"
-            accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite">
-            <Ionicons name={statusIcon} size={18} accessible={false}
-              color={needsAttention ? "#D14343" : saved && !unsaved ? successColor : secondaryColor} />
-          </View>
+        <View style={{ width: 28, alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
+          <ThemedText testID={`player-set-number-${id}`} accessibilityRole="text"
+            accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite"
+            style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
         </View>
-        <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
-          value={editing ? setRow.editDraft?.weight ?? weight : weight}
-          onChangeText={(value) => onUpdate(setNumber, "weight", value)} placeholder={weightUnit.toLowerCase()}
-          placeholderTextColor={secondaryColor} keyboardType="decimal-pad" editable={editable} style={inputStyle} />
-        <TextInput testID={`player-reps-input-${id}`} accessibilityLabel={`Set ${number} reps`}
-          value={editing ? setRow.editDraft?.reps ?? reps : reps}
-          onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
-          placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
+        <View style={{ flex: 1, minHeight: 44, justifyContent: "center" }}>
+          <View pointerEvents="none" accessible={false} style={fieldOutlineStyle} />
+          <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
+            value={editing ? setRow.editDraft?.weight ?? weight : weight}
+            onChangeText={(value) => onUpdate(setNumber, "weight", value)} keyboardType="decimal-pad" editable={editable} style={inputStyle} />
+        </View>
+        <View style={{ flex: 1, minHeight: 44, justifyContent: "center" }}>
+          <View pointerEvents="none" accessible={false} style={fieldOutlineStyle} />
+          <TextInput testID={`player-reps-input-${id}`} accessibilityLabel={`Set ${number} reps`}
+            value={editing ? setRow.editDraft?.reps ?? reps : reps}
+            onChangeText={(value) => onUpdate(setNumber, "reps", value)} keyboardType="number-pad" editable={editable} style={inputStyle} />
+        </View>
         <Pressable testID={emptyAdded || logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
-          accessibilityLabel={emptyAdded || logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
+          accessibilityLabel={logged ? `Set ${number} recorded. Show actions` : emptyAdded ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
           accessibilityHint={emptyAdded ? "Swipe left on the row or tap to show Remove" : logged ? "Swipe left on the row or tap to show Edit and Remove" : setRow.isAdded ? "Swipe left on this row to remove it" : undefined}
           accessibilityActions={setRow.isAdded && !logged && !emptyAdded && canRevealActions ? [{ name: "showSetActions", label: "Show set actions" }] : undefined}
           onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "showSetActions") openActions(); }}
           accessibilityState={{ disabled: trailingDisabled }} disabled={trailingDisabled}
-          onPress={() => { if (emptyAdded || logged) openActions(); else { Keyboard.dismiss(); onConfirm(setNumber); } }}
-          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
-            borderWidth: logged || emptyAdded ? 0 : 1, borderColor: colors.inputBorder }}>
-          <Ionicons name={logged || emptyAdded ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
+          onPress={() => { if (emptyAdded || logged) openActions(); else onConfirm(setNumber); }}
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <View pointerEvents="none" style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 8,
+            borderWidth: 1, borderColor: logged || emptyAdded ? "transparent" : colors.inputBorder,
+            backgroundColor: logged ? successColor : colors.inputBackground }}>
+            <Ionicons name="checkmark" size={20} color={logged ? "#FFFFFF" : colors.text} accessible={false} />
+          </View>
         </Pressable>
       </View>
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
@@ -161,7 +169,8 @@ export const SetInputRow = React.memo(function SetInputRow({
         onPress={onRetry} style={{ minHeight: 44, marginLeft: 36, justifyContent: "center" }}>
         <ThemedText style={{ fontSize: 13, fontWeight: "600" }}>Retry sync</ThemedText>
       </Pressable> : null}
-      {!confirmed && lastTimeHint ? <ThemedText style={{ fontSize: 12, lineHeight: 18, color: secondaryColor, marginLeft: 36, marginTop: 2 }}>
+      {lastTimeHint ? <ThemedText accessibilityElementsHidden={confirmed} importantForAccessibility={confirmed ? "no-hide-descendants" : "auto"}
+        style={{ fontSize: 12, lineHeight: 18, color: secondaryColor, marginLeft: 36, marginTop: 2, opacity: confirmed ? 0 : 1 }}>
         Last time: {lastTimeHint}{progressionTag ? ` · ${progressionTag}` : ""}
       </ThemedText> : null}
 

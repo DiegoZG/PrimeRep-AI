@@ -13,6 +13,12 @@ const order = (extra = {}) => ({ id: "order-1", type: "order", status: "pending"
 const draft = (extra = {}) => ({ userId: "user", workoutDayId: "day", workoutDate: "2026-10-23", dayType: "upper", workoutSnapshot: day(), effectiveWorkout: day(), arrangementRevision: 0, clientSessionId: "client", serverSessionId: "server", startedAt: 100, currentExerciseIndex: 1, currentExerciseId: "b", restEndsAt: 10000, restTotalSeconds: 120, restContext: { exerciseId: "a", exerciseIndex: 0, isLastSetOfExercise: false }, revision: 1, sets: [set("a"), set("b"), set("c")], operations: [], ...extra });
 const flatIds = (workout) => Array.from(workout.blocks.flatMap((block) => block.items.map((entry) => entry.exercise.id)));
 const deferred = () => { let resolve; const promise = new Promise((done) => { resolve = done; }); return { promise, resolve }; };
+async function withoutNetwork(promise) {
+  let timeout;
+  try {
+    return await Promise.race([promise, new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Local save waited for the network")), 1000); })]);
+  } finally { clearTimeout(timeout); }
+}
 
 function storageHarness(platform, handlers = {}) {
   const memory = new Map();
@@ -57,6 +63,7 @@ function storageHarness(platform, handlers = {}) {
     updateExerciseOrder: async (_token, _session, ids) => (canonical = server(ids, 1)),
     replaceSessionExercise: async () => server(["d", "b", "c"], 1),
     logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => ({ id: "log", exerciseId, setNumber, reps, weightKg: weightKg ?? null, version: 1 }),
+    updateLoggedSet: async (_token, _session, id, reps, weightKg, version) => ({ id, exerciseId: "a", setNumber: 1, reps, weightKg, version: version + 1 }),
     completeSession: async () => ({ ...server(), status: "completed" }) };
   const service = Object.fromEntries(Object.keys(defaults).map((name) => [name, async (...args) => { calls.push({ name, args }); return (handlers[name] ?? defaults[name])(...args); }]));
   const mocks = { "expo-sqlite": { openDatabaseAsync: async () => db },
@@ -71,6 +78,104 @@ function storageHarness(platform, handlers = {}) {
 }
 
 for (const platform of ["native", "web"]) {
+  test(`${platform}: an offline correction stays visible through restart while its upload waits`, async () => {
+    const entered = deferred(), network = deferred();
+    const harness = storageHarness(platform, { updateLoggedSet: async (_token, _session, id, reps, weightKg, version) => {
+      entered.resolve(); await network.promise;
+      return { id, exerciseId: "a", setNumber: 1, reps, weightKg, version: version + 1 };
+    } });
+    const initial = draft({ sets: [set("a", { hasUnsavedInput: true }), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(initial);
+    const first = await harness.store.saveWorkoutSetEntries(initial, ["a:1"], "KG");
+    const edited = { ...first.workout, sets: first.workout.sets.map((row) => row.exerciseId === "a"
+      ? { ...row, editing: true, hasUnsavedInput: true, editDraft: { weight: "35", reps: "12" } } : row) };
+    await harness.store.saveWorkoutSetEntries(edited, ["a:1"], "KG");
+    const replay = harness.store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    try {
+      const restored = await harness.reload().loadActiveWorkout("user");
+      assert.equal(restored.sets[0].reps, "12");
+      assert.equal(restored.sets[0].weight, "35");
+      assert.equal(restored.sets[0].weightKg, 35);
+    } finally { network.resolve(); await replay; }
+  });
+
+  test(`${platform}: expired authentication preserves the queued set for automatic retry`, async (context) => {
+    let expired = true;
+    const harness = storageHarness(platform, { logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => {
+      if (expired) throw new HttpError("Access token expired", 401);
+      return { id: "log-a", exerciseId, setNumber, reps, weightKg, version: 1 };
+    } });
+    const initial = draft({ sets: [set("a", { hasUnsavedInput: true }), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(initial);
+    const saved = await harness.store.saveWorkoutSetEntries(initial, ["a:1"], "KG");
+    const result = await harness.store.replayPendingWorkoutOperations("expired-token", "user");
+    assert.equal(result.authenticationRequired, true);
+    assert.equal(result.workout.sets[0].confirmed, true);
+    assert.equal(result.workout.operations[0].status, "pending");
+    assert.equal(result.workout.operations[0].id, saved.workout.operations[0].id);
+    expired = false;
+    const retryTime = result.workout.operations[0].nextAttemptAt + 1;
+    context.mock.method(Date, "now", () => retryTime);
+    await harness.store.replayPendingWorkoutOperations("new-token", "user");
+    assert.equal((await harness.store.loadActiveWorkout("user")).operations.length, 0);
+  });
+
+  test(`${platform}: local set commits survive restart while a prior cloud request is stalled`, async () => {
+    const entered = deferred(), network = deferred();
+    const harness = storageHarness(platform, { logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => {
+      if (exerciseId === "a") { entered.resolve(); await network.promise; }
+      return { id: `log-${exerciseId}`, exerciseId, setNumber, reps, weightKg, version: 1 };
+    } });
+    const initial = draft({ sets: [set("a", { hasUnsavedInput: true }), set("b", { hasUnsavedInput: true }), set("c")] });
+    await harness.store.saveActiveWorkout(initial);
+    const first = await harness.store.saveWorkoutSetEntries(initial, ["a:1"], "KG");
+    const replay = harness.store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    try {
+      const second = await withoutNetwork(harness.store.saveWorkoutSetEntries(first.workout, ["b:1"], "KG"));
+      assert.equal(second.workout.sets.find((row) => row.exerciseId === "b").confirmed, true);
+      const restored = await harness.reload().loadActiveWorkout("user");
+      assert.equal(restored.sets.find((row) => row.exerciseId === "b").confirmed, true);
+      assert.equal(restored.operations.filter((operation) => operation.type === "set").length, 2);
+      assert.equal(harness.calls.filter((call) => call.name === "logSet").length, 1);
+    } finally { network.resolve(); }
+    const result = await replay;
+    assert.equal(result.workout.sets.find((row) => row.exerciseId === "b").confirmed, true);
+    assert.equal(result.workout.operations.filter((operation) => operation.type === "set").length, 1);
+    await harness.store.replayPendingWorkoutOperations("token", "user");
+    assert.equal((await harness.store.loadActiveWorkout("user")).operations.length, 0);
+    assert.equal(harness.calls.filter((call) => call.name === "logSet").length, 2);
+  });
+
+  test(`${platform}: editing a set during its upload commits locally and syncs the correction afterward`, async () => {
+    const entered = deferred(), network = deferred();
+    const harness = storageHarness(platform, { logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => {
+      entered.resolve(); await network.promise;
+      return { id: "log-a", exerciseId, setNumber, reps, weightKg, version: 1 };
+    } });
+    const initial = draft({ sets: [set("a", { hasUnsavedInput: true }), set("b"), set("c")] });
+    await harness.store.saveActiveWorkout(initial);
+    const first = await harness.store.saveWorkoutSetEntries(initial, ["a:1"], "KG");
+    const replay = harness.store.replayPendingWorkoutOperations("token", "user");
+    await entered.promise;
+    try {
+      const edited = { ...first.workout, sets: first.workout.sets.map((row) => row.exerciseId === "a"
+        ? { ...row, editing: true, hasUnsavedInput: true, editDraft: { weight: "35", reps: "12" } } : row) };
+      const result = await withoutNetwork(harness.store.saveWorkoutSetEntries(edited, ["a:1"], "KG"));
+      assert.equal(result.workout.sets[0].reps, "12");
+      assert.equal(result.workout.operations.length, 2);
+    } finally { network.resolve(); }
+    await replay;
+    const pending = await harness.store.loadActiveWorkout("user");
+    assert.equal(pending.sets[0].reps, "12"); assert.equal(pending.sets[0].weight, "35");
+    assert.equal(pending.operations[0].type, "update_set");
+    await harness.store.replayPendingWorkoutOperations("token", "user");
+    const saved = await harness.reload().loadActiveWorkout("user");
+    assert.equal(saved.sets[0].reps, "12"); assert.equal(saved.sets[0].version, 2);
+    assert.equal(saved.operations.length, 0);
+  });
+
   test(`${platform}: legacy draft migrates stable current/rest IDs without assuming backend capability`, async () => {
     const { store } = storageHarness(platform);
     await store.saveActiveWorkout(draft({ effectiveWorkout: undefined, arrangementRevision: undefined, currentExerciseId: undefined, restContext: { exerciseIndex: 2, isLastSetOfExercise: true } }));

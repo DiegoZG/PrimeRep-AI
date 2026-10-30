@@ -32,13 +32,17 @@ function fixture(options = {}) {
   };
   const store = load("utils/workoutLayoutPreference.ts", { "@react-native-async-storage/async-storage": AsyncStorage });
   const { WorkoutLayoutProvider, useWorkoutLayout } = load("utils/workoutLayoutContext.tsx", { react: React, "@/utils/authContext": { AuthContext }, "@/utils/workoutLayoutPreference": store });
-  let identity = { user: { id: "A" } }, latest, tree;
+  const { useSetSwipeHint } = load("utils/useSetSwipeHint.ts", { react: React, "@/utils/workoutLayoutPreference": store });
+  let identity = { user: { id: "A" } }, latest, tree, eligible = false;
   const snapshots = [];
-  const Probe = () => { latest = useWorkoutLayout(); snapshots.push({ owner: identity.user?.id, layout: latest.layout, isReady: latest.isReady }); return React.createElement("Probe"); };
+  const Probe = () => { latest = options.hint ? useSetSwipeHint(identity.user?.id ?? null, eligible) : useWorkoutLayout(); snapshots.push({ owner: identity.user?.id, layout: latest.layout, isReady: latest.isReady }); return React.createElement("Probe"); };
   const element = () => React.createElement(AuthContext.Provider, { value: identity }, React.createElement(WorkoutLayoutProvider, null, React.createElement(Probe)));
   const mount = async () => { await act(async () => { tree = create(element()); }); };
   const changeOwner = async (id) => { identity = { user: id ? { id } : null }; await act(async () => { tree.update(element()); }); };
-  return { store, memory, reads, snapshots, mount, changeOwner, get latest() { return latest; }, setFailWrite(value) { failWrite = value; }, unmount: async () => { await act(async () => tree.unmount()); } };
+  return { store, memory, reads, snapshots, mount, changeOwner,
+    setEligible: async (value) => { eligible = value; await act(async () => tree.update(element())); },
+    remount: async () => { await act(async () => tree.unmount()); await mount(); },
+    get latest() { return latest; }, setFailWrite(value) { failWrite = value; }, unmount: async () => { await act(async () => tree.unmount()); } };
 }
 
 test("workout layout defaults to Focus and stays separate for each account", async () => {
@@ -111,8 +115,51 @@ test("late failed save from A cannot roll back B or report B's setting as failed
 test("account deletion removes its preference and fences later writes", async () => {
   const view = fixture();
   await view.store.saveWorkoutLayout("A", "all");
+  await view.store.markSetSwipeHintSeen("A");
   await view.store.clearWorkoutLayoutForUser("A");
   assert.equal(await view.store.loadWorkoutLayout("A"), "focus");
   await assert.rejects(view.store.saveWorkoutLayout("A", "all"), /deleted/);
   assert.equal(view.memory.has("@primerep/workout-layout/A"), false);
+  await view.store.markSetSwipeHintSeen("A");
+  assert.equal(await view.store.loadSetSwipeHintSeen("A"), false);
+});
+
+test("swipe education waits until eligible, remembers presentation, and stays separate per account", async () => {
+  const view = fixture({ hint: true }); await view.mount();
+  try {
+    await act(async () => view.latest.request());
+    assert.equal(view.latest.visible, false);
+    await view.setEligible(true);
+    assert.equal(view.latest.visible, true);
+    await act(async () => view.latest.dismiss());
+    assert.equal(view.latest.visible, false);
+    await view.remount();
+    await act(async () => view.latest.request());
+    assert.equal(view.latest.visible, false);
+    await view.changeOwner("B");
+    assert.equal(view.latest.visible, false);
+    await act(async () => view.latest.request());
+    assert.equal(view.latest.visible, true);
+    await view.changeOwner("A");
+    assert.equal(view.latest.visible, false);
+  } finally { await view.unmount(); }
+});
+
+test("a late hint read and captured callbacks cannot affect a later account epoch", async () => {
+  const waiting = deferred();
+  const view = fixture({ hint: true, read: (key) => key.endsWith("/A/set-swipe-hint") ? waiting.promise : null });
+  await view.mount();
+  try {
+    const old = view.latest;
+    await view.setEligible(true);
+    await view.changeOwner("B");
+    await act(async () => { old.request(); old.dismiss(); });
+    assert.equal(view.latest.visible, false);
+    assert.equal(await view.store.loadSetSwipeHintSeen("B"), false);
+    await view.changeOwner("A");
+    await act(async () => { old.request(); waiting.resolve(null); });
+    assert.equal(view.latest.visible, false);
+    await act(async () => view.latest.request());
+    assert.equal(view.latest.visible, true);
+  } finally { waiting.resolve(null); await view.unmount(); }
 });
