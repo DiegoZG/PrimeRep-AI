@@ -61,6 +61,10 @@ for (const [name, fields, label] of [
     assert.equal(setNumber.parent.props.style.justifyContent, "center");
     assert.equal(setNumber.parent.findAllByType("Ionicons").length, 0);
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
+    const button = tree.root.findByProps({ testID: fields.confirmed && !fields.editing ? "player-set-menu-squat-1" : "player-confirm-set-squat-1" });
+    assert.equal(button.findByType("Ionicons").props.name, "checkmark");
+    assert.equal(button.props.style.backgroundColor, fields.confirmed && !fields.editing ? "#237858" : "transparent");
+    assert.equal(button.findByType("Ionicons").props.color, fields.confirmed && !fields.editing ? "#FFFFFF" : palette.text);
     if (name === "failed") {
       assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
       assert.equal(tree.root.findByProps({ testID: "player-set-menu-squat-1" }).props.disabled, true);
@@ -119,7 +123,7 @@ test("an empty added set offers removal until the user enters a value", async ()
   await act(async () => tree.unmount());
 });
 
-test("three dots and swipe reveal the same inline Edit and Remove actions without a modal", async () => {
+test("saved check and swipe reveal the same inline Edit and Remove actions without a modal", async () => {
   const chosen = [];
   let tree;
   await act(async () => { tree = create(React.createElement(SetInputRow, { setRow: { ...base, confirmed: true },

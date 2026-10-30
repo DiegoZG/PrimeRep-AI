@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type WorkoutLayout = "focus" | "all";
 
 const keyFor = (userId: string) => `@primerep/workout-layout/${encodeURIComponent(userId)}`;
+const swipeHintKeyFor = (userId: string) => `${keyFor(userId)}/set-swipe-hint`;
 const deletedOwners = new Set<string>();
 let writeQueue: Promise<void> = Promise.resolve();
 
@@ -27,5 +28,19 @@ export function saveWorkoutLayout(userId: string, layout: WorkoutLayout): Promis
 
 export function clearWorkoutLayoutForUser(userId: string): Promise<void> {
   deletedOwners.add(userId);
-  return write(() => AsyncStorage.removeItem(keyFor(userId)));
+  return write(async () => {
+    await AsyncStorage.removeItem(keyFor(userId));
+    await AsyncStorage.removeItem(swipeHintKeyFor(userId));
+  });
+}
+
+export async function loadSetSwipeHintSeen(userId: string): Promise<boolean> {
+  await writeQueue;
+  return await AsyncStorage.getItem(swipeHintKeyFor(userId)) === "seen";
+}
+
+export function markSetSwipeHintSeen(userId: string): Promise<void> {
+  return write(async () => {
+    if (!deletedOwners.has(userId)) await AsyncStorage.setItem(swipeHintKeyFor(userId), "seen");
+  });
 }

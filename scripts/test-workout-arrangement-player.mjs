@@ -557,6 +557,7 @@ test("a failed device write keeps entered values unlogged and allows a successfu
     assert.equal(inputFor(view, "row").props.setRow.reps, "12");
     assert.equal(view.tree.root.findAllByType("RestTimer").length, 0);
     assert.ok(host(view.tree, "player-retry-save"));
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
     assert.equal(view.calls.some((call) => call[0] === "log"), false);
     fail = false;
     await act(async () => host(view.tree, "player-retry-save").props.onPress()); await view.settle();
@@ -949,4 +950,23 @@ test("a late native dismiss does not consume the focus target of a reopened list
   await act(async () => view.list().props.onClose()); await act(async () => dismiss());
   assert.equal(view.calls.filter((call) => call[0] === "focus").length, 1);
   await act(async () => view.tree.unmount());
+});
+
+test("the swipe tip waits for a locally saved set and keyboard dismissal without replacing the scroll view", async () => {
+  const view = await player({ layout: "all", deferReplay: true });
+  try {
+    const scroll = host(view.tree, "player-main-scroll");
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.showKeyboard();
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "weight", "30"); inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.hideKeyboard();
+    assert.ok(host(view.tree, "player-set-swipe-hint"));
+    assert.equal(host(view.tree, "player-main-scroll"), scroll);
+    await act(async () => inputFor(view, "row").props.onActionsOpen());
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+    await view.remount();
+    assert.equal(view.tree.root.findAllByProps({ testID: "player-set-swipe-hint" }).length, 0);
+  } finally { view.replayResponse.resolve(); await act(async () => view.tree.unmount()); }
 });

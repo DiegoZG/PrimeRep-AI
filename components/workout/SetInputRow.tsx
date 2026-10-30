@@ -44,6 +44,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   const trailingDisabled = Boolean(readOnly || ((logged || emptyAdded) && !canRevealActions));
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
+  const successColor = "#237858";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
   const saved = logged && syncStatus === "synced";
@@ -53,7 +54,7 @@ export const SetInputRow = React.memo(function SetInputRow({
       : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
   const inputStyle = {
     minHeight: 44, flex: 1, borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder,
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: compact ? 6 : 10, fontSize: 16,
     fontFamily: Fonts.sans, fontWeight: "600" as const, color: colors.text,
     backgroundColor: logged ? "transparent" : colors.background,
   };
@@ -121,7 +122,7 @@ export const SetInputRow = React.memo(function SetInputRow({
     <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: compact ? colors.background : colors.inputBackground,
       borderWidth: compact ? 0 : 1, borderBottomWidth: compact ? 1 : undefined,
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
-      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 4 : 8 }}>
+      paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 1 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ width: 28, alignSelf: "stretch", alignItems: "center", justifyContent: "center" }}>
           <ThemedText testID={`player-set-number-${id}`} accessibilityRole="text"
@@ -137,15 +138,16 @@ export const SetInputRow = React.memo(function SetInputRow({
           onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
           placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
         <Pressable testID={emptyAdded || logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
-          accessibilityLabel={emptyAdded || logged ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
+          accessibilityLabel={logged ? `Set ${number} recorded. Show actions` : emptyAdded ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
           accessibilityHint={emptyAdded ? "Swipe left on the row or tap to show Remove" : logged ? "Swipe left on the row or tap to show Edit and Remove" : setRow.isAdded ? "Swipe left on this row to remove it" : undefined}
           accessibilityActions={setRow.isAdded && !logged && !emptyAdded && canRevealActions ? [{ name: "showSetActions", label: "Show set actions" }] : undefined}
           onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "showSetActions") openActions(); }}
           accessibilityState={{ disabled: trailingDisabled }} disabled={trailingDisabled}
           onPress={() => { if (emptyAdded || logged) openActions(); else onConfirm(setNumber); }}
           style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
-            borderWidth: logged || emptyAdded ? 0 : 1, borderColor: colors.inputBorder }}>
-          <Ionicons name={logged || emptyAdded ? "ellipsis-horizontal" : "checkmark"} size={21} color={colors.text} />
+            borderWidth: 1, borderColor: logged || emptyAdded ? "transparent" : colors.inputBorder,
+            backgroundColor: logged ? successColor : "transparent" }}>
+          <Ionicons name="checkmark" size={21} color={logged ? "#FFFFFF" : colors.text} accessible={false} />
         </Pressable>
       </View>
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
