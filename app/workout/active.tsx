@@ -1823,14 +1823,14 @@ export default function ActiveWorkoutScreen() {
     return <>
       {focus ? <WeightUnitControl unit={weightUnit} colors={colors} disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement} onChange={toggleWeightUnit} /> : null}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: focus ? 12 : 4, marginTop: focus ? 0 : 4, marginBottom: focus ? 8 : 2 }}>
-        <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
+        <ThemedText accessibilityLabel={expandedLayout ? "Set" : undefined} style={{ width: 36, paddingRight: focus ? 0 : 8, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder }}>{expandedLayout ? "#" : "SET"}</ThemedText>
         <View style={{ flex: 1, marginRight: 8 }}>
           <ThemedText accessibilityLabel={expandedLayout ? `${columnLabel} (${weightUnit})` : undefined}
-            style={{ fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
+            style={{ textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>
             {expandedLayout ? columnLabel === "Weight each" ? `${weightUnit} each` : columnLabel === "Total weight" ? `Total ${weightUnit}` : weightUnit : columnLabel}
           </ThemedText>
         </View>
-        <ThemedText style={{ flex: 1, fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
+        <ThemedText style={{ flex: 1, textAlign: focus ? "left" : "center", fontSize: 11, color: colors.placeholder, fontWeight: "500", fontFamily: Fonts.sans, textTransform: expandedLayout ? "none" : "uppercase" }}>Reps</ThemedText>
         <View style={{ width: 52 }} />
       </View>
       {itemSets.map((setRow) => {

@@ -44,8 +44,8 @@ export const SetInputRow = React.memo(function SetInputRow({
   const trailingDisabled = Boolean(readOnly || ((logged || emptyAdded) && !canRevealActions));
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
-  const successColor = "#237858";
-  const completedBackground = colors.background === Colors.dark.background ? "#173328" : "#E9F5EE";
+  const successColor = "#55BC22";
+  const completedBackground = colors.background === Colors.dark.background ? "#163008" : "#EEF7E9";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
   const saved = logged && syncStatus === "synced";
@@ -54,9 +54,15 @@ export const SetInputRow = React.memo(function SetInputRow({
       ? saved ? "Saved and synced" : "Saved on this device. Pending sync."
       : weight || reps ? "Suggested values. Not logged yet." : "Not logged yet.";
   const inputStyle = {
-    minHeight: 44, flex: 1, borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder,
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: compact ? 6 : 10, fontSize: 16,
+    minHeight: 44, width: "100%" as const, borderWidth: 1, borderColor: "transparent",
+    borderRadius: 8, paddingHorizontal: compact ? 0 : 10, paddingVertical: compact ? 6 : 10, fontSize: 16,
     fontFamily: Fonts.sans, fontWeight: "600" as const, color: colors.text,
+    textAlign: compact ? "center" as const : "left" as const, backgroundColor: "transparent",
+  };
+  const fieldOutlineStyle = {
+    position: "absolute" as const, alignSelf: "center" as const, width: compact ? "84%" as const : "100%" as const,
+    maxWidth: compact ? 112 : undefined, top: compact ? 6 : 0, bottom: compact ? 6 : 0,
+    borderWidth: 1, borderColor: logged ? "transparent" : colors.inputBorder, borderRadius: 8,
     backgroundColor: logged ? "transparent" : colors.background,
   };
 
@@ -130,14 +136,18 @@ export const SetInputRow = React.memo(function SetInputRow({
             accessibilityLabel={`Set ${number}: ${status}`} accessibilityLiveRegion="polite"
             style={{ fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{number}</ThemedText>
         </View>
-        <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
-          value={editing ? setRow.editDraft?.weight ?? weight : weight}
-          onChangeText={(value) => onUpdate(setNumber, "weight", value)} placeholder={weightUnit.toLowerCase()}
-          placeholderTextColor={secondaryColor} keyboardType="decimal-pad" editable={editable} style={inputStyle} />
-        <TextInput testID={`player-reps-input-${id}`} accessibilityLabel={`Set ${number} reps`}
-          value={editing ? setRow.editDraft?.reps ?? reps : reps}
-          onChangeText={(value) => onUpdate(setNumber, "reps", value)} placeholder="reps"
-          placeholderTextColor={secondaryColor} keyboardType="number-pad" editable={editable} style={inputStyle} />
+        <View style={{ flex: 1, minHeight: 44, justifyContent: "center" }}>
+          <View pointerEvents="none" accessible={false} style={fieldOutlineStyle} />
+          <TextInput testID={`player-weight-input-${id}`} accessibilityLabel={`Set ${number} weight in ${weightUnit}`}
+            value={editing ? setRow.editDraft?.weight ?? weight : weight}
+            onChangeText={(value) => onUpdate(setNumber, "weight", value)} keyboardType="decimal-pad" editable={editable} style={inputStyle} />
+        </View>
+        <View style={{ flex: 1, minHeight: 44, justifyContent: "center" }}>
+          <View pointerEvents="none" accessible={false} style={fieldOutlineStyle} />
+          <TextInput testID={`player-reps-input-${id}`} accessibilityLabel={`Set ${number} reps`}
+            value={editing ? setRow.editDraft?.reps ?? reps : reps}
+            onChangeText={(value) => onUpdate(setNumber, "reps", value)} keyboardType="number-pad" editable={editable} style={inputStyle} />
+        </View>
         <Pressable testID={emptyAdded || logged ? `player-set-menu-${id}` : `player-confirm-set-${id}`} accessibilityRole="button"
           accessibilityLabel={logged ? `Set ${number} recorded. Show actions` : emptyAdded ? `Actions for set ${number}` : `${editing ? "Save changes to" : "Log"} set ${number}`}
           accessibilityHint={emptyAdded ? "Swipe left on the row or tap to show Remove" : logged ? "Swipe left on the row or tap to show Edit and Remove" : setRow.isAdded ? "Swipe left on this row to remove it" : undefined}

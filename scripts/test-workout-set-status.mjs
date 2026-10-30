@@ -63,7 +63,7 @@ for (const [name, fields, label] of [
     assert.ok(!tree.root.findAllByType("WorkoutText").some((text) => /Suggested|Unsaved|Logged/.test(String(text.props.children))));
     const button = tree.root.findByProps({ testID: fields.confirmed && !fields.editing ? "player-set-menu-squat-1" : "player-confirm-set-squat-1" });
     assert.equal(button.findByType("Ionicons").props.name, "checkmark");
-    assert.equal(button.findByType("Ionicons").parent.props.style.backgroundColor, fields.confirmed && !fields.editing ? "#237858" : palette.inputBackground);
+    assert.equal(button.findByType("Ionicons").parent.props.style.backgroundColor, fields.confirmed && !fields.editing ? "#55BC22" : palette.inputBackground);
     assert.equal(button.findByType("Ionicons").props.color, fields.confirmed && !fields.editing ? "#FFFFFF" : palette.text);
     if (name === "failed") {
       assert.equal(tree.root.findByProps({ testID: "player-retry-set-squat-1" }).props.accessibilityRole, "button");
