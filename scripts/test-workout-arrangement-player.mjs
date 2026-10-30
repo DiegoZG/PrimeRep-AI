@@ -736,6 +736,10 @@ test("switching keeps the original rest deadline and source visible, persists su
 test("footer Next leaves unfinished sets unlogged and keeps drafts and rest through restart", async () => {
   const deadline = Date.now() + 90000;
   const view = await player({ local: (local) => ({ ...local, restEndsAt: deadline, restTotalSeconds: 90, restContext: { exerciseId: "bench", isLastSetOfExercise: false } }) });
+  const actions = host(view.tree, "player-focus-footer-actions");
+  assert.equal(actions.props.style.flexDirection, "row");
+  assert.equal(actions.findAllByProps({ testID: "player-finish" }).length, 1);
+  assert.equal(actions.findAllByProps({ testID: "player-next-exercise-shortcut" }).length, 1);
   await act(async () => { input(view).props.onUpdate(1, "reps", "9"); input(view).props.onUpdate(1, "weight", "55"); });
   assert.equal(host(view.tree, "player-next-exercise-shortcut").props.disabled, false);
   await act(async () => host(view.tree, "player-next-exercise-shortcut").props.onPress());

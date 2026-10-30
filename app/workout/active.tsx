@@ -2063,16 +2063,17 @@ export default function ActiveWorkoutScreen() {
             </ThemedText>
           </Pressable>
         ) : null}
-        {currentItem && finishStatus === "idle" && !allExercisesLayout ? <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
+        <View testID="player-focus-footer-actions" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flex: 1 }}>{finishButton(false)}</View>
+          {currentItem && finishStatus === "idle" && !allExercisesLayout ? (
           <Pressable testID="player-next-exercise-shortcut" accessibilityRole="button" accessibilityLabel={nextExercise ? `Next exercise: ${nextExercise.exercise.name}` : "No next exercise"}
             accessibilityHint="Move to the next exercise without logging unfinished sets" accessibilityState={{ disabled: nextExerciseDisabled }} disabled={nextExerciseDisabled}
             onPress={() => { if (nextExercise) selectExercise(nextExercise.exercise.id); }}
-            style={{ width: fontScale > 1.5 ? "100%" : 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, borderWidth: nextExerciseDisabled ? 1 : 0, borderColor: colors.inputBorder, backgroundColor: nextExerciseDisabled ? colors.background : colors.primaryButton }}>
-            {fontScale > 1.5 ? <ThemedText style={{ fontSize: 14, fontWeight: "600", color: nextExerciseDisabled ? colors.placeholder : "#FFFFFF" }}>Next exercise</ThemedText> : null}
+            style={{ width: 48, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: nextExerciseDisabled ? 1 : 0, borderColor: colors.inputBorder, backgroundColor: nextExerciseDisabled ? colors.background : colors.primaryButton }}>
             <Ionicons name="arrow-forward" size={22} color={nextExerciseDisabled ? colors.placeholder : "#FFFFFF"} />
           </Pressable>
-        </View> : null}
-        {finishButton(false)}
+          ) : null}
+        </View>
       </View>
   );
 
