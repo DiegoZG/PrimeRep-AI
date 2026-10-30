@@ -1856,7 +1856,7 @@ export default function ActiveWorkoutScreen() {
           onRetry={() => { if (activateExerciseForAll(exerciseId)) void retryFailedWrites(); }} />;
       })}
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: focus ? 10 : 4, marginTop: focus ? 4 : 0,
-        borderTopWidth: focus ? 0 : 1, borderTopColor: colors.inputBorder, paddingTop: focus ? 0 : 4 }}>
+        paddingTop: focus ? 0 : 4 }}>
         <Pressable testID={`player-add-set-${exerciseId}`} accessibilityRole="button"
           accessibilityState={{ disabled: finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement }}
           disabled={finishStatus !== "idle" || isSavingEntries || arrangement.busy || hasPendingReplacement}

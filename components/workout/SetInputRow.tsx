@@ -45,6 +45,7 @@ export const SetInputRow = React.memo(function SetInputRow({
   const unsaved = setRow.hasUnsavedInput && (!confirmed || editing);
   const editable = !readOnly && !logged;
   const successColor = "#237858";
+  const completedBackground = colors.background === Colors.dark.background ? "#173328" : "#E9F5EE";
   const secondaryColor = colors.background === Colors.dark.background ? colors.placeholder : "#68727A";
   const id = `${setRow.exerciseId}-${setNumber}`;
   const saved = logged && syncStatus === "synced";
@@ -104,7 +105,7 @@ export const SetInputRow = React.memo(function SetInputRow({
       containerStyle={{ borderRadius: compact ? 0 : 12, marginBottom: compact ? 0 : 8 }}
       renderRightActions={() => <View testID={`player-set-actions-${id}`}
         accessibilityElementsHidden={!actionsVisible} importantForAccessibility={actionsVisible ? "auto" : "no-hide-descendants"}
-        style={{ flexDirection: "row", alignItems: "stretch", borderBottomWidth: compact ? 1 : 0, borderColor: colors.inputBorder }}>
+        style={{ flexDirection: "row", alignItems: "stretch", borderColor: colors.inputBorder }}>
         {logged ? <Pressable testID={`player-edit-set-${id}`} accessibilityRole="button" accessibilityLabel={`Edit set ${number}`}
           disabled={!canRevealActions} accessibilityState={{ disabled: !canRevealActions }} onPress={() => chooseAction("edit")}
           style={{ width: 64, minHeight: 44, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: colors.inputBackground }}>
@@ -119,8 +120,8 @@ export const SetInputRow = React.memo(function SetInputRow({
           <ThemedText style={{ fontSize: 11, color: colors.background === Colors.dark.background ? "#FF8E86" : "#B42318" }}>Remove</ThemedText>
         </Pressable>
       </View>}>
-    <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: compact ? colors.background : colors.inputBackground,
-      borderWidth: compact ? 0 : 1, borderBottomWidth: compact ? 1 : undefined,
+    <View testID={`player-set-row-${id}`} style={{ borderRadius: compact ? 0 : 12, backgroundColor: logged ? completedBackground : compact ? colors.background : colors.inputBackground,
+      borderWidth: compact ? 0 : 1,
       borderColor: issue ? "#D14343" : unsaved ? colors.placeholder : colors.inputBorder,
       paddingHorizontal: compact ? 4 : 12, paddingVertical: compact ? 1 : 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -144,10 +145,12 @@ export const SetInputRow = React.memo(function SetInputRow({
           onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "showSetActions") openActions(); }}
           accessibilityState={{ disabled: trailingDisabled }} disabled={trailingDisabled}
           onPress={() => { if (emptyAdded || logged) openActions(); else onConfirm(setNumber); }}
-          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 8,
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <View pointerEvents="none" style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 8,
             borderWidth: 1, borderColor: logged || emptyAdded ? "transparent" : colors.inputBorder,
-            backgroundColor: logged ? successColor : "transparent" }}>
-          <Ionicons name="checkmark" size={21} color={logged ? "#FFFFFF" : colors.text} accessible={false} />
+            backgroundColor: logged ? successColor : colors.inputBackground }}>
+            <Ionicons name="checkmark" size={20} color={logged ? "#FFFFFF" : colors.text} accessible={false} />
+          </View>
         </Pressable>
       </View>
       {issue ? <ThemedText accessibilityLiveRegion="polite" style={{ fontSize: 12, lineHeight: 18, color: "#D14343", marginLeft: 36 }}>{issue}</ThemedText> : null}
