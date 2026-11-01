@@ -74,7 +74,7 @@ const LoginScreen = () => {
           keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
           onTouchEnd={(event) => { if (event.target === event.currentTarget) Keyboard.dismiss(); }}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <TouchableWithoutFeedback onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss} accessible={false}>
             <ThemedView style={styles.content}>
               <ThemedText type="title" style={styles.title}>
                 Welcome back

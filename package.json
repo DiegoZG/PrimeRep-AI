@@ -15,6 +15,7 @@
     "test:exercise-foundation": "node --test scripts/test-exercise-foundation.mjs",
     "validate:legal-release": "node scripts/validate-legal-release.mjs",
     "validate:support-release": "node scripts/validate-support-release.mjs",
+    "test:feature-flags": "node --test scripts/test-feature-flags.mjs",
     "test:profile": "node --test scripts/test-profile.mjs",
     "test:health-ui": "node --test scripts/test-health-ui.mjs",
     "test:health-read-sync": "node --test scripts/test-health-read-sync.mjs",
