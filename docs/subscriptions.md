@@ -1,0 +1,36 @@
+# RevenueCat subscriptions
+
+The app consumes the existing `subscriptions_purchases_enabled` and `subscriptions_enforcement_enabled` server flags. Neither is enabled by this change. The backend verifies `premium` and authorizes new training; SDK CustomerInfo never grants server access. Existing admitted sessions keep their local-first set logging and offline recovery.
+
+## Configuration
+
+`react-native-purchases` is pinned at **11.0.0**, whose declared React Native peer dependency is `>=0.80.0`; this app uses `0.81.5` and Expo54. The adapter uses the installed SDK declarations for `configure`, `logIn`/`logOut`, `getAppUserID`, `getCustomerInfo`, `getOfferings`, `purchasePackage`, trial eligibility, listeners, restore, and management. See the official [Expo integration](https://www.revenuecat.com/docs/getting-started/installation/expo) and [identity guide](https://www.revenuecat.com/docs/customers/identifying-customers).
+
+- Configure the Apple app with bundle ID `com.diegozegarra.primerep` in the matching RevenueCat project.
+- Attach the intended monthly and annual Apple subscription products to entitlement `premium` and the current offering's monthly and annual packages. No product IDs/prices are hardcoded in the app.
+- Set `EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY` to the project's **public Apple SDK key** (`appl_...`). Provider API secrets and webhook secrets belong only on the server.
+- `EXPO_PUBLIC_BILLING_ENV=production` is the default. Only explicit `preview` permits a `test_...` Test Store key. Keep preview and production project/key/endpoint mappings aligned with the backend environment.
+- Configure restore behavior to **Transfer to new App User ID**. Restore runs only after a user taps Restore Purchases. It may transfer billing access; it does not move workout data.
+- Build a new native development client after installing the SDK. Expo Go, Android, web, absent keys, and production Test Store keys do not initialize checkout. Those runtimes can still read backend access and reach saved workout data.
+
+The adapter serializes binding and native operations and checks both account UUID and identity epoch, including A→B→A changes. Checkout is disabled until that identity is ready. An in-progress Apple payment cannot be cancelled by toggling a rollout flag; a confirmed payment is still reconciled.
+
+## Behavior and recovery
+
+Both flags off retain baseline training. Purchases on with enforcement off expose optional plans to the selected audience. Enforcement on requires verified backend access or a valid transition grant for new training. Unknown access is a connection/verification state and does not open a paywall. A known flags-off snapshot can preserve an offline local draft start; server replay always checks the current rules before creating its session.
+
+New enforced sessions are admitted through the existing session creation API using a durable client session ID. The admitted server ID is saved before routing to the logger. Overview and direct active routes share this guard. Already admitted local sessions bypass billing bootstrap so they can resume offline after access expires. Unadmitted queues denied by the server stay on the device with explicit recovery controls.
+
+Successful/pending Apple purchases are recorded per account before backend reconciliation. When verification is delayed, the UI keeps a recovery notice and disables duplicate checkout. While that notice is visible in the foreground, six bounded GET checks use backoff to observe worker reconciliation; background/unmount cancels them. The app does not poll POST reconcile. Foreground refresh, SDK updates, and manual Check subscription provide further recovery. Account deletion tombstones and clears pending recovery without deleting another account's data.
+
+If a fresh reconciliation confirms no active subscription or an expired/refunded subscription, the user may explicitly clear the notice after a confirmation that recommends Restore first and explains that billing is not cancelled. Clearing re-verifies again; an unknown/unavailable result never removes payment recovery.
+
+Settings shows subscription maintenance for known subscribers and payment recovery even when new offers are off. Restore and management remain independent of purchase exposure. Full annual prices and trial terms come from the selected store product; unknown/ineligible trial status never promises a free trial. Subscription denial during week bootstrap settles to an empty/stored preview instead of logging out or blocking account tools.
+
+## Verification and release gate
+
+Run `npm run test:subscriptions`, `node scripts/test-workout-arrangement-player.mjs`, `node scripts/test-workout-detail-ui.mjs`, `node scripts/test-settings-ui.mjs`, `node scripts/test-program-detail-ui.mjs`, and the storage/offline-finish/feature-flag suites. Run `npm run typecheck` and `npm run lint` for integration changes.
+
+RevenueCat and Apple products are **not yet configured** for this project. Fixture and mounted tests exercise orchestration and recovery; they do not establish real StoreKit purchase success. Before sales/enforcement: configure Apple/RevenueCat products, credentials, eligible introductory offers and final prices; run purchase/pending approval/renewal/expiry/restore/management on a physical sandbox iPhone; verify backend webhook delivery and environment isolation; approve updated subscription/privacy disclosures and launch time. Keep production enforcement off during private purchase testing because the first activation freezes the global launch/transition clock.
+
+Follow the backend billing runbook for durable worker deployment, verified entitlement state, webhook authentication, and incident rollback. Disable enforcement first, or both flags atomically, while retaining subscriber verification and management.

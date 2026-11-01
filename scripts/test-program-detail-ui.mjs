@@ -53,7 +53,7 @@ async function detail(options = {}) {
   const colors = Colors[scheme];
   const AuthContext = React.createContext(null);
   const EquipmentContext = React.createContext({ items: [{ id: "barbell", name: "Olympic barbell" }] });
-  const calls = { requests: [], active: [], routes: [], alerts: [], clones: [], drafts: [], archives: [], deactivations: [], cancellations: [], installed: [], synced: [] };
+  const calls = { requests: [], active: [], routes: [], alerts: [], clones: [], drafts: [], archives: [], deactivations: [], cancellations: [], installed: [], synced: [], refreshed: [] };
   const route = { templateId: options.templateId === undefined ? "program-one" : options.templateId };
   const syncCurrentWeek = async () => { calls.synced.push("sync"); };
   let currentOptions = options;
@@ -65,7 +65,7 @@ async function detail(options = {}) {
     "@react-navigation/native": { useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" }, "@/utils/authContext": { AuthContext }, "@/utils/equipmentContext": { EquipmentContext },
     "@/utils/programDraftContext": { useProgramDraft: () => ({ loadProgram: (value) => calls.drafts.push(plain(value)) }) },
-    "@/hooks/use-workout-week": { useWorkoutWeek: () => ({ currentWeekStart: "2026-10-05", syncCurrentWeek, installWeekPlan: (value) => calls.installed.push(plain(value)) }) },
+    "@/hooks/use-workout-week": { useWorkoutWeek: () => ({ currentWeekStart: "2026-10-05", syncCurrentWeek, installWeekPlan: (value) => calls.installed.push(plain(value)), refreshWeek: async (options) => { calls.refreshed.push(plain(options)); return null; } }) },
     "@/utils/programDisplay": display, "@/services/httpClient": { HttpError }, "@/services/workoutWeekService": { mapApiWeekPlan: (value) => ({ mapped: value }) },
     "@/services/programService": {
       getProgram: async (token, id) => { calls.requests.push([token, id]); return currentOptions.get ? currentOptions.get(token, id) : currentOptions.program ?? program(); },
@@ -266,6 +266,18 @@ test("Stop program keeps its confirmation, week payload, mapped installation and
   assert.equal(host(view.tree, "program-active-badge"), undefined);
   assert.ok(host(view.tree, "program-activate"));
   assert.equal(view.calls.routes.length, 0);
+  await unmount(view.tree);
+});
+
+test("Metadata-only program stop preserves stored workouts and refreshes without force generation", async () => {
+  const view = await detail({ active: { current: active(), scheduled: null }, deactivate: async () => null });
+  await tap(host(view.tree, "program-deactivate"));
+  await act(async () => view.calls.alerts[0][2][1].onPress());
+  assert.equal(view.calls.installed.length, 0);
+  assert.deepEqual(view.calls.refreshed, [{ force: false, weekStart: "2026-10-05" }]);
+  assert.equal(host(view.tree, "program-active-badge"), undefined);
+  assert.ok(host(view.tree, "program-activate"));
+  assert.doesNotMatch(textOf(view.tree.root), /couldn’t be stopped/);
   await unmount(view.tree);
 });
 

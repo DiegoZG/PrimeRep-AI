@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, Alert, AppState, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
@@ -61,6 +61,8 @@ import {
   type WeightUnit,
 } from "@/utils/weightUnits";
 import { enteredSets, setEntryKey, validateSetEntry } from "@/utils/workoutSetEntries";
+import { ensureWorkoutAdmission } from "@/services/workoutAdmission";
+import { HttpError } from "@/services/httpClient";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -325,6 +327,8 @@ export default function ActiveWorkoutScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [finishStatus, setFinishStatus] = useState<"idle" | "syncing" | "pendingOffline" | "pendingSets" | "failed">("idle");
   const [isRestoring, setIsRestoring] = useState(true);
+  const [admissionAttempt, setAdmissionAttempt] = useState(0);
+  const [admissionError, setAdmissionError] = useState<{ owner: string; workoutDayId: string; message: string; required: boolean } | null>(null);
   const [clientSessionId, setClientSessionId] = useState(createClientId);
   const navigationKey = `${user?.id ?? "guest"}:${requestedSessionId ?? workout?.workoutDayId ?? "new"}:${clientSessionId}`;
   const navigationIdentityRef = useRef({ key: navigationKey, epoch: 0 });
@@ -766,12 +770,23 @@ export default function ActiveWorkoutScreen() {
         setIsRestoring(false);
         return;
       }
-      const [saved, serverActive] = await Promise.all([
+      const [saved, foundServerActive] = await Promise.all([
         loadActiveWorkout(user.id).catch(() => null),
         token ? getActiveSession(token).catch(() => null) : Promise.resolve(null),
       ]);
       if (cancelled) return;
+      let serverActive = foundServerActive;
       if (planningBarrierRef.current && !saved && !serverActive) return;
+      if (!serverActive && !saved?.serverSessionId) {
+        try {
+          serverActive = await ensureWorkoutAdmission(token, user.id, workout, () => !cancelled);
+          if (cancelled) return;
+          setAdmissionError(null);
+        } catch (error) {
+          if (!cancelled) setAdmissionError({ owner: user.id, workoutDayId: workout.workoutDayId, message: error instanceof Error ? error.message : "Reconnect to verify access. Your saved entries are safe.", required: error instanceof HttpError && error.code === "subscription_required" });
+          return;
+        }
+      }
       restoredWorkoutKey.current = restoreKey;
 
       // Never overwrite a valid active workout just because a user tapped a
@@ -839,7 +854,7 @@ export default function ActiveWorkoutScreen() {
     }
     void restore();
     return () => { cancelled = true; };
-  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId, canRestoreRequestedSession, planningRefreshRequired]);
+  }, [user, workout, token, unitReady, weightUnit, exercises, router, clientSessionId, requestedSessionId, canRestoreRequestedSession, planningRefreshRequired, admissionAttempt]);
 
   // Store every draft, confirmed set, timer timestamp, and queued operation before
   // attempting network sync. This is what lets process termination be recoverable.
@@ -1745,6 +1760,17 @@ export default function ActiveWorkoutScreen() {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (admissionError?.owner === user?.id && admissionError?.workoutDayId === workout.workoutDayId && isRestoring) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
+      <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: "center" }}>
+        <ThemedText accessibilityRole="alert">{admissionError.message}</ThemedText>
+        <Pressable testID="player-admission-retry" accessibilityRole="button" onPress={() => { setAdmissionError(null); setAdmissionAttempt((attempt) => attempt + 1); }} style={{ minHeight: 48, padding: 12, justifyContent: "center" }}><ThemedText style={{ color: colors.primaryButton }}>Check access again</ThemedText></Pressable>
+        {admissionError.required ? <Pressable testID="player-admission-subscription" accessibilityRole="button" onPress={() => router.push("/paywall" as Href)} style={{ minHeight: 48, padding: 12, justifyContent: "center" }}><ThemedText>Subscription options</ThemedText></Pressable> : null}
+        <Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)")} style={{ minHeight: 48, padding: 12, justifyContent: "center" }}><ThemedText>Back to workouts</ThemedText></Pressable>
+      </View>
+    </SafeAreaView>;
   }
 
   if (planningRefreshRequired && isRestoring && !sessionId) {

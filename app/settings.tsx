@@ -1,4 +1,7 @@
 import { FeatureFlagsSettingsLink } from "@/components/settings/FeatureFlagsSettingsLink";
+import { SubscriptionSettingsLink } from "@/components/settings/SubscriptionSettingsLink";
+import { clearPendingPurchaseForUser } from "@/utils/pendingPurchase";
+import { useSubscription } from "@/utils/subscriptionContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -69,7 +72,10 @@ export default function SettingsScreen() {
   const destructiveColor = scheme === "dark" ? "#F18C86" : "#D14343";
   const switchTrack = scheme === "dark" ? colors.inputBackground : colors.inputBorder;
 
-  const isPremium = user?.subscription_tier === "premium";
+  const { snapshot: subscription } = useSubscription();
+  const isPremium = subscription?.flags.subscriptions_enforcement_enabled
+    ? subscription.can_start_training === true && (subscription.access_source === "subscription" || subscription.access_source === "transition")
+    : user?.subscription_tier === "premium" || subscription?.has_premium === true;
   const coachEnabled = user?.coach_insights_enabled ?? false;
 
   const [isToggling, setIsToggling] = useState(false);
@@ -283,7 +289,7 @@ export default function SettingsScreen() {
     const deletingUserId = user.id;
     Alert.alert(
       "Delete Account?",
-      "This permanently deletes your account and workout data. This action cannot be undone.",
+      "This permanently deletes your account and workout data. Deleting PrimeRep does not cancel an Apple subscription; manage billing in Apple subscription settings. This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -304,7 +310,7 @@ export default function SettingsScreen() {
               return;
             }
             try {
-              await Promise.all([clearPreWorkoutOrdersForUser(deletingUserId), clearWorkoutLayoutForUser(deletingUserId)]);
+              await Promise.all([clearPreWorkoutOrdersForUser(deletingUserId), clearWorkoutLayoutForUser(deletingUserId), clearPendingPurchaseForUser(deletingUserId)]);
               await waitForHealthExportIdle();
               await clearHealthExportAccount(deletingUserId);
             } catch {
@@ -708,6 +714,7 @@ export default function SettingsScreen() {
         </View>
 
         <FeatureFlagsSettingsLink />
+        <SubscriptionSettingsLink />
 
         {/* AI Features section */}
         {isPremium ? <>

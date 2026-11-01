@@ -28,6 +28,7 @@ import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
 import { WorkoutLayoutProvider } from "@/utils/workoutLayoutContext";
 import { ProfileProvider } from "@/utils/profileContext";
+import { SubscriptionProvider, SubscriptionPrompt } from "@/utils/subscriptionContext";
 import { HealthReadSync } from "@/utils/healthReadSync";
 import { HealthExportSync } from "@/utils/healthExportSync";
 
@@ -394,6 +395,8 @@ function RootLayoutNav() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/subscription" options={{ headerShown: false }} />
+          <Stack.Screen name="paywall" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="settings/admin-feature-flag-users" options={{ headerShown: false }} />
           <Stack.Screen name="settings/admin-feature-flags" options={{ headerShown: false }} />
           <Stack.Screen name="settings/help" options={{ headerShown: false }} />
@@ -430,6 +433,7 @@ function RootLayoutNav() {
         </View>
       ) : null}
       <StatusBar style="auto" />
+      <SubscriptionPrompt />
     </>
   );
 }
@@ -441,6 +445,7 @@ function ThemedRootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <AuthProvider>
+          <SubscriptionProvider>
           <WorkoutLayoutProvider>
           <HealthReadSync />
           <HealthExportSync />
@@ -462,6 +467,7 @@ function ThemedRootLayout() {
           </NotificationsProvider>
           </ProfileProvider>
           </WorkoutLayoutProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

@@ -26,7 +26,7 @@ export default function ProgramDetailScreen() {
   const { token, user } = useContext(AuthContext);
   const { items: equipment } = useContext(EquipmentContext);
   const { loadProgram } = useProgramDraft();
-  const { currentWeekStart, installWeekPlan, syncCurrentWeek } = useWorkoutWeek();
+  const { currentWeekStart, installWeekPlan, syncCurrentWeek, refreshWeek } = useWorkoutWeek();
   const [program, setProgram] = useState<ProgramDetail | null>(null);
   const [programOwnerKey, setProgramOwnerKey] = useState<string | null>(null);
   const [activePrograms, setActivePrograms] = useState<ActiveProgramState>({ current: null, scheduled: null });
@@ -167,7 +167,9 @@ export default function ProgramDetailScreen() {
             effectiveDate: todayIso(),
           });
           if (!isCurrent()) return;
-          installWeekPlan(mapApiWeekPlan(response));
+          if (response) installWeekPlan(mapApiWeekPlan(response));
+          else await refreshWeek({ force: false, weekStart: currentWeekStart });
+          if (!isCurrent()) return;
           setActivePrograms({ current: null, scheduled: null });
           setProgram((current) => current ? { ...current, isActive: false, isScheduled: false } : current);
         } catch { if (isCurrent()) setError("The active program couldn’t be stopped. Try again."); }
