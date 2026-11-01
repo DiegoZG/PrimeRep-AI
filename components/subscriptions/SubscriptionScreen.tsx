@@ -30,6 +30,10 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
     if (sdkReady) await manage();
     else if (managementUrl?.startsWith("https://")) await Linking.openURL(managementUrl);
   };
+  const checkSubscription = async () => {
+    const result = await refresh(true);
+    if (result && !result.has_premium && !pending) await loadPlans();
+  };
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
     <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 8, gap: 8 }}>
       <Text accessibilityRole="header" style={{ flex: 1, fontSize: 24, fontWeight: "700" }}>{paywall ? "PrimeRep Premium" : "Subscription"}</Text>
@@ -66,7 +70,7 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
         </> : <Text style={{ color: colors.icon }}>{sdkReady ? "Plans are not available yet. Try again shortly." : "Purchases are available in a configured iPhone app build."}</Text>}
       </View> : null}
       <View style={{ gap: 8 }}>
-        <Pressable testID="subscription-retry" accessibilityRole="button" disabled={busy} onPress={() => { void refresh(true); if (!pending) void loadPlans(); }} style={[actionStyle, { borderWidth: 1, borderColor: colors.inputBorder }]}><Text style={{ fontWeight: "600" }}>Check subscription</Text></Pressable>
+        <Pressable testID="subscription-retry" accessibilityRole="button" disabled={busy} onPress={() => void checkSubscription()} style={[actionStyle, { borderWidth: 1, borderColor: colors.inputBorder }]}><Text style={{ fontWeight: "600" }}>Check subscription</Text></Pressable>
         <Pressable testID="subscription-restore" accessibilityRole="button" accessibilityState={{ disabled: busy || !sdkReady }} disabled={busy || !sdkReady} onPress={() => void restore()} style={[actionStyle, { opacity: sdkReady ? 1 : 0.5 }]}><Text style={{ color: colors.primaryButton, fontWeight: "600" }}>Restore Purchases</Text></Pressable>
         {sdkReady || managementUrl ? <Pressable testID="subscription-manage" accessibilityRole="button" disabled={busy} onPress={() => void openManagement().catch(() => undefined)} style={actionStyle}><Text style={{ color: colors.primaryButton, fontWeight: "600" }}>Manage Subscription</Text></Pressable> : null}
       </View>

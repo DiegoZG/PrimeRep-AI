@@ -132,6 +132,24 @@ test("mounted paywall displays localized full annual price and has reachable dis
   await view.unmount();
 });
 
+test("subscription check waits for verification before refreshing plans", async () => {
+  for (const premium of [false, true]) {
+    const gate = deferred();
+    const view = await provider({ screen: true, reconcile: () => gate.promise });
+    const reads = () => view.calls.filter((call) => call[0] === "get").length;
+    const before = reads();
+    await act(async () => { host(view.tree, "subscription-retry").props.onPress(); });
+    assert.equal(reads(), before);
+    const verified = snapshot({ has_premium: premium, billing_status: premium ? "active" : "none" });
+    view.setSnapshot(verified);
+    gate.resolve(verified);
+    await view.settle();
+    assert.equal(view.value.snapshot.has_premium, premium);
+    assert.equal(reads(), before + (premium ? 0 : 1));
+    await view.unmount();
+  }
+});
+
 function admission(options = {}) {
   const calls = []; let local = options.local ?? null;
   class HttpError extends Error { constructor(message, status, payload) { super(message); this.status = status; this.code = payload?.code; } }
