@@ -30,6 +30,8 @@ interface SubscriptionContextValue {
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
+const activeNotice = "Your subscription is active.";
+const restoredNotice = "Purchases restored. Your subscription is active.";
 
 export function SubscriptionProvider({ children }: PropsWithChildren) {
   const { user } = useContext(AuthContext);
@@ -95,12 +97,17 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
       try {
         const result = await (reconcile ? reconcileSubscription(token) : getSubscription(token));
         if (!current()) return null;
-        if (sequence === requestSequence.current) { rememberSubscriptionFlags(userId, result.flags); setSnapshot(result); setError(null); }
+        if (sequence === requestSequence.current) {
+          rememberSubscriptionFlags(userId, result.flags);
+          setSnapshot(result);
+          setError(null);
+          if (!result.has_premium) setNotice(previous => previous === activeNotice || previous === restoredNotice ? null : previous);
+        }
         if (sequence === requestSequence.current && reconcile) setCanClearPending(Boolean(pendingRef.current && startedPendingRevision === pendingRevision.current && result.verification_status === "verified" && !result.has_premium && ["none", "expired"].includes(result.billing_status)));
         if (sequence === requestSequence.current && result.verification_status === "verified" && authTier.current !== (result.has_premium ? "premium" : "free") && typeof refreshUser === "function") void refreshUser().catch(() => undefined);
         if (sequence === requestSequence.current && startedPendingRevision === pendingRevision.current && result.has_premium && result.verification_status === "verified" && pendingRef.current) {
           await recordPending(null);
-          if (current() && sequence === requestSequence.current) setNotice("Your subscription is active.");
+          if (current() && sequence === requestSequence.current) setNotice(activeNotice);
         }
         return sequence === requestSequence.current ? result : null;
       } catch (failure) {
@@ -227,6 +234,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
       if (!current()) return;
       if (info.entitlements.active.premium) await recordPending({ phase: "received", productId: info.entitlements.active.premium.productIdentifier });
       const result = await refresh(true);
+      if (current() && result?.has_premium && result.verification_status === "verified") setNotice(restoredNotice);
       if (current() && result && !result.has_premium) setNotice(result.verification_status === "verified" && ["none", "expired"].includes(result.billing_status)
         ? "No active subscription was found for this account." : "Your purchase still needs verification. Try again when connected.");
     });

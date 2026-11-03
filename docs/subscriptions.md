@@ -28,6 +28,12 @@ If a fresh reconciliation confirms no active subscription or an expired/refunded
 
 Settings shows subscription maintenance for known subscribers and payment recovery even when new offers are off. Restore and management remain independent of purchase exposure. Full annual prices and trial terms come from the selected store product; unknown/ineligible trial status never promises a free trial. Subscription denial during week bootstrap settles to an empty/stored preview instead of logging out or blocking account tools.
 
+## Subscription screen
+
+The membership summary keeps the verified status, matching plan, and trial/renewal/end date visible. Billing expiry is shown even when enforcement is off and the access snapshot supplies no access-expiry date. Current subscribers get one primary Manage subscription action; eligible offers use selectable monthly/annual rows with full localized prices and store-provided trial terms.
+
+Restore purchases and Check subscription are quieter action rows with explanations and individual loading states. The result stays visible through ordinary refreshes. Restore explicitly confirms success after backend verification; a later loss of Premium access clears stale success feedback. Pending purchases and verification errors retain visible recovery actions and prevent duplicate checkout. Content scrolls, text wraps, and controls retain at least 44-point touch areas in both themes. Celebration animations remain deferred.
+
 ## Future UX TODO
 
 - Add a brief celebration when a free trial or paid subscription becomes verified and active. Show it once for the new activation, never for pending or failed purchases; respect Reduced Motion and keep the subscription screen usable while it plays.
@@ -37,6 +43,8 @@ Settings shows subscription maintenance for known subscribers and payment recove
 Run `npm run test:subscriptions`, `node scripts/test-workout-arrangement-player.mjs`, `node scripts/test-workout-detail-ui.mjs`, `node scripts/test-settings-ui.mjs`, `node scripts/test-program-detail-ui.mjs`, and the storage/offline-finish/feature-flag suites. Run `npm run typecheck` and `npm run lint` for integration changes.
 
 Native compile verification passed on November 1, 2026 for commit `c5a0514`: Expo prebuild, CocoaPods installation, and an unsigned generic iOS Simulator Debug build using Xcode 16.4 and iOS 18.5 SDK, for both arm64 and x86_64. CocoaPods resolved `RNPurchases 10.16.0`, `PurchasesHybridCommon 19.17.0`, and `RevenueCat 5.99.0`. The build used an isolated clean checkout and `CODE_SIGNING_ALLOWED=NO`; no app was installed and no purchase or provider configuration was exercised.
+
+On November 3, 2026, the installed iPhone 16 Pro Max preview verified a simulated annual Test Store purchase, backend entitlement, active restore, and expired monthly-trial reconciliation. No real charge or StoreKit transaction occurred. The screen redesign passes 314 affected mounted/integration tests, typecheck, and lint with the two existing hook warnings. Native visual inspection of the redesign is pending because the Mac was locked during verification; check both themes, large accessibility text, plan selection, and restore feedback before merging. Preview testing also exposed an overnight expired-token recovery issue and a trial-eligibility discrepancy that still need investigation before release.
 
 RevenueCat Test Store products are configured for preview; Apple products are **not yet configured**. Fixture and mounted tests exercise orchestration and recovery; they do not establish real StoreKit purchase success. Before sales/enforcement: configure Apple products, credentials, eligible introductory offers and final prices; run purchase/pending approval/renewal/expiry/restore/management on a physical sandbox iPhone; verify backend webhook delivery and environment isolation; approve updated subscription/privacy disclosures and launch time. Keep production enforcement off during private purchase testing because the first activation freezes the global launch/transition clock.
 

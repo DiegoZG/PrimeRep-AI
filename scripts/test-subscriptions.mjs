@@ -39,20 +39,20 @@ async function provider(options = {}) {
   const router = { push: (route) => routes.push(route), replace: (route) => routes.push(route), canGoBack: () => true, back() {} };
   const mocks = {
     react: React,
-    "react-native": { AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator" },
+    "react-native": { AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
     "expo-router": { useRouter: () => router, useSegments: () => ["(tabs)"], useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "@/utils/authContext": { AuthContext },
     "@/services/subscriptionService": { getSubscription: async (token) => { calls.push(["get", token]); return options.get ? options.get(token) : { ...currentSnapshot }; }, reconcileSubscription: async (token) => { calls.push(["reconcile", token]); if (options.failReconcile) throw new Error("Verification unavailable"); return options.reconcile ? options.reconcile(token) : { ...currentSnapshot }; } },
     "@/services/revenueCat": { nativeBillingAvailable: () => options.supported !== false, setBillingUser: async (id) => { calls.push(["bind", id]); return id ? options.bind ? options.bind(id) : info() : null; }, listenForBillingUpdates: async (_id, callback) => { listener = callback; return () => { listener = null; }; }, getBillingPlans: async () => options.plans ?? [plan], purchaseBillingPlan: async () => { calls.push(["purchase"]); return options.purchase ? options.purchase() : "received"; }, restoreBillingPurchases: async () => { calls.push(["restore"]); return info(true); }, manageBillingSubscription: async () => { calls.push(["manage"]); } },
     "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, val) => memory.set(key, val), removeItem: async (key) => memory.delete(key) },
     "@/components/workout/WorkoutText": { WorkoutText: (props) => React.createElement("Text", props) }, "@expo/vector-icons": { Ionicons: "Ionicons" }, "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
-    "@/constants/theme": { Colors: { light: { text: "#111", icon: "#666", primaryButton: "#704AFF", background: "#fff", inputBackground: "#eee", inputBorder: "#ddd" } } }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" },
+    "@/constants/theme": { Colors: { light: { text: "#111", icon: "#666", primaryButton: "#704AFF", background: "#fff", inputBackground: "#eee", inputBorder: "#ddd" }, dark: { text: "#eee", icon: "#aaa", primaryButton: "#704AFF", background: "#151718", inputBackground: "#1f1f1f", inputBorder: "#3a3a3a" } } }, "@/hooks/use-color-scheme": { useColorScheme: () => options.scheme ?? "light" },
   };
   const load = loader(mocks, options.fakeTimers ? { setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; }, clearTimeout: (id) => timers.delete(id) } : {});
   const context = load("utils/subscriptionContext.tsx");
   mocks["@/utils/subscriptionContext"] = context;
   const Screen = options.screen ? load("components/subscriptions/SubscriptionScreen.tsx").SubscriptionScreen : options.link ? load("components/settings/SubscriptionSettingsLink.tsx").SubscriptionSettingsLink : null;
-  function Probe() { value = context.useSubscription(); return Screen ? React.createElement(Screen, { paywall: true }) : null; }
+  function Probe() { value = context.useSubscription(); return Screen ? React.createElement(Screen, { paywall: options.paywall ?? true }) : null; }
   const element = () => React.createElement(AuthContext.Provider, { value: identity }, React.createElement(context.SubscriptionProvider, null, React.createElement(Probe)));
   let tree; await act(async () => { tree = create(element()); });
   const settle = async () => act(async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); });
@@ -65,6 +65,7 @@ async function provider(options = {}) {
     unmount: async () => act(async () => tree.unmount()) };
 }
 const host = (tree, id) => tree.root.findAll((n) => typeof n.type === "string" && n.props.testID === id)[0];
+const textOf = (node) => typeof node === "string" ? node : node.children.map(textOf).join("");
 
 test("received purchase persists through verification failure and restart without enabling duplicate checkout", async () => {
   const memory = new Map();
@@ -129,6 +130,62 @@ test("mounted paywall displays localized full annual price and has reachable dis
   assert.ok(host(view.tree, "subscription-close")); assert.ok(host(view.tree, "subscription-restore"));
   assert.equal(host(view.tree, "subscription-purchase").props.accessibilityLabel, "Start 7-day trial");
   assert.equal(host(view.tree, "subscription-plan-year").props.accessibilityLabel, "Annual, €89,99 per year");
+  await act(async () => host(view.tree, "subscription-plan-year").props.onPress());
+  assert.equal(host(view.tree, "subscription-plan-year").props.accessibilityState.selected, true);
+  assert.equal(host(view.tree, "subscription-purchase").props.accessibilityLabel, "Subscribe");
+  assert.ok(textOf(view.tree.root).includes("€89,99 per year. Renews automatically."));
+  await view.unmount();
+});
+
+test("membership shows its plan and actual expiry even when enforcement supplies no access date", async () => {
+  for (const scheme of ["light", "dark"]) {
+    const view = await provider({ screen: true, paywall: false, scheme, snapshot: snapshot({ has_premium: true, billing_status: "trial", product_id: "monthly", expires_at: "2026-11-10T12:00:00Z", access_expires_at: null }) });
+    const status = textOf(host(view.tree, "subscription-status"));
+    assert.ok(status.includes("Free trial"));
+    assert.ok(status.includes("Monthly"));
+    assert.ok(status.includes("Trial ends"));
+    assert.ok(status.includes("Nov 10, 2026"));
+    assert.equal(host(view.tree, "subscription-purchase"), undefined);
+    assert.equal(view.tree.root.findAll((n) => typeof n.type === "string" && n.props.testID === "subscription-manage").length, 1);
+    assert.equal(host(view.tree, "subscription-restore").props.disabled, false);
+    assert.equal(host(view.tree, "subscription-retry").props.disabled, false);
+    await view.unmount();
+  }
+});
+
+test("restore has a visible busy state and keeps its verified result through background refresh", async () => {
+  const gate = deferred();
+  const active = snapshot({ has_premium: true, billing_status: "active", product_id: "monthly" });
+  const view = await provider({ screen: true, snapshot: active, reconcile: () => gate.promise });
+  await act(async () => { host(view.tree, "subscription-restore").props.onPress(); });
+  assert.ok(textOf(host(view.tree, "subscription-restore")).includes("Restoring purchases…"));
+  assert.equal(host(view.tree, "subscription-restore").props.accessibilityState.busy, true);
+  assert.equal(host(view.tree, "subscription-retry").props.disabled, true);
+  assert.equal(host(view.tree, "subscription-manage").props.disabled, true);
+  gate.resolve(active);
+  await view.settle();
+  assert.equal(host(view.tree, "subscription-restore").props.disabled, false);
+  assert.ok(textOf(host(view.tree, "subscription-feedback")).includes("Purchases restored."));
+  assert.ok(textOf(host(view.tree, "subscription-feedback")).includes("Your subscription is active."));
+  await act(async () => view.value.refresh());
+  assert.ok(textOf(host(view.tree, "subscription-feedback")).includes("Your subscription is active."));
+  view.setSnapshot(snapshot({ billing_status: "expired" }));
+  await act(async () => view.value.refresh());
+  assert.equal(host(view.tree, "subscription-feedback"), undefined);
+  assert.ok(textOf(host(view.tree, "subscription-status")).includes("Subscription ended"));
+  await view.unmount();
+});
+
+test("verification failure keeps purchase recovery visible and checkout unavailable", async () => {
+  const view = await provider({ screen: true, failReconcile: true });
+  await act(async () => { host(view.tree, "subscription-restore").props.onPress(); });
+  assert.ok(host(view.tree, "subscription-pending"));
+  assert.ok(view.value.error);
+  assert.equal(textOf(host(view.tree, "subscription-error")), view.value.error);
+  assert.equal(host(view.tree, "subscription-error").props.accessibilityRole, "alert");
+  assert.equal(host(view.tree, "subscription-purchase"), undefined);
+  assert.equal(host(view.tree, "subscription-restore").props.disabled, false);
+  assert.equal(host(view.tree, "subscription-retry").props.disabled, false);
   await view.unmount();
 });
 
