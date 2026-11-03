@@ -28,6 +28,10 @@ If a fresh reconciliation confirms no active subscription or an expired/refunded
 
 Settings shows subscription maintenance for known subscribers and payment recovery even when new offers are off. Restore and management remain independent of purchase exposure. Full annual prices and trial terms come from the selected store product; unknown/ineligible trial status never promises a free trial. Subscription denial during week bootstrap settles to an empty/stored preview instead of logging out or blocking account tools.
 
+## Future UX TODO
+
+- Add a brief celebration when a free trial or paid subscription becomes verified and active. Show it once for the new activation, never for pending or failed purchases; respect Reduced Motion and keep the subscription screen usable while it plays.
+
 ## Verification and release gate
 
 Run `npm run test:subscriptions`, `node scripts/test-workout-arrangement-player.mjs`, `node scripts/test-workout-detail-ui.mjs`, `node scripts/test-settings-ui.mjs`, `node scripts/test-program-detail-ui.mjs`, and the storage/offline-finish/feature-flag suites. Run `npm run typecheck` and `npm run lint` for integration changes.
