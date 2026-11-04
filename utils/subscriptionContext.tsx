@@ -24,6 +24,7 @@ interface SubscriptionContextValue {
   notice: string | null;
   refresh: (reconcile?: boolean) => Promise<SubscriptionSnapshot | null>;
   loadPlans: () => Promise<void>;
+  recoverBilling: () => Promise<void>;
   purchase: (plan: BillingPlan) => Promise<void>;
   restore: () => Promise<void>;
   manage: () => Promise<void>;
@@ -57,7 +58,14 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const sdkReadyRef = useRef(false);
+  const bindingRequest = useRef<Promise<boolean> | null>(null);
+  const billingListener = useRef<(() => void) | null>(null);
+  const plansRequest = useRef<Promise<void> | null>(null);
+  const recoveryRequest = useRef<Promise<void> | null>(null);
+  const recoverBillingRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const [error, setError] = useState<string | null>(null);
+  const [pendingReadError, setPendingReadError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [canClearPending, setCanClearPending] = useState(false);
   const [appActive, setAppActive] = useState(AppState.currentState !== "background" && AppState.currentState !== "inactive");
@@ -68,6 +76,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   const requestOwners = useRef(new Map<boolean, number>());
   const mutation = useRef(false);
   const pendingReady = useRef(false);
+  const pendingReadRequest = useRef<Promise<boolean> | null>(null);
   const pendingRevision = useRef(0);
   const pendingRef = useRef(pending);
   const authTier = useRef(user?.subscription_tier);
@@ -134,33 +143,52 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
 
-  useEffect(() => {
-    if (!userId) { setReady(true); return; }
+  const hydratePending = useCallback((): Promise<boolean> => {
+    if (!userId || !current()) return Promise.resolve(false);
+    if (pendingReady.current) return Promise.resolve(true);
+    if (pendingReadRequest.current) return pendingReadRequest.current;
     const startedPendingRevision = pendingRevision.current;
-    void loadPendingPurchase(userId).then((value) => {
-      if (!current()) return;
+    const request = loadPendingPurchase(userId).then((value) => {
+      if (!current()) return false;
       pendingReady.current = true;
       setReady(true);
+      setPendingReadError(null);
       if (startedPendingRevision === pendingRevision.current) {
         pendingRevision.current += 1;
         pendingRef.current = value;
         setPending(value);
         if (value) void refreshRef.current(true);
       }
+      return true;
     }).catch(() => {
       if (current()) {
         setReady(true);
-        if (startedPendingRevision !== pendingRevision.current) pendingReady.current = true;
-        else setError("Couldn’t load purchase recovery. Restart the app before purchasing.");
+        if (startedPendingRevision !== pendingRevision.current) {
+          pendingReady.current = true;
+          setPendingReadError(null);
+          return true;
+        }
+        setPendingReadError("Couldn’t load purchase recovery. Try again or restart the app before purchasing.");
       }
-    });
+      return false;
+    }).finally(() => { pendingReadRequest.current = null; });
+    pendingReadRequest.current = request;
+    return request;
   }, [userId, current]);
+
+  useEffect(() => {
+    if (!userId) { setReady(true); return; }
+    void hydratePending();
+  }, [userId, hydratePending]);
 
   useEffect(() => {
     if (token) void refresh();
     const subscription = AppState.addEventListener("change", (state) => {
       if (current()) setAppActive(state === "active");
-      if (state === "active") void refreshRef.current(Boolean(pendingRef.current));
+      if (state === "active") {
+        void refreshRef.current(Boolean(pendingRef.current));
+        if (!sdkReadyRef.current) void recoverBillingRef.current();
+      }
     });
     return () => subscription.remove();
   }, [token, refresh, current]);
@@ -181,23 +209,39 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [appActive, ready, pending, userId, current]);
 
+  const initializeBilling = useCallback((): Promise<boolean> => {
+    if (!userId || !nativeBillingAvailable() || !current() || mutation.current) return Promise.resolve(false);
+    if (sdkReadyRef.current) return Promise.resolve(true);
+    if (bindingRequest.current) return bindingRequest.current;
+    const request = (async () => {
+      try {
+        const info = await setBillingUser(userId);
+        if (!current()) return false;
+        if (info?.entitlements.active.premium) {
+          await recordPending({ phase: "received", productId: info.entitlements.active.premium.productIdentifier });
+          await refreshRef.current(true);
+        }
+        if (!current()) return false;
+        const remove = await listenForBillingUpdates(userId, () => { if (current()) void refreshRef.current(true); });
+        if (!current()) { remove(); return false; }
+        billingListener.current = remove;
+        sdkReadyRef.current = true;
+        setSdkReady(true);
+        return true;
+      } catch {
+        if (current()) { sdkReadyRef.current = false; setSdkReady(false); setError("Couldn’t connect to billing. Try again when connected."); }
+        return false;
+      } finally { bindingRequest.current = null; }
+    })();
+    bindingRequest.current = request;
+    return request;
+  }, [userId, current, recordPending]);
+
   useEffect(() => {
     if (!userId || !nativeBillingAvailable()) return;
-    let cancelled = false;
-    let removeListener: (() => void) | undefined;
-    void setBillingUser(userId).then(async (info) => {
-      if (cancelled || !current()) return;
-      if (info?.entitlements.active.premium) {
-        await recordPending({ phase: "received", productId: info.entitlements.active.premium.productIdentifier });
-        await refreshRef.current(true);
-      }
-      if (cancelled || !current()) return;
-      setSdkReady(true);
-      const remove = await listenForBillingUpdates(userId, () => { if (current()) void refreshRef.current(true); });
-      if (cancelled) remove(); else removeListener = remove;
-    }).catch(() => { if (!cancelled && current()) setSdkReady(false); });
-    return () => { cancelled = true; removeListener?.(); void setBillingUser(null).catch(() => undefined); };
-  }, [userId, current, recordPending]);
+    void initializeBilling();
+    return () => { billingListener.current?.(); void setBillingUser(null).catch(() => undefined); };
+  }, [userId, initializeBilling]);
 
   useEffect(() => onSubscriptionRequired(() => {
     void refreshRef.current().then((result) => {
@@ -217,18 +261,49 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [onboardingRequired, appActive, userId, current]);
 
-  const loadPlans = useCallback(async () => {
-    if (!userId || !sdkReady || !current()) return;
-    const latest = await refresh();
-    if (!current() || !latest?.flags.subscriptions_purchases_enabled) { if (current()) setPlans([]); return; }
-    try {
-      const choices = await getBillingPlans(userId);
-      if (current()) { setPlans(choices); if (!choices.length) setNotice("Subscription plans are not available yet."); }
-    } catch (failure) { if (current()) setError(failure instanceof Error ? failure.message : "Couldn’t load plans. Try again."); }
-  }, [userId, sdkReady, current, refresh]);
+  const loadPlans = useCallback((): Promise<void> => {
+    if (!userId || !sdkReadyRef.current || !current()) return Promise.resolve();
+    if (plansRequest.current) return plansRequest.current;
+    const request = (async () => {
+      const latest = await refresh();
+      if (!current() || !latest?.flags.subscriptions_purchases_enabled) { if (current()) setPlans([]); return; }
+      try {
+        const choices = await getBillingPlans(userId);
+        if (current()) {
+          setPlans(choices);
+          if (!choices.length) setNotice("Subscription plans are not available yet.");
+          else setNotice(previous => previous === "Subscription plans are not available yet." ? null : previous);
+        }
+      } catch (failure) { if (current()) setError(failure instanceof Error ? failure.message : "Couldn’t load plans. Try again."); }
+    })().finally(() => { plansRequest.current = null; });
+    plansRequest.current = request;
+    return request;
+  }, [userId, current, refresh]);
+
+  const recoverBilling = useCallback((): Promise<void> => {
+    if (!userId || !nativeBillingAvailable() || !current() || mutation.current) return Promise.resolve();
+    if (recoveryRequest.current) return recoveryRequest.current;
+    const request = (async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        if (!await hydratePending() || !current()) return;
+        if (!await initializeBilling() || !current()) return;
+        await refreshRef.current(true);
+        if (!current()) return;
+        const checked = await refreshRef.current();
+        if (!current()) return;
+        if (checked?.verification_status !== "verified") await refreshRef.current();
+        if (current()) await loadPlans();
+      } finally { recoveryRequest.current = null; if (current()) setBusy(false); }
+    })();
+    recoveryRequest.current = request;
+    return request;
+  }, [userId, current, hydratePending, initializeBilling, loadPlans]);
+  recoverBillingRef.current = recoverBilling;
 
   const runMutation = useCallback(async (action: () => Promise<void>, requiresSDK = true) => {
-    if (!userId || (requiresSDK && !sdkReady) || mutation.current || !current()) return;
+    if (!userId || (requiresSDK && !sdkReady) || mutation.current || recoveryRequest.current || !current()) return;
     mutation.current = true;
     setBusy(true);
     setError(null);
@@ -285,8 +360,8 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
     }, false);
   }, [current, refresh, recordPending, runMutation]);
 
-  const canPurchase = Boolean(pendingReady.current && sdkReady && snapshot?.flags.subscriptions_purchases_enabled && !snapshot.has_premium && !pending && !busy && !error);
-  return <SubscriptionContext.Provider value={{ snapshot, pending, plans, busy, ready, sdkReady, onboardingRequired, canPurchase, canClearPending, error, notice, refresh, loadPlans, purchase, restore, manage, openPaywall, clearPending }}>{children}</SubscriptionContext.Provider>;
+  const canPurchase = Boolean(pendingReady.current && sdkReady && snapshot?.flags.subscriptions_purchases_enabled && !snapshot.has_premium && !pending && !busy && !error && !pendingReadError);
+  return <SubscriptionContext.Provider value={{ snapshot, pending, plans, busy, ready, sdkReady, onboardingRequired, canPurchase, canClearPending, error: pendingReadError ?? error, notice, refresh, loadPlans, recoverBilling, purchase, restore, manage, openPaywall, clearPending }}>{children}</SubscriptionContext.Provider>;
 }
 
 export function useSubscription() {

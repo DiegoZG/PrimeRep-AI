@@ -15,7 +15,7 @@ export function OnboardingSubscriptionScreen() {
   const accent = scheme === "dark" ? "#B9ACFF" : colors.primaryButton;
   const { fontScale } = useWindowDimensions();
   const inlineCheckout = fontScale >= 1.3;
-  const { snapshot, plans, pending, busy, sdkReady, canPurchase, canClearPending, error, notice, refresh, loadPlans, purchase, restore, clearPending } = useSubscription();
+  const { snapshot, plans, pending, busy, sdkReady, canPurchase, canClearPending, error, notice, refresh, loadPlans, recoverBilling, purchase, restore, clearPending } = useSubscription();
   const [selected, setSelected] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const plan = plans.find(choice => choice.id === selected) ?? plans.find(choice => choice.term === "month") ?? plans[0];
@@ -62,19 +62,18 @@ export function OnboardingSubscriptionScreen() {
         <Text style={[styles.intro, { color: colors.icon }]}>Choose your plan for workouts, programs, and coaching built around you.</Text>
       </View>
       <SubscriptionBenefits />
-      {pending || error || !verified ? <View testID="onboarding-subscription-recovery" accessibilityLiveRegion="polite" style={[styles.message, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-        <View style={styles.messageHeading}>{!error ? <ActivityIndicator color={colors.primaryButton} /> : <Ionicons name="cloud-offline-outline" size={22} color={colors.icon} accessible={false} />}
-          <Text style={styles.messageTitle}>{pending ? pending.phase === "pending" ? "Awaiting Apple approval" : "Verifying your purchase" : "Checking your access"}</Text>
+      {pending || error || !verified || !sdkReady || !plans.length ? <View testID="onboarding-subscription-recovery" accessibilityLiveRegion="polite" style={[styles.message, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+        <View style={styles.messageHeading}>{blocked || (!verified && !error) ? <ActivityIndicator color={colors.primaryButton} /> : <Ionicons name={error ? "cloud-offline-outline" : "information-circle-outline"} size={22} color={colors.icon} accessible={false} />}
+          <Text style={styles.messageTitle}>{pending ? pending.phase === "pending" ? "Awaiting Apple approval" : "Verifying your purchase" : !verified ? "Checking your access" : !sdkReady ? "Connect to billing" : "Plans unavailable"}</Text>
         </View>
-        <Text style={[styles.messageBody, { color: colors.icon }]}>{error ?? (pending ? "Your purchase will continue here once access is confirmed." : "We’ll confirm your subscription before you continue.")}</Text>
-        <Pressable testID="onboarding-subscription-retry" accessibilityRole="button" disabled={blocked} onPress={() => void refresh(true)} style={styles.link}><Text style={[styles.linkText, { color: accent }]}>Check again</Text></Pressable>
+        <Text style={[styles.messageBody, { color: colors.icon }]}>{error ?? (pending ? "Your purchase will continue here once access is confirmed." : !verified ? "We’ll confirm your subscription before you continue." : !sdkReady ? "Connect to the store to load plans or restore an existing purchase." : "Plans aren’t available yet. Try again shortly or restore an existing purchase.")}</Text>
+        <Pressable testID="onboarding-subscription-retry" accessibilityRole="button" accessibilityState={{ disabled: blocked, busy }} disabled={blocked} onPress={() => void recoverBilling()} style={styles.link}><Text style={[styles.linkText, { color: accent }]}>{busy ? "Trying again…" : "Try again"}</Text></Pressable>
         {canClearPending ? <Pressable testID="subscription-clear-pending" accessibilityRole="button" disabled={blocked} accessibilityState={{ disabled: blocked }}
           onPress={() => Alert.alert("Clear purchase notice?", "No active subscription was found during verification. Try Restore Purchases first if you paid. Clearing this notice does not cancel Apple billing.", [{ text: "Cancel", style: "cancel" }, { text: "Clear notice", onPress: () => void clearPending() }])} style={styles.link}>
           <Text style={[styles.linkText, { color: accent }]}>Clear pending purchase notice</Text>
         </Pressable> : null}
       </View> : notice ? <Text testID="subscription-feedback" accessibilityLiveRegion="polite" style={[styles.messageBody, { color: colors.icon }]}>{notice}</Text> : null}
       <SubscriptionPlans plans={plans} selected={plan?.id} blocked={blocked} onSelect={setSelected} />
-      {!plans.length && verified ? <Text style={[styles.messageBody, { color: colors.icon }]}>Plans aren’t available yet. Check again shortly or restore an existing purchase.</Text> : null}
       {inlineCheckout ? checkout : null}
     </ScrollView>
     {!inlineCheckout ? checkout : null}

@@ -53,8 +53,8 @@ async function provider(options = {}) {
     "@/utils/preWorkoutOrderStore": { clearPreWorkoutOrdersForUser: async owner => calls.push(["clearOrders", owner]) },
     "@/utils/workoutLayoutPreference": { clearWorkoutLayoutForUser: async owner => calls.push(["clearLayout", owner]) },
     "@/services/subscriptionService": { getSubscription: async (token) => { calls.push(["get", token]); return options.get ? options.get(token) : { ...currentSnapshot }; }, reconcileSubscription: async (token) => { calls.push(["reconcile", token]); if (options.failReconcile) throw new Error("Verification unavailable"); return options.reconcile ? options.reconcile(token) : { ...currentSnapshot }; } },
-    "@/services/revenueCat": { nativeBillingAvailable: () => options.supported !== false, setBillingUser: async (id) => { calls.push(["bind", id]); return id ? options.bind ? options.bind(id) : info() : null; }, listenForBillingUpdates: async (_id, callback) => { listener = callback; return () => { listener = null; }; }, getBillingPlans: async () => options.plans ?? [plan], purchaseBillingPlan: async () => { calls.push(["purchase"]); return options.purchase ? options.purchase() : "received"; }, restoreBillingPurchases: async () => { calls.push(["restore"]); return info(true); }, manageBillingSubscription: async () => { calls.push(["manage"]); } },
-    "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, val) => memory.set(key, val), removeItem: async (key) => memory.delete(key) },
+    "@/services/revenueCat": { nativeBillingAvailable: () => options.supported !== false, setBillingUser: async (id) => { calls.push(["bind", id]); return id ? options.bind ? options.bind(id) : info() : null; }, listenForBillingUpdates: async (id, callback) => { calls.push(["listen", id]); listener = callback; return () => { listener = null; }; }, getBillingPlans: async id => { calls.push(["plans", id]); return options.offerings ? options.offerings(id) : options.plans ?? [plan]; }, purchaseBillingPlan: async () => { calls.push(["purchase"]); return options.purchase ? options.purchase() : "received"; }, restoreBillingPurchases: async () => { calls.push(["restore"]); return info(true); }, manageBillingSubscription: async () => { calls.push(["manage"]); } },
+    "@react-native-async-storage/async-storage": { getItem: async (key) => options.readPending ? options.readPending(key, memory) : memory.get(key) ?? null, setItem: async (key, val) => memory.set(key, val), removeItem: async (key) => memory.delete(key) },
     "@/components/workout/WorkoutText": { WorkoutText: (props) => React.createElement("Text", props) }, "@expo/vector-icons": { Ionicons: "Ionicons" }, "react-native-safe-area-context": { SafeAreaView: "SafeAreaView" },
     "@/constants/theme": { Colors: { light: { text: "#111", icon: "#666", primaryButton: "#704AFF", background: "#fff", inputBackground: "#eee", inputBorder: "#ddd" }, dark: { text: "#eee", icon: "#aaa", primaryButton: "#704AFF", background: "#151718", inputBackground: "#1f1f1f", inputBorder: "#3a3a3a" } } }, "@/hooks/use-color-scheme": { useColorScheme: () => options.scheme ?? "light" },
   };
@@ -135,6 +135,174 @@ test("unknown onboarding access withholds checkout and offers verification retry
   assert.equal(host(view.tree, "subscription-purchase"), undefined);
   assert.ok(host(view.tree, "onboarding-subscription-retry"));
   assert.match(textOf(view.tree.toJSON()), /Checking your access/);
+  await view.unmount();
+});
+
+for (const trigger of ["manual", "foreground"]) test(`failed native billing initialization recovers on ${trigger} without restarting`, async () => {
+  let attempts = 0;
+  const view = await provider({ onboardingScreen: true, fakeTimers: true, snapshot: onboardingSnapshot(), bind: async () => {
+    if (++attempts === 1) throw new Error("Temporarily offline");
+    return info();
+  } });
+  assert.equal(view.value.sdkReady, false);
+  assert.ok(host(view.tree, "onboarding-subscription-retry"));
+  assert.equal(host(view.tree, "subscription-restore").props.disabled, true);
+  if (trigger === "manual") {
+    await act(async () => host(view.tree, "onboarding-subscription-retry").props.onPress());
+    await view.settle();
+  } else {
+    await view.setAppState("background");
+    await view.setAppState("active");
+  }
+  assert.equal(view.value.sdkReady, true);
+  assert.equal(attempts, 2);
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, false);
+  assert.equal(view.calls.some(call => call[0] === "bind" && call[1] === null), false);
+  await view.unmount();
+});
+
+for (const failure of ["error", "empty"]) test(`onboarding retries ${failure} offerings without changing flags or rebinding a ready SDK`, async () => {
+  let attempts = 0;
+  const view = await provider({ onboardingScreen: true, fakeTimers: true, snapshot: onboardingSnapshot(), offerings: async () => {
+    if (++attempts === 1) { if (failure === "error") throw new Error("Plans could not load"); return []; }
+    return [plan];
+  } });
+  assert.equal(view.value.plans.length, 0);
+  assert.ok(host(view.tree, "onboarding-subscription-retry"));
+  await act(async () => host(view.tree, "onboarding-subscription-retry").props.onPress());
+  await view.settle();
+  assert.equal(view.value.plans.length, 1);
+  assert.equal(view.value.error, null);
+  assert.equal(view.value.notice, null);
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, false);
+  assert.equal(view.calls.filter(call => call[0] === "bind" && call[1] === "A").length, 1);
+  await view.unmount();
+});
+
+test("billing recovery coalesces duplicate taps and cannot start checkout while recovering", async () => {
+  const offering = deferred();
+  const view = await provider({ fakeTimers: true, snapshot: onboardingSnapshot(), offerings: () => offering.promise });
+  let first, second;
+  await act(async () => { first = view.value.recoverBilling(); second = view.value.recoverBilling(); });
+  await view.settle();
+  assert.equal(first, second);
+  assert.equal(view.value.busy, true);
+  await act(async () => view.value.purchase(plan));
+  assert.equal(view.calls.some(call => call[0] === "purchase"), false);
+  assert.equal(view.calls.filter(call => call[0] === "plans").length, 1);
+  offering.resolve([plan]); await act(async () => first);
+  assert.equal(view.value.busy, false);
+  assert.equal(view.value.canPurchase, true);
+  assert.equal(view.calls.filter(call => call[0] === "bind" && call[1] === "A").length, 1);
+  await view.unmount();
+});
+
+test("recovery and foreground cannot rebind during an open purchase or clear a pending payment", async () => {
+  const payment = deferred();
+  const view = await provider({ fakeTimers: true, snapshot: onboardingSnapshot(), purchase: () => payment.promise });
+  let purchasing;
+  await act(async () => { purchasing = view.value.purchase(plan); });
+  await view.settle();
+  await act(async () => view.value.recoverBilling());
+  await view.setAppState("background"); await view.setAppState("active");
+  assert.equal(view.calls.filter(call => call[0] === "bind" && call[1] === "A").length, 1);
+  assert.equal(view.calls.some(call => call[0] === "bind" && call[1] === null), false);
+  assert.equal(view.calls.some(call => call[0] === "plans"), false);
+  payment.resolve("cancelled"); await act(async () => purchasing);
+  await view.unmount();
+
+  const pending = await provider({ fakeTimers: true, snapshot: onboardingSnapshot(), memory: new Map([["@primerep/pending-purchase/A", JSON.stringify({ phase: "received", productId: "monthly" })]]) });
+  await act(async () => pending.value.recoverBilling());
+  assert.equal(pending.value.pending.phase, "received");
+  assert.equal(pending.value.canPurchase, false);
+  assert.equal(pending.calls.some(call => call[0] === "purchase"), false);
+  await pending.unmount();
+});
+
+test("late SDK recovery cannot attach listeners or load plans for a changed or unmounted account", async () => {
+  const binding = deferred();
+  let attempts = 0;
+  const view = await provider({ fakeTimers: true, snapshot: onboardingSnapshot(), bind: id => {
+    if (id === "B") return info();
+    if (++attempts === 1) throw new Error("Temporarily offline");
+    return binding.promise;
+  } });
+  let recovering;
+  await act(async () => { recovering = view.value.recoverBilling(); });
+  await view.switchUser("B");
+  binding.resolve(info(true)); await act(async () => recovering);
+  assert.equal(view.value.pending, null);
+  assert.equal(view.value.sdkReady, true);
+  assert.equal(view.calls.some(call => call[0] === "listen" && call[1] === "A"), false);
+  assert.equal(view.calls.some(call => call[0] === "plans" && call[1] === "A"), false);
+  await view.unmount();
+
+  const detached = deferred();
+  let retries = 0;
+  const gone = await provider({ fakeTimers: true, bind: () => { if (++retries === 1) throw new Error("Offline"); return detached.promise; } });
+  let completing;
+  await act(async () => { completing = gone.value.recoverBilling(); });
+  await gone.unmount();
+  detached.resolve(info(true)); await act(async () => completing);
+  assert.equal(gone.calls.some(call => call[0] === "listen"), false);
+  assert.equal(gone.calls.some(call => call[0] === "plans"), false);
+  assert.equal(gone.memory.size, 0);
+});
+
+for (const phase of [null, "received", "pending"]) test(`billing retry recovers a failed purchase-recovery read and preserves ${phase ?? "empty"} storage`, async () => {
+  let reads = 0;
+  const memory = phase ? new Map([["@primerep/pending-purchase/A", JSON.stringify({ phase, productId: "monthly" })]]) : new Map();
+  const view = await provider({ onboardingScreen: true, fakeTimers: true, snapshot: onboardingSnapshot(), memory,
+    readPending: async (key, values) => { if (++reads === 1) throw new Error("Storage unavailable"); return values.get(key) ?? null; },
+  });
+  assert.equal(view.value.canPurchase, false);
+  assert.match(view.value.error, /Couldn’t load purchase recovery/);
+  await act(async () => view.value.refresh());
+  assert.match(view.value.error, /Couldn’t load purchase recovery/);
+  assert.ok(host(view.tree, "onboarding-subscription-retry"));
+  await act(async () => host(view.tree, "onboarding-subscription-retry").props.onPress());
+  await view.settle();
+  assert.equal(reads, 2);
+  assert.equal(view.value.error, null);
+  assert.equal(view.value.pending?.phase ?? null, phase);
+  assert.equal(view.value.canPurchase, phase === null);
+  assert.equal(view.calls.some(call => call[0] === "purchase"), false);
+  if (phase) assert.equal(memory.has("@primerep/pending-purchase/A"), true);
+  await view.unmount();
+});
+
+test("repeated purchase-recovery read failures remain visible and prevent checkout", async () => {
+  let reads = 0;
+  const view = await provider({ onboardingScreen: true, fakeTimers: true, snapshot: onboardingSnapshot(), readPending: async () => { reads += 1; throw new Error("Storage unavailable"); } });
+  await act(async () => host(view.tree, "onboarding-subscription-retry").props.onPress());
+  await view.settle();
+  await act(async () => view.value.refresh());
+  assert.equal(reads, 2);
+  assert.match(textOf(host(view.tree, "onboarding-subscription-recovery")), /Couldn’t load purchase recovery/);
+  assert.equal(view.value.canPurchase, false);
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, true);
+  assert.equal(host(view.tree, "onboarding-subscription-retry").props.disabled, false);
+  assert.equal(view.calls.some(call => call[0] === "purchase"), false);
+  await view.unmount();
+});
+
+test("a late recovery hydration cannot overwrite the new account's stored pending payment", async () => {
+  const reading = deferred();
+  let reads = 0;
+  const memory = new Map([["@primerep/pending-purchase/B", JSON.stringify({ phase: "pending", productId: "annual" })]]);
+  const view = await provider({ fakeTimers: true, memory, snapshot: onboardingSnapshot(), readPending: async (key, values) => {
+    if (key.endsWith("/A")) { if (++reads === 1) throw new Error("Storage unavailable"); return reading.promise; }
+    return values.get(key) ?? null;
+  } });
+  let recovery;
+  await act(async () => { recovery = view.value.recoverBilling(); });
+  await view.switchUser("B");
+  reading.resolve(JSON.stringify({ phase: "received", productId: "monthly" }));
+  await act(async () => recovery);
+  assert.equal(view.value.pending.phase, "pending");
+  assert.equal(view.value.pending.productId, "annual");
+  assert.equal(view.value.error, null);
+  assert.equal(view.value.canPurchase, false);
   await view.unmount();
 });
 
