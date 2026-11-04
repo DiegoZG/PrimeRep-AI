@@ -9,9 +9,10 @@ import { useSubscription } from "@/utils/subscriptionContext";
 
 type ToolAction = "check" | "restore" | "manage";
 
-const exampleExercises = [
-  { initials: "BP", name: "Bench press", target: "3 × 8–12" },
-  { initials: "LP", name: "Lat pulldown", target: "3 × 10–12" },
+const benefits = [
+  { icon: "barbell", title: "Workouts built around your goals" },
+  { icon: "swap-horizontal", title: "Swap exercises when plans change" },
+  { icon: "chatbubble-ellipses", title: "Personal programs and coaching" },
 ] as const;
 
 function dateLabel(value: string | null | undefined) {
@@ -114,34 +115,13 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
         <Text style={[styles.body, { color: colors.icon }]}>Build your routine with workouts, programs, and coaching that fit your training.</Text>
       </View> : null}
 
-      {showOffers ? <View testID="subscription-training-preview" style={[styles.showcase, { backgroundColor: dark ? "#2D2442" : "#281D48" }]}>
-        <View style={styles.showcaseHeading}>
-          <Text accessibilityRole="header" allowFontScaling={false} style={[styles.showcaseTitle, { fontSize: 20 * Math.min(fontScale, 2) }]}>Made for your next rep.</Text>
-          <Ionicons name="sparkles" size={22} color="#D8C9FF" accessible={false} />
-        </View>
-        <View accessible accessibilityLabel="Example upper-body workout: Bench press, 3 sets of 8 to 12 reps. Lat pulldown, 3 sets of 10 to 12 reps. Your own plan is personalized."
-          style={[styles.workoutPreview, { backgroundColor: dark ? "#1B1D22" : "#FAF9FF" }]}>
-          <View style={styles.previewHeading}>
-            <View style={styles.previewTitle}>
-              <Ionicons name="barbell" size={17} color={dark ? "#D6CCF1" : "#514269"} accessible={false} />
-              <Text style={[styles.previewName, { color: dark ? "#F3F0FA" : "#292334" }]}>Upper body</Text>
-            </View>
-            <Text style={[styles.previewLabel, { color: dark ? "#B9B1C9" : "#766D83" }]}>Example</Text>
+      {(premium || transition || showOffers) ? <View style={styles.benefits}>
+        {benefits.map((benefit) => <View key={benefit.icon} style={styles.benefit}>
+          <View style={[styles.benefitIcon, { backgroundColor: dark ? "#2A2D30" : "#F0F1F3" }]}>
+            <Ionicons name={benefit.icon} size={26} color={colors.text} accessible={false} />
           </View>
-          {exampleExercises.map((exercise) => <View key={exercise.initials} style={styles.exampleExercise}>
-            <View style={[styles.exampleImage, { backgroundColor: dark ? "#353044" : "#ECE7F5" }]}>
-              <Text allowFontScaling={false} style={[styles.exampleInitials, { color: dark ? "#DDD4F3" : "#625377" }]}>{exercise.initials}</Text>
-            </View>
-            <View style={styles.examplePrescription}>
-              <Text style={[styles.exampleName, { color: dark ? "#F3F0FA" : "#292334" }]}>{exercise.name}</Text>
-              <Text style={[styles.exampleTarget, { color: dark ? "#C5BDCF" : "#655D70" }]}>{exercise.target}</Text>
-            </View>
-          </View>)}
-        </View>
-        <View style={styles.showcaseFeatures}>
-          <View style={[styles.showcaseFeature, largeText && styles.fullFact]}><Ionicons name="swap-horizontal" size={18} color="#E4DDEE" accessible={false} /><Text style={styles.showcaseFeatureText}>Swap any exercise</Text></View>
-          <View style={[styles.showcaseFeature, largeText && styles.fullFact]}><Ionicons name="chatbubble-ellipses" size={17} color="#E4DDEE" accessible={false} /><Text style={styles.showcaseFeatureText}>Personal coaching</Text></View>
-        </View>
+          <Text style={[styles.body, styles.flexible]}>{benefit.title}</Text>
+        </View>)}
       </View> : null}
 
       {pending ? <View testID="subscription-pending" accessibilityLiveRegion="polite" style={[styles.message, { backgroundColor: tint }]}>
@@ -249,23 +229,9 @@ const styles = StyleSheet.create({
   factValue: { fontSize: 15, fontWeight: "600" },
   introduction: { gap: 10 },
   headline: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
-  showcase: { borderRadius: 20, padding: 16, gap: 14 },
-  showcaseHeading: { flexDirection: "row", alignItems: "center", gap: 12 },
-  showcaseTitle: { flex: 1, color: "#FFFFFF", fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
-  workoutPreview: { borderRadius: 13, padding: 12, gap: 10 },
-  previewHeading: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 2 },
-  previewTitle: { flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%", flexShrink: 1 },
-  previewName: { fontSize: 14, fontWeight: "700", flexShrink: 1 },
-  previewLabel: { fontSize: 11, fontWeight: "500" },
-  exampleExercise: { flexDirection: "row", alignItems: "center", gap: 10 },
-  exampleImage: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  exampleInitials: { fontSize: 11, fontWeight: "700" },
-  examplePrescription: { flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 10, rowGap: 4 },
-  exampleName: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  exampleTarget: { fontSize: 12, fontWeight: "500", maxWidth: "100%" },
-  showcaseFeatures: { flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 10 },
-  showcaseFeature: { flexDirection: "row", alignItems: "center", gap: 6, flexGrow: 1, flexBasis: 130 },
-  showcaseFeatureText: { color: "#E4DDEE", fontSize: 12, flexShrink: 1 },
+  benefits: { gap: 12 },
+  benefit: { flexDirection: "row", alignItems: "center", gap: 12 },
+  benefitIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   message: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12 },
   messageTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
   inlineAction: { minHeight: 44, justifyContent: "center", paddingVertical: 8 },
