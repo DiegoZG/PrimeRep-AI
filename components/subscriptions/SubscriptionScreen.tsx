@@ -10,9 +10,9 @@ import { useSubscription } from "@/utils/subscriptionContext";
 type ToolAction = "check" | "restore" | "manage";
 
 const benefits = [
-  { icon: "barbell-outline", title: "Workouts built around your goals" },
-  { icon: "swap-horizontal-outline", title: "Swap exercises when plans change" },
-  { icon: "chatbubble-ellipses-outline", title: "Personal programs and coaching" },
+  { icon: "barbell", title: "Workouts built around your goals" },
+  { icon: "swap-horizontal", title: "Swap exercises when plans change" },
+  { icon: "chatbubble-ellipses", title: "Personal programs and coaching" },
 ] as const;
 
 function dateLabel(value: string | null | undefined) {
@@ -117,7 +117,9 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
 
       {(premium || transition || showOffers) ? <View style={styles.benefits}>
         {benefits.map((benefit) => <View key={benefit.icon} style={styles.benefit}>
-          <Ionicons name={benefit.icon} size={21} color={accent} accessible={false} />
+          <View style={[styles.benefitIcon, { backgroundColor: dark ? "#2A2D30" : "#F0F1F3" }]}>
+            <Ionicons name={benefit.icon} size={26} color={colors.text} accessible={false} />
+          </View>
           <Text style={[styles.body, styles.flexible]}>{benefit.title}</Text>
         </View>)}
       </View> : null}
@@ -227,8 +229,9 @@ const styles = StyleSheet.create({
   factValue: { fontSize: 15, fontWeight: "600" },
   introduction: { gap: 10 },
   headline: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
-  benefits: { gap: 14 },
+  benefits: { gap: 12 },
   benefit: { flexDirection: "row", alignItems: "center", gap: 12 },
+  benefitIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   message: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12 },
   messageTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
   inlineAction: { minHeight: 44, justifyContent: "center", paddingVertical: 8 },
