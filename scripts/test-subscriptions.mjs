@@ -154,6 +154,20 @@ test("membership shows its plan and actual expiry even when enforcement supplies
   }
 });
 
+test("the signup preview is clearly an example and gives subscribers their billing controls", async () => {
+  const view = await provider({ screen: true });
+  const preview = host(view.tree, "subscription-training-preview");
+  assert.ok(preview);
+  assert.ok(preview.findAll((node) => node.props.accessible === true && node.props.accessibilityLabel?.startsWith("Example upper-body workout:")).length);
+  assert.equal(preview.findAll((node) => typeof node.type === "string" && node.props.accessibilityRole === "button").length, 0);
+  view.setSnapshot(snapshot({ has_premium: true, billing_status: "active", product_id: "monthly" }));
+  await act(async () => view.value.refresh());
+  assert.equal(host(view.tree, "subscription-training-preview"), undefined);
+  assert.ok(host(view.tree, "subscription-status"));
+  assert.ok(host(view.tree, "subscription-manage"));
+  await view.unmount();
+});
+
 test("changing the system text size retains the selected plan and recovery controls", async () => {
   const view = await provider({ screen: true, plans: [plan, { ...plan, id: "annual", term: "year", price: "€89,99", trialDays: null }] });
   await act(async () => host(view.tree, "subscription-plan-year").props.onPress());
