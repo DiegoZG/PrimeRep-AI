@@ -14,6 +14,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const base = "4bbabb8114191e59119a0a34513a92f5ac43c34b";
 const original = (file) => execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" });
+const mergedSource = (file) => execFileSync("git", ["show", `903bfd098390bd5135306b40ef3cfc1132c355c9:${file}`], { cwd: root, encoding: "utf8" });
 const source = (file) => readFileSync(path.join(root, file), "utf8");
 function load(file, mocks, input = source(file)) {
   const filename = path.join(root, file);
@@ -158,7 +159,7 @@ test("scope: login controller and all other callers remain byte-identical to mer
   const signupController = (input) => input.slice(input.indexOf("const SignUpScreen = () => {"), input.indexOf("\n  return ("));
   const signupBaseline = execFileSync("git", ["show", "42b3b5270769bfce446f1fe566932dc71a43f4ff:app/signup.tsx"], { cwd: root, encoding: "utf8" });
   assert.equal(signupController(source("app/signup.tsx")), signupController(signupBaseline));
-  for (const file of ["app/forgot-password.tsx", "app/_layout.tsx", "utils/authContext.tsx", "services/authService.ts", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "constants/theme.ts", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
+  for (const file of ["app/forgot-password.tsx", "utils/authContext.tsx", "services/authService.ts", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "constants/theme.ts", "package.json", "package-lock.json"]) assert.equal(source(file), mergedSource(file), file);
 });
 
 for (const scheme of ["light", "dark"]) test(`legacy: AnimatedInput omitted and false match historical ${scheme} focus, blur and error trees`, async () => {

@@ -25,6 +25,7 @@ function loader(mocks, extra = {}) {
   }
   return load;
 }
+class HttpError extends Error { constructor(message, status) { super(message); this.status = status; } }
 const deferred = () => { let resolve; const promise = new Promise((done) => { resolve = done; }); return { promise, resolve }; };
 const snapshot = (changes = {}) => ({ environment: "preview", flags_version: 1, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false }, billing_status: "none", verification_status: "verified", verified_at: "2026-11-01T12:00:00Z", product_id: null, expires_at: null, grace_expires_at: null, will_renew: null, management_url: null, has_premium: false, can_start_training: true, access_source: "legacy", access_expires_at: null, transition_ends_at: null, provider_configured: true, ...changes });
 const info = (active = false) => ({ entitlements: { active: active ? { premium: { productIdentifier: "monthly" } } : {} } });
@@ -32,16 +33,25 @@ const plan = { id: "monthly", productId: "monthly", term: "month", price: "$9.99
 async function provider(options = {}) {
   const memory = options.memory ?? new Map(), calls = [], foreground = new Set(), timers = new Map();
   let timerId = 0, readingScale = options.fontScale ?? 1;
-  let identity = { user: { id: "A", subscription_tier: "free" }, token: "tokenA", hasCompletedOnboarding: true };
+  let identity = { user: { id: "A", subscription_tier: "free", onboarding_subscription_required: options.onboardingHint ?? false }, token: "tokenA", hasCompletedOnboarding: true };
   let currentSnapshot = options.snapshot ?? snapshot(), value, listener;
   const AuthContext = React.createContext(identity);
+  identity.refreshUser = async () => { calls.push(["refreshUser"]); if (options.refreshUser) await options.refreshUser(); };
+  identity.logOut = async (value) => { calls.push(["logout", value]); if (options.logOut) await options.logOut(value); };
   const routes = [];
   const router = { push: (route) => routes.push(route), replace: (route) => routes.push(route), canGoBack: () => true, back() {} };
   const mocks = {
     react: React,
-    "react-native": { AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", useWindowDimensions: () => ({ fontScale: readingScale }), StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
+    "react-native": { Alert: { alert: (...args) => calls.push(["alert", ...args]) }, BackHandler: { addEventListener: () => ({ remove() {} }) }, AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", useWindowDimensions: () => ({ fontScale: readingScale }), StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
     "expo-router": { useRouter: () => router, useSegments: () => ["(tabs)"], useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "@/utils/authContext": { AuthContext },
+    "@/services/httpClient": { HttpError },
+    "@/utils/notificationsContext": { NotificationsContext: React.createContext({ unregisterCurrentDevice: async token => { calls.push(["unregister", token]); if (options.unregister) await options.unregister(); } }) },
+    "@/services/userService": { deleteAccount: async token => { calls.push(["delete", token]); if (options.deleteAccount) await options.deleteAccount(); } },
+    "@/services/health/exportSync": { pauseHealthExport: owner => calls.push(["pauseExport", owner]), resumeHealthExport: owner => calls.push(["resumeExport", owner]), waitForHealthExportIdle: async () => calls.push(["waitExport"]) },
+    "@/utils/healthExportAccountCleanup": { clearHealthExportAccount: async owner => calls.push(["clearHealth", owner]) },
+    "@/utils/preWorkoutOrderStore": { clearPreWorkoutOrdersForUser: async owner => calls.push(["clearOrders", owner]) },
+    "@/utils/workoutLayoutPreference": { clearWorkoutLayoutForUser: async owner => calls.push(["clearLayout", owner]) },
     "@/services/subscriptionService": { getSubscription: async (token) => { calls.push(["get", token]); return options.get ? options.get(token) : { ...currentSnapshot }; }, reconcileSubscription: async (token) => { calls.push(["reconcile", token]); if (options.failReconcile) throw new Error("Verification unavailable"); return options.reconcile ? options.reconcile(token) : { ...currentSnapshot }; } },
     "@/services/revenueCat": { nativeBillingAvailable: () => options.supported !== false, setBillingUser: async (id) => { calls.push(["bind", id]); return id ? options.bind ? options.bind(id) : info() : null; }, listenForBillingUpdates: async (_id, callback) => { listener = callback; return () => { listener = null; }; }, getBillingPlans: async () => options.plans ?? [plan], purchaseBillingPlan: async () => { calls.push(["purchase"]); return options.purchase ? options.purchase() : "received"; }, restoreBillingPurchases: async () => { calls.push(["restore"]); return info(true); }, manageBillingSubscription: async () => { calls.push(["manage"]); } },
     "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, val) => memory.set(key, val), removeItem: async (key) => memory.delete(key) },
@@ -51,7 +61,7 @@ async function provider(options = {}) {
   const load = loader(mocks, options.fakeTimers ? { setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; }, clearTimeout: (id) => timers.delete(id) } : {});
   const context = load("utils/subscriptionContext.tsx");
   mocks["@/utils/subscriptionContext"] = context;
-  const Screen = options.screen ? load("components/subscriptions/SubscriptionScreen.tsx").SubscriptionScreen : options.link ? load("components/settings/SubscriptionSettingsLink.tsx").SubscriptionSettingsLink : null;
+  const Screen = options.accountScreen ? load("app/onboarding-account.tsx").default : options.onboardingScreen ? load("components/subscriptions/OnboardingSubscriptionScreen.tsx").OnboardingSubscriptionScreen : options.screen ? load("components/subscriptions/SubscriptionScreen.tsx").SubscriptionScreen : options.link ? load("components/settings/SubscriptionSettingsLink.tsx").SubscriptionSettingsLink : null;
   function Probe() { value = context.useSubscription(); return Screen ? React.createElement(Screen, { paywall: options.paywall ?? true }) : null; }
   const element = () => React.createElement(AuthContext.Provider, { value: identity }, React.createElement(context.SubscriptionProvider, null, React.createElement(Probe)));
   let tree; await act(async () => { tree = create(element()); });
@@ -61,12 +71,231 @@ async function provider(options = {}) {
     fireTimer: async () => { const next = [...timers][0]; if (next) { timers.delete(next[0]); await act(async () => next[1].callback()); await settle(); } },
     setAppState: async (state) => { await act(async () => { for (const callback of foreground) callback(state); }); await settle(); },
     setFontScale: async (scale) => { readingScale = scale; await act(async () => tree.update(element())); await settle(); },
-    switchUser: async (id) => { identity = { ...identity, user: { id, subscription_tier: "free" }, token: `token${id}` }; await act(async () => tree.update(element())); await settle(); },
+    renewToken: async (token) => { identity = { ...identity, token }; await act(async () => tree.update(element())); await settle(); },
+    switchUser: async (id) => { load("services/accountScope.ts").invalidateAccountRequests(); identity = { ...identity, user: { id, subscription_tier: "free" }, token: `token${id}` }; await act(async () => tree.update(element())); await settle(); },
     notify: () => load("services/subscriptionEvents.ts").notifySubscriptionRequired(), emit: () => listener?.(info(true)),
     unmount: async () => act(async () => tree.unmount()) };
 }
 const host = (tree, id) => tree.root.findAll((n) => typeof n.type === "string" && n.props.testID === id)[0];
-const textOf = (node) => typeof node === "string" ? node : node.children.map(textOf).join("");
+const textOf = (node) => typeof node === "string" ? node : (Array.isArray(node) ? node : node?.children ?? []).map(textOf).join("");
+
+const onboardingSnapshot = (changes = {}) => snapshot({ onboarding_subscription_required: true, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: true }, can_start_training: false, access_source: "none", ...changes });
+
+test("onboarding bootstrap hint survives failed verification and is isolated from another account", async () => {
+  const view = await provider({ onboardingHint: true, get: async () => { throw new Error("Offline"); } });
+  assert.equal(view.value.onboardingRequired, true);
+  await view.switchUser("B");
+  assert.equal(view.value.onboardingRequired, false);
+  await view.unmount();
+  const legacy = await provider();
+  assert.equal(legacy.value.onboardingRequired, false);
+  await legacy.unmount();
+});
+
+test("required onboarding suppresses generic paywalls, refreshes in foreground, and releases on rollback", async () => {
+  const view = await provider({ snapshot: onboardingSnapshot(), fakeTimers: true });
+  assert.equal(view.value.onboardingRequired, true);
+  await act(async () => view.notify());
+  assert.deepEqual(view.routes, []);
+  assert.equal([...view.timers.values()][0].delay, 15000);
+  await view.setAppState("background");
+  assert.equal(view.timers.size, 0);
+  await view.setAppState("active");
+  view.setSnapshot(snapshot());
+  await view.fireTimer();
+  assert.equal(view.value.onboardingRequired, false);
+  assert.equal(view.timers.size, 0);
+  await view.unmount();
+});
+
+test("onboarding presentation uses shared plans with monthly default and keeps recovery actions reachable", async () => {
+  const view = await provider({ onboardingScreen: true, snapshot: onboardingSnapshot(), plans: [plan, { ...plan, id: "annual", term: "year", price: "$79.99", trialDays: null }] });
+  assert.match(textOf(view.tree.toJSON()), /Your training starts here\./);
+  assert.equal(host(view.tree, "subscription-plan-month").props.accessibilityState.selected, true);
+  assert.equal(host(view.tree, "subscription-purchase").props.accessibilityLabel, "Start 7-day trial");
+  assert.ok(host(view.tree, "onboarding-account-options"));
+  assert.ok(host(view.tree, "subscription-restore"));
+  assert.equal(host(view.tree, "subscription-close"), undefined);
+  await act(async () => host(view.tree, "subscription-plan-year").props.onPress());
+  assert.equal(host(view.tree, "subscription-purchase").props.accessibilityLabel, "Subscribe");
+  assert.match(textOf(view.tree.toJSON()), /\$79.99 per year/);
+  await view.setFontScale(3.1);
+  const scroll = host(view.tree, "onboarding-subscription-scroll");
+  assert.equal(scroll.findAll(n => n.props.testID === "onboarding-subscription-checkout").length, 1);
+  assert.equal(host(view.tree, "subscription-plan-year").props.accessibilityState.selected, true);
+  await view.unmount();
+});
+
+test("unknown onboarding access withholds checkout and offers verification retry", async () => {
+  const view = await provider({ onboardingScreen: true, fakeTimers: true, snapshot: onboardingSnapshot({ verification_status: "unavailable", can_start_training: null }) });
+  assert.equal(view.value.onboardingRequired, true);
+  assert.equal(host(view.tree, "subscription-purchase"), undefined);
+  assert.ok(host(view.tree, "onboarding-subscription-retry"));
+  assert.match(textOf(view.tree.toJSON()), /Checking your access/);
+  await view.unmount();
+});
+
+test("an initial unverified GET cannot leave checkout waiting after focus reconciliation succeeds", async () => {
+  const initialRead = deferred(), verification = deferred();
+  let reads = 0;
+  const view = await provider({ onboardingScreen: true, onboardingHint: true, fakeTimers: true,
+    get: () => ++reads === 1 ? initialRead.promise : Promise.resolve(onboardingSnapshot()),
+    reconcile: () => verification.promise,
+  });
+  verification.resolve(onboardingSnapshot()); await view.settle();
+  initialRead.resolve(onboardingSnapshot({ verification_status: "unverified", can_start_training: null })); await view.settle();
+  assert.equal(view.value.snapshot.verification_status, "verified");
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, false);
+  assert.ok(reads >= 2);
+  await view.unmount();
+});
+
+test("onboarding requires confirmation to clear verified-negative purchase recovery and permits checkout afterward", async () => {
+  const memory = new Map([["@primerep/pending-purchase/A", JSON.stringify({ phase: "received", productId: "monthly" })]]);
+  const view = await provider({ onboardingScreen: true, memory, fakeTimers: true, snapshot: onboardingSnapshot() });
+  await act(async () => view.value.refresh(true));
+  assert.equal(view.value.pending.phase, "received");
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, true);
+  await act(async () => host(view.tree, "subscription-clear-pending").props.onPress());
+  const alert = view.calls.find(call => call[0] === "alert");
+  assert.match(alert[2], /does not cancel Apple billing/);
+  assert.equal(view.value.pending.phase, "received");
+  await act(async () => alert[3].find(button => button.text === "Clear notice").onPress());
+  assert.equal(view.value.pending, null);
+  assert.equal(view.value.onboardingRequired, true);
+  assert.equal(host(view.tree, "subscription-purchase").props.disabled, false);
+  assert.equal(memory.has("@primerep/pending-purchase/A"), false);
+  assert.equal(view.calls.some(call => call[0] === "purchase"), false);
+  await view.unmount();
+
+  const unknown = await provider({ onboardingScreen: true, fakeTimers: true, memory: new Map([["@primerep/pending-purchase/A", JSON.stringify({ phase: "pending", productId: "monthly" })]]), snapshot: onboardingSnapshot({ verification_status: "unavailable", can_start_training: null }) });
+  await act(async () => unknown.value.refresh(true));
+  assert.equal(host(unknown.tree, "subscription-clear-pending"), undefined);
+  await act(async () => unknown.value.clearPending());
+  assert.equal(unknown.value.pending.phase, "pending");
+  assert.equal(unknown.value.canPurchase, false);
+  await unknown.unmount();
+});
+
+test("cancelled onboarding purchase stays required while backend verified restore completes it", async () => {
+  let verified = false;
+  const view = await provider({ snapshot: onboardingSnapshot(), purchase: async () => "cancelled", reconcile: async () => verified ? onboardingSnapshot({ onboarding_subscription_required: false, has_premium: true, billing_status: "trial", can_start_training: true, access_source: "subscription" }) : onboardingSnapshot() });
+  await act(async () => view.value.purchase(plan));
+  assert.equal(view.value.onboardingRequired, true);
+  assert.equal(view.value.pending, null);
+  verified = true;
+  await act(async () => view.value.restore());
+  assert.equal(view.value.onboardingRequired, false);
+  assert.equal(view.value.pending, null);
+  await view.unmount();
+});
+
+test("subscription 401 renews the owned session and refetches with the changed token", async () => {
+  const view = await provider({ onboardingHint: true, get: async token => {
+    if (token === "tokenA") throw new HttpError("Invalid token", 401);
+    return onboardingSnapshot();
+  } });
+  assert.equal(view.calls.filter(call => call[0] === "refreshUser").length, 1);
+  assert.equal(view.value.onboardingRequired, true);
+  assert.doesNotMatch(view.value.error, /Invalid token/);
+  await view.renewToken("renewed-token");
+  assert.equal(view.value.error, null);
+  assert.equal(view.calls.some(call => call[0] === "get" && call[1] === "renewed-token"), true);
+  await view.unmount();
+
+  const gate = deferred();
+  const stale = await provider({ get: token => token === "tokenA" ? gate.promise.then(() => { throw new HttpError("Invalid token", 401); }) : Promise.resolve(snapshot()) });
+  await stale.switchUser("B");
+  gate.resolve(); await stale.settle();
+  assert.equal(stale.calls.some(call => call[0] === "refreshUser"), false);
+  assert.equal(stale.value.onboardingRequired, false);
+  await stale.unmount();
+});
+
+async function mountedRootGate(required, segments = ["workout", "active"]) {
+  const routes = [], reads = [];
+  const pass = ({ children }) => children;
+  const Stack = ({ children }) => React.createElement("Navigator", null, children);
+  Stack.Screen = props => React.createElement("Route", props);
+  Stack.Protected = ({ guard, children }) => guard ? children : null;
+  const AuthContext = React.createContext({ isBootstrapping: false, isLoggedIn: true, hasCompletedOnboarding: true, bootstrapError: null, offlineSession: false, token: "A", user: { id: "A" } });
+  const mocks = {
+    react: React, "expo-router": { Stack, useRouter: () => ({ replace: route => routes.push(route) }), useSegments: () => segments },
+    "react-native": { View: "View", ActivityIndicator: "ActivityIndicator", Platform: { OS: "ios" }, AppState: { addEventListener: () => ({ remove() {} }) } },
+    "react-native-reanimated": {}, "react-native-gesture-handler": { GestureHandlerRootView: pass },
+    "@react-navigation/native": { ThemeProvider: pass, DefaultTheme: {}, DarkTheme: {} }, "expo-status-bar": { StatusBar: "StatusBar" },
+    "expo-notifications": { getLastNotificationResponse: () => null, addNotificationResponseReceivedListener: () => ({ remove() {} }) },
+    "@/utils/authContext": { AuthContext, AuthProvider: pass },
+    "@/utils/onboardingContext": { OnboardingContext: React.createContext({ isRestoring: false }), OnboardingProvider: pass },
+    "@/utils/subscriptionContext": { SubscriptionProvider: pass, SubscriptionPrompt: () => null, useSubscription: () => ({ onboardingRequired: required }) },
+    "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/components/offline-screen": { OfflineScreen: "OfflineScreen" },
+    "@/services/workoutLoggingService": { getActiveSession: async () => { reads.push("active"); return null; } },
+    "@/utils/activeWorkoutStore": { loadActiveWorkout: async () => { reads.push("local"); return null; } },
+    "@/services/coachService": { getCoachItem: async () => null, markCoachItemRead: async () => {} }, "@/services/httpClient": { HttpError },
+    "@/utils/coachNavigation": { coachTargetHref: () => "/(tabs)/feed", isCoachTarget: () => false },
+  };
+  for (const [file, symbol] of [["activeWorkoutContext", "ActiveWorkoutProvider"], ["equipmentContext", "EquipmentProvider"], ["equipmentWeightsContext", "EquipmentWeightsProvider"], ["notificationsContext", "NotificationsProvider"], ["workoutWeekContext", "WorkoutWeekProvider"], ["programDraftContext", "ProgramDraftProvider"], ["appearanceContext", "AppearanceProvider"], ["workoutLayoutContext", "WorkoutLayoutProvider"], ["profileContext", "ProfileProvider"], ["healthReadSync", "HealthReadSync"], ["healthExportSync", "HealthExportSync"]]) mocks[`@/utils/${file}`] = { [symbol]: symbol.endsWith("Sync") ? () => null : pass };
+  const Root = loader(mocks)("app/_layout.tsx").default;
+  let tree; await act(async () => { tree = create(React.createElement(Root)); });
+  return { tree, routes, reads };
+}
+
+test("mounted root excludes training deep links and makes the required modal the first available route", async () => {
+  const view = await mountedRootGate(true);
+  const screens = view.tree.root.findAllByType("Route");
+  assert.equal(screens[0].props.name, "onboarding-subscription");
+  assert.equal(screens[0].props.options.gestureEnabled, false);
+  const names = screens.map(node => node.props.name);
+  assert.equal(names.includes("(tabs)"), false);
+  assert.equal(names.includes("workout/active"), false);
+  assert.equal(names.includes("paywall"), false);
+  for (const route of ["onboarding-account", "settings/export", "legal/terms", "legal/privacy"]) assert.equal(names.includes(route), true);
+  assert.deepEqual(view.reads, []);
+  assert.deepEqual(view.routes, []);
+  await act(async () => view.tree.unmount());
+  const legacy = await mountedRootGate(false, ["(tabs)"]);
+  assert.equal(legacy.tree.root.findAllByType("Route")[0].props.name, "(tabs)");
+  assert.equal(legacy.tree.root.findAllByType("Route").some(node => node.props.name === "onboarding-subscription"), false);
+  await act(async () => legacy.tree.unmount());
+});
+
+test("required onboarding account options retain management, export, legal and signout", async () => {
+  const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot() });
+  await act(async () => host(view.tree, "onboarding-account-open-outline").props.onPress());
+  assert.equal(view.calls.some(call => call[0] === "manage"), true);
+  await act(async () => host(view.tree, "onboarding-account-download-outline").props.onPress());
+  assert.deepEqual(view.routes, ["/settings/export"]);
+  await act(async () => host(view.tree, "onboarding-account-log-out-outline").props.onPress());
+  assert.equal(view.calls.some(call => call[0] === "unregister"), true);
+  assert.equal(view.calls.some(call => call[0] === "logout"), true);
+  await view.unmount();
+});
+
+test("onboarding account deletion retains safe cleanup and failed deletion remains recoverable", async () => {
+  const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot() });
+  await act(async () => host(view.tree, "onboarding-account-trash-outline").props.onPress());
+  const alert = view.calls.find(call => call[0] === "alert");
+  await act(async () => alert[3].find(button => button.style === "destructive").onPress());
+  for (const action of ["delete", "pauseExport", "clearOrders", "clearLayout", "waitExport", "clearHealth", "logout"]) assert.equal(view.calls.some(call => call[0] === action), true, action);
+  await view.unmount();
+  const failed = await provider({ accountScreen: true, snapshot: onboardingSnapshot(), deleteAccount: async () => { throw new Error("Offline"); } });
+  await act(async () => host(failed.tree, "onboarding-account-trash-outline").props.onPress());
+  await act(async () => failed.calls.find(call => call[0] === "alert")[3].find(button => button.style === "destructive").onPress());
+  assert.equal(failed.calls.some(call => call[0] === "resumeExport"), true);
+  assert.equal(failed.calls.some(call => call[0] === "logout"), false);
+  assert.equal(host(failed.tree, "onboarding-account-trash-outline").props.disabled, false);
+  await failed.unmount();
+});
+
+test("an account change while unregistering cannot sign out the new owner", async () => {
+  const pending = deferred();
+  const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot(), unregister: () => pending.promise });
+  await act(async () => { void host(view.tree, "onboarding-account-log-out-outline").props.onPress(); });
+  await view.switchUser("B");
+  pending.resolve(); await view.settle();
+  assert.equal(view.calls.some(call => call[0] === "logout"), false);
+  await view.unmount();
+});
 
 test("received purchase persists through verification failure and restart without enabling duplicate checkout", async () => {
   const memory = new Map();

@@ -8,6 +8,7 @@ import { rememberSubscriptionFlags } from "@/services/subscriptionFlagState";
 import { getBillingPlans, listenForBillingUpdates, manageBillingSubscription, nativeBillingAvailable, purchaseBillingPlan, restoreBillingPurchases, setBillingUser, type BillingPlan } from "@/services/revenueCat";
 import { loadPendingPurchase, savePendingPurchase, type PendingPurchase } from "@/utils/pendingPurchase";
 import { AuthContext } from "@/utils/authContext";
+import { HttpError } from "@/services/httpClient";
 
 interface SubscriptionContextValue {
   snapshot: SubscriptionSnapshot | null;
@@ -16,6 +17,7 @@ interface SubscriptionContextValue {
   busy: boolean;
   ready: boolean;
   sdkReady: boolean;
+  onboardingRequired: boolean;
   canPurchase: boolean;
   canClearPending: boolean;
   error: string | null;
@@ -49,6 +51,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   routeRef.current = route;
   useEffect(() => { if (!route.includes("paywall")) paywallRequested.current = false; }, [route]);
   const [snapshot, setSnapshot] = useState<SubscriptionSnapshot | null>(null);
+  const onboardingRequired = Boolean(user && nativeBillingAvailable() && (snapshot ? snapshot.onboarding_subscription_required : user.onboarding_subscription_required));
   const [pending, setPending] = useState<PendingPurchase | null>(null);
   const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [busy, setBusy] = useState(false);
@@ -62,6 +65,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   const scope = useRef(accountRequestGuard());
   const requestSequence = useRef(0);
   const requests = useRef(new Map<boolean, Promise<SubscriptionSnapshot | null>>());
+  const requestOwners = useRef(new Map<boolean, number>());
   const mutation = useRef(false);
   const pendingReady = useRef(false);
   const pendingRevision = useRef(0);
@@ -70,8 +74,10 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   authTier.current = user?.subscription_tier;
   pendingRef.current = pending;
   const current = useCallback(() => mounted.current && scope.current(), []);
+  const onboardingRequiredRef = useRef(onboardingRequired);
+  onboardingRequiredRef.current = onboardingRequired;
   const openPaywall = useCallback(() => {
-    if (!current() || paywallRequested.current || routeRef.current.includes("paywall")) return;
+    if (onboardingRequiredRef.current || !current() || paywallRequested.current || routeRef.current.includes("paywall")) return;
     paywallRequested.current = true;
     router.push("/paywall" as Href);
   }, [current, router]);
@@ -92,6 +98,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
     const existing = requests.current.get(reconcile);
     if (existing) return existing;
     const sequence = ++requestSequence.current;
+    requestOwners.current.set(reconcile, sequence);
     const startedPendingRevision = pendingRevision.current;
     const request = (async () => {
       try {
@@ -111,9 +118,15 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
         }
         return sequence === requestSequence.current ? result : null;
       } catch (failure) {
+        if (current() && sequence === requestSequence.current && failure instanceof HttpError && failure.status === 401 && typeof refreshUser === "function") {
+          if (requestOwners.current.get(reconcile) === sequence) { requests.current.delete(reconcile); requestOwners.current.delete(reconcile); }
+          setError("Checking your session. Try again if you’re offline.");
+          await refreshUser().catch(() => undefined);
+          return null;
+        }
         if (current() && sequence === requestSequence.current) { setCanClearPending(false); setError(failure instanceof Error ? failure.message : "Couldn’t verify subscription. Try again when connected."); }
         return null;
-      } finally { requests.current.delete(reconcile); }
+      } finally { if (requestOwners.current.get(reconcile) === sequence) { requests.current.delete(reconcile); requestOwners.current.delete(reconcile); } }
     })();
     requests.current.set(reconcile, request);
     return request;
@@ -192,6 +205,18 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
     });
   }), [current, openPaywall]);
 
+  useEffect(() => {
+    if (!onboardingRequired || !appActive || !userId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = async () => {
+      await refreshRef.current();
+      if (!cancelled && current()) timer = setTimeout(() => void check(), 15000);
+    };
+    timer = setTimeout(() => void check(), 15000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [onboardingRequired, appActive, userId, current]);
+
   const loadPlans = useCallback(async () => {
     if (!userId || !sdkReady || !current()) return;
     const latest = await refresh();
@@ -261,7 +286,7 @@ function AccountSubscriptionProvider({ children }: PropsWithChildren) {
   }, [current, refresh, recordPending, runMutation]);
 
   const canPurchase = Boolean(pendingReady.current && sdkReady && snapshot?.flags.subscriptions_purchases_enabled && !snapshot.has_premium && !pending && !busy && !error);
-  return <SubscriptionContext.Provider value={{ snapshot, pending, plans, busy, ready, sdkReady, canPurchase, canClearPending, error, notice, refresh, loadPlans, purchase, restore, manage, openPaywall, clearPending }}>{children}</SubscriptionContext.Provider>;
+  return <SubscriptionContext.Provider value={{ snapshot, pending, plans, busy, ready, sdkReady, onboardingRequired, canPurchase, canClearPending, error, notice, refresh, loadPlans, purchase, restore, manage, openPaywall, clearPending }}>{children}</SubscriptionContext.Provider>;
 }
 
 export function useSubscription() {
@@ -271,14 +296,14 @@ export function useSubscription() {
 }
 
 export function SubscriptionPrompt() {
-  const { snapshot, pending, ready, openPaywall } = useSubscription();
+  const { snapshot, pending, ready, openPaywall, onboardingRequired } = useSubscription();
   const { user, hasCompletedOnboarding } = useContext(AuthContext);
   const segments = useSegments();
   const prompted = useRef<string | null>(null);
   useEffect(() => {
-    if (!ready || !user || !hasCompletedOnboarding || pending || segments[0] !== "(tabs)" || !snapshot?.flags.subscriptions_enforcement_enabled || snapshot.can_start_training !== false || prompted.current === user.id) return;
+    if (onboardingRequired || !ready || !user || !hasCompletedOnboarding || pending || segments[0] !== "(tabs)" || !snapshot?.flags.subscriptions_enforcement_enabled || snapshot.can_start_training !== false || prompted.current === user.id) return;
     prompted.current = user.id;
     openPaywall();
-  }, [snapshot, pending, ready, user, hasCompletedOnboarding, segments, openPaywall]);
+  }, [snapshot, pending, ready, user, hasCompletedOnboarding, segments, openPaywall, onboardingRequired]);
   return null;
 }

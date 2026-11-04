@@ -2,6 +2,7 @@ import type { SubscriptionFlags } from "./featureFlagService";
 import { requestJson } from "./httpClient";
 
 export interface SubscriptionSnapshot {
+  onboarding_subscription_required?: boolean;
   environment: string;
   flags_version: number;
   flags: SubscriptionFlags;

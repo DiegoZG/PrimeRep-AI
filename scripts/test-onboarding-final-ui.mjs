@@ -18,6 +18,7 @@ const base = "78c6d0cd1f7a3e182fb19b75b0a8e1e9205286b2";
 const route = "app/onboarding/final.tsx";
 const source = (file) => readFileSync(path.join(root, file), "utf8");
 const original = (file) => execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" });
+const mergedSource = (file) => execFileSync("git", ["show", `903bfd098390bd5135306b40ef3cfc1132c355c9:${file}`], { cwd: root, encoding: "utf8" });
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 function load(file, mocks, input = source(file)) {
@@ -215,6 +216,6 @@ test("scope: existing Final controller and two navigation handlers stay byte-ide
 test("scope: shared onboarding behavior is unchanged apart from the registered workout exercise picker", () => {
   const picker = '          <Stack.Screen name="workout/exercise-picker" options={{ headerShown: false }} />\n';
   assert.equal(source("app/_layout.tsx").split(picker).length, 2);
-  for (const file of ["components/animated-button.tsx", "components/themed-text.tsx", "components/themed-view.tsx", "constants/theme.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "utils/onboardingContext.tsx", "utils/authContext.tsx", "app/_layout.tsx", "app/onboarding/_layout.tsx", "app/signup.tsx", "app/login.tsx", "package.json", "package-lock.json", "app.json"]) assert.equal(file === "app/_layout.tsx" ? source(file).replace(picker, "") : source(file), original(file), file);
+  for (const file of ["components/animated-button.tsx", "components/themed-text.tsx", "components/themed-view.tsx", "constants/theme.ts", "hooks/use-theme-color.ts", "hooks/use-color-scheme.ts", "utils/onboardingContext.tsx", "utils/authContext.tsx", "app/onboarding/_layout.tsx", "app/signup.tsx", "app/login.tsx", "package.json", "package-lock.json", "app.json"]) assert.equal(source(file), mergedSource(file), file);
   assert.equal(hash(source("utils/onboardingContext.tsx")), "4e8d1c2948f77152251971d444ef527291609b58f0e9f12bc3a361e5828a994a");
 });

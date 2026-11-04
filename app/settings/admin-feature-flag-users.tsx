@@ -10,13 +10,14 @@ import { getAdminFeatureFlags, getUserFeatureFlags, listUserFeatureFlags, lookup
 import { HttpError } from "@/services/httpClient";
 import { AuthContext } from "@/utils/authContext";
 
-const emptyOverrides = (): UserFlagOverrides => ({ subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null });
-const keys = ["subscriptions_purchases_enabled", "subscriptions_enforcement_enabled"] as const;
-const names = { subscriptions_purchases_enabled: "Subscription purchases", subscriptions_enforcement_enabled: "Subscription enforcement" };
+const emptyOverrides = (): UserFlagOverrides => ({ subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null, subscriptions_onboarding_enabled: null });
+const keys = ["subscriptions_purchases_enabled", "subscriptions_enforcement_enabled", "subscriptions_onboarding_enabled"] as const;
+const names = { subscriptions_purchases_enabled: "Subscription purchases", subscriptions_enforcement_enabled: "Subscription enforcement", subscriptions_onboarding_enabled: "Onboarding subscription" };
 function resolveDraft(snapshot: UserFlagSnapshot, overrides: UserFlagOverrides) {
   const purchases = snapshot.global_flags.subscriptions_purchases_enabled && (overrides.subscriptions_purchases_enabled ?? snapshot.audiences.subscriptions_purchases_enabled === "everyone");
   const enforcement = purchases && snapshot.global_flags.subscriptions_enforcement_enabled && (overrides.subscriptions_enforcement_enabled ?? snapshot.audiences.subscriptions_enforcement_enabled === "everyone");
-  return { subscriptions_purchases_enabled: purchases, subscriptions_enforcement_enabled: enforcement };
+  const onboarding = enforcement && Boolean(snapshot.global_flags.subscriptions_onboarding_enabled) && (overrides.subscriptions_onboarding_enabled ?? snapshot.audiences.subscriptions_onboarding_enabled === "everyone");
+  return { subscriptions_purchases_enabled: purchases, subscriptions_enforcement_enabled: enforcement, subscriptions_onboarding_enabled: onboarding };
 }
 
 export default function FeatureFlagUsersScreen() {
@@ -53,7 +54,7 @@ function AccountUsers() {
   const configRef = useRef(config);
   const targetRef = useRef(snapshot);
   const offsetRef = useRef(0);
-  const dirty = !!snapshot && keys.some((key) => overrides[key] !== snapshot.overrides[key]);
+  const dirty = !!snapshot && keys.some((key) => overrides[key] !== (snapshot.overrides[key] ?? null));
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
   const renderedSelection = selectionGeneration.current;
@@ -72,7 +73,7 @@ function AccountUsers() {
   const applyTarget = useCallback((next: UserFlagSnapshot) => {
     targetRef.current = next;
     setSnapshot(next);
-    setOverrides({ ...next.overrides });
+    setOverrides({ ...emptyOverrides(), ...next.overrides });
     setConflict(false);
     confirmationGeneration.current += 1;
     dirtyRef.current = false;
@@ -216,6 +217,7 @@ function AccountUsers() {
           <Text style={muted}>Global master: {snapshot.global_flags[key] ? "On" : "Off"}. Audience: {snapshot.audiences[key] === "everyone" ? "Everyone" : "Selected users"}.</Text>
           {!snapshot.global_flags[key] ? <Text testID={`flag-users-global-disabled-${key}`} style={muted}>Globally disabled. Allow will take effect only when the global master is on.</Text> : null}
           {key === "subscriptions_enforcement_enabled" && !effective.subscriptions_purchases_enabled ? <Text testID="flag-users-purchases-prerequisite" style={muted}>Enforcement stays off while purchases are off for this user.</Text> : null}
+          {key === "subscriptions_onboarding_enabled" && !effective.subscriptions_enforcement_enabled ? <Text testID="flag-users-onboarding-prerequisite" style={muted}>Onboarding stays off while purchases or enforcement are off for this user.</Text> : null}
         </View>)}
         <Text style={muted}>Global launch (UTC): {snapshot.subscriptions_launch_at ?? "Not scheduled"}. Transition ends (UTC): {snapshot.transition_ends_at ?? "Not scheduled"}. User overrides do not change this shared clock.</Text>
         {dirty ? <Text testID="flag-users-unsaved">Unsaved changes</Text> : null}
@@ -226,7 +228,7 @@ function AccountUsers() {
       {saved ? <Text testID="flag-users-saved" accessibilityLiveRegion="polite">User access saved.</Text> : null}
       <Pressable testID="flag-users-refresh" accessibilityRole="button" accessibilityLabel="Refresh user flag access" disabled={blocked} accessibilityState={{ disabled: blocked, busy }} onPress={refresh} style={button(blocked)}><Text>Refresh</Text></Pressable>
       {list && config ? <View style={styles.section}><Text style={styles.heading}>Configured users</Text><Text testID="flag-users-list-count" style={muted}>{list.total ? `${list.offset + 1}–${Math.min(list.offset + list.limit, list.total)} of ${list.total}` : "No user overrides configured."}</Text>
-        {list.items.map((item) => <Pressable key={item.user.id} testID={`flag-users-select-${item.user.id}`} accessibilityRole="button" accessibilityLabel={`Edit access for ${item.user.email}`} disabled={blocked} accessibilityState={{ disabled: blocked }} onPress={() => confirmDiscard(() => selectTarget({ userId: item.user.id }))} style={[button(blocked), { alignItems: "flex-start", gap: 6 }]}><Text style={{ fontWeight: "600" }}>{item.user.preferred_name || item.user.email}</Text><Text>{item.user.email}</Text><Text style={muted}>Purchases: {item.effective_flags.subscriptions_purchases_enabled ? "On" : "Off"} · Enforcement: {item.effective_flags.subscriptions_enforcement_enabled ? "On" : "Off"}</Text><Text style={{ color: colors.primaryButton }}>Edit access</Text></Pressable>)}
+        {list.items.map((item) => <Pressable key={item.user.id} testID={`flag-users-select-${item.user.id}`} accessibilityRole="button" accessibilityLabel={`Edit access for ${item.user.email}`} disabled={blocked} accessibilityState={{ disabled: blocked }} onPress={() => confirmDiscard(() => selectTarget({ userId: item.user.id }))} style={[button(blocked), { alignItems: "flex-start", gap: 6 }]}><Text style={{ fontWeight: "600" }}>{item.user.preferred_name || item.user.email}</Text><Text>{item.user.email}</Text><Text style={muted}>Purchases: {item.effective_flags.subscriptions_purchases_enabled ? "On" : "Off"} · Enforcement: {item.effective_flags.subscriptions_enforcement_enabled ? "On" : "Off"} · Onboarding: {item.effective_flags.subscriptions_onboarding_enabled ? "On" : "Off"}</Text><Text style={{ color: colors.primaryButton }}>Edit access</Text></Pressable>)}
         <View style={{ gap: 10, flexDirection: fontScale >= 1.5 ? "column" : "row" }}>{([["Previous", list.offset - 20, list.offset === 0], ["Next", list.offset + 20, list.offset + list.limit >= list.total]] as const).map(([title, offset, boundary]) => <Pressable key={title} testID={`flag-users-page-${title.toLowerCase()}`} accessibilityRole="button" accessibilityLabel={`${title} configured users`} disabled={blocked || boundary} accessibilityState={{ disabled: blocked || boundary }} onPress={() => { if (!accountCurrent() || renderedSelection !== selectionGeneration.current || !configRef.current?.can_manage_flags) return; void request((current) => fetchList(current, offset)); }} style={button(blocked || boundary)}><Text>{title}</Text></Pressable>)}</View>
       </View> : null}
       {listError ? <Text testID="flag-users-list-error" accessibilityRole="alert">{listError}</Text> : null}

@@ -6,14 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSubscription } from "@/utils/subscriptionContext";
+import { SubscriptionBenefits, SubscriptionPlans, SubscriptionCheckout } from "./SubscriptionOffer";
 
 type ToolAction = "check" | "restore" | "manage";
-
-const benefits = [
-  { icon: "barbell", title: "Workouts built around your goals" },
-  { icon: "swap-horizontal", title: "Swap exercises when plans change" },
-  { icon: "chatbubble-ellipses", title: "Personal programs and coaching" },
-] as const;
 
 function dateLabel(value: string | null | undefined) {
   return value ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null;
@@ -115,14 +110,7 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
         <Text style={[styles.body, { color: colors.icon }]}>Build your routine with workouts, programs, and coaching that fit your training.</Text>
       </View> : null}
 
-      {(premium || transition || showOffers) ? <View style={styles.benefits}>
-        {benefits.map((benefit) => <View key={benefit.icon} style={styles.benefit}>
-          <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }]}>
-            <Ionicons name={benefit.icon} size={28} color="#FFFFFF" accessible={false} />
-          </View>
-          <Text style={styles.benefitText}>{benefit.title}</Text>
-        </View>)}
-      </View> : null}
+      {(premium || transition || showOffers) ? <SubscriptionBenefits /> : null}
 
       {pending ? <View testID="subscription-pending" accessibilityLiveRegion="polite" style={[styles.message, { backgroundColor: tint }]}>
         <Ionicons name="time-outline" size={22} color={accent} accessible={false} />
@@ -146,31 +134,8 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
       </View> : null}
 
       {showOffers ? <View style={styles.offers}>
-        {plans.map((choice) => {
-          const chosen = plan?.id === choice.id;
-          return <Pressable testID={`subscription-plan-${choice.term}`} key={choice.id} accessibilityRole="radio"
-            accessibilityLabel={`${choice.term === "month" ? "Monthly" : "Annual"}, ${choice.price} per ${choice.term}`}
-            accessibilityState={{ selected: chosen, disabled: blocked }} disabled={blocked} onPress={() => setSelected(choice.id)}
-            style={({ pressed }) => [styles.plan, { borderColor: chosen ? colors.primaryButton : colors.inputBorder, backgroundColor: chosen ? tint : colors.inputBackground, opacity: pressed || blocked ? 0.65 : 1 }]}>
-            <Ionicons name={chosen ? "radio-button-on" : "radio-button-off"} size={22} color={chosen ? accent : colors.icon} accessible={false} />
-            <View style={styles.flexible}>
-              <View style={styles.planHeading}>
-                <Text style={styles.planTitle}>{choice.term === "month" ? "Monthly" : "Annual"}</Text>
-                <View style={styles.price}><Text style={styles.planPrice}>{choice.price}</Text><Text style={[styles.caption, { color: colors.icon }]}> / {choice.term}</Text></View>
-              </View>
-              <Text style={[styles.caption, { color: colors.icon }]}>{choice.trialDays ? `${choice.trialDays}-day free trial included` : choice.term === "year" ? "Billed once a year" : "Billed monthly"}</Text>
-            </View>
-          </Pressable>;
-        })}
-        {plan ? <View style={styles.checkout}>
-          <Pressable testID="subscription-purchase" accessibilityRole="button" accessibilityLabel={plan.trialDays ? `Start ${plan.trialDays}-day trial` : "Subscribe"}
-            accessibilityState={{ disabled: blocked || !canPurchase, busy }} disabled={blocked || !canPurchase} onPress={() => void purchase(plan)}
-            style={({ pressed }) => [styles.primary, { backgroundColor: colors.primaryButton, opacity: blocked || !canPurchase ? 0.5 : pressed ? 0.8 : 1 }]}>
-            {busy ? <ActivityIndicator color="#FFFFFF" accessible={false} /> : null}
-            <Text style={styles.primaryText}>{busy ? "Please wait…" : plan.trialDays ? `Start ${plan.trialDays}-day trial` : "Subscribe"}</Text>
-          </Pressable>
-          <Text style={[styles.terms, { color: colors.icon }]}>{plan.trialDays ? `After the trial, ${plan.price} per ${plan.term}. ` : `${plan.price} per ${plan.term}. `}Renews automatically. Cancel in Apple subscription settings.</Text>
-        </View> : <Text style={[styles.body, { color: colors.icon }]}>{sdkReady ? "Plans are not available yet. Try again shortly." : "Purchases are available in a configured iPhone app build."}</Text>}
+        <SubscriptionPlans plans={plans} selected={plan?.id} blocked={blocked} onSelect={setSelected} />
+        {plan ? <SubscriptionCheckout plan={plan} disabled={blocked || !canPurchase} busy={busy} onPurchase={() => void purchase(plan)} /> : <Text style={[styles.body, { color: colors.icon }]}>{sdkReady ? "Plans are not available yet. Try again shortly." : "Purchases are available in a configured iPhone app build."}</Text>}
       </View> : null}
 
       {premium && canManage ? <Pressable testID="subscription-manage" accessibilityRole="button" accessibilityLabel="Manage subscription"
@@ -229,24 +194,13 @@ const styles = StyleSheet.create({
   factValue: { fontSize: 15, fontWeight: "600" },
   introduction: { gap: 10 },
   headline: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
-  benefits: { gap: 20, paddingVertical: 4 },
-  benefit: { flexDirection: "row", alignItems: "center", gap: 14 },
-  benefitIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  benefitText: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: "600", letterSpacing: -0.25 },
   message: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12 },
   messageTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
   inlineAction: { minHeight: 44, justifyContent: "center", paddingVertical: 8 },
   actionText: { fontSize: 14, fontWeight: "600" },
   offers: { gap: 12 },
-  plan: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1.5 },
-  planHeading: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: 12, rowGap: 4 },
-  planTitle: { fontSize: 17, fontWeight: "600" },
-  price: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", maxWidth: "100%", flexShrink: 1 },
-  planPrice: { fontSize: 20, fontWeight: "700", flexShrink: 1 },
-  checkout: { gap: 12, marginTop: 4 },
   primary: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 },
   primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", textAlign: "center", flexShrink: 1 },
-  terms: { fontSize: 12, textAlign: "center" },
   tools: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth },
   tool: { minHeight: 72, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 12 },
   toolTitle: { fontSize: 15, fontWeight: "600" },

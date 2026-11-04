@@ -1,6 +1,7 @@
 import { requestJson } from "./httpClient";
 
 export interface UserResponse {
+  onboarding_subscription_required?: boolean;
   id: string;
   email: string;
   preferred_name: string;
