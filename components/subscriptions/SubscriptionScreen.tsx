@@ -117,10 +117,10 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
 
       {(premium || transition || showOffers) ? <View style={styles.benefits}>
         {benefits.map((benefit) => <View key={benefit.icon} style={styles.benefit}>
-          <View style={[styles.benefitIcon, { backgroundColor: dark ? "#2A2D30" : "#F0F1F3" }]}>
-            <Ionicons name={benefit.icon} size={26} color={colors.text} accessible={false} />
+          <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }]}>
+            <Ionicons name={benefit.icon} size={28} color="#FFFFFF" accessible={false} />
           </View>
-          <Text style={[styles.body, styles.flexible]}>{benefit.title}</Text>
+          <Text style={styles.benefitText}>{benefit.title}</Text>
         </View>)}
       </View> : null}
 
@@ -229,9 +229,10 @@ const styles = StyleSheet.create({
   factValue: { fontSize: 15, fontWeight: "600" },
   introduction: { gap: 10 },
   headline: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
-  benefits: { gap: 12 },
-  benefit: { flexDirection: "row", alignItems: "center", gap: 12 },
-  benefitIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  benefits: { gap: 20, paddingVertical: 4 },
+  benefit: { flexDirection: "row", alignItems: "center", gap: 14 },
+  benefitIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  benefitText: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: "600", letterSpacing: -0.25 },
   message: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12 },
   messageTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
   inlineAction: { minHeight: 44, justifyContent: "center", paddingVertical: 8 },
