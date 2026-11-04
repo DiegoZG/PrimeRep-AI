@@ -31,7 +31,7 @@ const info = (active = false) => ({ entitlements: { active: active ? { premium: 
 const plan = { id: "monthly", productId: "monthly", term: "month", price: "$9.99", trialDays: 7 };
 async function provider(options = {}) {
   const memory = options.memory ?? new Map(), calls = [], foreground = new Set(), timers = new Map();
-  let timerId = 0;
+  let timerId = 0, readingScale = options.fontScale ?? 1;
   let identity = { user: { id: "A", subscription_tier: "free" }, token: "tokenA", hasCompletedOnboarding: true };
   let currentSnapshot = options.snapshot ?? snapshot(), value, listener;
   const AuthContext = React.createContext(identity);
@@ -39,7 +39,7 @@ async function provider(options = {}) {
   const router = { push: (route) => routes.push(route), replace: (route) => routes.push(route), canGoBack: () => true, back() {} };
   const mocks = {
     react: React,
-    "react-native": { AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
+    "react-native": { AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", useWindowDimensions: () => ({ fontScale: readingScale }), StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
     "expo-router": { useRouter: () => router, useSegments: () => ["(tabs)"], useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "@/utils/authContext": { AuthContext },
     "@/services/subscriptionService": { getSubscription: async (token) => { calls.push(["get", token]); return options.get ? options.get(token) : { ...currentSnapshot }; }, reconcileSubscription: async (token) => { calls.push(["reconcile", token]); if (options.failReconcile) throw new Error("Verification unavailable"); return options.reconcile ? options.reconcile(token) : { ...currentSnapshot }; } },
@@ -60,6 +60,7 @@ async function provider(options = {}) {
   return { tree, calls, routes, memory, timers, get value() { return value; }, setSnapshot: (next) => { currentSnapshot = next; }, settle,
     fireTimer: async () => { const next = [...timers][0]; if (next) { timers.delete(next[0]); await act(async () => next[1].callback()); await settle(); } },
     setAppState: async (state) => { await act(async () => { for (const callback of foreground) callback(state); }); await settle(); },
+    setFontScale: async (scale) => { readingScale = scale; await act(async () => tree.update(element())); await settle(); },
     switchUser: async (id) => { identity = { ...identity, user: { id, subscription_tier: "free" }, token: `token${id}` }; await act(async () => tree.update(element())); await settle(); },
     notify: () => load("services/subscriptionEvents.ts").notifySubscriptionRequired(), emit: () => listener?.(info(true)),
     unmount: async () => act(async () => tree.unmount()) };
@@ -151,6 +152,19 @@ test("membership shows its plan and actual expiry even when enforcement supplies
     assert.equal(host(view.tree, "subscription-retry").props.disabled, false);
     await view.unmount();
   }
+});
+
+test("changing the system text size retains the selected plan and recovery controls", async () => {
+  const view = await provider({ screen: true, plans: [plan, { ...plan, id: "annual", term: "year", price: "€89,99", trialDays: null }] });
+  await act(async () => host(view.tree, "subscription-plan-year").props.onPress());
+  const calls = view.calls.length;
+  await view.setFontScale(3.5);
+  assert.equal(host(view.tree, "subscription-plan-year").props.accessibilityState.selected, true);
+  assert.equal(host(view.tree, "subscription-purchase").props.accessibilityLabel, "Subscribe");
+  assert.equal(host(view.tree, "subscription-restore").props.disabled, false);
+  assert.ok(host(view.tree, "subscription-close"));
+  assert.equal(view.calls.length, calls);
+  await view.unmount();
 });
 
 test("restore has a visible busy state and keeps its verified result through background refresh", async () => {

@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text as NativeText, type TextProps, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WorkoutText as Text } from "@/components/workout/WorkoutText";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSubscription } from "@/utils/subscriptionContext";
@@ -20,8 +19,15 @@ function dateLabel(value: string | null | undefined) {
   return value ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null;
 }
 
+function Text({ style, ...props }: TextProps) {
+  const color = Colors[useColorScheme() ?? "light"].text;
+  return <NativeText {...props} style={[{ color, fontSize: 16 }, style]} />;
+}
+
 export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
   const router = useRouter();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.5;
   const dark = useColorScheme() === "dark";
   const colors = Colors[dark ? "dark" : "light"];
   const accent = dark ? "#B9ACFF" : colors.primaryButton;
@@ -76,35 +82,36 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
     ...(!premium && canManage ? [{ action: "manage" as const, id: "subscription-manage", title: "Manage subscription", detail: "Review renewal or cancel your plan.", icon: "open-outline" as const, disabled: false, run: () => openManagement().catch(() => undefined) }] : []),
   ];
 
-  return <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+  // Recreate native text measurements when the system reading size changes.
+  return <SafeAreaView key={fontScale} style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
     <View style={styles.header}>
-      <Text accessibilityRole="header" style={styles.headerTitle}>{paywall ? "PrimeRep Premium" : "Subscription"}</Text>
+      <Text accessibilityRole="header" allowFontScaling={false} style={[styles.headerTitle, { fontSize: 24 * Math.min(fontScale, 1.5) }]}>{paywall ? "PrimeRep Premium" : "Subscription"}</Text>
       <Pressable testID="subscription-close" accessibilityRole="button" accessibilityLabel="Close subscription" onPress={close}
         style={({ pressed }) => [styles.close, { backgroundColor: tint, opacity: pressed ? 0.6 : 1 }]}>
         <Ionicons name="close" size={22} color={colors.text} accessible={false} />
       </Pressable>
     </View>
-    <ScrollView testID="subscription-scroll" contentContainerStyle={styles.content}>
+    <ScrollView testID="subscription-scroll" style={styles.scroll} contentContainerStyle={styles.content}>
       {!ready ? <ActivityIndicator accessibilityLabel="Loading subscription" color={colors.primaryButton} /> : null}
 
       {showStatus ? <View testID="subscription-status" style={[styles.membership, { backgroundColor: premium || transition ? tint : colors.inputBackground, borderColor: colors.inputBorder }]}>
-        <View style={styles.statusHeading}>
+        <View style={[styles.statusHeading, largeText && styles.stacked]}>
           <View style={[styles.statusIcon, { backgroundColor: colors.background }]}>
             <Ionicons name={premium ? "checkmark-circle-outline" : transition ? "time-outline" : ended ? "calendar-outline" : "cloud-offline-outline"} size={28} color={premium || transition ? accent : colors.icon} accessible={false} />
           </View>
-          <View style={styles.flexible}>
-            <Text accessibilityRole="header" style={styles.statusTitle}>{status}</Text>
+          <View style={[styles.flexible, largeText && styles.fullStatus]}>
+            <Text accessibilityRole="header" allowFontScaling={false} style={[styles.statusTitle, { fontSize: 24 * Math.min(fontScale, 2) }]}>{status}</Text>
             <Text style={[styles.body, { color: colors.icon }]}>{statusDescription}</Text>
           </View>
         </View>
         {(memberPlan || accessDate) ? <View style={[styles.facts, { borderTopColor: dark ? "#433A58" : "#E4DDF8" }]}>
-          {memberPlan ? <View style={styles.fact}><Text style={[styles.caption, { color: colors.icon }]}>Your plan</Text><Text style={styles.factValue}>{memberPlan.term === "month" ? "Monthly" : "Annual"}</Text></View> : null}
-          {accessDate ? <View style={styles.fact}><Text style={[styles.caption, { color: colors.icon }]}>{dateTitle}</Text><Text style={styles.factValue}>{accessDate}</Text></View> : null}
+          {memberPlan ? <View style={[styles.fact, largeText && styles.fullFact]}><Text style={[styles.caption, { color: colors.icon }]}>Your plan</Text><Text style={styles.factValue}>{memberPlan.term === "month" ? "Monthly" : "Annual"}</Text></View> : null}
+          {accessDate ? <View style={[styles.fact, largeText && styles.fullFact]}><Text style={[styles.caption, { color: colors.icon }]}>{dateTitle}</Text><Text style={styles.factValue}>{accessDate}</Text></View> : null}
         </View> : null}
       </View> : null}
 
       {showOffers && !showStatus ? <View style={styles.introduction}>
-        <Text accessibilityRole="header" style={styles.headline}>A plan that adapts to you.</Text>
+        <Text accessibilityRole="header" allowFontScaling={false} style={[styles.headline, { fontSize: 30 * Math.min(fontScale, 2) }]}>A plan that adapts to you.</Text>
         <Text style={[styles.body, { color: colors.icon }]}>Build your routine with workouts, programs, and coaching that fit your training.</Text>
       </View> : null}
 
@@ -200,19 +207,23 @@ export function SubscriptionScreen({ paywall = false }: { paywall?: boolean }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 8, gap: 12 },
-  headerTitle: { flex: 1, fontSize: 24, fontWeight: "700" },
+  header: { flexDirection: "row", flexShrink: 0, alignItems: "center", paddingHorizontal: 20, paddingVertical: 8, gap: 12 },
+  headerTitle: { flex: 1, minWidth: 0, fontSize: 24, fontWeight: "700" },
   close: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  scroll: { flex: 1 },
   content: { padding: 20, paddingTop: 16, paddingBottom: 24, gap: 24 },
   flexible: { flex: 1, minWidth: 0, gap: 4 },
   membership: { padding: 20, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, gap: 20 },
   statusHeading: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  stacked: { flexDirection: "column" },
+  fullStatus: { flex: 0, width: "100%" },
   statusIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   statusTitle: { fontSize: 24, fontWeight: "700" },
   body: { fontSize: 15 },
   caption: { fontSize: 13 },
   facts: { flexDirection: "row", flexWrap: "wrap", gap: 16, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 16 },
   fact: { flexGrow: 1, flexBasis: 120, gap: 4 },
+  fullFact: { flexBasis: "100%" },
   factValue: { fontSize: 15, fontWeight: "600" },
   introduction: { gap: 10 },
   headline: { fontSize: 30, fontWeight: "700", letterSpacing: -0.6 },
