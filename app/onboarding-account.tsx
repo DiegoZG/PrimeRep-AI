@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SubscriptionText as Text } from "@/components/subscriptions/SubscriptionOffer";
 import { Colors } from "@/constants/theme";
@@ -19,7 +19,10 @@ import { useSubscription } from "@/utils/subscriptionContext";
 
 export default function OnboardingAccount() {
   const router = useRouter();
-  const colors = Colors[useColorScheme() ?? "light"];
+  const scheme = useColorScheme() ?? "light";
+  const colors = Colors[scheme];
+  const destructive = scheme === "dark" ? "#F18C86" : "#D32F2F";
+  const { fontScale } = useWindowDimensions();
   const { user, token, logOut } = useContext(AuthContext);
   const { unregisterCurrentDevice } = useContext(NotificationsContext);
   const { sdkReady, busy: billingBusy, manage, error } = useSubscription();
@@ -70,8 +73,8 @@ export default function OnboardingAccount() {
     ]);
   };
 
-  return <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
-    <View style={styles.header}><Text accessibilityRole="header" style={styles.title}>Account options</Text>
+  return <SafeAreaView key={fontScale} style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+    <View style={styles.header}><Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 24 * Math.min(fontScale, 1.5) }]}>Account options</Text>
       <Pressable accessibilityRole="button" accessibilityLabel="Close account options" disabled={busy || billingBusy} onPress={() => router.canGoBack() ? router.back() : router.replace("/onboarding-subscription" as Href)} style={styles.close}><Ionicons name="close" size={24} color={colors.text} accessible={false} /></Pressable>
     </View>
     <ScrollView contentContainerStyle={styles.content}>
@@ -84,10 +87,10 @@ export default function OnboardingAccount() {
         ["Privacy", "shield-checkmark-outline", () => router.push("/legal/privacy" as Href)],
         ["Sign out", "log-out-outline", () => void signOut()],
         ["Delete account", "trash-outline", confirmDelete],
-      ] as const).map(([title, icon, action]) => <Pressable key={title} testID={`onboarding-account-${icon}`} accessibilityRole="button" accessibilityState={{ disabled: busy || billingBusy || (title === "Manage subscription" && !sdkReady) }} disabled={busy || billingBusy || (title === "Manage subscription" && !sdkReady)} onPress={action}
+      ] as const).map(([title, icon, action]) => <Pressable key={title} testID={`onboarding-account-${icon}`} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: busy || billingBusy || (title === "Manage subscription" && !sdkReady) }} disabled={busy || billingBusy || (title === "Manage subscription" && !sdkReady)} onPress={action}
         style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.inputBackground : "transparent", opacity: busy || billingBusy || (title === "Manage subscription" && !sdkReady) ? 0.5 : 1 }]}>
-        <Ionicons name={icon} size={24} color={title === "Delete account" ? "#D32F2F" : colors.icon} accessible={false} />
-        <Text style={[styles.rowText, title === "Delete account" && { color: "#D32F2F" }]}>{title}</Text>
+        <Ionicons name={icon} size={24} color={title === "Delete account" ? destructive : colors.icon} accessible={false} />
+        <Text style={[styles.rowText, title === "Delete account" && { color: destructive }]}>{title}</Text>
       </Pressable>)}
     </ScrollView>
   </SafeAreaView>;

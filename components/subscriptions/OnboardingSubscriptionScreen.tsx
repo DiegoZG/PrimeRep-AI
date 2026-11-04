@@ -10,7 +10,9 @@ import { SubscriptionBenefits, SubscriptionCheckout, SubscriptionPlans, Subscrip
 
 export function OnboardingSubscriptionScreen() {
   const router = useRouter();
-  const colors = Colors[useColorScheme() ?? "light"];
+  const scheme = useColorScheme() ?? "light";
+  const colors = Colors[scheme];
+  const accent = scheme === "dark" ? "#B9ACFF" : colors.primaryButton;
   const { fontScale } = useWindowDimensions();
   const inlineCheckout = fontScale >= 1.3;
   const { snapshot, plans, pending, busy, sdkReady, canPurchase, canClearPending, error, notice, refresh, loadPlans, purchase, restore, clearPending } = useSubscription();
@@ -39,19 +41,19 @@ export function OnboardingSubscriptionScreen() {
     <View style={styles.footerLinks}>
       <Pressable testID="subscription-restore" accessibilityRole="button" accessibilityLabel="Restore purchases" accessibilityState={{ disabled: blocked || !sdkReady, busy: restoring }} disabled={blocked || !sdkReady}
         onPress={() => { setRestoring(true); void restore().finally(() => setRestoring(false)); }} style={styles.link}>
-        <Text style={[styles.linkText, { color: colors.primaryButton }]}>{restoring ? "Restoring…" : "Restore purchases"}</Text>
+        <Text style={[styles.linkText, { color: accent }]}>{restoring ? "Restoring…" : "Restore purchases"}</Text>
       </Pressable>
       <Pressable accessibilityRole="link" onPress={() => router.push("/legal/terms" as Href)} style={styles.link}><Text style={[styles.legalText, { color: colors.icon }]}>Terms</Text></Pressable>
       <Pressable accessibilityRole="link" onPress={() => router.push("/legal/privacy" as Href)} style={styles.link}><Text style={[styles.legalText, { color: colors.icon }]}>Privacy</Text></Pressable>
     </View>
   </View>;
 
-  return <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+  return <SafeAreaView key={fontScale} style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
     <View style={styles.header}>
-      <Text style={styles.brand}>PrimeRep</Text>
+      <Text allowFontScaling={false} style={[styles.brand, { fontSize: 20 * Math.min(fontScale, 1.5) }]}>PrimeRep</Text>
       <Pressable testID="onboarding-account-options" accessibilityRole="button" accessibilityLabel="Account options" disabled={blocked} accessibilityState={{ disabled: blocked }}
         onPress={() => router.push("/onboarding-account" as Href)} style={[styles.account, { opacity: blocked ? 0.5 : 1 }]}>
-        <Text style={[styles.accountText, { color: colors.icon }]}>Account options</Text><Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} accessible={false} />
+        <Text allowFontScaling={false} style={[styles.accountText, { color: colors.icon, fontSize: 14 * Math.min(fontScale, 1.5) }]}>Account options</Text><Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} accessible={false} />
       </Pressable>
     </View>
     <ScrollView testID="onboarding-subscription-scroll" style={styles.scroll} contentContainerStyle={styles.content}>
@@ -65,10 +67,10 @@ export function OnboardingSubscriptionScreen() {
           <Text style={styles.messageTitle}>{pending ? pending.phase === "pending" ? "Awaiting Apple approval" : "Verifying your purchase" : "Checking your access"}</Text>
         </View>
         <Text style={[styles.messageBody, { color: colors.icon }]}>{error ?? (pending ? "Your purchase will continue here once access is confirmed." : "We’ll confirm your subscription before you continue.")}</Text>
-        <Pressable testID="onboarding-subscription-retry" accessibilityRole="button" disabled={blocked} onPress={() => void refresh(true)} style={styles.link}><Text style={[styles.linkText, { color: colors.primaryButton }]}>Check again</Text></Pressable>
+        <Pressable testID="onboarding-subscription-retry" accessibilityRole="button" disabled={blocked} onPress={() => void refresh(true)} style={styles.link}><Text style={[styles.linkText, { color: accent }]}>Check again</Text></Pressable>
         {canClearPending ? <Pressable testID="subscription-clear-pending" accessibilityRole="button" disabled={blocked} accessibilityState={{ disabled: blocked }}
           onPress={() => Alert.alert("Clear purchase notice?", "No active subscription was found during verification. Try Restore Purchases first if you paid. Clearing this notice does not cancel Apple billing.", [{ text: "Cancel", style: "cancel" }, { text: "Clear notice", onPress: () => void clearPending() }])} style={styles.link}>
-          <Text style={[styles.linkText, { color: colors.primaryButton }]}>Clear pending purchase notice</Text>
+          <Text style={[styles.linkText, { color: accent }]}>Clear pending purchase notice</Text>
         </Pressable> : null}
       </View> : notice ? <Text testID="subscription-feedback" accessibilityLiveRegion="polite" style={[styles.messageBody, { color: colors.icon }]}>{notice}</Text> : null}
       <SubscriptionPlans plans={plans} selected={plan?.id} blocked={blocked} onSelect={setSelected} />

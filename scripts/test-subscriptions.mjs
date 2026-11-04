@@ -123,6 +123,9 @@ test("onboarding presentation uses shared plans with monthly default and keeps r
   const scroll = host(view.tree, "onboarding-subscription-scroll");
   assert.equal(scroll.findAll(n => n.props.testID === "onboarding-subscription-checkout").length, 1);
   assert.equal(host(view.tree, "subscription-plan-year").props.accessibilityState.selected, true);
+  const brand = view.tree.root.findAllByType("Text").find(node => textOf(node) === "PrimeRep");
+  assert.equal(brand.props.allowFontScaling, false);
+  assert.equal(Object.assign({}, ...brand.props.style.flat(Infinity)).fontSize, 30);
   await view.unmount();
 });
 
@@ -269,6 +272,24 @@ test("required onboarding account options retain management, export, legal and s
   assert.equal(view.calls.some(call => call[0] === "unregister"), true);
   assert.equal(view.calls.some(call => call[0] === "logout"), true);
   await view.unmount();
+});
+
+test("dark onboarding actions retain readable text and account controls have clean spoken labels", async () => {
+  const color = node => Object.assign({}, ...[node.props.style].flat(Infinity).filter(Boolean)).color;
+  const view = await provider({ onboardingScreen: true, snapshot: onboardingSnapshot(), scheme: "dark", fakeTimers: true });
+  assert.equal(color(host(view.tree, "subscription-restore").findByType("Text")), "#B9ACFF");
+  await view.unmount();
+  const account = await provider({ accountScreen: true, snapshot: onboardingSnapshot(), scheme: "dark", fakeTimers: true });
+  const controls = account.tree.root.findAll(node => typeof node.type === "string" && node.props.testID?.startsWith("onboarding-account-"));
+  assert.deepEqual(controls.map(node => node.props.accessibilityLabel), ["Manage subscription", "Download my data", "Terms", "Privacy", "Sign out", "Delete account"]);
+  assert.equal(color(host(account.tree, "onboarding-account-trash-outline").findByType("Text")), "#F18C86");
+  for (const control of controls) assert.equal(control.findByType("Ionicons").props.accessible, false);
+  await account.setFontScale(3.1);
+  assert.equal(host(account.tree, "onboarding-account-trash-outline").props.accessibilityLabel, "Delete account");
+  const heading = account.tree.root.findAllByType("Text").find(node => node.props.accessibilityRole === "header");
+  assert.equal(heading.props.allowFontScaling, false);
+  assert.equal(Object.assign({}, ...heading.props.style.flat(Infinity)).fontSize, 36);
+  await account.unmount();
 });
 
 test("onboarding account deletion retains safe cleanup and failed deletion remains recoverable", async () => {
