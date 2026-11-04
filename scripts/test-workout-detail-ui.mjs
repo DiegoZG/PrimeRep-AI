@@ -78,6 +78,7 @@ async function detail(options = {}) {
     "@react-native-async-storage/async-storage": { getItem: async (key) => storage.get(key) ?? null, setItem: async (key, value) => { if (current.orderSaveFailure && key.startsWith("primerep.pre-workout-order.")) throw new Error("Storage unavailable"); calls.stored.push([key, value]); storage.set(key, value); }, removeItem: async (key) => storage.delete(key) },
     "@/utils/authContext": { AuthContext }, "./authContext": { AuthContext }, "@/utils/localDate": dateHelpers, "./localDate": dateHelpers,
     "@/constants/theme": theme, "@/services/workoutLoggingService": logging,
+    "@/services/subscriptionEvents": { notifySubscriptionRequired: () => calls.routes.push(["subscription_required"]) },
     "@/services/exerciseService": {
       getFavoriteExercises: async (token) => { calls.favorites.push(token); if (current.favoriteLoadError) throw error(503); return current.favoriteIds ?? []; },
       favoriteExercise: async (...args) => { calls.favorite.push(args); if (current.favoriteMutation) await current.favoriteMutation(); if (current.favoriteError) throw error(503); },
@@ -102,6 +103,9 @@ async function detail(options = {}) {
   store = { ...durable, clearActiveWorkout: async (id) => { calls.cleared.push(id); return durable.clearActiveWorkout(id); } };
   mocks["@/utils/activeWorkoutStore"] = store;
   mocks["@/utils/preWorkoutOrderStore"] = loadTypescript("utils/preWorkoutOrderStore.ts", mocks, typeCache);
+  mocks["./featureFlagService"] = { getFeatureFlags: async () => ({ flags: { subscriptions_enforcement_enabled: false } }) };
+  mocks["./workoutLoggingService"] = logging;
+  mocks["@/services/workoutAdmission"] = loadTypescript("services/workoutAdmission.ts", mocks, typeCache);
   mocks["@/utils/workoutArrangement"] = loadTypescript("utils/workoutArrangement.ts", mocks, typeCache);
   mocks["react-native-worklets"] = { scheduleOnRN: (callback, ...args) => callback(...args) };
   mocks["react-native-reanimated"] = { __esModule: true, default: { View: "AnimatedView" }, LinearTransition: { duration: () => ({ reduceMotion: () => ({}) }) }, ReduceMotion: { System: "system" }, useReducedMotion: () => true, useSharedValue: (value) => React.useRef({ value }).current, useAnimatedStyle: (callback) => callback(), withTiming: (value) => value };
@@ -979,4 +983,24 @@ test("order errors persist with actionable read-only details while the refresh b
   await act(async () => view.week().markPlanningRefreshRequired());
   assert.ok(host(view, "workout-planning-refresh")); assert.equal(start(view).props.disabled, true); assert.ok(host(view, "workout-info-open"));
   assert.deepEqual(view.calls.planning, []); assert.deepEqual(view.calls.additions, []); await unmount(view);
+});
+
+test("subscription-restricted week bootstrap preserves authentication and settles into an empty preview", async () => {
+  const view = await detail({ getWeek: async () => { throw Object.assign(new Error("Subscription required"), { status: 403, code: "subscription_required" }); } });
+  assert.equal(view.week().isLoading, false);
+  assert.equal(view.week().error, null);
+  assert.equal(view.week().weekPlan, null);
+  assert.equal(view.calls.loggedOut.length, 0);
+  await unmount(view);
+});
+
+test("explicit regeneration opens subscription recovery while preserving a stored preview", async () => {
+  const view = await detail();
+  const before = view.week().weekPlan;
+  view.options({ getWeek: async () => { throw Object.assign(new Error("Subscription required"), { status: 403, code: "subscription_required" }); } });
+  await act(async () => view.week().refreshWeek({ force: true }));
+  assert.equal(view.week().weekPlan, before);
+  assert.equal(view.week().error, null);
+  assert.ok(view.calls.routes.some((call) => call[0] === "subscription_required"));
+  await unmount(view);
 });

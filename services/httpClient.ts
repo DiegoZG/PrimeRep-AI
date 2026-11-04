@@ -1,4 +1,6 @@
 import { API_BASE_URL } from "@/config/api";
+import { notifySubscriptionRequired } from "./subscriptionEvents";
+import { accountGeneration } from "./accountScope";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -19,6 +21,7 @@ export class HttpError extends Error {
   status?: number;
   payload?: unknown;
   isTimeout?: boolean;
+  code?: string;
 
   constructor(
     message: string,
@@ -31,6 +34,11 @@ export class HttpError extends Error {
     this.status = status;
     this.payload = payload;
     this.isTimeout = isTimeout;
+    if (payload && typeof payload === "object") {
+      const data = payload as { code?: unknown; detail?: { code?: unknown } };
+      const code = data.code ?? data.detail?.code;
+      if (typeof code === "string") this.code = code;
+    }
   }
 }
 
@@ -46,6 +54,7 @@ export async function requestJson<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
+  const requestGeneration = accountGeneration();
   const {
     method = "GET",
     token = null,
@@ -74,11 +83,11 @@ export async function requestJson<T>(
     const data = text ? JSON.parse(text) : null;
 
     if (!res.ok) {
-      const message =
-        data?.detail ||
-        data?.error ||
-        `Request failed (${res.status}) ${method} ${path}`;
-      throw new HttpError(message, res.status, data);
+      const message = typeof data?.detail === "string" ? data.detail : typeof data?.detail?.message === "string" ? data.detail.message
+        : typeof data?.error === "string" ? data.error : `Request failed (${res.status}) ${method} ${path}`;
+      const error = new HttpError(message, res.status, data);
+      if (error.code === "subscription_required" && method !== "GET" && path !== "/v1/workouts/sessions" && requestGeneration === accountGeneration()) notifySubscriptionRequired();
+      throw error;
     }
 
     return data as T;

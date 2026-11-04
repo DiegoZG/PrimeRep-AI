@@ -47,6 +47,9 @@ async function renderSettings(options = {}) {
   const mocks = {
     react: React,
     "@/components/settings/FeatureFlagsSettingsLink": { FeatureFlagsSettingsLink: () => null },
+    "@/components/settings/SubscriptionSettingsLink": { SubscriptionSettingsLink: () => null },
+    "@/utils/pendingPurchase": { clearPendingPurchaseForUser: async () => {} },
+    "@/utils/subscriptionContext": { useSubscription: () => ({ snapshot: options.subscription ?? null }) },
     "@expo/vector-icons": { Ionicons: "Ionicons" },
     "expo-router": { useRouter: () => ({ back: () => calls.routes.push("back"), push: (route) => calls.routes.push(route) }) },
     "react-native": {
@@ -436,4 +439,20 @@ test("Settings logout and confirmed deletion preserve existing cleanup sequence"
   await act(async () => { await fixture.calls.alerts[0][2][1].onPress(); });
   assert.deepEqual(plain(fixture.calls.accounts), [["pause", "A"], ["delete", "token-A"], ["prestart-cleanup", "A"], ["layout-cleanup", "A"], ["idle"], ["cleanup", "A"], ["logout", { forceLocal: true }]]);
   await unmount(fixture.tree);
+});
+
+test("Settings grants Coach controls to verified and transition access without unlocking legacy free users", async () => {
+  for (const subscription of [
+    { flags: { subscriptions_enforcement_enabled: true }, can_start_training: true, access_source: "transition", has_premium: false },
+    { flags: { subscriptions_enforcement_enabled: false }, can_start_training: true, access_source: "legacy", has_premium: true },
+  ]) {
+    const { tree, calls } = await renderSettings({ subscription });
+    assert.equal(byLabel(tree, "AI Coaching Insights").props.disabled, false);
+    await change(byLabel(tree, "AI Coaching Insights"), true);
+    assert.deepEqual(calls.premium, [true]);
+    await act(async () => tree.unmount());
+  }
+  const free = await renderSettings({ subscription: { flags: { subscriptions_enforcement_enabled: false }, can_start_training: true, access_source: "legacy", has_premium: false } });
+  assert.equal(free.tree.root.findAllByProps({ accessibilityLabel: "AI Coaching Insights" }).length, 0);
+  await act(async () => free.tree.unmount());
 });

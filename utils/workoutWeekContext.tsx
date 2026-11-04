@@ -88,6 +88,7 @@ type Action =
       weekStart?: string;
     }
   | { type: "FETCH_ERROR"; userId: string; payload: string }
+  | { type: "FETCH_RESTRICTED"; userId: string }
   | { type: "CURRENT_WEEK_CHANGED"; userId: string; weekStart: string }
   | { type: "STALE_ID_REFRESHED"; userId: string }
   | { type: "CLEAR_STALE_ID_FLAG"; userId: string };
@@ -159,6 +160,9 @@ function reducer(state: WorkoutWeekState, action: Action): WorkoutWeekState {
         error: null,
         currentWeekStart: action.weekStart || state.currentWeekStart,
       };
+
+    case "FETCH_RESTRICTED":
+      return { ...state, isLoading: false, error: null };
 
     case "FETCH_ERROR":
       return {
@@ -303,6 +307,11 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
         return plan;
       } catch (err: any) {
         if (!isCurrentRequest(requestUserId, requestRevision)) return null;
+        if (err?.code === "subscription_required") {
+          dispatch({ type: "FETCH_RESTRICTED", userId: requestUserId });
+          if (force) notifySubscriptionRequired();
+          return null;
+        }
         if (isUnauthorizedError(err)) {
           await handleUnauthorized(requestUserId);
           return null;
@@ -725,3 +734,4 @@ export function WorkoutWeekProvider({ children }: PropsWithChildren) {
     </WorkoutWeekContext.Provider>
   );
 }
+import { notifySubscriptionRequired } from "@/services/subscriptionEvents";

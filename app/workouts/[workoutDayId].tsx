@@ -38,6 +38,8 @@ import { reorderWorkout } from "@/utils/workoutArrangement";
 import { clearActiveWorkout, loadActiveWorkout } from "@/utils/activeWorkoutStore";
 import { AuthContext } from "@/utils/authContext";
 import { localDateIso } from "@/utils/localDate";
+import { ensureWorkoutAdmission } from "@/services/workoutAdmission";
+import { HttpError } from "@/services/httpClient";
 
 // Block type display names
 const BLOCK_TYPE_LABELS: Record<string, string> = {
@@ -259,7 +261,9 @@ export default function WorkoutDayDetailScreen() {
     const isCurrent = () => mountedRef.current && lifetimeRef.current === origin && lifetimeEpochRef.current === originEpoch;
     const openWorkout = async (active?: Awaited<ReturnType<typeof getActiveSession>>) => {
       if (!isCurrent()) return;
-      const prepared = await prepareWorkoutStart(user.id, workout, active, isCurrent);
+      const admitted = active ?? await ensureWorkoutAdmission(token, user.id, workout, isCurrent);
+      if (!isCurrent()) return;
+      const prepared = await prepareWorkoutStart(user.id, workout, admitted, isCurrent);
       if (!isCurrent() || !prepared) return;
       router.push({ pathname: "/workout/active", params: prepared.serverSessionId
         ? { sessionId: prepared.serverSessionId }
@@ -277,7 +281,9 @@ export default function WorkoutDayDetailScreen() {
         Alert.alert("Workout already changed", "Your active workout has different exercises. Resume it to arrange the current exercises and keep your saved sets.", [{ text: "Cancel", style: "cancel" }, { text: "Resume active workout", onPress: () => {
           if (isCurrent()) router.push({ pathname: "/workout/active", params: error.serverSessionId ? { sessionId: error.serverSessionId } : { workoutDayId: workout.workoutDayId } });
         } }]);
-      } else Alert.alert("Couldn’t start workout", "Your chosen order is saved. Please try again.");
+      } else if (error instanceof HttpError && error.code === "subscription_required") {
+        router.push("/paywall" as Href);
+      } else Alert.alert("Couldn’t start workout", error instanceof HttpError && error.code === "subscription_verification_unavailable" ? error.message : "Your chosen order is saved. Please try again.");
     };
     startingRef.current = true; setIsStarting(true);
     try {

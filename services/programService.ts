@@ -142,9 +142,9 @@ export function getActiveProgram(token: string, effectiveDate: string) {
 export async function deactivateProgram(
   token: string,
   dates: { weekStart: string; effectiveDate: string },
-): Promise<import("@/interfaces/workouts").WorkoutWeekPlanApiResponse> {
+): Promise<import("@/interfaces/workouts").WorkoutWeekPlanApiResponse | null> {
   const query = `weekStart=${encodeURIComponent(dates.weekStart)}&effectiveDate=${encodeURIComponent(dates.effectiveDate)}`;
-  return requestJson<import("@/interfaces/workouts").WorkoutWeekPlanApiResponse>(`/v1/workout-templates/active?${query}`, {
+  return requestJson<import("@/interfaces/workouts").WorkoutWeekPlanApiResponse | null>(`/v1/workout-templates/active?${query}`, {
     method: "DELETE",
     token,
   });

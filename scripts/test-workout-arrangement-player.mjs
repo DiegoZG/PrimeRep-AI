@@ -35,6 +35,7 @@ async function player(options = {}) {
   const activeWorkout = { markWorkoutTerminal() {} };
   const router = { replace: (route) => calls.push(["route", route]) }, week = { getWorkoutById: () => workout, isLoading: false, planningRefreshRequired: Boolean(options.barrier), refreshWeek: async () => { calls.push(["refresh"]); } };
   const services = {
+    createSession: async (_token, _day, _date, _type, clientId) => { if (!options.enforcement) throw new Error("Create response unavailable"); calls.push(["admit", clientId]); if (options.denyAdmission) throw new HttpError("Subscription required", 403, { code: "subscription_required" }); server = { id: "admitted", clientSessionId: clientId, workoutDayId: "day", workoutDate: workout.date, dayType: "upper", arrangementRevision: 0, effectiveWorkout: api(workout), workoutSnapshot: api(workout), status: "in_progress", startedAt: new Date(100).toISOString(), setLogs: [], deletedSetLogs: [], exerciseFeedback: [], workoutNote: null }; return copy(server); },
     getActiveSession: async () => identity.user?.id === "A" ? copy(server) : null, getSession: async () => { if (identity.user?.id !== "A") throw new Error("Not this owner's session"); return copy(server); }, getUserExerciseNote: async (_token, id) => { calls.push(["noteRead", id]); return options.notes?.[id] ? { note: options.notes[id] } : null; }, fetchLastSetsForExercises: async () => ({}),
     logSet: async (_token, _session, exerciseId, setNumber, reps, weightKg) => { calls.push(["log", exerciseId, setNumber]); replayStarted.resolve(); if (options.expiredToken && _token === "token") throw new HttpError("Access token expired", 401); if (options.deferReplay) await replayResponse.promise; if (options.failReplay) throw new Error("Offline"); const log = { id: `log-${exerciseId}-${setNumber}`, exerciseId, setNumber, reps, weightKg, version: 1 }; server.setLogs.push(log); return log; },
     getReplacementCandidates: async () => [{ id: "fly", name: "Chest Fly" }],
@@ -42,7 +43,7 @@ async function player(options = {}) {
     updateExerciseOrder: async (_token, _session, ids) => { const byId = new Map(server.effectiveWorkout.exerciseBlocks.flatMap((block) => block.items.map((item) => [item.exercise.id, item]))); server = { ...server, arrangementRevision: server.arrangementRevision + 1, effectiveWorkout: api({ ...workout, blocks: [{ blockType: "main", items: ids.map((id) => byId.get(id)) }] }) }; return copy(server); },
     replaceSessionExercise: async (...args) => { calls.push(["replace", ...args]); replacementStarted.resolve(); await replacementResponse.promise; server = { ...server, arrangementRevision: server.arrangementRevision + 1, effectiveWorkout: api({ ...workout, blocks: workout.blocks.map((block) => ({ ...block, items: block.items.map((entry) => entry.exercise.id === "bench" ? item("fly") : entry) })) }) }; return copy(server); },
   };
-  class HttpError extends Error { constructor(message, status) { super(message); this.status = status; } }
+  class HttpError extends Error { constructor(message, status, payload) { super(message); this.status = status; this.code = payload?.code; } }
   const mocks = { react: React, "react-native": native, "@expo/vector-icons": { Ionicons: "Ionicons" }, "expo-image": { Image: "Image" }, "expo-av": { Audio: { Sound: { createAsync: async () => ({ sound: { unloadAsync: async () => {}, replayAsync: async () => {} } }) } } }, "expo-status-bar": { StatusBar: "StatusBar" },
     "expo-router": { useRouter: () => router, useLocalSearchParams: () => route }, "expo-haptics": { notificationAsync: async () => {}, impactAsync: async () => {}, NotificationFeedbackType: { Success: "success" }, ImpactFeedbackStyle: { Medium: "medium" } },
     "react-native-safe-area-context": { SafeAreaView: "SafeAreaView", useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/hooks/use-workout-week": { useWorkoutWeek: () => week },
@@ -51,7 +52,8 @@ async function player(options = {}) {
     "@/components/workout/ExerciseListSheet": { ExerciseListSheet: "ExerciseListSheet" }, "@/components/workout/ExerciseInfoSheet": { ExerciseInfoSheet: "ExerciseInfoSheet" }, "@/components/workout/WorkoutArrangementSheets": { WorkoutArrangementSheets: "WorkoutArrangementSheets" },
     "@/components/workout/RestTimer": { RestTimer: "RestTimer" }, "@/components/workout/SetInputRow": { SetInputRow: "SetInputRow" }, "@/components/workout/WeightUnitControl": { WeightUnitControl: "WeightUnitControl" }, "@/components/workout/WorkoutText": { WorkoutText: (props) => React.createElement("Text", props) },
     "@react-native-async-storage/async-storage": { getItem: async (key) => memory.get(key) ?? null, setItem: async (key, value) => { await options.beforeWrite?.(key, value); memory.set(key, value); }, removeItem: async (key) => memory.delete(key) },
-    "@/services/workoutLoggingService": services, "@/services/httpClient": { HttpError }, "./httpClient": { HttpError },
+    "@/services/workoutLoggingService": services, "./workoutLoggingService": services, "@/services/httpClient": { HttpError }, "./httpClient": { HttpError },
+    "./featureFlagService": { getFeatureFlags: async () => { calls.push(["flags"]); if (options.unknownFlags) throw new Error("Offline"); return { flags: { subscriptions_enforcement_enabled: Boolean(options.enforcement) } }; } },
   };
   const cache = new Map();
   function load(relative) {
@@ -991,5 +993,36 @@ test("weight unit is set in the exercise sheet without a duplicate Focus footer 
   await act(async () => view.list().props.onWeightUnitChange());
   assert.equal(view.list().props.weightUnit, "KG");
   assert.equal(view.list().props.visible, true);
+  await act(async () => view.tree.unmount());
+});
+
+test("direct active route admits a new enforced workout before enabling logging", async () => {
+  const view = await player({ noExisting: true, enforcement: true });
+  assert.equal(view.calls.filter((call) => call[0] === "admit").length, 1);
+  assert.equal((await view.store.loadActiveWorkout("A")).serverSessionId, "admitted");
+  await view.route({ sessionId: "admitted" });
+  assert.ok(input(view));
+  await view.remount();
+  assert.equal(view.calls.filter((call) => call[0] === "admit").length, 1);
+  await act(async () => view.tree.unmount());
+});
+
+test("unknown flags on a direct new route show reconnect recovery without creating or logging", async () => {
+  const view = await player({ noExisting: true, unknownFlags: true });
+  assert.ok(host(view.tree, "player-admission-retry"));
+  assert.equal(host(view.tree, "player-admission-subscription"), undefined);
+  assert.equal(view.calls.some((call) => call[0] === "admit"), false);
+  assert.equal(await view.store.loadActiveWorkout("A"), null);
+  assert.equal(view.tree.root.findAllByType("SetInputRow").length, 0);
+  await act(async () => view.tree.unmount());
+});
+
+test("subscription denial retains an unadmitted local queue and recovery controls", async () => {
+  const view = await player({ noExisting: true, enforcement: true, denyAdmission: true });
+  assert.ok(host(view.tree, "player-admission-subscription"));
+  const durable = await view.store.loadActiveWorkout("A");
+  assert.ok(durable); assert.equal(durable.serverSessionId, null);
+  assert.equal(durable.operations[0].type, "create");
+  assert.equal(view.tree.root.findAllByType("SetInputRow").length, 0);
   await act(async () => view.tree.unmount());
 });
