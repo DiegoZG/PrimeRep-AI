@@ -13,9 +13,9 @@ import { AuthContext } from "@/utils/authContext";
 function label(key: string): string {
   if (key.startsWith("audiences.")) return `Audience: ${label(key.slice(10))}`;
   if (key.startsWith("overrides.")) return `Override: ${label(key.slice(10))}`;
-  return ({ subscriptions_purchases_enabled: "Purchases", subscriptions_enforcement_enabled: "Enforcement", subscriptions_launch_at: "Launch (UTC)" })[key] ?? key;
+  return ({ subscriptions_purchases_enabled: "Purchases", subscriptions_enforcement_enabled: "Enforcement", subscriptions_onboarding_enabled: "Onboarding", subscriptions_launch_at: "Launch (UTC)" })[key] ?? key;
 }
-const defaultAudiences: FeatureFlagAudiences = { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone" };
+const defaultAudiences: FeatureFlagAudiences = { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone" };
 const auditValues = (value: Record<string, unknown>) => Object.fromEntries(Object.entries(value).flatMap(([key, nested]) => ["flags", "audiences", "overrides"].includes(key) && typeof nested === "object" && nested ? Object.entries(nested).map(([field, setting]) => [`${key === "flags" ? "" : `${key}.`}${field}`, setting]) : [[key, nested]]));
 function auditChanges(entry: FeatureFlagAudit) {
   const before = auditValues(entry.before);
@@ -42,7 +42,7 @@ function AccountFeatureFlags() {
   const colors = Colors[scheme];
   const { fontScale } = useWindowDimensions();
   const [snapshot, setSnapshot] = useState<AdminFeatureFlagSnapshot | null>(null);
-  const [flags, setFlags] = useState<SubscriptionFlags>({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false });
+  const [flags, setFlags] = useState<SubscriptionFlags>({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false });
   const [audiences, setAudiences] = useState<FeatureFlagAudiences>({ ...defaultAudiences });
   const [launch, setLaunch] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,7 +62,7 @@ function AccountFeatureFlags() {
 
   const applySnapshot = useCallback((next: AdminFeatureFlagSnapshot) => {
     setSnapshot(next);
-    setFlags({ ...next.flags });
+    setFlags({ subscriptions_onboarding_enabled: false, ...next.flags });
     setAudiences({ ...defaultAudiences, ...next.audiences });
     setLaunch(launchValue(next.subscriptions_launch_at));
     setForbidden(false);
@@ -74,7 +74,7 @@ function AccountFeatureFlags() {
     setSaved(false);
     if (err instanceof HttpError && (err.status === 403 || err.status === 401)) {
       setSnapshot(null);
-      setFlags({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false });
+      setFlags({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false });
       setAudiences({ ...defaultAudiences });
       setLaunch("");
       setConfirmation(null);
@@ -107,7 +107,7 @@ function AccountFeatureFlags() {
   }, [applySnapshot, handleFailure, pageAccountGuard, token, user?.id]);
   useFocusEffect(useCallback(() => { if (!dirtyRef.current) void load(); }, [load]));
 
-  const dirty = !!snapshot && (flags.subscriptions_purchases_enabled !== snapshot.flags.subscriptions_purchases_enabled || flags.subscriptions_enforcement_enabled !== snapshot.flags.subscriptions_enforcement_enabled || launch !== launchValue(snapshot.subscriptions_launch_at) || audiences.subscriptions_purchases_enabled !== (snapshot.audiences?.subscriptions_purchases_enabled ?? "everyone") || audiences.subscriptions_enforcement_enabled !== (snapshot.audiences?.subscriptions_enforcement_enabled ?? "everyone"));
+  const dirty = !!snapshot && (flags.subscriptions_purchases_enabled !== snapshot.flags.subscriptions_purchases_enabled || flags.subscriptions_enforcement_enabled !== snapshot.flags.subscriptions_enforcement_enabled || Boolean(flags.subscriptions_onboarding_enabled) !== Boolean(snapshot.flags.subscriptions_onboarding_enabled) || audiences.subscriptions_onboarding_enabled !== (snapshot.audiences?.subscriptions_onboarding_enabled ?? "everyone") || launch !== launchValue(snapshot.subscriptions_launch_at) || audiences.subscriptions_purchases_enabled !== (snapshot.audiences?.subscriptions_purchases_enabled ?? "everyone") || audiences.subscriptions_enforcement_enabled !== (snapshot.audiences?.subscriptions_enforcement_enabled ?? "everyone"));
   dirtyRef.current = dirty;
   const editFlags = (key: keyof SubscriptionFlags, value: boolean) => { setFlags((old) => ({ ...old, [key]: value })); setSaved(false); };
   const confirmDiscard = (action: () => void) => {
@@ -159,7 +159,7 @@ function AccountFeatureFlags() {
   return <ProfilePage title="Feature flags" onBack={() => router.back()} testID="feature-flags-screen"><ProfileScroll>
     {!user || !token || forbidden ? <Text testID="feature-flags-forbidden" accessibilityRole="alert">Administrator access is required to view or change feature flags.</Text> : <>
       <Text style={muted}>The global switches are master controls: turning a flag off disables it for everyone, including users with Allow overrides.</Text>
-      <Text style={muted}>Subscription rollout controls. Billing purchases and training enforcement are not connected until Part 11 is implemented.</Text>
+      <Text style={muted}>Subscription rollout controls. Onboarding applies only to accounts created while all three effective flags are enabled.</Text>
       {busy ? <Text accessibilityLiveRegion="polite">Updating feature flags…</Text> : null}
       {confirmation ? <View testID="feature-flags-discard-confirmation" style={styles.section}><Text accessibilityRole="alert">Discard unsaved changes? Continuing replaces the current edits.</Text><Pressable testID="feature-flags-keep-editing" accessibilityRole="button" onPress={() => { setConfirmation(null); confirmationGeneration.current += 1; }} style={button(false)}><Text>Keep editing</Text></Pressable><Pressable testID="feature-flags-confirm-discard" accessibilityRole="button" onPress={confirmation.action} style={button(false)}><Text>Discard and continue</Text></Pressable></View> : null}
       {snapshot ? <>
@@ -167,10 +167,11 @@ function AccountFeatureFlags() {
         <Pressable testID="feature-flags-manage-users" accessibilityRole="button" accessibilityLabel="Manage user access" disabled={blocked} onPress={() => confirmDiscard(() => { applySnapshot(snapshot); dirtyRef.current = false; router.push("/settings/admin-feature-flag-users" as Href); })} style={button(blocked)}><Text style={{ color: colors.primaryButton, fontWeight: "600" }}>Manage user access</Text></Pressable>
         <View style={styles.section}>{([
           ["subscriptions_purchases_enabled", "Subscription purchases", "Allows subscription offers and purchases when billing is connected."],
-          ["subscriptions_enforcement_enabled", "Subscription enforcement", "Requires entitlement for new training when Part 11 is connected."],
+          ["subscriptions_enforcement_enabled", "Subscription enforcement", "Requires entitlement for new training."],
+          ["subscriptions_onboarding_enabled", "Onboarding subscription", "Requires a subscription after new-account onboarding. Purchases and enforcement must also be on."],
         ] as const).map(([key, title, description]) => <View key={key} style={{ gap: 12 }}><View style={[styles.control, { flexDirection: fontScale >= 1.5 ? "column" : "row", alignItems: fontScale >= 1.5 ? "flex-start" : "center" }]}>
           <View style={{ flexShrink: 1, flexGrow: 1, gap: 6 }}><Text style={styles.heading}>{title}</Text><Text style={muted}>{description}</Text></View>
-          <Switch testID={`feature-flag-${key}`} accessibilityLabel={title} accessibilityState={{ disabled: blocked, busy }} disabled={blocked} value={flags[key]} onValueChange={(value) => editFlags(key, value)} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor="#FFFFFF" ios_backgroundColor={colors.inputBorder} />
+          <Switch testID={`feature-flag-${key}`} accessibilityLabel={title} accessibilityState={{ disabled: blocked, busy }} disabled={blocked} value={Boolean(flags[key])} onValueChange={(value) => editFlags(key, value)} trackColor={{ false: colors.inputBorder, true: colors.primaryButton }} thumbColor="#FFFFFF" ios_backgroundColor={colors.inputBorder} />
         </View><View accessibilityRole="radiogroup" accessibilityLabel={`${title} audience`} style={{ flexDirection: fontScale >= 1.5 ? "column" : "row", gap: 10 }}>{([['everyone', 'Everyone'], ['selected', 'Selected users']] as const).map(([value, name]) => <Pressable key={value} testID={`feature-flags-audience-${key}-${value}`} accessibilityRole="radio" accessibilityLabel={`${title}: ${name}`} accessibilityState={{ checked: audiences[key] === value, disabled: blocked }} disabled={blocked} onPress={() => { setAudiences((old) => ({ ...old, [key]: value })); setSaved(false); }} style={[button(blocked), { backgroundColor: audiences[key] === value ? colors.inputBorder : 'transparent', flexShrink: 1 }]}><Text>{name}</Text></Pressable>)}</View><Text style={muted}>Everyone uses the enabled default. Selected users stay off unless individually allowed. A Deny override stays off.</Text></View>)}</View>
         <View style={styles.section}>
           <Text style={styles.heading}>Launch date (UTC)</Text>

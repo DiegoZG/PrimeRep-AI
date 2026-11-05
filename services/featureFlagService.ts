@@ -3,6 +3,7 @@ import { requestJson } from "./httpClient";
 export interface SubscriptionFlags {
   subscriptions_purchases_enabled: boolean;
   subscriptions_enforcement_enabled: boolean;
+  subscriptions_onboarding_enabled?: boolean;
 }
 
 export type FeatureFlagAudience = "everyone" | "selected";

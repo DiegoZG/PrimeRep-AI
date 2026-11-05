@@ -28,7 +28,7 @@ import { coachTargetHref, isCoachTarget } from "@/utils/coachNavigation";
 import { AppearanceProvider } from "@/utils/appearanceContext";
 import { WorkoutLayoutProvider } from "@/utils/workoutLayoutContext";
 import { ProfileProvider } from "@/utils/profileContext";
-import { SubscriptionProvider, SubscriptionPrompt } from "@/utils/subscriptionContext";
+import { SubscriptionProvider, SubscriptionPrompt, useSubscription } from "@/utils/subscriptionContext";
 import { HealthReadSync } from "@/utils/healthReadSync";
 import { HealthExportSync } from "@/utils/healthExportSync";
 
@@ -86,6 +86,9 @@ function RootLayoutNav() {
     user,
   } = useContext(AuthContext);
   const { isRestoring: isRestoringOnboarding } = useContext(OnboardingContext);
+  const { onboardingRequired } = useSubscription();
+  const onboardingRequiredRef = useRef(onboardingRequired);
+  onboardingRequiredRef.current = onboardingRequired;
   const router = useRouter();
   const segments = useSegments();
   const routePath = segments.join("/");
@@ -133,6 +136,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (
+      onboardingRequired ||
       !pendingCoachNotification ||
       isBootstrapping ||
       !isLoggedIn ||
@@ -158,7 +162,7 @@ function RootLayoutNav() {
 
     const clearHandledIntent = () => {
       if (
-        authIdentityRef.current !== requestIdentity ||
+        onboardingRequiredRef.current || authIdentityRef.current !== requestIdentity ||
         pendingCoachNotificationRef.current !== pendingCoachNotification
       ) return;
       if (notificationRetryTimerRef.current) {
@@ -197,7 +201,7 @@ function RootLayoutNav() {
       try {
         if (!pendingCoachNotification.navigated) {
           const item = await getCoachItem(token, pendingCoachNotification.itemId!);
-          if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+          if (onboardingRequiredRef.current || authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
           if (!isCoachTarget(item.target)) {
             router.replace("/(tabs)/feed");
             clearHandledIntent();
@@ -217,10 +221,10 @@ function RootLayoutNav() {
         }
 
         await markCoachItemRead(token, pendingCoachNotification.resolvedItemId!, "primaryAction");
-        if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+        if (onboardingRequiredRef.current || authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
         clearHandledIntent();
       } catch (error) {
-        if (authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
+        if (onboardingRequiredRef.current || authIdentityRef.current !== requestIdentity || pendingCoachNotificationRef.current !== pendingCoachNotification) return;
         const isTerminal =
           error instanceof HttpError &&
           error.status !== undefined &&
@@ -235,7 +239,7 @@ function RootLayoutNav() {
         const retryDelay = Math.min(30000, 1000 * (2 ** pendingCoachNotification.attempt));
         notificationRetryTimerRef.current = setTimeout(() => {
           if (
-            authIdentityRef.current !== requestIdentity ||
+            onboardingRequiredRef.current || authIdentityRef.current !== requestIdentity ||
             pendingCoachNotificationRef.current !== pendingCoachNotification
           ) return;
           const retry = { ...pendingCoachNotification, attempt: pendingCoachNotification.attempt + 1 };
@@ -252,6 +256,7 @@ function RootLayoutNav() {
     isBootstrapping,
     isLoggedIn,
     pendingCoachNotification,
+    onboardingRequired,
     router,
     token,
     user,
@@ -274,6 +279,7 @@ function RootLayoutNav() {
   useEffect(() => {
     if (
       isBootstrapping ||
+      onboardingRequired ||
       (bootstrapError && !offlineSession) ||
       !isLoggedIn ||
       !hasCompletedOnboarding ||
@@ -304,7 +310,7 @@ function RootLayoutNav() {
       ]);
       const sessionId = serverActive?.id ?? localActive?.serverSessionId;
       const workoutDayId = serverActive?.workoutDayId ?? localActive?.workoutDayId;
-      if (!cancelled && resumeRequestIdRef.current === requestId && authIdentityRef.current === requestAuthIdentity && (sessionId || workoutDayId)) {
+      if (!cancelled && !onboardingRequiredRef.current && resumeRequestIdRef.current === requestId && authIdentityRef.current === requestAuthIdentity && (sessionId || workoutDayId)) {
         router.replace({ pathname: "/workout/active", params: sessionId ? { sessionId } : { workoutDayId: workoutDayId! } });
       }
     })();
@@ -324,6 +330,7 @@ function RootLayoutNav() {
     segments,
     resumeRevision,
     pendingCoachNotification,
+    onboardingRequired,
   ]);
 
   if (isBootstrapping || (!isLoggedIn && isRestoringOnboarding)) {
@@ -364,7 +371,7 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       >
-        <Stack.Protected guard={!shouldShowOnboarding}>
+        <Stack.Protected guard={!shouldShowOnboarding && !onboardingRequired}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="explore/category"
@@ -400,7 +407,6 @@ function RootLayoutNav() {
           <Stack.Screen name="settings/admin-feature-flag-users" options={{ headerShown: false }} />
           <Stack.Screen name="settings/admin-feature-flags" options={{ headerShown: false }} />
           <Stack.Screen name="settings/help" options={{ headerShown: false }} />
-          <Stack.Screen name="settings/export" options={{ headerShown: false }} />
           <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
           <Stack.Screen name="profile/achievements" options={{ headerShown: false }} />
           <Stack.Screen
@@ -417,6 +423,15 @@ function RootLayoutNav() {
           />
         </Stack.Protected>
 
+        <Stack.Protected guard={!shouldShowOnboarding && onboardingRequired}>
+          <Stack.Screen name="onboarding-subscription" options={{ headerShown: false, presentation: "fullScreenModal", gestureEnabled: false }} />
+          <Stack.Screen name="onboarding-account" options={{ headerShown: false, presentation: "modal" }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={!shouldShowOnboarding}>
+          <Stack.Screen name="settings/export" options={{ headerShown: false }} />
+        </Stack.Protected>
+
         <Stack.Protected guard={shouldShowOnboarding}>
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -427,7 +442,7 @@ function RootLayoutNav() {
         <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
       </Stack>
-      {offlineSession && !routePath.includes("workout/active") && !isPublicRecoveryRoute ? (
+      {offlineSession && !onboardingRequired && !routePath.includes("workout/active") && !isPublicRecoveryRoute ? (
         <View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}>
           <OfflineScreen />
         </View>
