@@ -52,8 +52,8 @@ export function OnboardingSubscriptionScreen() {
     <View style={styles.header}>
       <Text allowFontScaling={false} style={[styles.brand, { fontSize: 20 * Math.min(fontScale, 1.5) }]}>PrimeRep</Text>
       <Pressable testID="onboarding-account-options" accessibilityRole="button" accessibilityLabel="Account options" disabled={blocked} accessibilityState={{ disabled: blocked }}
-        onPress={() => router.push("/onboarding-account" as Href)} style={[styles.account, { opacity: blocked ? 0.5 : 1 }]}>
-        <Text allowFontScaling={false} style={[styles.accountText, { color: colors.icon, fontSize: 14 * Math.min(fontScale, 1.5) }]}>Account options</Text><Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} accessible={false} />
+        onPress={() => router.push("/onboarding-account" as Href)} style={({ pressed }) => [styles.account, { backgroundColor: pressed ? colors.inputBorder : scheme === "dark" ? "#23272B" : "#F2F3F5", opacity: blocked ? 0.5 : 1 }]}>
+        <Ionicons name="person-outline" size={24} color={colors.text} accessible={false} />
       </Pressable>
     </View>
     <ScrollView testID="onboarding-subscription-scroll" style={styles.scroll} contentContainerStyle={styles.content}>
@@ -84,8 +84,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 24, paddingVertical: 8 },
   brand: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
-  account: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
-  accountText: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
+  account: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24, gap: 24 },
   hero: { gap: 12 },
