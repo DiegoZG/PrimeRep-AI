@@ -58,10 +58,9 @@ export function OnboardingSubscriptionScreen() {
     </View>
     <ScrollView testID="onboarding-subscription-scroll" style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
-        <Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 30 * Math.min(fontScale, 2) }]}>Your training starts here.</Text>
-        <Text style={[styles.intro, { color: colors.icon }]}>Choose your plan for workouts, programs, and coaching built around you.</Text>
+        <Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 24 * Math.min(fontScale, 2) }]}>Your training starts here.</Text>
+        <Text style={[styles.intro, { color: colors.icon }]}>Choose your plan.</Text>
       </View>
-      <SubscriptionBenefits />
       {pending || error || !verified || !sdkReady || !plans.length ? <View testID="onboarding-subscription-recovery" accessibilityLiveRegion="polite" style={[styles.message, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
         <View style={styles.messageHeading}>{blocked || (!verified && !error) ? <ActivityIndicator color={colors.primaryButton} /> : <Ionicons name={error ? "cloud-offline-outline" : "information-circle-outline"} size={22} color={colors.icon} accessible={false} />}
           <Text style={styles.messageTitle}>{pending ? pending.phase === "pending" ? "Awaiting Apple approval" : "Verifying your purchase" : !verified ? "Checking your access" : !sdkReady ? "Connect to billing" : "Plans unavailable"}</Text>
@@ -74,6 +73,7 @@ export function OnboardingSubscriptionScreen() {
         </Pressable> : null}
       </View> : notice ? <Text testID="subscription-feedback" accessibilityLiveRegion="polite" style={[styles.messageBody, { color: colors.icon }]}>{notice}</Text> : null}
       <SubscriptionPlans plans={plans} selected={plan?.id} blocked={blocked} onSelect={setSelected} />
+      <SubscriptionBenefits compact />
       {inlineCheckout ? checkout : null}
     </ScrollView>
     {!inlineCheckout ? checkout : null}
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   brand: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
   account: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24, gap: 24 },
-  hero: { gap: 12 },
-  title: { fontSize: 30, fontWeight: "700", letterSpacing: -0.8 },
+  content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24, gap: 20 },
+  hero: { gap: 6 },
+  title: { fontSize: 24, fontWeight: "700", letterSpacing: -0.5 },
   intro: { fontSize: 16 },
   checkout: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 4, gap: 8 },
   inlineCheckout: { paddingHorizontal: 0 },

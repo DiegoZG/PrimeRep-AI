@@ -10,17 +10,18 @@ export function SubscriptionText({ style, ...props }: TextProps) {
   return <NativeText {...props} style={[{ color: colors.text, fontSize: 16 }, style]} />;
 }
 
-export function SubscriptionBenefits() {
+export function SubscriptionBenefits({ compact = false }: { compact?: boolean }) {
   const dark = useColorScheme() === "dark";
-  return <View style={styles.benefits}>{([
+  const colors = Colors[dark ? "dark" : "light"];
+  return <View style={[styles.benefits, compact && styles.compactBenefits]}>{([
     ["barbell", "Workouts built around your goals"],
     ["swap-horizontal", "Swap exercises when plans change"],
     ["chatbubble-ellipses", "Personal programs and coaching"],
   ] as const).map(([icon, title]) => <View key={icon} style={styles.benefit}>
-    <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }]}>
-      <Ionicons name={icon} size={28} color="#FFFFFF" accessible={false} />
+    <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }, compact && styles.compactBenefitIcon]}>
+      <Ionicons name={icon} size={compact ? 24 : 28} color={compact ? colors.text : "#FFFFFF"} accessible={false} />
     </View>
-    <SubscriptionText style={styles.benefitText}>{title}</SubscriptionText>
+    <SubscriptionText style={[styles.benefitText, compact && styles.compactBenefitText]}>{title}</SubscriptionText>
   </View>)}</View>;
 }
 
@@ -60,9 +61,12 @@ export function SubscriptionCheckout({ plan, disabled, busy, onPurchase }: { pla
 
 const styles = StyleSheet.create({
   benefits: { gap: 20, paddingVertical: 4 },
+  compactBenefits: { gap: 12 },
   benefit: { flexDirection: "row", alignItems: "center", gap: 14 },
   benefitIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  compactBenefitIcon: { width: 24, height: 24, borderRadius: 0, backgroundColor: "transparent" },
   benefitText: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: "600", letterSpacing: -0.25 },
+  compactBenefitText: { fontSize: 16, fontWeight: "500", letterSpacing: 0 },
   plans: { gap: 12 },
   flexible: { flex: 1, minWidth: 0, gap: 4 },
   plan: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1.5 },
