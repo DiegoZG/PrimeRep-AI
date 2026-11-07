@@ -40,11 +40,14 @@ async function provider(options = {}) {
   identity.logOut = async (value) => { calls.push(["logout", value]); if (options.logOut) await options.logOut(value); };
   const routes = [];
   const router = { push: (route) => routes.push(route), replace: (route) => routes.push(route), canGoBack: () => true, back() {} };
-  const entrance = { duration() { return this; }, delay() { return this; }, withInitialValues() { return this; }, reduceMotion() { return this; } };
   const mocks = {
     react: React,
-    "expo-linear-gradient": { LinearGradient: "LinearGradient" },
-    "react-native-reanimated": { default: { View: "AnimatedView" }, __esModule: true, FadeIn: entrance, ZoomIn: entrance, ReduceMotion: { System: "system" }, useReducedMotion: () => options.reducedMotion ?? false },
+    "react-native-svg": { __esModule: true, default: "Svg", Circle: "Circle", Path: "Path", Rect: "Rect" },
+    "react-native-reanimated": { default: { View: "AnimatedView", createAnimatedComponent: component => component }, __esModule: true,
+      ReduceMotion: { System: "system" }, useReducedMotion: () => options.reducedMotion ?? false,
+      useSharedValue: value => React.useRef({ value }).current, useAnimatedStyle: callback => callback(), useAnimatedProps: callback => callback(),
+      cancelAnimation() {}, withDelay: (delay, value) => { calls.push(["animationDelay", delay]); return value; },
+      withTiming: (value, config) => { calls.push(["animation", config]); return value; }, Easing: { out: value => value, cubic: value => value } },
     "react-native": { Alert: { alert: (...args) => calls.push(["alert", ...args]) }, BackHandler: { addEventListener: () => ({ remove() {} }) }, AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", useWindowDimensions: () => ({ fontScale: readingScale }), StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
     "expo-router": { useRouter: () => router, useSegments: () => ["(tabs)"], useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "@/utils/authContext": { AuthContext },
@@ -132,16 +135,33 @@ test("onboarding presentation uses shared plans with monthly default and keeps r
   await view.unmount();
 });
 
-test("reduced motion keeps all onboarding benefits visible without entrance animations", async () => {
+test("reduced motion keeps current benefits and the future preview visible without animations", async () => {
   const view = await provider({ onboardingScreen: true, reducedMotion: true, snapshot: onboardingSnapshot() });
   const animated = view.tree.root.findAll(node => node.type === "AnimatedView");
   assert.ok(animated.length > 0);
-  assert.ok(animated.every(node => node.props.entering === undefined));
+  assert.equal(view.calls.some(call => call[0] === "animation"), false);
   const content = textOf(view.tree.toJSON());
-  assert.match(content, /Workouts built around your goals/);
-  assert.match(content, /Swap exercises when plans change/);
-  assert.match(content, /Personal programs and coaching/);
+  assert.match(content, /Built around your goals/);
+  assert.match(content, /See your progress/);
+  assert.match(content, /Personal coaching/);
+  assert.match(content, /Coming soonScan gym equipment/);
+  assert.equal(host(view.tree, "subscription-benefit-scan").props.accessibilityLabel, "Coming soon: Scan gym equipment");
+  assert.equal(host(view.tree, "subscription-benefit-scan").props.onPress, undefined);
   assert.equal(host(view.tree, "subscription-purchase").props.accessibilityState.disabled, false);
+  await view.unmount();
+});
+
+test("benefit illustrations run once in sequence and replay without billing or plan changes", async () => {
+  const view = await provider({ onboardingScreen: true, snapshot: onboardingSnapshot() });
+  assert.deepEqual(view.calls.filter(call => call[0] === "animationDelay").map(call => call[1]), [0, 700, 1400, 2100]);
+  await act(async () => { await view.value.refresh(); });
+  assert.equal(view.calls.filter(call => call[0] === "animation").length, 4);
+  for (const kind of ["workouts", "progress", "coaching", "scan"]) {
+    await act(async () => host(view.tree, `subscription-benefit-${kind}`).props.onPress());
+  }
+  assert.equal(view.calls.filter(call => call[0] === "animation").length, 8);
+  assert.equal(view.calls.some(call => call[0] === "purchase" || call[0] === "restore"), false);
+  assert.equal(host(view.tree, "subscription-plan-month").props.accessibilityState.selected, true);
   await view.unmount();
 });
 
