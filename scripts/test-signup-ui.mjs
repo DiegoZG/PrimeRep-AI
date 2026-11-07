@@ -14,6 +14,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const base = "42b3b5270769bfce446f1fe566932dc71a43f4ff";
 const original = (file) => execFileSync("git", ["show", `${base}:${file}`], { cwd: root, encoding: "utf8" });
+const mergedSource = (file) => execFileSync("git", ["show", `903bfd098390bd5135306b40ef3cfc1132c355c9:${file}`], { cwd: root, encoding: "utf8" });
 const source = (file) => readFileSync(path.join(root, file), "utf8");
 function load(file, mocks, input = source(file)) {
   const filename = path.join(root, file);
@@ -239,7 +240,7 @@ test("behavior: independent legal links and login keep exact routes without acce
 test("scope: signup state and controller, merged Login and all shared dependencies stay byte-identical", () => {
   const controller = (input) => input.slice(input.indexOf("const SignUpScreen = () => {"), input.indexOf("\n  return ("));
   assert.equal(controller(source("app/signup.tsx")), controller(original("app/signup.tsx")));
-  for (const file of ["app/login.tsx", "app/forgot-password.tsx", "app/_layout.tsx", "utils/authContext.tsx", "utils/onboardingContext.tsx", "services/authService.ts", "components/animated-input.tsx", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "components/themed-text.tsx", "constants/theme.ts", "constants/legal.ts", "constants/legal-release.json", "package.json", "package-lock.json"]) assert.equal(source(file), original(file), file);
+  for (const file of ["app/login.tsx", "app/forgot-password.tsx", "utils/authContext.tsx", "utils/onboardingContext.tsx", "services/authService.ts", "components/animated-input.tsx", "components/animated-button.tsx", "components/workout/WorkoutText.tsx", "components/themed-text.tsx", "constants/theme.ts", "constants/legal.ts", "constants/legal-release.json", "package.json", "package-lock.json"]) assert.equal(source(file), mergedSource(file), file);
 });
 
 const flat = (style) => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));

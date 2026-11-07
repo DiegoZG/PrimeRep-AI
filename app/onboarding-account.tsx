@@ -1,0 +1,115 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Href, useRouter } from "expo-router";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SubscriptionText as Text } from "@/components/subscriptions/SubscriptionOffer";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { accountRequestGuard } from "@/services/accountScope";
+import { deleteAccount } from "@/services/userService";
+import { pauseHealthExport, resumeHealthExport, waitForHealthExportIdle } from "@/services/health/exportSync";
+import { AuthContext } from "@/utils/authContext";
+import { NotificationsContext } from "@/utils/notificationsContext";
+import { clearHealthExportAccount } from "@/utils/healthExportAccountCleanup";
+import { clearPendingPurchaseForUser } from "@/utils/pendingPurchase";
+import { clearPreWorkoutOrdersForUser } from "@/utils/preWorkoutOrderStore";
+import { clearWorkoutLayoutForUser } from "@/utils/workoutLayoutPreference";
+import { useSubscription } from "@/utils/subscriptionContext";
+
+export default function OnboardingAccount() {
+  const router = useRouter();
+  const scheme = useColorScheme() ?? "light";
+  const colors = Colors[scheme];
+  const destructive = scheme === "dark" ? "#F18C86" : "#D32F2F";
+  const { fontScale } = useWindowDimensions();
+  const { user, token, logOut } = useContext(AuthContext);
+  const { unregisterCurrentDevice } = useContext(NotificationsContext);
+  const { snapshot, sdkReady, busy: billingBusy, manage, error } = useSubscription();
+  const [busy, setBusy] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  const hasSubscription = Boolean(snapshot?.product_id || snapshot?.management_url || (snapshot && ["trial", "active", "grace", "expired"].includes(snapshot.billing_status)));
+  const mutation = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+
+  const signOut = async () => {
+    if (mutation.current) return;
+    const current = accountRequestGuard();
+    mutation.current = true;
+    setBusy(true);
+    try {
+      if (token) await unregisterCurrentDevice(token).catch(() => undefined);
+      if (current()) await logOut();
+    } catch { if (mounted.current && current()) Alert.alert("Could not sign out", "Please try again.");
+    } finally { if (mounted.current && current()) { mutation.current = false; setBusy(false); } }
+  };
+
+  const confirmDelete = () => {
+    if (!user || !token || mutation.current) return;
+    const owner = user.id;
+    const current = accountRequestGuard();
+    Alert.alert("Delete account?", "This permanently deletes your account and workout data. Deleting PrimeRep does not cancel an Apple subscription; manage billing in Apple subscription settings. This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete account", style: "destructive", onPress: async () => {
+        if (!mounted.current || !current() || mutation.current) return;
+        mutation.current = true;
+        setBusy(true);
+        pauseHealthExport(owner);
+        try { await deleteAccount(token); }
+        catch {
+          resumeHealthExport(owner);
+          if (mounted.current && current()) { mutation.current = false; setBusy(false); Alert.alert("Could not delete account", "Please try again."); }
+          return;
+        }
+        try {
+          await Promise.all([clearPreWorkoutOrdersForUser(owner), clearWorkoutLayoutForUser(owner), clearPendingPurchaseForUser(owner)]);
+          await waitForHealthExportIdle();
+          await clearHealthExportAccount(owner);
+        } catch { console.warn("Account deleted, but local workout or Health export cleanup was incomplete."); }
+        if (current()) {
+          try { await logOut({ forceLocal: true }); }
+          catch { console.warn("Account deleted, but local token cleanup was incomplete."); }
+        }
+      } },
+    ]);
+  };
+
+  const rows = privacy ? [
+    ["Download my data", "download-outline", () => router.push("/settings/export" as Href)],
+    ["Delete account", "trash-outline", confirmDelete],
+  ] as const : [
+    ...(hasSubscription ? [["Manage subscription", "open-outline", () => void manage()] as const] : []),
+    ["Privacy & account", "shield-checkmark-outline", () => setPrivacy(true)],
+    ["Switch account", "log-out-outline", () => void signOut()],
+  ] as const;
+
+  return <SafeAreaView key={fontScale} style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+    <View style={styles.header}>
+      {privacy ? <Pressable testID="onboarding-account-back" accessibilityRole="button" accessibilityLabel="Back to account options" disabled={busy || billingBusy} onPress={() => setPrivacy(false)} style={styles.close}><Ionicons name="arrow-back" size={24} color={colors.text} accessible={false} /></Pressable> : null}
+      <Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 24 * Math.min(fontScale, 1.5) }]}>{privacy ? "Privacy & account" : "Account options"}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Close account options" disabled={busy || billingBusy} onPress={() => router.canGoBack() ? router.back() : router.replace("/onboarding-subscription" as Href)} style={styles.close}><Ionicons name="close" size={24} color={colors.text} accessible={false} /></Pressable>
+    </View>
+    <ScrollView contentContainerStyle={styles.content}>
+      <Text style={[styles.email, { color: colors.icon }]}>{user?.email}</Text>
+      {error ? <Text accessibilityRole="alert">{error}</Text> : null}
+      {rows.map(([title, icon, action]) => <Pressable key={title} testID={`onboarding-account-${icon}`} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: busy || billingBusy || (title === "Manage subscription" && !sdkReady) }} disabled={busy || billingBusy || (title === "Manage subscription" && !sdkReady)} onPress={action}
+        style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.inputBackground : "transparent", opacity: busy || billingBusy || (title === "Manage subscription" && !sdkReady) ? 0.5 : 1 }]}>
+        <Ionicons name={icon} size={24} color={title === "Delete account" ? destructive : colors.icon} accessible={false} />
+        <Text style={[styles.rowText, title === "Delete account" && { color: destructive }]}>{title}</Text>
+        {title === "Privacy & account" ? <Ionicons name="chevron-forward" size={18} color={colors.icon} accessible={false} /> : null}
+      </Pressable>)}
+    </ScrollView>
+  </SafeAreaView>;
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, padding: 20 },
+  title: { flex: 1, minWidth: 0, fontSize: 24, fontWeight: "700" },
+  close: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 8 },
+  email: { fontSize: 15, marginBottom: 16 },
+  row: { flexDirection: "row", alignItems: "center", gap: 16, minHeight: 56, paddingVertical: 12, borderRadius: 12 },
+  rowText: { flex: 1, minWidth: 0, fontSize: 17 },
+});

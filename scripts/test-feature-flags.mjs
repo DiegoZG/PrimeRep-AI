@@ -22,7 +22,7 @@ function load(file, mocks = {}) {
 }
 class HttpError extends Error { constructor(message, status) { super(message); this.status = status; } }
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
-const defaults = () => ({ environment: "preview", version: 0, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false }, subscriptions_launch_at: null, transition_ends_at: null, launch_locked: false, can_manage_flags: true, updated_at: null, history: [] });
+const defaults = () => ({ environment: "preview", version: 0, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false }, subscriptions_launch_at: null, transition_ends_at: null, launch_locked: false, can_manage_flags: true, updated_at: null, history: [] });
 const byId = (tree, testID) => tree.root.findByProps({ testID });
 const absent = (tree, testID) => assert.equal(tree.root.findAllByProps({ testID }).length, 0);
 const text = (tree, id) => byId(tree, id).children.join("");
@@ -68,9 +68,30 @@ test("service uses authenticated public/admin endpoints and atomic versioned pat
   const service = load("services/featureFlagService.ts", { "./httpClient": { requestJson: async (...args) => { calls.push(plain(args)); return defaults(); } } });
   await service.getFeatureFlags("token");
   await service.getAdminFeatureFlags("token");
-  const patch = { expected_version: 3, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false } };
+  const patch = { expected_version: 3, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false } };
   await service.updateFeatureFlags("token", patch);
   assert.deepEqual(calls, [["/v1/feature-flags", { token: "token" }], ["/v1/admin/feature-flags", { token: "token" }], ["/v1/admin/feature-flags", { method: "PATCH", token: "token", body: patch }]]);
+});
+
+test("onboarding master and selected-user override retain their purchase and enforcement prerequisites", async () => {
+  const app = await render();
+  await toggle(app.tree, "onboarding", true);
+  await tap(app.tree, "feature-flags-save");
+  assert.equal(app.calls.saves[0][1].flags.subscriptions_onboarding_enabled, true);
+  await app.close();
+  const selected = await render({ users: true, lookup: async () => userSnapshot("target-A", {
+    global_flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: true },
+    audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "selected" },
+  }) });
+  await identify(selected);
+  await override(selected, "onboarding", "allow");
+  assert.match(text(selected.tree, "flag-users-effective-subscriptions_onboarding_enabled"), /On/);
+  await override(selected, "enforcement", "deny");
+  assert.match(text(selected.tree, "flag-users-effective-subscriptions_onboarding_enabled"), /Off/);
+  byId(selected.tree, "flag-users-onboarding-prerequisite");
+  await tap(selected.tree, "flag-users-save");
+  assert.equal(selected.calls.userSaves[0][2].overrides.subscriptions_onboarding_enabled, true);
+  await selected.close();
 });
 
 for (const scheme of ["light", "dark"]) test(`defaults are off and controls are accessible at large text in ${scheme}`, async () => {
@@ -87,12 +108,12 @@ for (const scheme of ["light", "dark"]) test(`defaults are off and controls are 
 });
 
 test("both flags save together with version and launch, then show server audit", async () => {
-  const audit = { version: 1, changed_at: "2026-10-23T12:00:00Z", changed_by: "admin-uuid", before: { flags: defaults().flags, subscriptions_launch_at: null }, after: { flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, subscriptions_launch_at: "2026-10-01T00:00:00Z" } };
+  const audit = { version: 1, changed_at: "2026-10-23T12:00:00Z", changed_by: "admin-uuid", before: { flags: defaults().flags, subscriptions_launch_at: null }, after: { flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, subscriptions_launch_at: "2026-10-01T00:00:00Z" } };
   const app = await render({ save: async (_token, body) => ({ ...defaults(), version: 1, flags: body.flags, subscriptions_launch_at: body.subscriptions_launch_at, history: [audit] }) });
   await toggle(app.tree, "purchases", true); await toggle(app.tree, "enforcement", true); await date(app.tree, "2026-10-01T00:00:00Z");
   assert.match(text(app.tree, "feature-flags-transition"), /2026-10-31T00:00:00.000Z/);
   await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves, [["token-A", { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z" }]]);
+  assert.deepEqual(app.calls.saves, [["token-A", { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z" }]]);
   assert.equal(text(app.tree, "feature-flags-saved"), "Changes saved.");
   assert.match(byId(app.tree, "feature-flags-audit-1").findAllByType("Text").map((node) => node.children.join("")).join(" "), /admin-uuid.*Purchases: false → true/);
   await app.close();
@@ -131,10 +152,10 @@ test("403 hides all admin state on direct entry and after denied save", async ()
 });
 
 test("locked launch cannot be edited and is omitted while both flags turn off", async () => {
-  const app = await render({ get: async () => ({ ...defaults(), version: 4, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, subscriptions_launch_at: "2026-10-01T00:00:00Z", launch_locked: true }) });
+  const app = await render({ get: async () => ({ ...defaults(), version: 4, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, subscriptions_launch_at: "2026-10-01T00:00:00Z", launch_locked: true }) });
   assert.equal(byId(app.tree, "feature-flags-launch").props.editable, false); byId(app.tree, "feature-flags-launch-locked");
   await toggle(app.tree, "purchases", false); await toggle(app.tree, "enforcement", false); await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves[0][1], { expected_version: 4, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone" } }); await app.close();
+  assert.deepEqual(app.calls.saves[0][1], { expected_version: 4, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone" } }); await app.close();
 });
 
 test("account change immediately resets drafts and ignores prior account load/save", async () => {
@@ -207,7 +228,7 @@ test("old discard confirmation cannot send HTTP after account switch or unmount"
 
 
 function userSnapshot(id = "target-A", changes = {}) {
-  return { environment: "preview", version: 0, user: { id, email: `${id}@example.com`, preferred_name: id }, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null }, effective_flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, global_flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z", transition_ends_at: "2026-10-31T00:00:00Z", launch_locked: true, ...changes };
+  return { environment: "preview", version: 0, user: { id, email: `${id}@example.com`, preferred_name: id }, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null, subscriptions_onboarding_enabled: null }, effective_flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, global_flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z", transition_ends_at: "2026-10-31T00:00:00Z", launch_locked: true, ...changes };
 }
 const identify = async (app, identifier = "target-A@example.com") => {
   await act(async () => { byId(app.tree, "flag-users-identifier").props.onChangeText(identifier); });
@@ -220,12 +241,12 @@ test("target services keep identifiers in POST bodies and use paginated UUID URL
   const service = load("services/featureFlagService.ts", { "./httpClient": { requestJson: async (...args) => { calls.push(plain(args)); } } });
   await service.lookupFeatureFlagUser("token", "exact@example.com");
   await service.getUserFeatureFlags("token", "id/one");
-  await service.updateUserFeatureFlags("token", "uuid", { expected_version: 5, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: false } });
+  await service.updateUserFeatureFlags("token", "uuid", { expected_version: 5, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false } });
   await service.listUserFeatureFlags("token", 20);
   assert.deepEqual(calls, [
     ["/v1/admin/feature-flags/users/lookup", { method: "POST", token: "token", body: { identifier: "exact@example.com" } }],
     ["/v1/admin/feature-flags/users/id%2Fone", { token: "token" }],
-    ["/v1/admin/feature-flags/users/uuid", { method: "PATCH", token: "token", body: { expected_version: 5, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: false } } }],
+    ["/v1/admin/feature-flags/users/uuid", { method: "PATCH", token: "token", body: { expected_version: 5, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false } } }],
     ["/v1/admin/feature-flags/users?limit=20&offset=20", { token: "token" }],
   ]);
   assert.equal(calls.some(([url]) => url.includes("example.com")), false);
@@ -236,7 +257,7 @@ test("audiences default to everyone for legacy snapshots and save atomically wit
   assert.equal(byId(app.tree, "feature-flags-audience-subscriptions_purchases_enabled-everyone").props.accessibilityState.checked, true);
   await tap(app.tree, "feature-flags-audience-subscriptions_purchases_enabled-selected");
   await toggle(app.tree, "purchases", true); await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves[0][1], { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false }, audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "everyone" }, subscriptions_launch_at: null });
+  assert.deepEqual(app.calls.saves[0][1], { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false }, audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone" }, subscriptions_launch_at: null });
   await app.close();
 });
 
@@ -262,24 +283,24 @@ for (const scheme of ["light", "dark"]) test(`exact lookup shows identity and ac
 });
 
 test("allow deny and inherit resolve against audiences, master off and purchases prerequisite", async () => {
-  const selected = userSnapshot("target-A", { audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "selected" }, effective_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false } });
+  const selected = userSnapshot("target-A", { audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "selected", subscriptions_onboarding_enabled: "everyone" }, effective_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false } });
   const app = await render({ users: true, lookup: async () => selected }); await identify(app);
   assert.match(text(app.tree, "flag-users-effective-subscriptions_purchases_enabled"), /Off/);
   await override(app, "purchases", "allow"); assert.match(text(app.tree, "flag-users-effective-subscriptions_purchases_enabled"), /Preview after save: On/);
   await override(app, "enforcement", "allow"); assert.match(text(app.tree, "flag-users-effective-subscriptions_enforcement_enabled"), /On/);
   await override(app, "purchases", "deny"); assert.match(text(app.tree, "flag-users-effective-subscriptions_enforcement_enabled"), /Off/); byId(app.tree, "flag-users-purchases-prerequisite");
   await override(app, "purchases", "default"); assert.match(text(app.tree, "flag-users-effective-subscriptions_purchases_enabled"), /Off/); await app.close();
-  const off = await render({ users: true, lookup: async () => userSnapshot("target-A", { global_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false }, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true }, effective_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false } }) });
+  const off = await render({ users: true, lookup: async () => userSnapshot("target-A", { global_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false }, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, effective_flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false } }) });
   await identify(off); assert.match(text(off.tree, "flag-users-effective-subscriptions_purchases_enabled"), /Effective now: Off/); byId(off.tree, "flag-users-global-disabled-subscriptions_purchases_enabled"); await off.close();
 });
 
-test("save sends two overrides with env version and reset removes both explicitly", async () => {
+test("save sends all overrides with env version and reset removes them explicitly", async () => {
   const app = await render({ users: true, lookup: async () => userSnapshot("target-A", { version: 7 }) }); await identify(app);
   await override(app, "purchases", "allow"); await override(app, "enforcement", "deny"); await tap(app.tree, "flag-users-save");
-  assert.deepEqual(app.calls.userSaves[0], ["token-A", "target-A", { expected_version: 7, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false } }]);
+  assert.deepEqual(app.calls.userSaves[0], ["token-A", "target-A", { expected_version: 7, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: null } }]);
   byId(app.tree, "flag-users-saved"); await tap(app.tree, "flag-users-reset"); absent(app.tree, "flag-users-saved");
   assert.equal(app.calls.userSaves.length, 1); await tap(app.tree, "flag-users-save");
-  assert.deepEqual(app.calls.userSaves[1][2], { expected_version: 1, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null } }); await app.close();
+  assert.deepEqual(app.calls.userSaves[1][2], { expected_version: 1, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null, subscriptions_onboarding_enabled: null } }); await app.close();
 });
 
 test("configured list paginates and row selection fetches fresh target snapshot", async () => {
