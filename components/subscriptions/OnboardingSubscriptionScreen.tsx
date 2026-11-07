@@ -40,17 +40,11 @@ export function OnboardingSubscriptionScreen() {
     {plan ? <SubscriptionCheckout plan={plan} disabled={blocked || !canPurchase || !verified || Boolean(pending)} busy={busy} onPurchase={() => void purchase(plan)} /> : null}
     <View style={styles.footerLinks}>
       <Pressable testID="subscription-restore" accessibilityRole="button" accessibilityLabel="Restore purchases" accessibilityState={{ disabled: blocked || !sdkReady, busy: restoring }} disabled={blocked || !sdkReady}
-        accessibilityHint="Checks for an existing subscription without starting a new purchase."
-        onPress={() => { setRestoring(true); void restore().finally(() => setRestoring(false)); }}
-        style={({ pressed }) => [styles.restore, { backgroundColor: scheme === "dark" ? pressed ? "#372F49" : "#272236" : pressed ? "#ECE7FF" : "#F5F2FF", opacity: blocked || !sdkReady ? 0.5 : 1 }]}>
-        <View style={styles.restoreIcon}>{restoring ? <ActivityIndicator size="small" color={accent} accessible={false} /> : <Ionicons name="refresh" size={16} color={accent} accessible={false} />}</View>
-        <Text style={[styles.restoreText, { color: accent }]}>{restoring ? "Restoring…" : "Restore purchases"}</Text>
+        onPress={() => { setRestoring(true); void restore().finally(() => setRestoring(false)); }} style={styles.link}>
+        <Text style={[styles.linkText, { color: accent }]}>{restoring ? "Restoring…" : "Restore purchases"}</Text>
       </Pressable>
-      <View style={styles.legalLinks}>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/legal/terms" as Href)} style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.5 : 1 }]}><Text style={[styles.legalText, { color: colors.icon }]}>Terms</Text></Pressable>
-        <View accessible={false} style={[styles.legalDivider, { backgroundColor: colors.icon }]} />
-        <Pressable accessibilityRole="link" onPress={() => router.push("/legal/privacy" as Href)} style={({ pressed }) => [styles.legalLink, { opacity: pressed ? 0.5 : 1 }]}><Text style={[styles.legalText, { color: colors.icon }]}>Privacy</Text></Pressable>
-      </View>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/legal/terms" as Href)} style={styles.link}><Text style={[styles.legalText, { color: colors.icon }]}>Terms</Text></Pressable>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/legal/privacy" as Href)} style={styles.link}><Text style={[styles.legalText, { color: colors.icon }]}>Privacy</Text></Pressable>
     </View>
   </View>;
 
@@ -98,16 +92,10 @@ const styles = StyleSheet.create({
   intro: { fontSize: 16 },
   checkout: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 4, gap: 8 },
   inlineCheckout: { paddingHorizontal: 0 },
-  footerLinks: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", columnGap: 12, rowGap: 4 },
-  restore: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 44, maxWidth: "100%", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
-  restoreIcon: { width: 20, height: 20, alignItems: "center", justifyContent: "center" },
-  restoreText: { fontSize: 13, fontWeight: "600", flexShrink: 1 },
-  legalLinks: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 4, maxWidth: "100%" },
-  legalLink: { minHeight: 44, minWidth: 44, maxWidth: "100%", paddingHorizontal: 6, paddingVertical: 8, alignItems: "center", justifyContent: "center" },
-  legalDivider: { width: StyleSheet.hairlineWidth, height: 12, opacity: 0.35 },
+  footerLinks: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 16 },
   link: { minHeight: 44, justifyContent: "center", paddingVertical: 8 },
   linkText: { fontSize: 14, fontWeight: "600" },
-  legalText: { fontSize: 13, fontWeight: "500" },
+  legalText: { fontSize: 13 },
   message: { padding: 14, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, gap: 8 },
   messageHeading: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 },
   messageTitle: { fontSize: 16, fontWeight: "600" },
