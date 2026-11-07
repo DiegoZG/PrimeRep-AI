@@ -143,7 +143,7 @@ test("reduced motion keeps current benefits and the future preview visible witho
   const content = textOf(view.tree.toJSON());
   assert.match(content, /Built around your goals/);
   assert.match(content, /See your progress/);
-  assert.match(content, /Personal coaching/);
+  assert.match(content, /AI coaching/);
   assert.match(content, /Coming soonScan gym equipment/);
   assert.equal(host(view.tree, "subscription-benefit-scan").props.accessibilityLabel, "Coming soon: Scan gym equipment");
   assert.equal(host(view.tree, "subscription-benefit-scan").props.onPress, undefined);

@@ -100,7 +100,7 @@ export function SubscriptionBenefitIllustrations() {
     <View style={[styles.features, stacked && styles.stacked]}>
       <AnimatedBenefit kind="workouts" title="Built around your goals" delay={0} stacked={stacked} />
       <AnimatedBenefit kind="progress" title="See your progress" delay={700} stacked={stacked} />
-      <AnimatedBenefit kind="coaching" title="Personal coaching" delay={1400} stacked={stacked} />
+      <AnimatedBenefit kind="coaching" title="AI coaching" delay={1400} stacked={stacked} />
     </View>
     <View style={[styles.teaser, { borderTopColor: colors.inputBorder }]}>
       <AnimatedBenefit kind="scan" title="Scan gym equipment" delay={2100} />

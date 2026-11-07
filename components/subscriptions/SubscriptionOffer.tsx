@@ -17,7 +17,7 @@ export function SubscriptionBenefits({ compact = false }: { compact?: boolean })
   return <View style={styles.benefits}>{([
     ["barbell", "Workouts built around your goals"],
     ["trending-up", "Track your workouts and progress"],
-    ["chatbubble-ellipses", "Personal programs and coaching"],
+    ["chatbubble-ellipses", "Personal programs and AI coaching"],
   ] as const).map(([icon, title]) => <View key={icon} style={styles.benefit}>
     <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }]}>
       <Ionicons name={icon} size={28} color="#FFFFFF" accessible={false} />
