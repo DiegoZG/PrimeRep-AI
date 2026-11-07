@@ -40,8 +40,11 @@ async function provider(options = {}) {
   identity.logOut = async (value) => { calls.push(["logout", value]); if (options.logOut) await options.logOut(value); };
   const routes = [];
   const router = { push: (route) => routes.push(route), replace: (route) => routes.push(route), canGoBack: () => true, back() {} };
+  const entrance = { duration() { return this; }, delay() { return this; }, withInitialValues() { return this; }, reduceMotion() { return this; } };
   const mocks = {
     react: React,
+    "expo-linear-gradient": { LinearGradient: "LinearGradient" },
+    "react-native-reanimated": { default: { View: "AnimatedView" }, __esModule: true, FadeIn: entrance, ZoomIn: entrance, ReduceMotion: { System: "system" }, useReducedMotion: () => options.reducedMotion ?? false },
     "react-native": { Alert: { alert: (...args) => calls.push(["alert", ...args]) }, BackHandler: { addEventListener: () => ({ remove() {} }) }, AppState: { addEventListener: (_event, callback) => { foreground.add(callback); return { remove: () => foreground.delete(callback) }; } }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", ActivityIndicator: "ActivityIndicator", useWindowDimensions: () => ({ fontScale: readingScale }), StyleSheet: { create: (styles) => styles, hairlineWidth: 0.5 } },
     "expo-router": { useRouter: () => router, useSegments: () => ["(tabs)"], useFocusEffect: (callback) => React.useEffect(callback, [callback]) },
     "@/utils/authContext": { AuthContext },
@@ -126,6 +129,19 @@ test("onboarding presentation uses shared plans with monthly default and keeps r
   const brand = view.tree.root.findAllByType("Text").find(node => textOf(node) === "PrimeRep");
   assert.equal(brand.props.allowFontScaling, false);
   assert.equal(Object.assign({}, ...brand.props.style.flat(Infinity)).fontSize, 30);
+  await view.unmount();
+});
+
+test("reduced motion keeps all onboarding benefits visible without entrance animations", async () => {
+  const view = await provider({ onboardingScreen: true, reducedMotion: true, snapshot: onboardingSnapshot() });
+  const animated = view.tree.root.findAll(node => node.type === "AnimatedView");
+  assert.ok(animated.length > 0);
+  assert.ok(animated.every(node => node.props.entering === undefined));
+  const content = textOf(view.tree.toJSON());
+  assert.match(content, /Workouts built around your goals/);
+  assert.match(content, /Swap exercises when plans change/);
+  assert.match(content, /Personal programs and coaching/);
+  assert.equal(host(view.tree, "subscription-purchase").props.accessibilityState.disabled, false);
   await view.unmount();
 });
 

@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text as NativeText, type TextProps, View } from "react-native";
+import Animated, { FadeIn, ReduceMotion, useReducedMotion, ZoomIn } from "react-native-reanimated";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { BillingPlan } from "@/services/revenueCat";
@@ -12,17 +14,23 @@ export function SubscriptionText({ style, ...props }: TextProps) {
 
 export function SubscriptionBenefits({ compact = false }: { compact?: boolean }) {
   const dark = useColorScheme() === "dark";
-  const colors = Colors[dark ? "dark" : "light"];
-  return <View style={[styles.benefits, compact && styles.compactBenefits]}>{([
+  const reducedMotion = useReducedMotion();
+  const Container = compact ? Animated.View : View;
+  return <Container entering={compact && !reducedMotion ? FadeIn.duration(320).reduceMotion(ReduceMotion.System) : undefined}
+    style={[styles.benefits, compact && styles.compactBenefits, compact && { backgroundColor: dark ? "#211C30" : "#F7F5FF" }]}>{([
     ["barbell", "Workouts built around your goals"],
     ["swap-horizontal", "Swap exercises when plans change"],
     ["chatbubble-ellipses", "Personal programs and coaching"],
-  ] as const).map(([icon, title]) => <View key={icon} style={styles.benefit}>
-    <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }, compact && styles.compactBenefitIcon]}>
-      <Ionicons name={icon} size={compact ? 24 : 28} color={compact ? colors.text : "#FFFFFF"} accessible={false} />
-    </View>
+  ] as const).map(([icon, title], index) => <View key={icon} style={styles.benefit}>
+    {compact ? <Animated.View accessible={false} entering={reducedMotion ? undefined : ZoomIn.duration(360).delay(80 + index * 80).withInitialValues({ transform: [{ scale: 0.86 }] }).reduceMotion(ReduceMotion.System)} style={styles.featureIconShadow}>
+      <LinearGradient colors={dark ? ["#9C83FF", "#6A4FF5", "#453090"] : ["#9278FF", "#6A4FF5", "#5136C6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featureIcon}>
+        <Ionicons name={icon} size={26} color="#FFFFFF" accessible={false} />
+      </LinearGradient>
+    </Animated.View> : <View style={[styles.benefitIcon, { backgroundColor: dark ? "#343B42" : "#292E33" }]}>
+      <Ionicons name={icon} size={28} color="#FFFFFF" accessible={false} />
+    </View>}
     <SubscriptionText style={[styles.benefitText, compact && styles.compactBenefitText]}>{title}</SubscriptionText>
-  </View>)}</View>;
+  </View>)}</Container>;
 }
 
 export function SubscriptionPlans({ plans, selected, blocked, onSelect }: { plans: BillingPlan[]; selected?: string; blocked: boolean; onSelect: (id: string) => void }) {
@@ -61,12 +69,13 @@ export function SubscriptionCheckout({ plan, disabled, busy, onPurchase }: { pla
 
 const styles = StyleSheet.create({
   benefits: { gap: 20, paddingVertical: 4 },
-  compactBenefits: { gap: 12 },
+  compactBenefits: { gap: 16, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 20 },
   benefit: { flexDirection: "row", alignItems: "center", gap: 14 },
   benefitIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  compactBenefitIcon: { width: 24, height: 24, borderRadius: 0, backgroundColor: "transparent" },
+  featureIconShadow: { flexShrink: 0, borderRadius: 13, shadowColor: "#5136C6", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 5 },
+  featureIcon: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: "#FFFFFF30", alignItems: "center", justifyContent: "center" },
   benefitText: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: "600", letterSpacing: -0.25 },
-  compactBenefitText: { fontSize: 16, fontWeight: "500", letterSpacing: 0 },
+  compactBenefitText: { fontSize: 16, fontWeight: "600", letterSpacing: -0.2 },
   plans: { gap: 12 },
   flexible: { flex: 1, minWidth: 0, gap: 4 },
   plan: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1.5 },
