@@ -25,8 +25,10 @@ export default function OnboardingAccount() {
   const { fontScale } = useWindowDimensions();
   const { user, token, logOut } = useContext(AuthContext);
   const { unregisterCurrentDevice } = useContext(NotificationsContext);
-  const { sdkReady, busy: billingBusy, manage, error } = useSubscription();
+  const { snapshot, sdkReady, busy: billingBusy, manage, error } = useSubscription();
   const [busy, setBusy] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  const hasSubscription = Boolean(snapshot?.product_id || snapshot?.management_url || (snapshot && ["trial", "active", "grace", "expired"].includes(snapshot.billing_status)));
   const mutation = useRef(false);
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
@@ -73,24 +75,29 @@ export default function OnboardingAccount() {
     ]);
   };
 
+  const rows = privacy ? [
+    ["Download my data", "download-outline", () => router.push("/settings/export" as Href)],
+    ["Delete account", "trash-outline", confirmDelete],
+  ] as const : [
+    ...(hasSubscription ? [["Manage subscription", "open-outline", () => void manage()] as const] : []),
+    ["Privacy & account", "shield-checkmark-outline", () => setPrivacy(true)],
+    ["Switch account", "log-out-outline", () => void signOut()],
+  ] as const;
+
   return <SafeAreaView key={fontScale} style={[styles.screen, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
-    <View style={styles.header}><Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 24 * Math.min(fontScale, 1.5) }]}>Account options</Text>
+    <View style={styles.header}>
+      {privacy ? <Pressable testID="onboarding-account-back" accessibilityRole="button" accessibilityLabel="Back to account options" disabled={busy || billingBusy} onPress={() => setPrivacy(false)} style={styles.close}><Ionicons name="arrow-back" size={24} color={colors.text} accessible={false} /></Pressable> : null}
+      <Text accessibilityRole="header" allowFontScaling={false} style={[styles.title, { fontSize: 24 * Math.min(fontScale, 1.5) }]}>{privacy ? "Privacy & account" : "Account options"}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel="Close account options" disabled={busy || billingBusy} onPress={() => router.canGoBack() ? router.back() : router.replace("/onboarding-subscription" as Href)} style={styles.close}><Ionicons name="close" size={24} color={colors.text} accessible={false} /></Pressable>
     </View>
     <ScrollView contentContainerStyle={styles.content}>
       <Text style={[styles.email, { color: colors.icon }]}>{user?.email}</Text>
       {error ? <Text accessibilityRole="alert">{error}</Text> : null}
-      {([
-        ["Manage subscription", "open-outline", () => void manage()],
-        ["Download my data", "download-outline", () => router.push("/settings/export" as Href)],
-        ["Terms", "document-text-outline", () => router.push("/legal/terms" as Href)],
-        ["Privacy", "shield-checkmark-outline", () => router.push("/legal/privacy" as Href)],
-        ["Sign out", "log-out-outline", () => void signOut()],
-        ["Delete account", "trash-outline", confirmDelete],
-      ] as const).map(([title, icon, action]) => <Pressable key={title} testID={`onboarding-account-${icon}`} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: busy || billingBusy || (title === "Manage subscription" && !sdkReady) }} disabled={busy || billingBusy || (title === "Manage subscription" && !sdkReady)} onPress={action}
+      {rows.map(([title, icon, action]) => <Pressable key={title} testID={`onboarding-account-${icon}`} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: busy || billingBusy || (title === "Manage subscription" && !sdkReady) }} disabled={busy || billingBusy || (title === "Manage subscription" && !sdkReady)} onPress={action}
         style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.inputBackground : "transparent", opacity: busy || billingBusy || (title === "Manage subscription" && !sdkReady) ? 0.5 : 1 }]}>
         <Ionicons name={icon} size={24} color={title === "Delete account" ? destructive : colors.icon} accessible={false} />
         <Text style={[styles.rowText, title === "Delete account" && { color: destructive }]}>{title}</Text>
+        {title === "Privacy & account" ? <Ionicons name="chevron-forward" size={18} color={colors.icon} accessible={false} /> : null}
       </Pressable>)}
     </ScrollView>
   </SafeAreaView>;

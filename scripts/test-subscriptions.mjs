@@ -446,16 +446,31 @@ test("mounted root excludes training deep links and makes the required modal the
   await act(async () => legacy.tree.unmount());
 });
 
-test("required onboarding account options retain management, export, legal and signout", async () => {
+test("onboarding account menu groups privacy tools and retains safe account switching", async () => {
   const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot() });
-  await act(async () => host(view.tree, "onboarding-account-open-outline").props.onPress());
-  assert.equal(view.calls.some(call => call[0] === "manage"), true);
+  assert.equal(host(view.tree, "onboarding-account-open-outline"), undefined);
+  assert.equal(host(view.tree, "onboarding-account-trash-outline"), undefined);
+  assert.equal(host(view.tree, "onboarding-account-document-text-outline"), undefined);
+  await act(async () => host(view.tree, "onboarding-account-shield-checkmark-outline").props.onPress());
+  assert.ok(host(view.tree, "onboarding-account-trash-outline"));
   await act(async () => host(view.tree, "onboarding-account-download-outline").props.onPress());
   assert.deepEqual(view.routes, ["/settings/export"]);
+  await act(async () => host(view.tree, "onboarding-account-back").props.onPress());
+  assert.equal(host(view.tree, "onboarding-account-download-outline"), undefined);
+  assert.equal(host(view.tree, "onboarding-account-log-out-outline").props.accessibilityLabel, "Switch account");
   await act(async () => host(view.tree, "onboarding-account-log-out-outline").props.onPress());
   assert.equal(view.calls.some(call => call[0] === "unregister"), true);
   assert.equal(view.calls.some(call => call[0] === "logout"), true);
   await view.unmount();
+});
+
+test("onboarding account management is shown for known billing without requiring active access", async () => {
+  for (const billing of [{ billing_status: "trial" }, { billing_status: "active" }, { billing_status: "grace" }, { billing_status: "expired" }, { billing_status: "unknown", product_id: "monthly" }, { billing_status: "unknown", management_url: "https://apps.apple.com/account/subscriptions" }]) {
+    const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot(billing) });
+    await act(async () => host(view.tree, "onboarding-account-open-outline").props.onPress());
+    assert.equal(view.calls.some(call => call[0] === "manage"), true);
+    await view.unmount();
+  }
 });
 
 test("dark onboarding actions retain readable text and account controls have clean spoken labels", async () => {
@@ -465,9 +480,10 @@ test("dark onboarding actions retain readable text and account controls have cle
   await view.unmount();
   const account = await provider({ accountScreen: true, snapshot: onboardingSnapshot(), scheme: "dark", fakeTimers: true });
   const controls = account.tree.root.findAll(node => typeof node.type === "string" && node.props.testID?.startsWith("onboarding-account-"));
-  assert.deepEqual(controls.map(node => node.props.accessibilityLabel), ["Manage subscription", "Download my data", "Terms", "Privacy", "Sign out", "Delete account"]);
+  assert.deepEqual(controls.map(node => node.props.accessibilityLabel), ["Privacy & account", "Switch account"]);
+  for (const control of controls) assert.ok(control.findAllByType("Ionicons").every(icon => icon.props.accessible === false));
+  await act(async () => host(account.tree, "onboarding-account-shield-checkmark-outline").props.onPress());
   assert.equal(color(host(account.tree, "onboarding-account-trash-outline").findByType("Text")), "#F18C86");
-  for (const control of controls) assert.equal(control.findByType("Ionicons").props.accessible, false);
   await account.setFontScale(3.1);
   assert.equal(host(account.tree, "onboarding-account-trash-outline").props.accessibilityLabel, "Delete account");
   const heading = account.tree.root.findAllByType("Text").find(node => node.props.accessibilityRole === "header");
@@ -478,12 +494,14 @@ test("dark onboarding actions retain readable text and account controls have cle
 
 test("onboarding account deletion retains safe cleanup and failed deletion remains recoverable", async () => {
   const view = await provider({ accountScreen: true, snapshot: onboardingSnapshot() });
+  await act(async () => host(view.tree, "onboarding-account-shield-checkmark-outline").props.onPress());
   await act(async () => host(view.tree, "onboarding-account-trash-outline").props.onPress());
   const alert = view.calls.find(call => call[0] === "alert");
   await act(async () => alert[3].find(button => button.style === "destructive").onPress());
   for (const action of ["delete", "pauseExport", "clearOrders", "clearLayout", "waitExport", "clearHealth", "logout"]) assert.equal(view.calls.some(call => call[0] === action), true, action);
   await view.unmount();
   const failed = await provider({ accountScreen: true, snapshot: onboardingSnapshot(), deleteAccount: async () => { throw new Error("Offline"); } });
+  await act(async () => host(failed.tree, "onboarding-account-shield-checkmark-outline").props.onPress());
   await act(async () => host(failed.tree, "onboarding-account-trash-outline").props.onPress());
   await act(async () => failed.calls.find(call => call[0] === "alert")[3].find(button => button.style === "destructive").onPress());
   assert.equal(failed.calls.some(call => call[0] === "resumeExport"), true);
