@@ -44,7 +44,8 @@ function AnimatedBenefit({ kind, title, delay, stacked = false }: { kind: Illust
     accessibilityLabel={teaser ? `Coming soon: ${title}` : title}
     accessibilityHint={reducedMotion ? undefined : "Double-tap to replay the illustration."}
     onPress={reducedMotion ? undefined : () => play(0)}
-    style={({ pressed }) => [styles.benefit, (stacked || teaser) && styles.horizontal, { opacity: pressed ? 0.7 : 1 }]}>
+    style={({ pressed }) => [styles.benefit, (stacked || teaser) && styles.horizontal, teaser && !stacked && styles.teaserRow, { opacity: pressed ? 0.7 : 1 }]}>
+    <View style={teaser && !stacked ? styles.teaserArtColumn : undefined}>
     <View style={styles.art} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {kind === "workouts" ? <>
         <Animated.View style={[styles.card, { left: 6, top: 12 }, leftCard]}>{card(true)}</Animated.View>
@@ -85,7 +86,8 @@ function AnimatedBenefit({ kind, title, delay, stacked = false }: { kind: Illust
         </Animated.View>
       </> : null}
     </View>
-    <View style={(stacked || teaser) ? styles.copy : undefined}>
+    </View>
+    <View style={[(stacked || teaser) && styles.copy, teaser && !stacked && styles.teaserCopy]}>
       {teaser ? <Text accessible={false} style={[styles.comingSoon, { color: colors.icon }]}>Coming soon</Text> : null}
       <Text accessible={false} style={[styles.label, (stacked || teaser) && styles.horizontalLabel, teaser && styles.teaserLabel, { color: colors.text }]}>{title}</Text>
     </View>
@@ -103,7 +105,7 @@ export function SubscriptionBenefitIllustrations() {
       <AnimatedBenefit kind="coaching" title="AI coaching" delay={1400} stacked={stacked} />
     </View>
     <View style={[styles.teaser, { borderTopColor: colors.inputBorder }]}>
-      <AnimatedBenefit kind="scan" title="Scan gym equipment" delay={2100} />
+      <AnimatedBenefit kind="scan" title="Scan gym equipment" delay={2100} stacked={stacked} />
     </View>
   </View>;
 }
@@ -114,6 +116,9 @@ const styles = StyleSheet.create({
   stacked: { flexDirection: "column", gap: 16 },
   benefit: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", gap: 8 },
   horizontal: { flex: 0, flexDirection: "row", gap: 14 },
+  teaserRow: { gap: 4 },
+  teaserArtColumn: { width: "33.333333%", paddingRight: 8, alignItems: "center" },
+  teaserCopy: { flex: 1 },
   art: { width: 64, height: 64, flexShrink: 0 },
   card: { position: "absolute" },
   endpoint: { position: "absolute", left: 49, top: 13, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5 },
