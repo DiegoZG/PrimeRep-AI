@@ -1,6 +1,6 @@
 # Workout reliability monitoring
 
-Status: Phases 1–3 implemented and independently verified. Collection remains default off. Phase 4 native/preview verification is pending.
+Status: Phases 1–3 implemented and independently verified; Phase 4 local native verification is complete against isolated APP_ENV=test infrastructure. Collection remains default off. Backend/frontend deployment, the monitored hourly prune job, operator ownership and production rollout remain pending.
 
 Client implementation details and measurement limitations: [workout-diagnostics.md](workout-diagnostics.md). The diagnostic-only sidecar replaces optional business-store metadata columns to keep diagnostic failures outside workout database initialization and persistence.
 
@@ -148,6 +148,12 @@ Acceptance:
 3. Disabling or breaking diagnostics has no effect on saved workouts or user-visible logging behavior.
 4. Queue-age limitations, actual replay lifecycle, retention job, readout instructions and operator ownership are documented.
 5. New frontend/backend PRs start from these main revisions, identify dependencies, and keep the monitoring flag off by default. Deploy additive backend support before enabling a preview frontend cohort.
+
+### Verification outcome
+
+Local native testing preserved the existing SQLite schema, four legacy operations and fifteen drafts; retained diagnostic trace/rest timing across cold restart; logged two new sets and finished/recovered the workout while telemetry was delayed or unavailable; then delivered fifty-three diagnostics automatically. A strict-schema-valid twenty-event batch replay produced only duplicates without changing raw row counts or report metrics. Rollback produced no new diagnostic requests during an approximately ninety-eight-second observation window. The [client runbook](workout-diagnostics.md#local-native-verification) records the measured counts and limitations.
+
+This evidence is from a simulator and isolated local `APP_ENV=test` backend, not production or remote staging. Physical haptic feel and frame-level flicker are not established by it. Broader reconciliation, storage-fault and account/ownership cases remain backed by automated tests. Production collection stays disabled until additive backend/frontend deployment and verified retention scheduling/operator ownership.
 
 ## Scope boundaries
 
