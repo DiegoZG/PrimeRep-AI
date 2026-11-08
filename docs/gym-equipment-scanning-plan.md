@@ -46,6 +46,17 @@ Existing equipment search is local name/ID/category filtering and can use stale/
 
 Each slice uses the paired plan's verification checklist and anti-pattern guards. Planned tests include response normalization, account/retake races, confirmation, compatibility and publication fixtures plus affected existing regression checks. Provider selection/budget, initial machine cohort, access policy and release thresholds are pending; do not present fixture recognition as the delivered feature.
 
+## Image and cost guardrails
+
+The paired backend plan's Phase 3 guardrails are required acceptance criteria, not implemented behavior. Initial values are evaluation proposals until quality is verified:
+
+- Select/capture exactly one photo, with multiple selection disabled. Preview before uploading and explain “One machine per photo.” Background gym equipment is acceptable when the intended machine is clear; ambiguous targets/collages ask for a retake.
+- Benchmark longest-edge bounds of 768/1024/1536 px, starting at 1024 px with JPEG quality around 0.8. Preserve aspect ratio, attachments and the full machine, never upscale or use a square avatar crop. The proposed provider ceiling is 1536 px. Use the smallest configuration meeting held-out quality requirements; reduced byte size alone does not prove lower image-token billing. The server repeats decode, size/frame checks and fresh encoding without metadata. Proposed incoming limits remain 5 MiB and 20 million decoded pixels.
+- Show bounded actionable outcomes for non-equipment, multiple primary subjects, unclear/unsupported equipment and uncertainty, plus a generic content-policy rejection. Safety screening (moderation) and “is this gym equipment?” are separate checks. A failed safety gate cannot fall through to recognition. Never imply either check is infallible or that rejected photos necessarily cost nothing.
+- Disable Identify while a scan is pending. The server enforces one active scan per account across devices, so rapid taps, navigation or another device cannot create parallel paid work. Reuse the submission key for transport retries; same normalized image receipts may be reused only within that account/environment and while their versions remain current. No automatic paid fallback, larger-image retry or second classification call after uncertainty. Client cancellation does not guarantee provider cancellation or a refund.
+- Surface the server's scan-in-progress, attempt-limit and budget-limit states with retake/retry information where appropriate and manual search always reachable. Proposed internal-pilot attempt caps are three/minute and twenty/day; plan/trial/free access and approved global budgets remain product decisions. A same-key receipt replay does not spend another provider attempt. Do not embed keys, budgets or authority in client checks.
+- Keep photos temporary and out of route parameters, logs, analytics and persisted workout state. Test concurrent submissions, retake/account races, animated/multiple-file bypasses, unrelated/content-policy fixtures and quality at reduced resolutions. Server-side quota/spend reservation and provider benchmarking must pass before release.
+
 ## Identity and integration boundaries
 
 Renames/content changes preserve IDs. Retired/replaced entries keep historical references and snapshots; materially different movement/tracking/load semantics use distinct IDs. A provider switch requires reviewed mappings and coverage tests, with unchanged mobile contracts and workout/history identity.
