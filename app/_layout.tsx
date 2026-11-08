@@ -31,6 +31,7 @@ import { ProfileProvider } from "@/utils/profileContext";
 import { SubscriptionProvider, SubscriptionPrompt, useSubscription } from "@/utils/subscriptionContext";
 import { HealthReadSync } from "@/utils/healthReadSync";
 import { HealthExportSync } from "@/utils/healthExportSync";
+import { WorkoutDiagnosticsSync } from "@/utils/workoutDiagnosticsSync";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -464,6 +465,7 @@ function ThemedRootLayout() {
           <WorkoutLayoutProvider>
           <HealthReadSync />
           <HealthExportSync />
+          <WorkoutDiagnosticsSync />
           <ProfileProvider>
           <NotificationsProvider>
             <OnboardingProvider>

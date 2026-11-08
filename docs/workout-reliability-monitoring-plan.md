@@ -1,6 +1,8 @@
 # Workout reliability monitoring
 
-Status: proposed implementation plan; no monitoring code or data collection enabled.
+Status: Phases 1–3 implemented and independently verified. Collection remains default off. Phase 4 native/preview verification is pending.
+
+Client implementation details and measurement limitations: [workout-diagnostics.md](workout-diagnostics.md). The diagnostic-only sidecar replaces optional business-store metadata columns to keep diagnostic failures outside workout database initialization and persistence.
 
 Prepared from frontend `main` at `3db343f` and backend `main` at `805ff5c`, after onboarding subscription PRs #112 and #31 merged.
 
