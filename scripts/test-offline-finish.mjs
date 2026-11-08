@@ -24,6 +24,7 @@ function harness(gateCompletion = null, options = {}) {
     }
   }
   const items = new Map();
+  const diagnostics = loadTypescript("utils/workoutDiagnosticsBridge.ts");
   let failStorage = false;
   const storage = {
     getItem: async (key) => items.get(key) ?? null,
@@ -82,6 +83,7 @@ function harness(gateCompletion = null, options = {}) {
     const module = { exports: {} };
     const fallback = createRequire(filename);
     const mocks = {
+      "./workoutDiagnosticsBridge": diagnostics,
       "@react-native-async-storage/async-storage": { __esModule: true, default: storage },
       "@/services/httpClient": { HttpError },
       "@/services/workoutLoggingService": service,
@@ -103,7 +105,7 @@ function harness(gateCompletion = null, options = {}) {
     sets: [{ exerciseId: "squat", setNumber: 1, reps: "8", weight: "40", weightKg: 40, confirmed: true, deleted: false, logId: "log-1", syncStatus: "synced", syncing: false }],
     operations: [],
   });
-  return { load, baseWorkout, calls, items, session, setStorageFailure: (value) => { failStorage = value; } };
+  return { load, baseWorkout, calls, items, session, diagnostics, setStorageFailure: (value) => { failStorage = value; } };
 }
 
 function enteredRow(setNumber, extra = {}) {
@@ -499,4 +501,27 @@ test("a different saved value remains a failed conflict without repeated POSTs",
   assert.equal(fixture.calls.conflicts, 1);
   await store.replayPendingWorkoutOperations("token", "user-1");
   assert.equal(fixture.calls.logSet.length, 1);
+});
+
+test("diagnostics report server completion and local cleanup separately without blocking finish recovery", async () => {
+  const fixture = harness(), signals = [];
+  fixture.diagnostics.setWorkoutDiagnosticListener({ owner: "user-1", current: () => true, emit: (signal) => signals.push(signal) });
+  const store = fixture.load(), initial = fixture.baseWorkout();
+  await store.saveActiveWorkout(initial); await store.queueWorkoutCompletion(initial);
+  const result = await store.replayPendingWorkoutOperations("token", "user-1"); assert.equal(result.completed, true);
+  assert.ok(signals.some((signal) => signal.kind === "finish" && signal.stage === "server" && signal.outcome === "success"));
+  assert.equal(signals.some((signal) => signal.kind === "finish" && signal.stage === "local_cleanup"), false);
+  await store.clearActiveWorkout("user-1");
+  assert.ok(signals.some((signal) => signal.kind === "finish" && signal.stage === "local_cleanup" && signal.outcome === "success"));
+});
+
+test("local storage failure emits a storage category and never claims a durable saved set", async () => {
+  const fixture = harness(), signals = [];
+  fixture.diagnostics.setWorkoutDiagnosticListener({ owner: "user-1", current: () => true, emit: (signal) => signals.push(signal) });
+  const store = fixture.load(), initial = { ...fixture.baseWorkout(), sets: [enteredRow(1)] };
+  await store.saveActiveWorkout(initial); fixture.setStorageFailure(true);
+  await assert.rejects(store.saveWorkoutSetEntries(initial, ["squat:1"], "LB"));
+  assert.equal(signals.find((signal) => signal.kind === "local").category, "storage");
+  assert.equal(signals.some((signal) => signal.kind === "local" && signal.outcome === "success"), false);
+  fixture.setStorageFailure(false); assert.equal((await store.loadActiveWorkout("user-1")).sets[0].confirmed, false);
 });

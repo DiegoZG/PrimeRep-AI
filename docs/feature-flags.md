@@ -1,6 +1,10 @@
-# Subscription feature flags
+# Feature flags
 
 Open **Settings → Administration → Feature flags** while signed in to a backend-authorized administrator account. Regular accounts do not see the link and the server rejects direct admin access. Access is granted by immutable user UUID in backend deployment configuration, never by an email checked in the app.
+
+## Workout reliability monitoring
+
+`workout_reliability_monitoring_enabled` defaults to off and has its own master, audience, user overrides and audit history. It is independent of subscription purchases, enforcement, onboarding and paid access. A selected-user audience requires an Allow override; Deny and an off global master always win. Older API responses without the flag normalize to off, with an inherited user override. These rollout controls do not add a logging indicator or change workout saving; diagnostic capture and delivery are separate implementation phases.
 
 Deploy the backend endpoints, migrations and admin UUID bootstrap first. Preview and production keep separate snapshots; always check the environment label before saving. All three subscription flags default to false. Purchases exposes billing, enforcement controls new training, and onboarding requires a subscription after fresh-account onboarding only when both prerequisites are effective.
 

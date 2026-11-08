@@ -1,3 +1,4 @@
+import { diagnosticElapsed, diagnosticNow, workoutDiagnostics } from "./workoutDiagnosticsBridge";
 import { PreWorkoutOrderConflict, applyPrestartOrder, adoptSessionArrangement, mergeReplayAcknowledgement, mergeSavedArrangement, normalizeWorkoutArrangement } from "./workoutArrangement";
 import * as SQLite from "expo-sqlite";
 import { acknowledgeSetOperation, isAppliedSetOperation, mergeSetAcknowledgements, prepareSetEntries, resolveSetCorrection } from "./workoutSetEntries";
@@ -256,6 +257,7 @@ function normalizeOperationSequences(operations: SequencedWorkoutOperation[]): S
 }
 
 export async function loadActiveWorkout(userId: string): Promise<LocalActiveWorkout | null> {
+  const diagnostics = workoutDiagnostics(userId);
   const db = await database();
   const workout = await db.getFirstAsync<{
     workout_day_id: string; workout_date: string; day_type: string; client_session_id: string;
@@ -275,7 +277,7 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     payload: JSON.parse(operation.payload),
   })) as SequencedWorkoutOperation[]);
   const sets = drafts.map((draft) => JSON.parse(draft.payload) as SetState);
-  return normalizeWorkoutArrangement({
+  const loaded = normalizeWorkoutArrangement({
     userId,
     workoutDayId: workout.workout_day_id,
     workoutDate: workout.workout_date,
@@ -301,6 +303,8 @@ export async function loadActiveWorkout(userId: string): Promise<LocalActiveWork
     exerciseFeedback: workout.exercise_feedback ? JSON.parse(workout.exercise_feedback) : {},
     exerciseNotes: workout.exercise_notes ? JSON.parse(workout.exercise_notes) : {},
   });
+  diagnostics.queue(loaded.operations);
+  return loaded;
 }
 
 export async function healthExportCandidates(userId: string, since: number): Promise<HealthExportCandidate[]> {
@@ -363,26 +367,47 @@ async function persistActiveWorkout(db: SQLite.SQLiteDatabase, workout: LocalAct
 }
 
 export async function saveActiveWorkout(workout: LocalActiveWorkout, isCurrent: () => boolean = () => true): Promise<void> {
+  const diagnostics = workoutDiagnostics(workout.userId);
+  const queuedAt = Date.now();
   return serializeWrite(async () => {
     const durable = await loadActiveWorkout(workout.userId);
     if (!isCurrent()) return;
     Object.assign(workout, mergeSavedArrangement(durable, workout));
     const db = await database();
     if (!isCurrent()) return;
-    await persistActiveWorkout(db, workout);
+    const persisted = await persistActiveWorkout(db, workout);
+    if (persisted) {
+      diagnostics.queue(workout.operations, durable?.operations ?? [], queuedAt);
+      for (const operation of durable?.operations ?? []) {
+        if (workout.operations.some(({ id }) => id === operation.id)) continue;
+        if (workout.acknowledgedArrangementOperationIds?.includes(operation.id) || workout.sets.some((set) => set.acknowledgedOperationIds?.includes(operation.id)) || (operation.type === "create" && workout.serverSessionId)) diagnostics.terminal(operation, "acknowledged", "reconciled");
+        else if (operation.type === "order" && workout.operations.some(({ type }) => type === "order")) diagnostics.terminal(operation, "superseded");
+        else if (operation.status === "failed") diagnostics.terminal(operation, "cancelled");
+      }
+    }
   });
 }
 
-async function saveReplayWorkout(workout: LocalActiveWorkout, startedIds: string[]): Promise<void> {
-  await serializeWrite(async () => {
+async function saveReplayWorkout(workout: LocalActiveWorkout, startedIds: string[], diagnostics: ReturnType<typeof workoutDiagnostics>, acknowledgments: Map<string, "direct" | "reconciled">): Promise<boolean> {
+  return serializeWrite(async () => {
     const durable = await loadActiveWorkout(workout.userId);
     const merged = mergeReplayAcknowledgement(durable, workout, startedIds);
-    await persistActiveWorkout(await database(), merged);
+    const persisted = await persistActiveWorkout(await database(), merged);
+    if (persisted) {
+      diagnostics.queue(merged.operations);
+      for (const operation of durable?.operations ?? []) {
+        const kind = acknowledgments.get(operation.id);
+        if (kind && !merged.operations.some(({ id }) => id === operation.id)) diagnostics.terminal(operation, "acknowledged", kind);
+      }
+    }
     Object.assign(workout, merged);
+    return persisted;
   });
 }
 
 export function queueWorkoutPrestartOrder(baseline: LocalActiveWorkout, exerciseIds: string[], isCurrent: () => boolean = () => true): Promise<LocalActiveWorkout | null> {
+  const diagnostics = workoutDiagnostics(baseline.userId);
+  const queuedAt = Date.now();
   const task = replayQueue.then(() => serializeWrite(async () => {
     const db = await database();
     const terminal = await db.getFirstAsync<{ client_session_id: string }>(
@@ -402,6 +427,8 @@ export function queueWorkoutPrestartOrder(baseline: LocalActiveWorkout, exercise
     if (!isCurrent()) return null;
     const persisted = await persistActiveWorkout(db, next);
     if (!persisted) throw new PreWorkoutOrderConflict("This workout can no longer be changed. Refresh your workouts.", baseline.serverSessionId, true);
+    diagnostics.queue(next.operations, durable?.operations ?? [], queuedAt);
+    for (const operation of durable?.operations ?? []) if (operation.type === "order" && !next.operations.some(({ id }) => id === operation.id)) diagnostics.terminal(operation, "superseded");
     return next;
   }));
   replayQueue = task.then(() => undefined, () => undefined);
@@ -536,6 +563,8 @@ export type QueueWorkoutCompletionResult =
 
 /** Atomically merges the latest UI state with disk and appends completion after every mutation. */
 export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = false): Promise<QueueWorkoutCompletionResult> {
+  const diagnostics = workoutDiagnostics(incoming.userId);
+  const queuedAt = Date.now();
   const task = replayQueue.then(() => serializeWrite(async (): Promise<QueueWorkoutCompletionResult> => {
     const db = await database();
     const terminal = await db.getFirstAsync<{ server_session_id: string | null }>(
@@ -547,7 +576,8 @@ export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = fal
     if (terminal) return { status: "terminal", serverSessionId: terminal.server_session_id };
     const durable = await loadActiveWorkout(incoming.userId);
     const next = mergeWorkoutForCompletion(durable, incoming, retry);
-    await persistActiveWorkout(db, next);
+    const persisted = await persistActiveWorkout(db, next);
+    if (persisted) diagnostics.queue(next.operations, durable?.operations ?? [], queuedAt);
     return { status: "queued", workout: next };
   }));
   replayQueue = task.then(() => undefined, () => undefined);
@@ -555,17 +585,32 @@ export function queueWorkoutCompletion(incoming: LocalActiveWorkout, retry = fal
 }
 
 export function saveWorkoutSetEntries(incoming: LocalActiveWorkout, keys: string[], unit: WeightUnit) {
-  return serializeWrite(async () => {
+  const diagnostics = workoutDiagnostics(incoming.userId);
+  const queuedAt = Date.now();
+  const started = diagnosticNow();
+  let stage: "storage" | "admission_conflict" | "unknown" = "storage";
+  const task = serializeWrite(async () => {
     const durable = await loadActiveWorkout(incoming.userId);
     if (!durable || durable.clientSessionId !== incoming.clientSessionId || durable.finishedAt != null
       || durable.operations.some((operation) => operation.type === "complete" || operation.type === "abandon" || operation.type === "replace")) {
+      stage = "admission_conflict";
       throw new Error("Workout is no longer editable");
     }
+    stage = "unknown";
     const result = prepareSetEntries(mergeSavedArrangement(durable, incoming), durable, keys, unit, createClientId);
+    stage = "storage";
     if (result.savedCount > 0 && !await persistActiveWorkout(await database(), result.workout)) {
+      stage = "admission_conflict";
       throw new Error("Workout is no longer editable");
     }
+    if (result.savedCount > 0) diagnostics.queue(result.workout.operations, durable.operations, queuedAt);
+    if (result.savedCount > 0) diagnostics.emit({ kind: "local", outcome: "success", count: result.savedCount, duration: diagnosticElapsed(started) });
+    else if (Object.keys(result.issues).length) diagnostics.emit({ kind: "local", outcome: "failure", category: "validation", duration: diagnosticElapsed(started) });
     return result;
+  });
+  return task.catch((error: unknown) => {
+    diagnostics.emit({ kind: "local", outcome: "failure", category: stage, duration: diagnosticElapsed(started) });
+    throw error;
   });
 }
 
@@ -576,6 +621,7 @@ export type ContinueWorkoutLoggingResult =
 
 /** Waits for any replay attempt, then removes an unsent finish before logging resumes. */
 export function continueWorkoutLogging(userId: string, clientSessionId: string): Promise<ContinueWorkoutLoggingResult> {
+  const diagnostics = workoutDiagnostics(userId);
   const task = replayQueue.then(() => serializeWrite(async (): Promise<ContinueWorkoutLoggingResult> => {
     if (lastCompletedReplay?.userId === userId && lastCompletedReplay.clientSessionId === clientSessionId) {
       return { status: "completed", serverSessionId: lastCompletedReplay.serverSessionId };
@@ -585,7 +631,8 @@ export function continueWorkoutLogging(userId: string, clientSessionId: string):
     const operations = durable.operations.filter((operation) => operation.type !== "complete");
     if (operations.length === durable.operations.length) return { status: "active", workout: durable };
     const resumed = { ...durable, finishedAt: null, operations: normalizeOperationSequences(operations), revision: durable.revision + 1 };
-    await persistActiveWorkout(await database(), resumed, true);
+    const persisted = await persistActiveWorkout(await database(), resumed, true);
+    if (persisted) for (const operation of durable.operations) if (operation.type === "complete") diagnostics.terminal(operation, "cancelled");
     return { status: "active", workout: resumed };
   }));
   replayQueue = task.then(() => undefined, () => undefined);
@@ -593,7 +640,9 @@ export function continueWorkoutLogging(userId: string, clientSessionId: string):
 }
 
 export async function clearActiveWorkout(userId: string): Promise<void> {
-  return serializeWrite(async () => {
+  const diagnostics = workoutDiagnostics(userId);
+  const started = diagnosticNow();
+  const task = serializeWrite(async () => {
     const db = await database();
     await db.withTransactionAsync(async () => {
     const active = await db.getFirstAsync<{ client_session_id: string; server_session_id: string | null; started_at: number; finished_at: number | null }>(
@@ -610,6 +659,12 @@ export async function clearActiveWorkout(userId: string): Promise<void> {
     await db.runAsync("DELETE FROM workout_set_drafts WHERE user_id = ?", [userId]);
     await db.runAsync("DELETE FROM workout_pending_operations WHERE user_id = ?", [userId]);
     });
+  });
+  return task.then(() => {
+    diagnostics.emit({ kind: "finish", stage: "local_cleanup", outcome: "success", duration: diagnosticElapsed(started) });
+  }, (error: unknown) => {
+    diagnostics.emit({ kind: "finish", stage: "local_cleanup", outcome: "failure", category: "storage", duration: diagnosticElapsed(started) });
+    throw error;
   });
 }
 
@@ -655,6 +710,9 @@ async function replayPendingWorkoutOperationsInternal(
   token: string,
   userId: string
 ): Promise<{ workout: LocalActiveWorkout | null; completed: boolean; abandoned: boolean; completedSession: SessionResponse | null; completionBlocked: boolean; startedOperationIds: string[]; authenticationRequired: boolean }> {
+  const diagnostics = workoutDiagnostics(userId);
+  const acknowledgments = diagnostics.acknowledgments;
+  const request = diagnostics.request;
   const workout = await loadActiveWorkout(userId);
   if (!workout) return { workout: null, completed: false, abandoned: false, completedSession: null, completionBlocked: false, startedOperationIds: [], authenticationRequired: false };
 
@@ -727,24 +785,24 @@ async function replayPendingWorkoutOperationsInternal(
     // any point can safely replay the same client identifier.
     workout.operations = [...remaining, retrying, ...operations.slice(index + 1)];
     workout.revision += 1;
-    await saveReplayWorkout(workout, startedOperationIds);
+    await saveReplayWorkout(workout, startedOperationIds, diagnostics, acknowledgments);
     try {
       if (operation.type === "create") {
-        const created = await createSession(
+        const created = await request(operation, () => createSession(
           token,
           operation.payload.workoutDayId,
           operation.payload.workoutDate,
           operation.payload.dayType,
           operation.payload.clientSessionId
-        );
+        ));
         Object.assign(workout, adoptSessionArrangement(workout, created));
       } else if (operation.type === "order") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" }, ...operations.slice(index + 1));
           break;
         }
-        const updated = await updateExerciseOrder(token, workout.serverSessionId!, operation.payload.exerciseIds,
-          operation.payload.expectedRevision, operation.id, operation.payload.applyRevisedTargets);
+        const updated = await request(operation, () => updateExerciseOrder(token, workout.serverSessionId!, operation.payload.exerciseIds,
+          operation.payload.expectedRevision, operation.id, operation.payload.applyRevisedTargets));
         Object.assign(workout, adoptSessionArrangement(workout, updated));
         if (operation.payload.requiresReview) workout.targetReviewExerciseIds = [...operation.payload.exerciseIds];
         workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
@@ -753,8 +811,8 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push({ ...retrying, status: "pending" }, ...operations.slice(index + 1));
           break;
         }
-        const updated = await replaceSessionExercise(token, workout.serverSessionId!, operation.payload.exerciseId,
-          operation.payload.replacementExerciseId, operation.payload.expectedRevision, operation.id);
+        const updated = await request(operation, () => replaceSessionExercise(token, workout.serverSessionId!, operation.payload.exerciseId,
+          operation.payload.replacementExerciseId, operation.payload.expectedRevision, operation.id));
         Object.assign(workout, adoptSessionArrangement(workout, updated));
         workout.acknowledgedArrangementOperationIds = [...new Set([...(workout.acknowledgedArrangementOperationIds ?? []), operation.id])];
       } else if (operation.type === "set") {
@@ -770,17 +828,18 @@ async function replayPendingWorkoutOperationsInternal(
             throw new HttpError("That set number already exists for this exercise.", 409);
           }
           acceptSetLog(existing, operation.id);
+          acknowledgments.set(operation.id, "reconciled");
           continue;
         }
-        const logged = await logSet(
+        const logged = await request(operation, () => logSet(
           token,
-          workout.serverSessionId,
+          workout.serverSessionId!,
           operation.payload.exerciseId,
           operation.payload.setNumber,
           operation.payload.reps,
           operation.payload.weightKg,
           operation.id
-        );
+        ));
         canonicalSets.set(`${logged.exerciseId}:${logged.setNumber}`, logged);
         acceptSetLog(logged, operation.id);
       } else if (operation.type === "update_set") {
@@ -789,10 +848,10 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
-        const updated = await updateLoggedSet(
-          token, workout.serverSessionId, operation.payload.logId, operation.payload.reps,
+        const updated = await request(operation, () => updateLoggedSet(
+          token, workout.serverSessionId!, operation.payload.logId, operation.payload.reps,
           operation.payload.weightKg, operation.payload.expectedVersion, operation.id
-        );
+        ));
         workout.sets = workout.sets.map((set) =>
           set.logId === updated.id
             ? { ...acknowledgeSetOperation(set, operation.id), reps: String(updated.reps), weight: operation.payload.displayWeight, weightKg: updated.weightKg, syncing: false, syncStatus: "synced", version: updated.version }
@@ -804,7 +863,7 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
-        await deleteLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
+        await request(operation, () => deleteLoggedSet(token, workout.serverSessionId!, operation.payload.logId, operation.id));
         workout.sets = workout.sets.map((set) => set.logId === operation.payload.logId ? acknowledgeSetOperation(set, operation.id) : set);
       } else if (operation.type === "restore_set") {
         if (!workout.serverSessionId) {
@@ -812,7 +871,7 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
-        const restored = await restoreLoggedSet(token, workout.serverSessionId, operation.payload.logId, operation.id);
+        const restored = await request(operation, () => restoreLoggedSet(token, workout.serverSessionId!, operation.payload.logId, operation.id));
         workout.sets = workout.sets.map((set) =>
           set.logId === restored.id ? { ...acknowledgeSetOperation(set, operation.id), deleted: false, deletedLogId: null, syncing: false, syncStatus: "synced" } : set
         );
@@ -822,18 +881,18 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
-        const updated = await updateWorkoutNote(token, workout.serverSessionId, operation.payload.note, operation.id);
+        const updated = await request(operation, () => updateWorkoutNote(token, workout.serverSessionId!, operation.payload.note, operation.id));
         workout.workoutNote = updated.workoutNote;
       } else if (operation.type === "update_exercise_feedback") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
           continue;
         }
-        await updateExerciseFeedback(
-          token, workout.serverSessionId, operation.payload.exerciseId, operation.payload.effort, operation.payload.rir, operation.id
-        );
+        await request(operation, () => updateExerciseFeedback(
+          token, workout.serverSessionId!, operation.payload.exerciseId, operation.payload.effort, operation.payload.rir, operation.id
+        ));
       } else if (operation.type === "update_exercise_note") {
-        await updateUserExerciseNote(token, operation.payload.exerciseId, operation.payload.note);
+        await request(operation, () => updateUserExerciseNote(token, operation.payload.exerciseId, operation.payload.note));
       } else if (operation.type === "complete") {
         if (!workout.serverSessionId) {
           remaining.push({ ...retrying, status: "pending" });
@@ -842,6 +901,8 @@ async function replayPendingWorkoutOperationsInternal(
         const canonicalBeforeComplete = await getSession(token, workout.serverSessionId);
         if (canonicalBeforeComplete.status === "completed") {
           completedSession = canonicalBeforeComplete;
+          acknowledgments.set(operation.id, "reconciled");
+          diagnostics.emit({ kind: "finish", stage: "server", outcome: "success" });
           completed = true;
           break;
         }
@@ -851,7 +912,7 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push(...operations.slice(index + 1));
           break;
         }
-        completedSession = await completeSession(token, workout.serverSessionId);
+        completedSession = await request(operation, () => completeSession(token, workout.serverSessionId!));
         if (hasCanonicalEffectiveSets(workout, completedSession)) {
           completed = true;
           break;
@@ -869,7 +930,7 @@ async function replayPendingWorkoutOperationsInternal(
           remaining.push({ ...retrying, status: "pending" });
           continue;
         }
-        await abandonSession(token, workout.serverSessionId);
+        await request(operation, () => abandonSession(token, workout.serverSessionId!));
         abandoned = true;
         break;
       }
@@ -898,6 +959,7 @@ async function replayPendingWorkoutOperationsInternal(
           const existing = canonicalSets.get(key);
           if (existing && existing.reps === operation.payload.reps && existing.weightKg === (operation.payload.weightKg ?? null)) {
             acceptSetLog(existing, operation.id);
+            acknowledgments.set(operation.id, "reconciled");
             continue;
           }
         } catch {
@@ -939,7 +1001,12 @@ async function replayPendingWorkoutOperationsInternal(
   }
   workout.operations = remaining;
   workout.revision += 1;
-  await saveReplayWorkout(workout, startedOperationIds);
+  const persisted = await saveReplayWorkout(workout, startedOperationIds, diagnostics, acknowledgments);
+  if (persisted) diagnostics.queue(workout.operations);
+  for (const operation of operations) {
+    const pending = workout.operations.find(({ id }) => id === operation.id);
+    if (persisted && pending?.nextAttemptAt != null && pending.nextAttemptAt !== operation.nextAttemptAt) diagnostics.emit({ kind: "retry", operation: { id: operation.id, type: operation.type }, delay: Math.max(0, pending.nextAttemptAt - Date.now()), category: diagnostics.failures.get(operation.id) });
+  }
   return { workout, completed, abandoned, completedSession, completionBlocked, startedOperationIds, authenticationRequired };
 }
 

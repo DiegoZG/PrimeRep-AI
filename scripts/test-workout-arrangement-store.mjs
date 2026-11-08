@@ -21,6 +21,7 @@ async function withoutNetwork(promise) {
 }
 
 function storageHarness(platform, handlers = {}) {
+  const diagnostics = loadTypescript("utils/workoutDiagnosticsBridge.ts");
   const memory = new Map();
   const sql = { row: null, sets: [], operations: [], terminal: [] };
   let pausedRead = null;
@@ -66,7 +67,7 @@ function storageHarness(platform, handlers = {}) {
     updateLoggedSet: async (_token, _session, id, reps, weightKg, version) => ({ id, exerciseId: "a", setNumber: 1, reps, weightKg, version: version + 1 }),
     completeSession: async () => ({ ...server(), status: "completed" }) };
   const service = Object.fromEntries(Object.keys(defaults).map((name) => [name, async (...args) => { calls.push({ name, args }); return (handlers[name] ?? defaults[name])(...args); }]));
-  const mocks = { "expo-sqlite": { openDatabaseAsync: async () => db },
+  const mocks = { "./workoutDiagnosticsBridge": diagnostics, "expo-sqlite": { openDatabaseAsync: async () => db },
     "@react-native-async-storage/async-storage": { getItem: async (key) => { const value = memory.get(key) ?? null; await waitForRead(key.includes("web.active-workout") ? "active" : key); return value; }, setItem: async (key, value) => memory.set(key, value), removeItem: async (key) => memory.delete(key), getAllKeys: async () => [...memory.keys()], multiRemove: async (keys) => keys.forEach((key) => memory.delete(key)) },
     "@/services/httpClient": { HttpError, requestJson: async () => { throw new Error("Unexpected network request"); } },
     "./httpClient": { HttpError, requestJson: async () => {} },
@@ -74,7 +75,7 @@ function storageHarness(platform, handlers = {}) {
   const reload = () => loadTypescript(`utils/activeWorkoutStore.${platform}.ts`, mocks);
   const store = reload();
   const reloadPrestart = () => loadTypescript("utils/preWorkoutOrderStore.ts", { ...mocks, "@/utils/activeWorkoutStore": store });
-  return { store, reload, calls, getCanonical: () => copy(canonical), prestart: reloadPrestart(), reloadPrestart, pauseRead };
+  return { store, reload, diagnostics, calls, getCanonical: () => copy(canonical), prestart: reloadPrestart(), reloadPrestart, pauseRead };
 }
 
 for (const platform of ["native", "web"]) {
@@ -610,4 +611,80 @@ for (const platform of ["native", "web"]) {
     assert.equal(harness.calls.filter((call) => call.name === "updateExerciseOrder").length, 0);
   });
 
+}
+
+for (const platform of ["native", "web"]) {
+  test(`${platform}: enabled diagnostics follow the durable write, project privacy, and distinguish no-op and admission`, async () => {
+    const h = storageHarness(platform), signals = [];
+    h.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: (signal) => signals.push(copy(signal)) });
+    const initial = draft(); await h.store.saveActiveWorkout(initial); signals.length = 0;
+    const saved = await h.store.saveWorkoutSetEntries(initial, ["a:1"], "LB");
+    const durable = await h.store.loadActiveWorkout("user");
+    assert.equal(durable.sets[0].confirmed, true); assert.equal(saved.savedCount, 1);
+    assert.equal(signals.filter((signal) => signal.kind === "local" && signal.outcome === "success").length, 1);
+    assert.equal(signals.find((signal) => signal.kind === "local").count, 1);
+    assert.doesNotMatch(JSON.stringify(signals), /payload|weight|reps|workoutDate|exerciseId/);
+    signals.length = 0;
+    await h.store.saveWorkoutSetEntries(durable, ["a:1"], "LB");
+    assert.equal(signals.some((signal) => signal.kind === "local"), false);
+    const invalid = { ...durable, sets: durable.sets.map((row) => row.exerciseId === "b" ? { ...row, reps: "bad" } : row) };
+    await h.store.saveWorkoutSetEntries(invalid, ["b:1"], "LB");
+    assert.equal(signals.find((signal) => signal.kind === "local").category, "validation");
+    await assert.rejects(h.store.saveWorkoutSetEntries({ ...durable, clientSessionId: "other" }, ["a:1"], "LB"));
+    assert.equal(signals.filter((signal) => signal.kind === "local").at(-1).category, "admission_conflict");
+  });
+
+  test(`${platform}: true mutating requests and reconciled durable acknowledgments remain distinct`, async () => {
+    const h = storageHarness(platform), signals = [];
+    h.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: (signal) => signals.push(copy(signal)) });
+    const initial = draft({ sets: [set("a", { confirmed: true, syncStatus: "pending" })], operations: [{ id: "set-new", type: "set", status: "pending", payload: { exerciseId: "a", setNumber: 1, reps: 8 } }] });
+    await h.store.saveActiveWorkout(initial);
+    await h.store.replayPendingWorkoutOperations("token", "user");
+    assert.equal(signals.filter((signal) => signal.kind === "request" && signal.phase === "start").length, 1);
+    assert.equal(signals.find((signal) => signal.kind === "terminal").acknowledgment, "direct");
+    assert.equal((await h.store.loadActiveWorkout("user")).operations.length, 0);
+    signals.length = 0;
+    const canonical = server(); canonical.setLogs = [{ id: "log-a", exerciseId: "a", setNumber: 1, reps: 8, weightKg: null, version: 1 }];
+    const reconciled = storageHarness(platform, { getSession: async () => canonical }), recovered = [];
+    reconciled.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: (signal) => recovered.push(copy(signal)) });
+    await reconciled.store.saveActiveWorkout({ ...initial, operations: initial.operations.map((operation) => ({ ...operation, attempts: 1 })) });
+    await reconciled.reload().replayPendingWorkoutOperations("token", "user");
+    assert.equal(recovered.some((signal) => signal.kind === "request"), false);
+    assert.equal(recovered.find((signal) => signal.kind === "terminal").acknowledgment, "reconciled");
+  });
+
+  test(`${platform}: deferred replay emits no request and retry failures stay nonterminal`, async () => {
+    const h = storageHarness(platform, { logSet: async () => { throw new HttpError("Unavailable", 503); } }), signals = [];
+    h.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: (signal) => signals.push(copy(signal)) });
+    const queued = draft({ sets: [set("a", { confirmed: true, syncStatus: "pending" })], operations: [{ id: "pending", type: "set", status: "pending", nextAttemptAt: Date.now() + 60_000, payload: { exerciseId: "a", setNumber: 1, reps: 8 } }] });
+    await h.store.saveActiveWorkout(queued); await h.store.replayPendingWorkoutOperations("token", "user");
+    assert.equal(signals.some((signal) => signal.kind === "request"), false);
+    const ready = await h.store.loadActiveWorkout("user"); ready.operations[0].nextAttemptAt = undefined; ready.revision += 1;
+    await h.store.saveActiveWorkout(ready); await h.store.replayPendingWorkoutOperations("token", "user");
+    assert.equal(signals.find((signal) => signal.kind === "request" && signal.phase === "failure").category, "server");
+    assert.ok(signals.some((signal) => signal.kind === "retry" && signal.delay > 0));
+    assert.equal(signals.some((signal) => signal.kind === "terminal"), false);
+  });
+
+  test(`${platform}: observer failure cannot block saves, rest persistence, replay or terminal cleanup`, async () => {
+    const h = storageHarness(platform);
+    h.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: () => { throw new Error("Diagnostic storage failed"); } });
+    const initial = draft(); await h.store.saveActiveWorkout(initial);
+    const saved = await withoutNetwork(h.store.saveWorkoutSetEntries(initial, ["a:1"], "LB"));
+    assert.equal(saved.savedCount, 1); assert.equal((await h.store.loadActiveWorkout("user")).restEndsAt, initial.restEndsAt);
+    await h.store.replayPendingWorkoutOperations("token", "user");
+    assert.equal((await h.store.loadActiveWorkout("user")).operations.length, 0);
+    await h.store.clearActiveWorkout("user"); assert.equal(await h.store.loadActiveWorkout("user"), null);
+  });
+
+  test(`${platform}: intentional order replacement and finish continuation have separate terminal outcomes`, async () => {
+    const h = storageHarness(platform), signals = [];
+    h.diagnostics.setWorkoutDiagnosticListener({ owner: "user", current: () => true, emit: (signal) => signals.push(copy(signal)) });
+    const initial = draft({ operations: [order()] }); await h.store.saveActiveWorkout(initial);
+    await h.store.queueWorkoutPrestartOrder(initial, ["b", "a", "c"]);
+    assert.ok(signals.some((signal) => signal.kind === "terminal" && signal.outcome === "superseded"));
+    const queued = await h.store.queueWorkoutCompletion(await h.store.loadActiveWorkout("user"));
+    await h.store.continueWorkoutLogging("user", queued.workout.clientSessionId);
+    assert.ok(signals.some((signal) => signal.kind === "terminal" && signal.outcome === "cancelled" && signal.operation.type === "complete"));
+  });
 }
