@@ -220,3 +220,23 @@ test("the same rejection after admission retains owned attempt and recovers via 
   let fault; let requests = 0; const { h, close } = await mountScanner({ services: { identifyEquipment: async () => { requests++; throw fault; } } }); fault = new h.EquipmentScanError("scan_budget_exceeded", "Try again later.", 429, 60, "owned-attempt");
   await act(async () => h.state.pick("library")); await act(async () => h.state.identify()); assert.equal(h.state.attemptKey, "owned-attempt"); await act(async () => h.state.identify()); assert.equal(requests, 1); await act(async () => h.state.check()); assert.equal(h.calls.find((c) => c[0] === "check")[2], "owned-attempt"); await close();
 });
+test("reviewed-photo screen names OpenAI before the explicit Identify action", async () => {
+  const state = { stage: "capture", enabled: true, busy: false, picking: false, photo: { uri: "file://normalized" }, attemptKey: null, result: null, identify() {}, manual() {}, cancelRequest() {}, pick() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree; await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  const disclosure = tree.root.findByProps({ testID: "scan-photo-disclosure" }); assert.match(disclosure.children.join(""), /sends this photo to OpenAI for safety checks and equipment matching/); assert.match(disclosure.children.join(""), /Avoid people or personal details/);
+  const nodes = tree.toJSON().children[1].children; assert.ok(nodes.findIndex((node) => node.props?.testID === "scan-photo-disclosure") < nodes.findIndex((node) => node.props?.testID === "scan-identify")); await act(async () => tree.unmount());
+});
+test("native camera and library exceptions show actionable copy without SDK details or URIs", async () => {
+  for (const source of ["camera", "library"]) {
+    const { h, close } = await mountScanner({ pick: async () => { throw new Error("ExpoImagePicker unavailable file:///private/photo.jpg"); } });
+    await act(async () => h.state.pick(source)); assert.equal(h.state.error, source === "camera" ? "Camera couldn’t open. Choose a photo instead." : "This photo couldn’t open. Choose another photo or search manually."); assert.equal(h.state.photo, null); assert.equal(h.calls.length, 0); await close();
+  }
+});
+test("photo disclosure leaves legal approval and version metadata unchanged", () => {
+  const release = JSON.parse(readFileSync(path.join(root, "constants/legal-release.json"), "utf8")); assert.equal(release.status, "pending_review"); assert.equal(release.privacyVersion, "2026-10-02");
+  const legal = readFileSync(path.join(root, "constants/legal.ts"), "utf8"); assert.match(legal, /normalized copy of your selected photo to OpenAI/); assert.match(legal, /result receipts are valid for up to 15 minutes/); assert.doesNotMatch(legal, /zero.retention/i);
+});
+test("privacy view describes pending review rather than claiming publication", () => {
+  const route = load("app/legal/privacy.tsx", { "@/components/legal-document-screen": { LegalDocumentScreen: "LegalDocument" }, "@/constants/legal": { PRIVACY_LAST_UPDATED: "October 2, 2026", PRIVACY_SECTIONS: [], PRIVACY_VERSION: "2026-10-02" } }, { React });
+  const screen = route.default(); assert.match(screen.props.draftNotice, /awaiting review before release/); assert.doesNotMatch(screen.props.draftNotice, /approved and published/);
+});

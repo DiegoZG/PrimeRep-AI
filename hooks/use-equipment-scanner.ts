@@ -101,7 +101,13 @@ export function useEquipmentScanner() {
       if (!current() || expected !== generation.current) { await discardScanPhoto(next.uri); return; }
       const previous = photoRef.current; photoRef.current = next; setPhoto(next); if (previous) void discardScanPhoto(previous.uri);
       forget(); setResult(null); setSelection(null); setStage("capture");
-    } catch (failure) { if (current() && expected === generation.current) setError(failure instanceof Error ? failure.message : "This photo couldn’t open. Choose another photo."); }
+    } catch (failure) {
+      if (current() && expected === generation.current) {
+        const message = failure instanceof Error ? failure.message : "";
+        const known = ["Allow camera access in device settings, or choose a photo instead.", "Choose one still photo of a single machine."];
+        setError(known.includes(message) ? message : source === "camera" ? "Camera couldn’t open. Choose a photo instead." : "This photo couldn’t open. Choose another photo or search manually.");
+      }
+    }
     finally { if (current() && expected === generation.current) setPicking(false); }
   };
   const identify = () => {

@@ -66,6 +66,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: "AI features",
     paragraphs: [
       "Information needed for certain coaching explanations may be sent to an AI service provider. We limit what is sent to what that feature needs. Apple Health steps and sleep summaries are not sent to the AI provider. Guidance based on those summaries is rules-based and does not automatically change your workout plan.",
+      "If you choose Identify equipment, PrimeRep sends a normalized copy of your selected photo to OpenAI for safety checks and equipment matching. Avoid including people or personal details. PrimeRep processes the photo temporarily rather than storing it in your workout history. Account-linked result receipts are valid for up to 15 minutes to recover results and prevent duplicate processing. OpenAI processing and retention depend on its applicable API policies and the provider settings in effect.",
     ],
   },
   {
