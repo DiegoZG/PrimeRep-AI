@@ -1,0 +1,21 @@
+# Equipment discovery and photo identification
+
+The Explore equipment entry opens a separate discovery screen. Manual equipment search and scan-safe guides remain available with `equipment_scanning_enabled` off; photo identification appears only for an enabled native account. Older flag responses default scanning to off. Global and selected-user controls use the existing versioned audited flag endpoints independently of subscription and workout-monitoring controls.
+
+## Native flow
+
+Take or choose exactly one still photo, review its normalized preview, and explicitly press Identify equipment. The client preserves aspect ratio, never upscales, resizes the long edge to at most 1024 pixels, and freshly encodes JPEG at 0.8 quality. Camera/microphone configuration is explicit: camera permission explains equipment identification; microphone stays disabled. This requires a new native build, not only a Metro reload.
+
+The pending action admits one request in the client. A generated submission key is stable for that photo attempt. Timeout, ambiguous external outcome or the server’s account-wide in-progress response offers Check result using the owned attempt key and a read-only GET. There is no automatic POST/provider retry. Retake requires another explicit user action; server admission, duplicate-content receipts, quota, budget and rollout checks remain authoritative. Cancelling a local request does not promise provider cancellation.
+
+Possible machines require explicit selection and Confirm machine, including one high-confidence candidate. Confirmation fetches current exercise options; missing attachments are shown by catalog name. Selecting an exercise fetches the dedicated versioned guidance endpoint. Only published instructions and approved HTTPS video descriptors are supplied to the scan-safe guide/player. Legacy exercise text/video fallbacks are never passed into this view. Missing coverage remains visibly unavailable. Scanning never mutates saved equipment, workouts or set logs.
+
+Photos remain temporary in the current route session and are cleaned on replacement, exit and account change, including late normalization results. No photo, URI, provider result or search text is written to app persistence/logging/analytics. A bounded in-memory owned attempt-key cache supports result recovery after navigating back to the route without retaining the photo. Android interrupted-picker results are discarded because their account ownership cannot be verified after activity restoration; the user chooses the photo again before any upload. Web offers manual discovery only.
+
+## Verification and limits
+
+Run `npm run test:equipment-scanning`, `npm run test:feature-flags`, `npm run test:profile`, `npm run test:subscriptions`, and `npm run test:exercise-foundation`; typecheck and lint are also required. Shared backend contract fixtures are copied into `scripts/fixtures/equipment-scanning` and validated through frontend normalization. Tests mock recognition; they do not call OpenAI or spend provider credit.
+
+Native QA must use a newly built isolated simulator and non-production backend with external calls mocked. Verify gallery selection, normalized preview, confirmation, manual fallback, uncertainty and unavailable guidance; compare compact light/dark/max-text screens. A simulator cannot establish real camera capture quality. Physical iOS/Android camera, orientation and Android activity-recovery acceptance remain separate gates. Current legacy catalog coverage must not be represented as reviewed instructions or approved media. Keep recognition globally off until the provider budget, privacy disclosure and device/quality gates are approved; subscription teaser remains Coming soon.
+
+Frontend implementation milestone verification (mocked, before native/backend integration):153 focused tests passed across scanner, feature flags, profile/authentication, subscriptions and exercise foundation; TypeScript passed; lint had zero errors and only the two existing animation-hook warnings. The10 frozen backend fixture files match byte-for-byte; hashes are listed in `scripts/fixtures/equipment-scanning/SHA256SUMS`. Native/device/backend integration and real provider quality remain pending. No API key or paid call is used by these tests.

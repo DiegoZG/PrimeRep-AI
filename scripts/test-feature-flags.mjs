@@ -180,7 +180,7 @@ test("both flags save together with version and launch, then show server audit",
   await toggle(app.tree, "purchases", true); await toggle(app.tree, "enforcement", true); await date(app.tree, "2026-10-01T00:00:00Z");
   assert.match(text(app.tree, "feature-flags-transition"), /2026-10-31T00:00:00.000Z/);
   await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves, [["token-A", { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z" }]]);
+  assert.deepEqual(app.calls.saves, [["token-A", { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false, equipment_scanning_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone", equipment_scanning_enabled: "everyone" }, subscriptions_launch_at: "2026-10-01T00:00:00Z" }]]);
   assert.equal(text(app.tree, "feature-flags-saved"), "Changes saved.");
   assert.match(byId(app.tree, "feature-flags-audit-1").findAllByType("Text").map((node) => node.children.join("")).join(" "), /admin-uuid.*Purchases: false → true/);
   await app.close();
@@ -222,7 +222,7 @@ test("locked launch cannot be edited and is omitted while both flags turn off", 
   const app = await render({ get: async () => ({ ...defaults(), version: 4, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: true, subscriptions_onboarding_enabled: false }, subscriptions_launch_at: "2026-10-01T00:00:00Z", launch_locked: true }) });
   assert.equal(byId(app.tree, "feature-flags-launch").props.editable, false); byId(app.tree, "feature-flags-launch-locked");
   await toggle(app.tree, "purchases", false); await toggle(app.tree, "enforcement", false); await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves[0][1], { expected_version: 4, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone" } }); await app.close();
+  assert.deepEqual(app.calls.saves[0][1], { expected_version: 4, flags: { subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false, equipment_scanning_enabled: false }, audiences: { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone", equipment_scanning_enabled: "everyone" } }); await app.close();
 });
 
 test("account change immediately resets drafts and ignores prior account load/save", async () => {
@@ -324,7 +324,7 @@ test("audiences default to everyone for legacy snapshots and save atomically wit
   assert.equal(byId(app.tree, "feature-flags-audience-subscriptions_purchases_enabled-everyone").props.accessibilityState.checked, true);
   await tap(app.tree, "feature-flags-audience-subscriptions_purchases_enabled-selected");
   await toggle(app.tree, "purchases", true); await tap(app.tree, "feature-flags-save");
-  assert.deepEqual(app.calls.saves[0][1], { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false }, audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone" }, subscriptions_launch_at: null });
+  assert.deepEqual(app.calls.saves[0][1], { expected_version: 0, flags: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false, equipment_scanning_enabled: false }, audiences: { subscriptions_purchases_enabled: "selected", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone", equipment_scanning_enabled: "everyone" }, subscriptions_launch_at: null });
   await app.close();
 });
 
@@ -364,10 +364,10 @@ test("allow deny and inherit resolve against audiences, master off and purchases
 test("save sends all overrides with env version and reset removes them explicitly", async () => {
   const app = await render({ users: true, lookup: async () => userSnapshot("target-A", { version: 7 }) }); await identify(app);
   await override(app, "purchases", "allow"); await override(app, "enforcement", "deny"); await tap(app.tree, "flag-users-save");
-  assert.deepEqual(app.calls.userSaves[0], ["token-A", "target-A", { expected_version: 7, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: null, workout_reliability_monitoring_enabled: null } }]);
+  assert.deepEqual(app.calls.userSaves[0], ["token-A", "target-A", { expected_version: 7, overrides: { subscriptions_purchases_enabled: true, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: null, workout_reliability_monitoring_enabled: null, equipment_scanning_enabled: null } }]);
   byId(app.tree, "flag-users-saved"); await tap(app.tree, "flag-users-reset"); absent(app.tree, "flag-users-saved");
   assert.equal(app.calls.userSaves.length, 1); await tap(app.tree, "flag-users-save");
-  assert.deepEqual(app.calls.userSaves[1][2], { expected_version: 1, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null, subscriptions_onboarding_enabled: null, workout_reliability_monitoring_enabled: null } }); await app.close();
+  assert.deepEqual(app.calls.userSaves[1][2], { expected_version: 1, overrides: { subscriptions_purchases_enabled: null, subscriptions_enforcement_enabled: null, subscriptions_onboarding_enabled: null, workout_reliability_monitoring_enabled: null, equipment_scanning_enabled: null } }); await app.close();
 });
 
 test("configured list paginates and row selection fetches fresh target snapshot", async () => {
@@ -468,4 +468,19 @@ test("cancelled user discard confirmation never issues a delayed refresh", async
   const abandoned = byId(app.tree, "flag-users-confirm-discard").props.onPress;
   await tap(app.tree, "flag-users-keep-editing"); await act(async () => { abandoned(); });
   assert.equal(app.calls.loads.length, 1); assert.equal(byId(app.tree, "flag-users-subscriptions_purchases_enabled-deny").props.accessibilityState.checked, true); await app.close();
+});
+
+test("equipment scanning defaults off on old responses and is independent of subscription flags", async () => {
+  let scanning;
+  const service = load("services/featureFlagService.ts", { "./httpClient": { requestJson: async () => ({ ...defaults(), flags: { ...defaults().flags, ...(scanning === undefined ? {} : { equipment_scanning_enabled: scanning }) } }) } });
+  assert.equal((await service.getFeatureFlags("token")).flags.equipment_scanning_enabled, false);
+  scanning = true; const enabled = await service.getFeatureFlags("token"); assert.equal(enabled.flags.equipment_scanning_enabled, true); assert.equal(enabled.flags.subscriptions_purchases_enabled, false);
+  const app = await render(); await act(async () => byId(app.tree, "feature-flag-equipment_scanning_enabled").props.onValueChange(true)); await tap(app.tree, "feature-flags-audience-equipment_scanning_enabled-selected"); await tap(app.tree, "feature-flags-save");
+  assert.equal(app.calls.saves[0][1].flags.equipment_scanning_enabled, true); assert.equal(app.calls.saves[0][1].audiences.equipment_scanning_enabled, "selected"); await app.close();
+});
+test("equipment scanning targeted allow still respects its global master independently", async () => {
+  const key = "equipment_scanning_enabled";
+  const app = await render({ users: true, lookup: async () => userSnapshot("target-A", { global_flags: { ...defaults().flags, [key]: true }, effective_flags: { ...defaults().flags, [key]: false }, audiences: { ...userSnapshot().audiences, [key]: "selected" } }) });
+  await act(async () => byId(app.tree, "flag-users-identifier").props.onChangeText("target@example.com")); await tap(app.tree, "flag-users-lookup"); await tap(app.tree, `flag-users-${key}-allow`);
+  assert.match(text(app.tree, `flag-users-effective-${key}`), /On/); await app.close();
 });
