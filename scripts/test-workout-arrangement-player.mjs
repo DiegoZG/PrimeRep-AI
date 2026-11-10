@@ -71,6 +71,7 @@ async function player(options = {}) {
       } }, { filename }); return module.exports;
   }
   const store = load("utils/activeWorkoutStore.web.ts");
+  if (options.diagnosticObserver) load("utils/workoutDiagnosticsBridge.ts").setWorkoutDiagnosticListener({ owner: "A", current: () => true, emit: options.diagnosticObserver });
   const local = { userId: "A", workoutDayId: "day", workoutDate: workout.date, dayType: "upper", workoutSnapshot: copy(workout), effectiveWorkout: copy(workout), arrangementRevision: 0, clientSessionId: "client", serverSessionId: "session", startedAt: 100,
     currentExerciseId: "bench", currentExerciseIndex: 1, restEndsAt: null, restTotalSeconds: 0, restContext: null, revision: 1, operations: [], sets: workout.blocks.flatMap((block) => block.items.flatMap((entry) => Array.from({ length: entry.prescription.sets }, (_, index) => ({ exerciseId: entry.exercise.id, setNumber: index + 1, reps: "", weight: "", confirmed: false, syncing: false, syncStatus: "synced", logId: null })))) };
   if (options.local) Object.assign(local, typeof options.local === "function" ? options.local(copy(local)) : copy(options.local));
@@ -1025,4 +1026,31 @@ test("subscription denial retains an unadmitted local queue and recovery control
   assert.equal(durable.operations[0].type, "create");
   assert.equal(view.tree.root.findAllByType("SetInputRow").length, 0);
   await act(async () => view.tree.unmount());
+});
+
+test("mounted logging stays instant with an indefinitely stalled diagnostic observer and no new UI", async () => {
+  const diagnostics = [], never = new Promise(() => {});
+  const view = await player({ layout: "all", offline: true, diagnosticObserver: (signal) => { diagnostics.push(copy(signal)); return never; } });
+  try {
+    await act(async () => { inputFor(view, "bench").props.onUpdate(1, "weight", "45"); inputFor(view, "bench").props.onUpdate(1, "reps", "9"); });
+    await act(async () => inputFor(view, "bench").props.onConfirm(1)); await view.settle();
+    assert.equal(inputFor(view, "bench").props.setRow.confirmed, true);
+    assert.ok(diagnostics.some((signal) => signal.kind === "local" && signal.outcome === "success"));
+    const local = await view.store.loadActiveWorkout("A"); assert.equal(local.restContext.exerciseId, "bench");
+    await choose(view, 3); assert.equal(view.list().props.currentIndex, 3);
+    assert.equal(host(view.tree, "player-finish").props.disabled, false);
+    assert.doesNotMatch(JSON.stringify(diagnostics), /payload|weight|reps|exerciseId/);
+  } finally { await act(async () => view.tree.unmount()); }
+});
+
+test("mounted logging and drafts survive a throwing telemetry observer", async () => {
+  const view = await player({ layout: "all", offline: true, diagnosticObserver: () => { throw new Error("telemetry unavailable"); } });
+  try {
+    await act(async () => { inputFor(view, "row").props.onUpdate(1, "reps", "12"); });
+    await act(async () => inputFor(view, "row").props.onConfirm(1)); await view.settle();
+    const stored = await view.store.loadActiveWorkout("A");
+    assert.equal(stored.sets.find((set) => set.exerciseId === "row" && set.setNumber === 1).confirmed, true);
+    assert.equal(stored.sets.find((set) => set.exerciseId === "raise" && set.setNumber === 1).confirmed, false);
+    assert.equal(inputFor(view, "row").props.readOnly, false);
+  } finally { await act(async () => view.tree.unmount()); }
 });

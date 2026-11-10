@@ -4,6 +4,7 @@ export interface SubscriptionFlags {
   subscriptions_purchases_enabled: boolean;
   subscriptions_enforcement_enabled: boolean;
   subscriptions_onboarding_enabled?: boolean;
+  workout_reliability_monitoring_enabled?: boolean;
 }
 
 export type FeatureFlagAudience = "everyone" | "selected";
@@ -44,15 +45,15 @@ export interface FeatureFlagPatch {
 }
 
 export function getFeatureFlags(token: string) {
-  return requestJson<FeatureFlagSnapshot>("/v1/feature-flags", { token });
+  return requestJson<FeatureFlagSnapshot>("/v1/feature-flags", { token }).then(normalizeSnapshot);
 }
 
 export function getAdminFeatureFlags(token: string) {
-  return requestJson<AdminFeatureFlagSnapshot>("/v1/admin/feature-flags", { token });
+  return requestJson<AdminFeatureFlagSnapshot>("/v1/admin/feature-flags", { token }).then(normalizeSnapshot);
 }
 
 export function updateFeatureFlags(token: string, body: FeatureFlagPatch) {
-  return requestJson<AdminFeatureFlagSnapshot>("/v1/admin/feature-flags", { method: "PATCH", token, body });
+  return requestJson<AdminFeatureFlagSnapshot>("/v1/admin/feature-flags", { method: "PATCH", token, body }).then(normalizeSnapshot);
 }
 
 
@@ -84,18 +85,42 @@ export interface UserFlagList {
   offset: number;
 }
 
+function normalizeFlags(flags: SubscriptionFlags): SubscriptionFlags {
+  return { ...flags, workout_reliability_monitoring_enabled: flags.workout_reliability_monitoring_enabled === true };
+}
+
+function normalizeSnapshot<T extends FeatureFlagSnapshot>(snapshot: T): T {
+  return { ...snapshot, flags: normalizeFlags(snapshot.flags) };
+}
+
+function normalizeUserFlags<T extends Pick<UserFlagSnapshot, "overrides" | "effective_flags">>(snapshot: T): T {
+  return {
+    ...snapshot,
+    overrides: { ...snapshot.overrides, workout_reliability_monitoring_enabled: snapshot.overrides.workout_reliability_monitoring_enabled ?? null },
+    effective_flags: normalizeFlags(snapshot.effective_flags),
+  };
+}
+
+function normalizeUserSnapshot(snapshot: UserFlagSnapshot): UserFlagSnapshot {
+  return {
+    ...normalizeUserFlags(snapshot),
+    global_flags: normalizeFlags(snapshot.global_flags),
+    audiences: { ...snapshot.audiences, workout_reliability_monitoring_enabled: snapshot.audiences.workout_reliability_monitoring_enabled ?? "everyone" },
+  };
+}
+
 export function lookupFeatureFlagUser(token: string, identifier: string) {
-  return requestJson<UserFlagSnapshot>("/v1/admin/feature-flags/users/lookup", { method: "POST", token, body: { identifier } });
+  return requestJson<UserFlagSnapshot>("/v1/admin/feature-flags/users/lookup", { method: "POST", token, body: { identifier } }).then(normalizeUserSnapshot);
 }
 
 export function getUserFeatureFlags(token: string, userId: string) {
-  return requestJson<UserFlagSnapshot>(`/v1/admin/feature-flags/users/${encodeURIComponent(userId)}`, { token });
+  return requestJson<UserFlagSnapshot>(`/v1/admin/feature-flags/users/${encodeURIComponent(userId)}`, { token }).then(normalizeUserSnapshot);
 }
 
 export function updateUserFeatureFlags(token: string, userId: string, body: { expected_version: number; overrides: Partial<UserFlagOverrides> }) {
-  return requestJson<UserFlagSnapshot>(`/v1/admin/feature-flags/users/${encodeURIComponent(userId)}`, { method: "PATCH", token, body });
+  return requestJson<UserFlagSnapshot>(`/v1/admin/feature-flags/users/${encodeURIComponent(userId)}`, { method: "PATCH", token, body }).then(normalizeUserSnapshot);
 }
 
 export function listUserFeatureFlags(token: string, offset = 0) {
-  return requestJson<UserFlagList>(`/v1/admin/feature-flags/users?limit=20&offset=${offset}`, { token });
+  return requestJson<UserFlagList>(`/v1/admin/feature-flags/users?limit=20&offset=${offset}`, { token }).then(snapshot => ({ ...snapshot, items: snapshot.items.map(normalizeUserFlags) }));
 }

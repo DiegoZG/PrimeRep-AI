@@ -137,7 +137,7 @@ test("resource refresh failure keeps existing successful content for retry", asy
 });
 
 test("binary requests remain timeout-protected while consuming a stalled body", async () => {
-  const { HttpError } = load("services/httpClient.ts", { "@/config/api": { API_BASE_URL: "https://local.invalid" } });
+  const { HttpError } = load("services/httpClient.ts", { "@/config/api": { API_BASE_URL: "https://local.invalid" }, "./subscriptionEvents": { notifySubscriptionRequired() {} }, "./accountScope": { accountGeneration: () => 0 } });
   const { requestBinary } = load("services/binaryClient.ts", { "@/config/api": { API_BASE_URL: "https://local.invalid" }, "./httpClient": { HttpError } }, { Error, AbortController, fetch: async (_url, options) => ({ ok: true, blob: () => new Promise((_resolve, reject) => options.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })))) }) });
   await assert.rejects(requestBinary("/export", "token", (response) => response.blob(), { timeoutMs: 10 }), /timed out/);
 });
