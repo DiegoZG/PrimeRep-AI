@@ -5,6 +5,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EquipmentDiscoveryEntry } from "@/components/equipment-scanning/EquipmentDiscoveryEntry";
 import { AnimatedSearch } from "@/components/animated-search";
 import { ExerciseRow, FavoritesCard } from "@/components/explore";
 import { ProgramCard } from "@/components/program";
@@ -251,6 +252,7 @@ export default function ExploreScreen() {
         {isSearchMode || isLoading || !ownsExploreContent || error || myPrograms.length > 0 ? <Pressable testID="program-create-button" accessibilityRole="button" accessibilityLabel="Build a program" onPress={buildProgram} style={({ pressed }) => [styles.headerAction, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, opacity: pressed ? 0.78 : 1 }]}><Ionicons name="add" size={24} color={colors.text} /></Pressable> : null}
       </View>
       <View style={styles.search}><AnimatedSearch testID="explore-search-input" accessibilityLabel="Search programs and exercises" placeholder="Search programs and exercises…" value={searchText} onChangeText={setSearchText} /></View>
+      {!isSearchMode ? <EquipmentDiscoveryEntry /> : null}
     </>
   );
   const content = isSearchMode && ownsExploreContent ? searchContent : defaultContent;

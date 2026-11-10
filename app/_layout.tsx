@@ -382,6 +382,7 @@ function RootLayoutNav() {
             name="explore/favorites"
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="explore/scan-equipment" options={{ headerShown: false }} />
           <Stack.Screen name="programs/index" options={{ headerShown: false }} />
           <Stack.Screen name="programs/[templateId]" options={{ headerShown: false }} />
           <Stack.Screen name="programs/builder" options={{ headerShown: false }} />

@@ -5,6 +5,7 @@ export interface SubscriptionFlags {
   subscriptions_enforcement_enabled: boolean;
   subscriptions_onboarding_enabled?: boolean;
   workout_reliability_monitoring_enabled?: boolean;
+  equipment_scanning_enabled?: boolean;
 }
 
 export type FeatureFlagAudience = "everyone" | "selected";
@@ -86,7 +87,7 @@ export interface UserFlagList {
 }
 
 function normalizeFlags(flags: SubscriptionFlags): SubscriptionFlags {
-  return { ...flags, workout_reliability_monitoring_enabled: flags.workout_reliability_monitoring_enabled === true };
+  return { ...flags, workout_reliability_monitoring_enabled: flags.workout_reliability_monitoring_enabled === true, equipment_scanning_enabled: flags.equipment_scanning_enabled === true };
 }
 
 function normalizeSnapshot<T extends FeatureFlagSnapshot>(snapshot: T): T {
@@ -96,7 +97,7 @@ function normalizeSnapshot<T extends FeatureFlagSnapshot>(snapshot: T): T {
 function normalizeUserFlags<T extends Pick<UserFlagSnapshot, "overrides" | "effective_flags">>(snapshot: T): T {
   return {
     ...snapshot,
-    overrides: { ...snapshot.overrides, workout_reliability_monitoring_enabled: snapshot.overrides.workout_reliability_monitoring_enabled ?? null },
+    overrides: { ...snapshot.overrides, equipment_scanning_enabled: snapshot.overrides.equipment_scanning_enabled ?? null, workout_reliability_monitoring_enabled: snapshot.overrides.workout_reliability_monitoring_enabled ?? null },
     effective_flags: normalizeFlags(snapshot.effective_flags),
   };
 }
@@ -105,7 +106,7 @@ function normalizeUserSnapshot(snapshot: UserFlagSnapshot): UserFlagSnapshot {
   return {
     ...normalizeUserFlags(snapshot),
     global_flags: normalizeFlags(snapshot.global_flags),
-    audiences: { ...snapshot.audiences, workout_reliability_monitoring_enabled: snapshot.audiences.workout_reliability_monitoring_enabled ?? "everyone" },
+    audiences: { ...snapshot.audiences, equipment_scanning_enabled: snapshot.audiences.equipment_scanning_enabled ?? "everyone", workout_reliability_monitoring_enabled: snapshot.audiences.workout_reliability_monitoring_enabled ?? "everyone" },
   };
 }
 

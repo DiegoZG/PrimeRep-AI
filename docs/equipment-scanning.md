@@ -1,0 +1,41 @@
+# Equipment discovery and photo identification
+
+The Explore equipment entry opens a separate discovery screen. Manual equipment search and scan-safe guides remain available with `equipment_scanning_enabled` off; photo identification appears only for an enabled native account. Older flag responses default scanning to off. Global and selected-user controls use the existing versioned audited flag endpoints independently of subscription and workout-monitoring controls.
+
+## Native flow
+
+Take or choose exactly one still photo, review its normalized preview, and explicitly press Identify equipment. The client preserves aspect ratio, never upscales, resizes the long edge to at most 1024 pixels, and freshly encodes JPEG at 0.8 quality. Camera/microphone configuration is explicit: camera permission explains equipment identification; microphone stays disabled. This requires a new native build, not only a Metro reload.
+
+The pending action admits one request in the client. A generated submission key is stable for that photo attempt. Timeout, ambiguous external outcome or the server’s account-wide in-progress response offers Check result using the owned attempt key and a read-only GET. There is no automatic POST/provider retry. Retake requires another explicit user action; server admission, duplicate-content receipts, quota, budget and rollout checks remain authoritative. Cancelling a local request does not promise provider cancellation.
+
+Possible machines require explicit selection and Confirm machine, including one high-confidence candidate. Confirmation fetches current exercise options; missing attachments are shown by catalog name. Selecting an exercise fetches the dedicated versioned guidance endpoint. Only published instructions and approved HTTPS video descriptors are supplied to the scan-safe guide/player. Legacy exercise text/video fallbacks are never passed into this view. Missing coverage remains visibly unavailable. Scanning never mutates saved equipment, workouts or set logs.
+
+Photos remain temporary in the current route session and are cleaned on replacement, exit and account change, including late normalization results. No photo, URI, provider result or search text is written to app persistence/logging/analytics. A bounded in-memory owned attempt-key cache supports result recovery after navigating back to the route without retaining the photo. Android interrupted-picker results are discarded because their account ownership cannot be verified after activity restoration; the user chooses the photo again before any upload. Web offers manual discovery only.
+
+## Verification and limits
+
+Run `npm run test:equipment-scanning`, `npm run test:feature-flags`, `npm run test:profile`, `npm run test:subscriptions`, and `npm run test:exercise-foundation`; typecheck and lint are also required. Shared backend contract fixtures are copied into `scripts/fixtures/equipment-scanning` and validated through frontend normalization. Tests mock recognition; they do not call OpenAI or spend provider credit.
+
+Automated native fixture QA must use a newly built isolated simulator and non-production backend with external calls mocked. Verify gallery selection, normalized preview, confirmation, manual fallback, uncertainty and unavailable guidance; compare compact light/dark/max-text screens. A simulator cannot establish real camera capture quality. Physical iOS/Android camera, orientation and Android activity-recovery acceptance remain separate gates. Current legacy catalog coverage must not be represented as reviewed instructions or approved media. Keep recognition globally off until the provider budget, privacy disclosure and device/quality gates are approved; subscription teaser remains Coming soon.
+
+Frontend implementation milestone verification (mocked, before native/backend integration):153 focused tests passed across scanner, feature flags, profile/authentication, subscriptions and exercise foundation; TypeScript passed; lint had zero errors and only the two existing animation-hook warnings. The10 frozen backend fixture files match byte-for-byte; hashes are listed in `scripts/fixtures/equipment-scanning/SHA256SUMS`. Native/device/backend integration and real provider quality remain pending. No API key or paid call is used by these tests.
+
+The preview identifies OpenAI as the photo recipient before Identify. The equipment-photo privacy paragraph is factual draft copy under the existing pending-review legal release; no terms/privacy version or legal approval was changed. Owner/legal review and provider-policy/settings verification remain required before broad rollout. The Privacy screen shows a pending-review notice consistently with that release status.
+
+## Native fixture integration — November 9, 2026
+
+Partial checks passed on the isolated iPhone 16e/iOS 18.5 simulator `BB02E13E-CC60-4FE3-944F-285FA2BFFC5E`, using its newly built Xcode ad hoc signed app, Metro 8092 and the disposable fixture backend 8004. Provider keys were blank throughout; these checks exercise integration and presentation, not real recognition accuracy.
+
+- Light appearance: login → Explore Scan → one synthetic gallery JPEG → normalized preview and OpenAI disclosure → explicit Identify → Lat Pulldown Cable candidate → user selection/Confirm machine → Lat Pulldown exercise option → truthful unavailable instructions/video guide.
+- Repeating Identify from the same reviewed photo increased scan-service requests from 1 to 2 while fixture moderation/recognition remained 1 each. OpenAI client attempts remained 0, proving fixture receipt reuse without a live provider call.
+- The dark candidate screen was visually readable. This is one dark-state check, not a claim that every screen/state has completed dark-mode verification.
+
+Evidence is retained locally under `/private/tmp/primerep-scan-20261109/screenshots`: `scan-intro-light.png`, `scan-preview-light.png`, `scan-candidate-light.png`, `scan-options-light.png`, `scan-guide-unavailable-light.png` and `scan-candidate-dark.png`.
+
+After unlocking, the dedicated maximum-text Maestro scroll check passed: Choose photo reached 100% visibility and Search equipment manually was visibly reachable. The oversized header wraps awkwardly at this extreme size; that is future visual polish, not a demonstrated scrolling failure. CUA pan gestures were unreliable, so they were not used as evidence of broken layout. No ScrollView source change was made. Evidence: `scan-intro-maxtext-dark.png` and `scan-actions-maxtext-light.png`.
+
+Native unknown-outcome recovery also passed on a separate synthetic account. Check result kept the same photo and used read-only recovery; scan/moderation/recognition counters stayed at 1/1/1 before and after, with zero OpenAI client attempts and no additional POST/provider work. Search equipment manually then opened successfully. Evidence: `scan-unknown-check-light.png` and `scan-unknown-manual-light.png`.
+
+The native no-match, content-blocked, retake/cancel and flag-off cases remain unverified. Maximum-text result/guidance screens, physical iOS camera, Android behavior, real-photo model quality/accuracy/cost and broad rollout/privacy approval also remain pending. This does not claim that the complete twelve-flow Maestro matrix passed. The gallery image and recognition output are synthetic fixtures. Existing authentication email validation required disposable QA emails using example.com rather than example.test; that changed only the private fixture/account setup, not app source or validation rules.
+
+For the user-owned manual preview, normal text/light appearance was restored and the QA account logged out before switching environments. The fixture API on 8004 was stopped. A separate guarded ordinary `app.main` API on 8005 was activated only after the simulator showed unauthenticated Login; its health check passed, Metro 8092 targets it, and its fresh ledger had zero scan attempts and zero reservations. The user owns Login and any explicit Identify action. No inference or paid provider call was made during setup or verification. This manual handoff does not complete the pending quality/device/release gates.

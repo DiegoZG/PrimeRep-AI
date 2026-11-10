@@ -13,9 +13,9 @@ import { AuthContext } from "@/utils/authContext";
 function label(key: string): string {
   if (key.startsWith("audiences.")) return `Audience: ${label(key.slice(10))}`;
   if (key.startsWith("overrides.")) return `Override: ${label(key.slice(10))}`;
-  return ({ subscriptions_purchases_enabled: "Purchases", subscriptions_enforcement_enabled: "Enforcement", subscriptions_onboarding_enabled: "Onboarding", workout_reliability_monitoring_enabled: "Workout reliability monitoring", subscriptions_launch_at: "Launch (UTC)" })[key] ?? key;
+  return ({ subscriptions_purchases_enabled: "Purchases", subscriptions_enforcement_enabled: "Enforcement", subscriptions_onboarding_enabled: "Onboarding", equipment_scanning_enabled: "Equipment scanning", workout_reliability_monitoring_enabled: "Workout reliability monitoring", subscriptions_launch_at: "Launch (UTC)" })[key] ?? key;
 }
-const defaultAudiences: FeatureFlagAudiences = { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone" };
+const defaultAudiences: FeatureFlagAudiences = { subscriptions_purchases_enabled: "everyone", subscriptions_enforcement_enabled: "everyone", subscriptions_onboarding_enabled: "everyone", equipment_scanning_enabled: "everyone", workout_reliability_monitoring_enabled: "everyone" };
 const auditValues = (value: Record<string, unknown>) => Object.fromEntries(Object.entries(value).flatMap(([key, nested]) => ["flags", "audiences", "overrides"].includes(key) && typeof nested === "object" && nested ? Object.entries(nested).map(([field, setting]) => [`${key === "flags" ? "" : `${key}.`}${field}`, setting]) : [[key, nested]]));
 function auditChanges(entry: FeatureFlagAudit) {
   const before = auditValues(entry.before);
@@ -42,7 +42,7 @@ function AccountFeatureFlags() {
   const colors = Colors[scheme];
   const { fontScale } = useWindowDimensions();
   const [snapshot, setSnapshot] = useState<AdminFeatureFlagSnapshot | null>(null);
-  const [flags, setFlags] = useState<SubscriptionFlags>({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false });
+  const [flags, setFlags] = useState<SubscriptionFlags>({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, equipment_scanning_enabled: false, workout_reliability_monitoring_enabled: false });
   const [audiences, setAudiences] = useState<FeatureFlagAudiences>({ ...defaultAudiences });
   const [launch, setLaunch] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,7 +62,7 @@ function AccountFeatureFlags() {
 
   const applySnapshot = useCallback((next: AdminFeatureFlagSnapshot) => {
     setSnapshot(next);
-    setFlags({ subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false, ...next.flags });
+    setFlags({ subscriptions_onboarding_enabled: false, equipment_scanning_enabled: false, workout_reliability_monitoring_enabled: false, ...next.flags });
     setAudiences({ ...defaultAudiences, ...next.audiences });
     setLaunch(launchValue(next.subscriptions_launch_at));
     setForbidden(false);
@@ -74,7 +74,7 @@ function AccountFeatureFlags() {
     setSaved(false);
     if (err instanceof HttpError && (err.status === 403 || err.status === 401)) {
       setSnapshot(null);
-      setFlags({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, workout_reliability_monitoring_enabled: false });
+      setFlags({ subscriptions_purchases_enabled: false, subscriptions_enforcement_enabled: false, subscriptions_onboarding_enabled: false, equipment_scanning_enabled: false, workout_reliability_monitoring_enabled: false });
       setAudiences({ ...defaultAudiences });
       setLaunch("");
       setConfirmation(null);
@@ -107,7 +107,7 @@ function AccountFeatureFlags() {
   }, [applySnapshot, handleFailure, pageAccountGuard, token, user?.id]);
   useFocusEffect(useCallback(() => { if (!dirtyRef.current) void load(); }, [load]));
 
-  const dirty = !!snapshot && (flags.subscriptions_purchases_enabled !== snapshot.flags.subscriptions_purchases_enabled || flags.subscriptions_enforcement_enabled !== snapshot.flags.subscriptions_enforcement_enabled || Boolean(flags.subscriptions_onboarding_enabled) !== Boolean(snapshot.flags.subscriptions_onboarding_enabled) || Boolean(flags.workout_reliability_monitoring_enabled) !== Boolean(snapshot.flags.workout_reliability_monitoring_enabled) || audiences.workout_reliability_monitoring_enabled !== (snapshot.audiences?.workout_reliability_monitoring_enabled ?? "everyone") || audiences.subscriptions_onboarding_enabled !== (snapshot.audiences?.subscriptions_onboarding_enabled ?? "everyone") || launch !== launchValue(snapshot.subscriptions_launch_at) || audiences.subscriptions_purchases_enabled !== (snapshot.audiences?.subscriptions_purchases_enabled ?? "everyone") || audiences.subscriptions_enforcement_enabled !== (snapshot.audiences?.subscriptions_enforcement_enabled ?? "everyone"));
+  const dirty = !!snapshot && (Boolean(flags.equipment_scanning_enabled) !== Boolean(snapshot.flags.equipment_scanning_enabled) || audiences.equipment_scanning_enabled !== (snapshot.audiences?.equipment_scanning_enabled ?? "everyone") || flags.subscriptions_purchases_enabled !== snapshot.flags.subscriptions_purchases_enabled || flags.subscriptions_enforcement_enabled !== snapshot.flags.subscriptions_enforcement_enabled || Boolean(flags.subscriptions_onboarding_enabled) !== Boolean(snapshot.flags.subscriptions_onboarding_enabled) || Boolean(flags.workout_reliability_monitoring_enabled) !== Boolean(snapshot.flags.workout_reliability_monitoring_enabled) || audiences.workout_reliability_monitoring_enabled !== (snapshot.audiences?.workout_reliability_monitoring_enabled ?? "everyone") || audiences.subscriptions_onboarding_enabled !== (snapshot.audiences?.subscriptions_onboarding_enabled ?? "everyone") || launch !== launchValue(snapshot.subscriptions_launch_at) || audiences.subscriptions_purchases_enabled !== (snapshot.audiences?.subscriptions_purchases_enabled ?? "everyone") || audiences.subscriptions_enforcement_enabled !== (snapshot.audiences?.subscriptions_enforcement_enabled ?? "everyone"));
   dirtyRef.current = dirty;
   const editFlags = (key: keyof SubscriptionFlags, value: boolean) => { setFlags((old) => ({ ...old, [key]: value })); setSaved(false); };
   const confirmDiscard = (action: () => void) => {
@@ -159,7 +159,7 @@ function AccountFeatureFlags() {
   return <ProfilePage title="Feature flags" onBack={() => router.back()} testID="feature-flags-screen"><ProfileScroll>
     {!user || !token || forbidden ? <Text testID="feature-flags-forbidden" accessibilityRole="alert">Administrator access is required to view or change feature flags.</Text> : <>
       <Text style={muted}>The global switches are master controls: turning a flag off disables it for everyone, including users with Allow overrides.</Text>
-      <Text style={muted}>Subscription and workout monitoring controls. Monitoring is independent of subscription access. Onboarding applies only to accounts created while all three effective subscription flags are enabled.</Text>
+      <Text style={muted}>Subscription, scanning and workout monitoring controls. Scanning and monitoring are independent of subscription access. Onboarding applies only to accounts created while all three effective subscription flags are enabled.</Text>
       {busy ? <Text accessibilityLiveRegion="polite">Updating feature flags…</Text> : null}
       {confirmation ? <View testID="feature-flags-discard-confirmation" style={styles.section}><Text accessibilityRole="alert">Discard unsaved changes? Continuing replaces the current edits.</Text><Pressable testID="feature-flags-keep-editing" accessibilityRole="button" onPress={() => { setConfirmation(null); confirmationGeneration.current += 1; }} style={button(false)}><Text>Keep editing</Text></Pressable><Pressable testID="feature-flags-confirm-discard" accessibilityRole="button" onPress={confirmation.action} style={button(false)}><Text>Discard and continue</Text></Pressable></View> : null}
       {snapshot ? <>
@@ -169,6 +169,7 @@ function AccountFeatureFlags() {
           ["subscriptions_purchases_enabled", "Subscription purchases", "Allows subscription offers and purchases when billing is connected."],
           ["subscriptions_enforcement_enabled", "Subscription enforcement", "Requires entitlement for new training."],
           ["subscriptions_onboarding_enabled", "Onboarding subscription", "Requires a subscription after new-account onboarding. Purchases and enforcement must also be on."],
+          ["equipment_scanning_enabled", "Equipment scanning", "Allows photo identification for selected users. Manual equipment search remains available when off."],
           ["workout_reliability_monitoring_enabled", "Workout reliability monitoring", "Privately measures device saves and workout sync. Independent of subscriptions; never blocks logging."],
         ] as const).map(([key, title, description]) => <View key={key} style={{ gap: 12 }}><View style={[styles.control, { flexDirection: fontScale >= 1.5 ? "column" : "row", alignItems: fontScale >= 1.5 ? "flex-start" : "center" }]}>
           <View style={{ flexShrink: 1, flexGrow: 1, gap: 6 }}><Text style={styles.heading}>{title}</Text><Text style={muted}>{description}</Text></View>
