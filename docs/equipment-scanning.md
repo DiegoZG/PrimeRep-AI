@@ -21,3 +21,15 @@ Native QA must use a newly built isolated simulator and non-production backend w
 Frontend implementation milestone verification (mocked, before native/backend integration):153 focused tests passed across scanner, feature flags, profile/authentication, subscriptions and exercise foundation; TypeScript passed; lint had zero errors and only the two existing animation-hook warnings. The10 frozen backend fixture files match byte-for-byte; hashes are listed in `scripts/fixtures/equipment-scanning/SHA256SUMS`. Native/device/backend integration and real provider quality remain pending. No API key or paid call is used by these tests.
 
 The preview identifies OpenAI as the photo recipient before Identify. The equipment-photo privacy paragraph is factual draft copy under the existing pending-review legal release; no terms/privacy version or legal approval was changed. Owner/legal review and provider-policy/settings verification remain required before broad rollout. The Privacy screen shows a pending-review notice consistently with that release status.
+
+## Native fixture integration — November 9, 2026
+
+Partial checks passed on the isolated iPhone 16e/iOS 18.5 simulator `BB02E13E-CC60-4FE3-944F-285FA2BFFC5E`, using its newly built Xcode ad hoc signed app, Metro8092 and the disposable fixture backend8004. Provider keys were blank throughout; these checks exercise integration and presentation, not real recognition accuracy.
+
+- Light appearance: login → Explore Scan → one synthetic gallery JPEG → normalized preview and OpenAI disclosure → explicit Identify → Lat Pulldown Cable candidate → user selection/Confirm machine → Lat Pulldown exercise option → truthful unavailable instructions/video guide.
+- Repeating Identify from the same reviewed photo increased scan-service requests from1 to2 while fixture moderation/recognition remained1 each. OpenAI client attempts remained0, proving fixture receipt reuse without a live provider call.
+- The dark candidate screen was visually readable. This is one dark-state check, not a claim that every screen/state has completed dark-mode verification.
+
+Evidence is retained locally under `/private/tmp/primerep-scan-20261109/screenshots`: `scan-intro-light.png`, `scan-preview-light.png`, `scan-candidate-light.png`, `scan-options-light.png`, `scan-guide-unavailable-light.png` and `scan-candidate-dark.png`.
+
+Maximum-text and recovery checks were interrupted by the Mac locking and are not passed yet. Other authored Maestro scenarios also remain unverified; this is not a claim that the complete Maestro flow collection passed. Physical camera capture, physical iOS/Android behavior, real-provider quality/accuracy/cost, and broad rollout/privacy approval remain separate gates. The gallery image and recognition output are synthetic fixtures. Existing authentication email validation required disposable QA emails using example.com rather than example.test; that changed only the private fixture/account setup, not app source or validation rules.
