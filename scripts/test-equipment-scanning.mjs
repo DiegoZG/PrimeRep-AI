@@ -201,3 +201,22 @@ test("photo cleanup deletes cache copies but never original gallery assets", asy
   await files.discardPickedPhoto("file:///gallery/original.jpg"); await files.discardPickedPhoto("content://library/original"); await files.discardPickedPhoto("ph://original"); assert.equal(deleted.length, 0);
   await files.discardPickedPhoto("file:///qa-cache/normalized.jpg"); assert.deepEqual(deleted, ["file:///qa-cache/normalized.jpg"]);
 });
+test("unverifiable POST JSON/result remains unknown and never automatically resends photo", async () => {
+  for (const body of ["<html>gateway interrupted</html>", JSON.stringify({ schema_version: 1, status: "candidates" })]) {
+    let requests = 0; const h = serviceHarness({ upload: async () => { requests++; return { status: 200, body }; } });
+    await assert.rejects(h.api.identifyEquipment("token", "file://normalized", "same-key", new AbortController().signal), (e) => e.code === "scan_outcome_unknown"); assert.equal(requests, 1);
+  }
+});
+test("hook discards photo returned during the post-normalization invalidation gap", async () => {
+  let invalidate; const { h, close } = await mountScanner({ pick: async () => { invalidate(); return { uri: "file://gap", width: 100, height: 200 }; } }); invalidate = () => h.state.manual();
+  await act(async () => h.state.pick("library")); assert.equal(h.state.photo, null); assert.equal(h.state.stage, "manual"); assert.ok(h.discarded.includes("file://gap")); await close();
+});
+test("definitive pre-admission rejection allows a new explicit Identify without repicking", async () => {
+  let fault; let requests = 0; const { h, close } = await mountScanner({ services: { identifyEquipment: async () => { requests++; throw fault; } } }); fault = new h.EquipmentScanError("scan_access_unknown", "Access is being checked. Try again.", 503, null, null);
+  await act(async () => h.state.pick("library")); await act(async () => h.state.identify()); assert.equal(requests, 1); assert.equal(h.state.attemptKey, null); assert.equal(h.state.photo.uri, "file://normalized");
+  await act(async () => h.state.identify()); assert.equal(requests, 2); await close();
+});
+test("the same rejection after admission retains owned attempt and recovers via GET only", async () => {
+  let fault; let requests = 0; const { h, close } = await mountScanner({ services: { identifyEquipment: async () => { requests++; throw fault; } } }); fault = new h.EquipmentScanError("scan_budget_exceeded", "Try again later.", 429, 60, "owned-attempt");
+  await act(async () => h.state.pick("library")); await act(async () => h.state.identify()); assert.equal(h.state.attemptKey, "owned-attempt"); await act(async () => h.state.identify()); assert.equal(requests, 1); await act(async () => h.state.check()); assert.equal(h.calls.find((c) => c[0] === "check")[2], "owned-attempt"); await close();
+});

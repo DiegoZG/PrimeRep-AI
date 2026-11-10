@@ -12,6 +12,7 @@ import { AuthContext } from "@/utils/authContext";
 
 type Stage = "capture" | "manual" | "confirm" | "exercises" | "guidance";
 const remembered = new Map<string, string>();
+const preAdmissionErrors = new Set(["scan_access_unknown", "scan_access_required", "scan_disabled", "scan_budget_exceeded", "scan_quota_exceeded", "scan_authentication_required", "scan_image_invalid", "scan_image_too_large", "scan_media_type_unsupported", "scan_invalid_request"]);
 export function useEquipmentScanner() {
   const { user, token } = useContext(AuthContext);
   const [enabled, setEnabled] = useState(false);
@@ -83,7 +84,8 @@ export function useEquipmentScanner() {
     catch (failure) {
       if (!current() || expected !== generation.current || controller.signal.aborted) return;
       const fault = failure instanceof EquipmentScanError ? failure : null;
-      if (fault?.attemptKey) remember(fault.attemptKey);
+      if (fault?.attemptKey) { remember(fault.attemptKey); setRecovery(true); }
+      else if (scan && fault?.status && preAdmissionErrors.has(fault.code)) forget();
       if (fault?.code === "scan_disabled") { enabledRef.current = false; setEnabled(false); }
       if (scan && (fault?.code === "scan_outcome_unknown" || fault?.code === "scan_provider_outcome_unknown" || fault?.code === "scan_in_progress" || fault?.code === "scan_provider_timeout")) setRecovery(true);
       setError(failure instanceof Error ? failure.message : "This request couldn’t finish. Search manually or try again.");
@@ -95,7 +97,8 @@ export function useEquipmentScanner() {
     cancelRequest(); const expected = generation.current; setPicking(true); setError(null);
     try {
       const next = await pickScanPhoto(source, () => current() && expected === generation.current);
-      if (!next || !current() || expected !== generation.current) return;
+      if (!next) return;
+      if (!current() || expected !== generation.current) { await discardScanPhoto(next.uri); return; }
       const previous = photoRef.current; photoRef.current = next; setPhoto(next); if (previous) void discardScanPhoto(previous.uri);
       forget(); setResult(null); setSelection(null); setStage("capture");
     } catch (failure) { if (current() && expected === generation.current) setError(failure instanceof Error ? failure.message : "This photo couldn’t open. Choose another photo."); }

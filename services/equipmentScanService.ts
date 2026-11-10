@@ -58,6 +58,7 @@ export function normalizeGuidance(value: unknown): ExerciseGuidance {
 }
 function detail(value: unknown): ScanErrorDetail {
   const v = object(value); const retry = v.retry_after_seconds;
+  if (!("attempt_key" in v) || !("retry_after_seconds" in v)) throw invalid();
   if (retry != null && (!Number.isInteger(retry) || retry < 1 || retry > 86400)) throw invalid();
   return { code: text(v.code, 80), detail: text(v.detail, 240), request_id: text(v.request_id, 64), retry_after_seconds: retry ?? null, attempt_key: v.attempt_key == null ? null : text(v.attempt_key, 64) };
 }
@@ -88,7 +89,13 @@ async function request(path: string, token: string, signal: AbortSignal, upload?
     throw new EquipmentScanError(upload ? "scan_outcome_unknown" : "scan_connection_failed", timedOut ? "This is taking longer than expected. Check the result without sending another photo." : "Check your connection. Your photo won’t be sent again automatically.");
   } finally { clearTimeout(timeout); signal.removeEventListener("abort", cancel); }
 }
-export async function identifyEquipment(token: string, photoUri: string, attemptKey: string, signal: AbortSignal) { return normalizeScanResult(await request("/v1/equipment-scans", token, signal, { uri: photoUri, key: attemptKey })); }
+export async function identifyEquipment(token: string, photoUri: string, attemptKey: string, signal: AbortSignal) {
+  try { return normalizeScanResult(await request("/v1/equipment-scans", token, signal, { uri: photoUri, key: attemptKey })); }
+  catch (error) {
+    if (error instanceof EquipmentScanError && error.code === "scan_invalid_response") throw new EquipmentScanError("scan_outcome_unknown", "The response couldn’t be verified. Check the result without sending another photo.");
+    throw error;
+  }
+}
 export async function checkEquipmentAttempt(token: string, attemptKey: string, signal: AbortSignal) { return normalizeAttempt(await request(`/v1/equipment-scans/attempts/${encodeURIComponent(attemptKey)}`, token, signal)); }
 export async function searchEquipment(token: string, query: string, next: string | null, signal: AbortSignal) { const q = new URLSearchParams({ q: query.trim().slice(0, 100), limit: "20" }); if (next) q.set("cursor", next); return normalizeEquipmentPage(await request(`/v1/equipment/search?${q}`, token, signal)); }
 export async function getEquipmentExercises(token: string, equipmentId: string, next: string | null, signal: AbortSignal) { const q = new URLSearchParams({ limit: "20" }); if (next) q.set("cursor", next); return normalizeExerciseOptions(await request(`/v1/equipment/${encodeURIComponent(equipmentId)}/exercise-options?${q}`, token, signal)); }
