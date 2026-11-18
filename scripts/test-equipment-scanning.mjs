@@ -280,11 +280,12 @@ test("candidate confirmation retains the reviewed photo without selecting a mach
   const preview = tree.root.findByProps({ testID: "scan-confirm-photo" }); assert.equal(preview.props.source.uri, photo.uri); assert.equal(preview.props.contentFit, "contain");
   assert.equal(tree.root.findByProps({ testID: "scan-confirm-machine" }).props.disabled, true); assert.ok(tree.root.findByProps({ testID: "scan-none-match" })); assert.equal(selected, 0); assert.equal(confirmed, 0); await act(async () => tree.unmount());
 });
-test("photo preview distinguishes real machine photos from illustrative UI test images", async () => {
+test("preview accepts clear product images while discouraging simplified drawings and obscured parts", async () => {
   const state = { stage: "capture", enabled: true, photo: { uri: "file://reviewed" }, busy: false, picking: false, pick() {}, identify() {}, manual() {}, cancelRequest() {} };
   const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
   await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
-  assert.match(JSON.stringify(tree.root.findByProps({ testID: "scan-photo-requirements" }).props.children), /real photo.*not a drawing or screenshot/); await act(async () => tree.unmount());
+  const copy = JSON.stringify(tree.root.findByProps({ testID: "scan-photo-requirements" }).props.children);
+  assert.match(copy, /clear photo or product image.*one machine/); assert.match(copy, /simplified drawings or obscured parts/); assert.doesNotMatch(copy, /real photo|not a drawing or screenshot/); await act(async () => tree.unmount());
 });
 test("freshly withdrawn guidance clears stale exercise availability on opening and foreground refresh", async () => {
   for (const foreground of [false, true]) {
@@ -296,5 +297,25 @@ test("freshly withdrawn guidance clears stale exercise availability on opening a
     if (foreground) { assert.equal(h.state.options.items[0].guidance_available, true); await act(async () => h.foreground()); }
     assert.equal(h.state.guidance.instructions.status, "instructions_unavailable"); assert.equal(h.state.options.items[0].guidance_available, false); assert.equal(h.state.options.items[0].approved_video_available, false);
     await act(async () => h.state.back()); assert.equal(h.state.stage, "exercises"); assert.equal(h.state.options.items[0].guidance_available, false); await close();
+  }
+});
+
+test("capture instructions welcome a photo or product image with visible machine features", async () => {
+  const state = { stage: "capture", enabled: true, photo: null, busy: false, picking: false, pick() {}, manual() {}, cancelRequest() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+  await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  const rendered = JSON.stringify(tree.toJSON()); assert.match(rendered, /clear photo or product image of one machine/); assert.match(rendered, /handles and attachments visible/); assert.doesNotMatch(rendered, /real photo|not a drawing or screenshot/); await act(async () => tree.unmount());
+});
+test("unclear and uncertain results explain next steps without blaming image blur or auto-identifying", async () => {
+  for (const reason of ["image_unclear", "uncertain"]) {
+    let uploads = 0; let manual = 0;
+    const state = { stage: "capture", enabled: true, photo: { uri: "file://product-image" }, result: { ...fixture("scan_no_match"), reason }, busy: false, picking: false, identify() { uploads++; }, pick() {}, manual() { manual++; }, cancelRequest() {} };
+    const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+    await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+    const message = JSON.stringify(tree.root.findByProps({ testID: "scan-no-match" }).findAllByType("Text").map((node) => node.props.children));
+    if (reason === "image_unclear") assert.match(message, /shape, handles and attachments/);
+    else { assert.match(message, /can’t reliably choose a machine or setup/); assert.match(message, /training mode.*search by name/); }
+    assert.match(message, /another image/); assert.doesNotMatch(message, /blurry|clearer photo|drawing|screenshot/); assert.equal(uploads, 0);
+    await act(async () => tree.root.findByProps({ testID: "scan-manual-search" }).props.onPress()); assert.equal(manual, 1); assert.equal(uploads, 0); await act(async () => tree.unmount());
   }
 });
