@@ -18,6 +18,7 @@ import {
 import * as userService from "@/services/userService";
 import { accountRequestGuard, invalidateAccountRequests } from "@/services/accountScope";
 import { cleanupPrivateFiles } from "@/services/privateFiles";
+import { cleanupEquipmentScanPhotos } from "@/services/equipmentScanPhoto";
 import { cacheSessionUser, captureAndClearSessionTokens, clearCachedSessionUser, clearSessionTokens, persistSessionTokens, waitForTokenWrites } from "@/services/authTokenQueue";
 
 export type AuthUser = userService.UserResponse;
@@ -299,6 +300,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     void cleanupPrivateFiles().catch(() => {});
+    void cleanupEquipmentScanPhotos().catch(() => {});
     bootstrap();
   }, [bootstrap]);
 
@@ -407,6 +409,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const capturedCredentials = captureAndClearSessionTokens();
     dispatch({ type: "LOGOUT" });
     void cleanupPrivateFiles().catch(() => {});
+    void cleanupEquipmentScanPhotos().catch(() => {});
     const refreshToken = await capturedCredentials;
     if (options?.forceLocal) return;
 

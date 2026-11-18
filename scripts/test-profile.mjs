@@ -177,6 +177,7 @@ test("an old refreshUser cannot overwrite a newly saved canonical name", async (
     "@/services/accountScope": scope,
     "@/services/authTokenQueue": queue,
     "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+    "@/services/equipmentScanPhoto": { cleanupEquipmentScanPhotos: async () => {} },
   });
   let value, tree;
   function Read() { value = React.useContext(auth.AuthContext); return null; }
@@ -252,6 +253,7 @@ for (const failedSwitch of [true, false]) test(`pending logout clears A locally 
     "@/services/accountScope": scope,
     "@/services/authTokenQueue": queue,
     "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+    "@/services/equipmentScanPhoto": { cleanupEquipmentScanPhotos: async () => {} },
   });
   let value, tree;
   function Read() { value = React.useContext(auth.AuthContext); return null; }
@@ -290,6 +292,7 @@ test("offline bootstrap restores only the cached signed-in account and logout re
     "@/services/accountScope": scope,
     "@/services/authTokenQueue": queue,
     "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+    "@/services/equipmentScanPhoto": { cleanupEquipmentScanPhotos: async () => {} },
   });
   let value, tree;
   function Read() { value = React.useContext(auth.AuthContext); return null; }
@@ -320,6 +323,7 @@ test("offline workout session retries authentication when connectivity returns",
     "@/services/userService": { getMe: async () => { if (!online) throw new Error("offline"); return cached; } },
     "@/services/accountScope": scope, "@/services/authTokenQueue": queue,
     "@/services/privateFiles": { cleanupPrivateFiles: async () => {} },
+    "@/services/equipmentScanPhoto": { cleanupEquipmentScanPhotos: async () => {} },
   }, { setTimeout: (callback) => { scheduledRetry = callback; return 1; }, clearTimeout: () => {} });
   let value, tree;
   function Read() { value = React.useContext(auth.AuthContext); return null; }

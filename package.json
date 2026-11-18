@@ -15,6 +15,7 @@
     "test:exercise-foundation": "node --test scripts/test-exercise-foundation.mjs",
     "validate:legal-release": "node scripts/validate-legal-release.mjs",
     "validate:support-release": "node scripts/validate-support-release.mjs",
+    "test:equipment-scanning": "node --test scripts/test-equipment-scanning.mjs",
     "test:feature-flags": "node --test scripts/test-feature-flags.mjs",
     "test:subscriptions": "node --test scripts/test-subscriptions.mjs",
     "test:profile": "node --test scripts/test-profile.mjs",
