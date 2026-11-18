@@ -151,11 +151,11 @@ function guidanceHarness(scanState) {
     "@/components/exercises/ExerciseMedia": { ExerciseMedia: media }, "@/constants/theme": { Colors: { light: colors }, Fonts: { sans: "system" } }, "@/hooks/use-color-scheme": { useColorScheme: () => "light" }, "@/hooks/use-equipment-scanner": { useEquipmentScanner() { return scanState; } }, "@/services/accountScope": { accountGeneration: () => 0 }, "@/utils/authContext": { AuthContext: React.createContext({ user: { id: "A" } }) },
   }); return { ScanSafeGuidance, ScanEquipmentScreen, colors };
 }
-test("scan-safe guidance shows truthful unavailable states and supplies no legacy fallback props", async () => {
+test("scan-safe guidance offers recovery instead of an empty guide and supplies no legacy fallback props", async () => {
   const { ScanSafeGuidance, colors } = guidanceHarness(); let tree;
   const guidance = fixture("guidance_unavailable"); guidance.demoVideoUrl = "https://legacy.test/video.mp4"; guidance.instructions_legacy = ["Legacy"];
   await act(async () => { tree = create(React.createElement(ScanSafeGuidance, { guidance, colors })); });
-  assert.equal(tree.root.findAllByType("ApprovedMedia").length, 0); assert.ok(tree.root.findByProps({ testID: "scan-video-unavailable" })); assert.ok(tree.root.findByProps({ testID: "scan-instructions-unavailable" }));
+  assert.equal(tree.root.findAllByType("ApprovedMedia").length, 0); assert.ok(tree.root.findByProps({ testID: "scan-guide-coming-soon" })); assert.equal(tree.root.findAllByProps({ testID: "scan-video-unavailable" }).length, 0); assert.equal(tree.root.findAllByProps({ testID: "scan-instructions-unavailable" }).length, 0); assert.doesNotMatch(JSON.stringify(tree.toJSON()), /Unreviewed|https:\/\/legacy/);
   guidance.video = { status: "approved", asset_id: "owned", url: "https://approved.test/video.mp4", mime_type: "video/mp4", poster_url: null };
   await act(async () => tree.update(React.createElement(ScanSafeGuidance, { guidance, colors }))); const props = tree.root.findByType("ApprovedMedia").props; assert.equal(props.media.id, "owned"); assert.equal(props.demoVideoUrl, undefined); assert.equal(props.imageUrl, undefined); await act(async () => tree.unmount());
 });
@@ -175,7 +175,7 @@ test("flag-off foreground refresh does not cancel manual guide revalidation", as
   await act(async () => h.foreground()); assert.equal(h.state.guidance.exercise_id, "lat_pulldown"); assert.equal(h.state.enabled, false); await close();
 });
 test("exercise choices clearly name missing attachments without changing workouts", async () => {
-  const item = { ...fixture("exercise_options").items[0], compatibility: "needs_equipment_confirmation", missing_equipment: [{ id: "attachment", name: "Wide handle" }], missing_equipment_ids: ["attachment"] };
+  const item = { ...fixture("exercise_options").items[0], guidance_available: true, compatibility: "needs_equipment_confirmation", missing_equipment: [{ id: "attachment", name: "Wide handle" }], missing_equipment_ids: ["attachment"] };
   let opened; const state = { stage: "exercises", machine: { name: "Cable station" }, options: { items: [item], next_cursor: null }, busy: false, picking: false, openGuidance: (id) => { opened = id; }, cancelRequest() {}, manual() {}, back() {} };
   const { ScanEquipmentScreen } = guidanceHarness(state); let tree; await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
   const row = tree.root.findByProps({ testID: `scan-exercise-${item.exercise_id}` }); assert.match(row.props.accessibilityLabel, /Also needs Wide handle/); assert.match(JSON.stringify(tree.toJSON()), /Also needs Wide handle/);
@@ -239,4 +239,62 @@ test("photo disclosure leaves legal approval and version metadata unchanged", ()
 test("privacy view describes pending review rather than claiming publication", () => {
   const route = load("app/legal/privacy.tsx", { "@/components/legal-document-screen": { LegalDocumentScreen: "LegalDocument" }, "@/constants/legal": { PRIVACY_LAST_UPDATED: "October 2, 2026", PRIVACY_SECTIONS: [], PRIVACY_VERSION: "2026-10-02" } }, { React });
   const screen = route.default(); assert.match(screen.props.draftNotice, /awaiting review before release/); assert.doesNotMatch(screen.props.draftNotice, /approved and published/);
+});
+
+test("exercises without published content are coming-soon rows, not empty-guide buttons", async () => {
+  let opened = 0; let manual = 0;
+  const state = { stage: "exercises", machine: { name: "Lat Pulldown Cable" }, options: fixture("exercise_options"), busy: false, picking: false, openGuidance() { opened++; }, manual() { manual++; }, cancelRequest() {}, back() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+  await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  const row = tree.root.findByProps({ testID: "scan-exercise-lat_pulldown" });
+  assert.equal(row.type, "View"); assert.equal(row.props.onPress, undefined); assert.notEqual(row.props.accessibilityRole, "button"); assert.match(row.props.accessibilityLabel, /Guide coming soon/);
+  assert.equal(row.findAllByProps({ name: "chevron-forward" }).length, 0); assert.equal(opened, 0);
+  await act(async () => tree.root.findByProps({ testID: "scan-find-other" }).props.onPress()); assert.equal(manual, 1); await act(async () => tree.unmount());
+});
+test("available instructions or an approved video keep exercise guidance accessible", async () => {
+  for (const readiness of [{ guidance_available: true, approved_video_available: false }, { guidance_available: false, approved_video_available: true }]) {
+    let opened;
+    const item = { ...fixture("exercise_options").items[0], ...readiness };
+    const state = { stage: "exercises", options: { items: [item] }, busy: false, picking: false, openGuidance: (id) => { opened = id; }, manual() {}, cancelRequest() {}, back() {} };
+    const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+    await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+    const row = tree.root.findByProps({ testID: "scan-exercise-lat_pulldown" }); assert.equal(row.props.accessibilityRole, "button"); assert.equal(row.props.disabled, false);
+    await act(async () => row.props.onPress()); assert.equal(opened, "lat_pulldown"); await act(async () => tree.unmount());
+  }
+});
+test("withdrawn guidance exposes working return and manual-search actions", async () => {
+  let back = 0; let manual = 0;
+  const state = { stage: "guidance", guidance: fixture("guidance_unavailable"), busy: false, picking: false, back() { back++; }, manual() { manual++; }, cancelRequest() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+  await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  assert.ok(tree.root.findByProps({ testID: "scan-guide-coming-soon" }));
+  await act(async () => tree.root.findByProps({ testID: "scan-guide-back" }).props.onPress()); await act(async () => tree.root.findByProps({ testID: "scan-guide-find-other" }).props.onPress());
+  assert.equal(back, 1); assert.equal(manual, 1); await act(async () => tree.unmount());
+});
+test("candidate confirmation retains the reviewed photo without selecting a machine", async () => {
+  const photo = { uri: "file://reviewed-photo" };
+  let confirmed = 0; let selected = 0;
+  const state = { stage: "confirm", photo, result: fixture("scan_candidates"), selection: null, busy: false, picking: false, confirm() { confirmed++; }, setSelection() { selected++; }, manual() {}, back() {}, cancelRequest() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+  await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  const preview = tree.root.findByProps({ testID: "scan-confirm-photo" }); assert.equal(preview.props.source.uri, photo.uri); assert.equal(preview.props.contentFit, "contain");
+  assert.equal(tree.root.findByProps({ testID: "scan-confirm-machine" }).props.disabled, true); assert.ok(tree.root.findByProps({ testID: "scan-none-match" })); assert.equal(selected, 0); assert.equal(confirmed, 0); await act(async () => tree.unmount());
+});
+test("photo preview distinguishes real machine photos from illustrative UI test images", async () => {
+  const state = { stage: "capture", enabled: true, photo: { uri: "file://reviewed" }, busy: false, picking: false, pick() {}, identify() {}, manual() {}, cancelRequest() {} };
+  const { ScanEquipmentScreen } = guidanceHarness(state); let tree;
+  await act(async () => { tree = create(React.createElement(ScanEquipmentScreen)); });
+  assert.match(JSON.stringify(tree.root.findByProps({ testID: "scan-photo-requirements" }).props.children), /real photo.*not a drawing or screenshot/); await act(async () => tree.unmount());
+});
+test("freshly withdrawn guidance clears stale exercise availability on opening and foreground refresh", async () => {
+  for (const foreground of [false, true]) {
+    let reads = 0; const available = { ...fixture("exercise_options"), items: [{ ...fixture("exercise_options").items[0], guidance_available: true, approved_video_available: true }] };
+    const published = { ...fixture("guidance_unavailable"), instructions: { status: "published", content_version: "reviewed", content: { steps: ["Reviewed step"], cues: [], mistakes: [], benefits: "Reviewed benefit", beginner_guidance: "Reviewed intro" } }, video: { status: "approved", asset_id: "approved", url: "https://media.test/approved.mp4", mime_type: "video/mp4", poster_url: null } };
+    const { h, close } = await mountScanner({ services: { getEquipmentExercises: async () => available, getScanGuidance: async () => (++reads === 1 && foreground ? published : fixture("guidance_unavailable")) } });
+    await act(async () => h.state.manual()); await act(async () => h.state.find()); await act(async () => h.state.setSelection(h.state.search.items[0])); await act(async () => h.state.confirm());
+    assert.equal(h.state.options.items[0].guidance_available, true); await act(async () => h.state.openGuidance("lat_pulldown"));
+    if (foreground) { assert.equal(h.state.options.items[0].guidance_available, true); await act(async () => h.foreground()); }
+    assert.equal(h.state.guidance.instructions.status, "instructions_unavailable"); assert.equal(h.state.options.items[0].guidance_available, false); assert.equal(h.state.options.items[0].approved_video_available, false);
+    await act(async () => h.state.back()); assert.equal(h.state.stage, "exercises"); assert.equal(h.state.options.items[0].guidance_available, false); await close();
+  }
 });

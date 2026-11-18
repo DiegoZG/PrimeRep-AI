@@ -13,6 +13,10 @@ import { AuthContext } from "@/utils/authContext";
 type Stage = "capture" | "manual" | "confirm" | "exercises" | "guidance";
 const remembered = new Map<string, string>();
 const preAdmissionErrors = new Set(["scan_access_unknown", "scan_access_required", "scan_disabled", "scan_budget_exceeded", "scan_quota_exceeded", "scan_authentication_required", "scan_image_invalid", "scan_image_too_large", "scan_media_type_unsupported", "scan_invalid_request"]);
+function refreshOptionAvailability(previous: ExerciseOptionsPage | null, guidance: ExerciseGuidance) {
+  if (!previous) return previous;
+  return { ...previous, items: previous.items.map((item) => item.exercise_id === guidance.exercise_id ? { ...item, guidance_available: guidance.instructions.status === "published", approved_video_available: guidance.video.status === "approved" } : item) };
+}
 export function useEquipmentScanner() {
   const { user, token } = useContext(AuthContext);
   const [enabled, setEnabled] = useState(false);
@@ -71,7 +75,7 @@ export function useEquipmentScanner() {
       if (previous && accessToken) {
         guidanceRefresh.current?.abort(); const controller = new AbortController(); guidanceRefresh.current = controller;
         guidanceRef.current = null; setGuidance(null);
-        void getScanGuidance(accessToken, previous.exercise_id, controller.signal).then((next) => { if (current() && previousEnvironment === environment.current && previousGeneration === generation.current && !controller.signal.aborted) { guidanceRef.current = next; setGuidance(next); } }).catch(() => { if (current() && previousEnvironment === environment.current && previousGeneration === generation.current && !controller.signal.aborted) setError("This guide couldn’t be verified. Go back and open it again when connected."); });
+        void getScanGuidance(accessToken, previous.exercise_id, controller.signal).then((next) => { if (current() && previousEnvironment === environment.current && previousGeneration === generation.current && !controller.signal.aborted) { guidanceRef.current = next; setGuidance(next); setOptions((value) => refreshOptionAvailability(value, next)); } }).catch(() => { if (current() && previousEnvironment === environment.current && previousGeneration === generation.current && !controller.signal.aborted) setError("This guide couldn’t be verified. Go back and open it again when connected."); });
       }
     });
     return () => { active.current = false; subscription.remove(); guidanceRefresh.current?.abort(); guidanceRef.current = null; cancelRequest(); const previous = photoRef.current; photoRef.current = null; setPhoto(null); setPicking(false); setResult(null); setGuidance(null); setOptions(null); setMachine(null); setSelection(null); setStage("capture"); if (previous) void discardScanPhoto(previous.uri); };
@@ -123,7 +127,7 @@ export function useEquipmentScanner() {
     void run((signal) => getEquipmentExercises(token, chosen.id, null, signal), (page) => { if (page.equipment.id !== chosen.id) { setError("This equipment changed. Search again."); return; } setMachine(chosen); setOptions(page); setGuidance(null); setStage("exercises"); });
   };
   const moreExercises = () => { if (!token || !machine || !options?.next_cursor) return; void run((signal) => getEquipmentExercises(token, machine.id, options.next_cursor, signal), (page) => { if (page.equipment.id !== machine.id) return; setOptions((previous) => previous ? { ...page, items: [...previous.items, ...page.items.filter((item) => !previous.items.some((p) => p.exercise_id === item.exercise_id))] } : page); }); };
-  const openGuidance = (exerciseId: string) => { if (!token) return; void run((signal) => getScanGuidance(token, exerciseId, signal), (next) => { guidanceRef.current = next; setGuidance(next); setStage("guidance"); }); };
+  const openGuidance = (exerciseId: string) => { if (!token) return; void run((signal) => getScanGuidance(token, exerciseId, signal), (next) => { guidanceRef.current = next; setGuidance(next); setOptions((value) => refreshOptionAvailability(value, next)); setStage("guidance"); }); };
   const back = () => { cancelRequest(); setError(null); setPicking(false); if (stage === "guidance") { guidanceRefresh.current?.abort(); guidanceRef.current = null; setGuidance(null); setStage("exercises"); } else if (stage === "exercises") { setMachine(null); setOptions(null); setStage(confirmationSource.current); } else { setSelection(null); setStage("capture"); } };
   return { enabled, stage, photo, result, selection, machine, query, search, options, guidance, busy, picking, error, attemptKey, recovery, setQuery: (value: string) => { cancelRequest(); setQuery(value); setSearch(null); setSelection(null); }, setSelection, pick, identify, check, manual, find, confirm, moreExercises, openGuidance, back, cancelRequest };
 }
